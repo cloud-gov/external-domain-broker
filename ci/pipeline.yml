@@ -7,6 +7,7 @@ jobs:
     # the credentials file.
     trigger: false
   - get: src
+    params: {depth: 1}
     trigger: true
   - set_pipeline: domain-broker
     file: src/ci/pipeline.yml
@@ -16,6 +17,7 @@ jobs:
 - name: test
   plan:
   - get: src
+    params: {depth: 1}
     trigger: true
     passed: [reconfigure]
   - task: test
