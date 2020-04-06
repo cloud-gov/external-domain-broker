@@ -2,14 +2,16 @@ jobs:
 
 - name: reconfigure
   plan:
-  - get: pipeline-credentials
-    trigger: true
+  - get: secrets
+    # Remember to manually trigger a new build if you upload a new version of
+    # the credentials file.
+    trigger: false
   - get: src
     trigger: true
   - set_pipeline: domain-broker
     file: src/ci/pipeline.yml
     var_files:
-    - pipeline-credentials/domain-broker.yml
+    - secrets/((name)).yml
 
 - name: test
   plan:
@@ -27,17 +29,17 @@ jobs:
 
 resources:
 
-- name: pipeline-credentials
+- name: secrets
   type: s3-iam
   source:
-    bucket: ((concourse-varz))
-    versioned_file: ((concourse-varz-file))
-    region_name: ((aws-region))
+    region_name: ((concourse-varz-bucket-region))
+    bucket: ((concourse-varz-bucket))
+    versioned_file: ((name)).yml
 
-- name: nessus-manager-config
+- name: src
   type: git
   source:
-    uri: ((git-uri))
+    uri: https://github.com/cloud-gov/((name))
     branch: ((git-branch))
 
 resource_types:
