@@ -7,8 +7,10 @@ name = "pypi"
 flask = "*"
 openbrokerapi = "*"
 gunicorn = "*"
+cfenv = "*"
 
 [dev-packages]
+pipenv = "*"
 flask-testing = "*"
 requests = "*"
 pytest = "*"

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+id=$(docker build -f Dockerfile.dev -q .)
+req=$(docker run -v "$PWD:/app" "$id" pipenv lock -r --dev)
+echo "$req" > requirements.txt
+
+cat requirements.txt
