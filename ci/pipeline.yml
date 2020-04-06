@@ -1,0 +1,48 @@
+jobs:
+
+- name: reconfigure
+  plan:
+  - get: pipeline-credentials
+    trigger: true
+  - get: src
+    trigger: true
+  - set_pipeline: domain-broker
+    file: src/ci/pipeline.yml
+    var_files:
+    - pipeline-credentials/domain-broker.yml
+
+- name: test
+  plan:
+  - get: src
+    trigger: true
+    passed: [reconfigure]
+  - task: test
+    platform: linux
+    image_resource:
+      type: docker-image
+      source:
+        repository: 18fgsa/concourse-task
+    run:
+      path: src/test
+
+resources:
+
+- name: pipeline-credentials
+  type: s3-iam
+  source:
+    bucket: ((concourse-varz))
+    versioned_file: ((concourse-varz-file))
+    region_name: ((aws-region))
+
+- name: nessus-manager-config
+  type: git
+  source:
+    uri: ((git-uri))
+    branch: ((git-branch))
+
+resource_types:
+
+- name: s3-iam
+  type: docker-image
+  source:
+    repository: 18fgsa/s3-resource
