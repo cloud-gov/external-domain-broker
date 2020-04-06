@@ -25,7 +25,8 @@ jobs:
         type: docker-image
         source:
           repository: 18fgsa/concourse-task
-      inputs: [src]
+      inputs:
+      - name: src
       run:
         path: src/test
 
