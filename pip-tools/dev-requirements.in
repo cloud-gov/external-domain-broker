@@ -1,0 +1,6 @@
+# Include base requirements
+-c ../requirements.txt
+
+flask-testing
+requests
+pytest
