@@ -10,9 +10,8 @@ main() {
     command="$1"
     shift
   fi
-  echo "command: $command"
 
-  cd "$(git rev-parse --show-toplevel)"
+  cd "$(dirname "$0")/.."
 
   case $command in
     once)
