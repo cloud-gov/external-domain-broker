@@ -39,12 +39,12 @@ echo "Compiling requirements.txt"
 docker run -v "$PWD:/app" "$id" \
   pip-compile \
   --quiet \
-  --output-file=requirements.txt \
+  --output-file=pip-tools/requirements.txt \
   pip-tools/requirements.in
 
 echo "Compiling dev-requirements.txt"
 docker run -v "$PWD:/app" "$id" \
   pip-compile \
   --quiet \
-  --output-file=dev-requirements.txt \
+  --output-file=pip-tools/dev-requirements.txt \
   pip-tools/dev-requirements.in

@@ -1,6 +1,7 @@
 # Include base requirements
--c ../requirements.txt
+-c requirements.txt
 
 flask-testing
 requests
 pytest
+pytest-watch
