@@ -2,6 +2,8 @@
 
 ## Running Tests
 
+Run tests via the `./scripts/test` script.
+
 ## Adding Packages
 
 We're using [pip-tools](https://github.com/jazzband/pip-tools) for managing

@@ -30,7 +30,7 @@ jobs:
       inputs:
       - name: src
       run:
-        path: src/test
+        path: src/scripts/test
 
 resources:
 
