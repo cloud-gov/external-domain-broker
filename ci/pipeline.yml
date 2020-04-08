@@ -14,23 +14,29 @@ jobs:
     var_files:
     - secrets/((name)).yml
 
-- name: test
+- name: build
   plan:
   - get: src
     params: {depth: 1}
     trigger: true
     passed: [reconfigure]
+
+  - put: dev-docker-image
+    params:
+      build: src
+      tag_as_latest: true
+      get_params:
+        skip_download: true
+
+- name: test
+  plan:
   - task: test
+    image: dev-docker-image
     config:
       platform: linux
-      image_resource:
-        type: docker-image
-        source:
-          repository: 18fgsa/concourse-task
-      inputs:
-      - name: src
       run:
-        path: src/scripts/test
+        path: /bin/bash
+        args: ["-c", "pytest"]
 
 resources:
 
@@ -46,6 +52,22 @@ resources:
   source:
     uri: https://github.com/cloud-gov/((name))
     branch: ((git-branch))
+
+- name: dev-docker-image
+  type: docker-image
+  icon: docker
+  source: &docker-image-params
+    repository: ((dev-docker-image))
+    email: ((docker-email))
+    username: ((docker-username))
+    password: ((docker-password))
+
+- name: dev-docker-image
+  type: docker-image
+  icon: docker
+  source:
+    <<: *docker-image-params
+    repository: ((release-docker-image))
 
 resource_types:
 
