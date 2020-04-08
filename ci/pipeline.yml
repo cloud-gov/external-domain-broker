@@ -26,7 +26,7 @@ jobs:
       build: src
       dockerfile: src/docker/Dockerfile
       tag_as_latest: true
-      target: dev
+      target_name: dev
       cache: true
 
   - task: test
