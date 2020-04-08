@@ -36,7 +36,7 @@ jobs:
     config:
       platform: linux
       run:
-        path: docker/run_tests
+        path: /app/docker/run_tests
 
 resources:
 
