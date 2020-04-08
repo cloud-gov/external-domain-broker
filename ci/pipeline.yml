@@ -24,7 +24,7 @@ jobs:
   - put: dev-docker-image
     params:
       build: src
-      dockerfile: docker/Dockerfile
+      dockerfile: src/docker/Dockerfile
       tag_as_latest: true
       target: dev
       cache: true
@@ -49,6 +49,7 @@ resources:
     versioned_file: ((name)).yml
 
 - name: src
+  check_every: 10s
   type: git
   icon: github-circle
   source:
