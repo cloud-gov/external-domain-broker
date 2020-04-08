@@ -30,6 +30,11 @@ jobs:
 
 - name: test
   plan:
+  - get: src
+    params: {depth: 1}
+    trigger: true
+    passed: [build]
+
   - task: test
     image: dev-docker-image
     config:
