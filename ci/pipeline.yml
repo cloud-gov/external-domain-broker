@@ -62,7 +62,7 @@ resources:
     username: ((docker-username))
     password: ((docker-password))
 
-- name: dev-docker-image
+- name: release-docker-image
   type: docker-image
   icon: docker
   source:
