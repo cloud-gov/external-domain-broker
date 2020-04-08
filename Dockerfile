@@ -1,4 +1,4 @@
-FROM python:3.8 as base
+FROM python:3.8-slim as base
 
 WORKDIR /app
 COPY pip-tools/requirements.txt ./pip-tools/
@@ -13,6 +13,10 @@ COPY pip-tools/dev-requirements.txt ./pip-tools/
 RUN pip install -r pip-tools/dev-requirements.txt
 
 COPY . .
+
+RUN useradd -m --no-log-init app
+USER app
+ENV PATH=/usr/local/bin:$PATH
 
 CMD ["pytest"]
 
