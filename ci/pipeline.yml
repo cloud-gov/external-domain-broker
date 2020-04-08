@@ -23,7 +23,8 @@ jobs:
 
   - put: dev-docker-image
     params:
-      build: src/docker
+      build: src
+      dockerfile: docker/Dockerfile
       tag_as_latest: true
       target: dev
       cache: true
