@@ -23,7 +23,7 @@ jobs:
 
   - put: dev-docker-image
     params:
-      build: src
+      build: src/docker
       tag_as_latest: true
       target: dev
       cache: true
@@ -35,7 +35,7 @@ jobs:
     config:
       platform: linux
       run:
-        path: /usr/local/bin/pytest
+        path: docker/run_tests
 
 resources:
 

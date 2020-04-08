@@ -30,7 +30,7 @@ main() {
 }
 
 build_image_and_return_id() {
-  docker build -q -f Dockerfile --target=dev .
+  docker build -q -f docker/Dockerfile --target=dev .
 }
 
 run_docker() {
@@ -39,7 +39,7 @@ run_docker() {
 
 run_tests() {
   id=$(build_image_and_return_id)
-  run_docker "$id" "pytest"
+  run_docker "$id" "docker/run_tests"
 }
 
 watch_tests() {

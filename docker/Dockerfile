@@ -18,7 +18,7 @@ RUN useradd -m --no-log-init app
 USER app
 ENV PATH=/usr/local/bin:$PATH
 
-CMD ["pytest"]
+CMD ["docker/run_tests"]
 
 # ============================================
 # ==  PRODUCTION                            ==
