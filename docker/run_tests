@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
 
-env
-pwd
-eval pytest
+cd /app
+eval pytest -p no:cacheprovider
