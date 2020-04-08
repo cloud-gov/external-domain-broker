@@ -62,13 +62,6 @@ resources:
     username: ((docker-username))
     password: ((docker-password))
 
-- name: release-docker-image
-  type: docker-image
-  icon: docker
-  source:
-    <<: *docker-image-params
-    repository: ((release-docker-image))
-
 resource_types:
 
 - name: s3-iam
