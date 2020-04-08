@@ -11,6 +11,7 @@ from openbrokerapi.service_broker import (
     ProvisionDetails,
     ProvisionedServiceSpec,
     Service,
+    ServicePlan,
     UnbindSpec)
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,20 @@ class Broker(ServiceBroker):
         pass
 
     def catalog(self) -> Service:
+        return Service(
+            id='',
+            name='',
+            description='',
+            bindable=False,
+            plans=[
+                ServicePlan(
+                    id='',
+                    name='',
+                    description='',
+                )
+            ]
+        )
+
         pass
 
     def provision(self, instance_id: str, details: ProvisionDetails, async_allowed: bool, **kwargs) -> ProvisionedServiceSpec:

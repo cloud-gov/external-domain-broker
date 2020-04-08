@@ -15,7 +15,7 @@ class ServerTest(TestCase):
         self.server.start()
         time.sleep(0.5)
 
-    def test_returns_pong(self):
+    def test_server_runs(self):
         response = requests.get("http://localhost:5000/ping")
 
         self.assertEqual(response.status_code, 200)

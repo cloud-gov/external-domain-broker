@@ -50,7 +50,7 @@ run_tests() {
 
 watch_tests() {
   id=$(build_image_and_return_id)
-  run_docker "$id" ptw "$@"
+  run_docker "$id" ptw -cw "$@"
 }
 
 run() {
