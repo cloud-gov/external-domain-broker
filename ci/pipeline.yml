@@ -47,6 +47,7 @@ resources:
 
 - name: secrets
   type: s3-iam
+  icon: cloud-lock
   source:
     region_name: ((concourse-varz-bucket-region))
     bucket: ((concourse-varz-bucket))
@@ -54,6 +55,7 @@ resources:
 
 - name: src
   type: git
+  icon: github-circle
   source:
     uri: https://github.com/cloud-gov/((name))
     branch: ((git-branch))
