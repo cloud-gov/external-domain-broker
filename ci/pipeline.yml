@@ -14,7 +14,7 @@ jobs:
     var_files:
     - secrets/((name)).yml
 
-- name: build
+- name: test
   plan:
   - get: src
     params: {depth: 1}
@@ -27,13 +27,6 @@ jobs:
       tag_as_latest: true
       get_params:
         skip_download: true
-
-- name: test
-  plan:
-  - get: src
-    params: {depth: 1}
-    trigger: true
-    passed: [build]
 
   - task: test
     image: dev-docker-image
