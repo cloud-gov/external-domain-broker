@@ -28,8 +28,6 @@ jobs:
       tag_as_latest: true
       target: dev
       cache: true
-      get_params:
-        skip_download: true
 
   - task: test
     image: dev-docker-image
