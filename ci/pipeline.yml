@@ -35,8 +35,7 @@ jobs:
     config:
       platform: linux
       run:
-        path: /bin/bash
-        args: ["-c", "pytest"]
+        path: /usr/local/bin/pytest
 
 resources:
 
