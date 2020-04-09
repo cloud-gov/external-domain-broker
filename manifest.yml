@@ -4,4 +4,5 @@ applications:
   memory: 256M
   instances: 1
   command: gunicorn -b 0.0.0.0:$PORT "broker:create_app()"
-  docker: ((docker-image))
+  docker:
+    image: ((docker-image))
