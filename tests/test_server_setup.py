@@ -1,26 +1,21 @@
 import time
 from multiprocessing import Process
-from unittest import TestCase
-
+import pytest
 import requests
 
 
-class ServerTest(TestCase):
-    def setUp(self):
-        def run_server():
-            from broker import setup_app
-            setup_app().run()
+def test_server_runs(monkeypatch):
+    def run_server():
+        from broker import setup_app
+        setup_app().run()
 
-        self.server = Process(target=run_server)
-        self.server.start()
-        time.sleep(0.5)
+    server = Process(target=run_server)
+    server.start()
+    time.sleep(0.5)
 
-    def test_server_runs(self):
-        response = requests.get("http://localhost:5000/ping")
+    response = requests.get("http://localhost:5000/ping")
+    assert response.status_code == 200
+    assert response.text == 'PONG'
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.text, 'PONG')
-
-    def tearDown(self):
-        self.server.terminate()
-        self.server.join()
+    server.terminate()
+    server.join()
