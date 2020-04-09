@@ -1,10 +1,7 @@
 ---
 applications:
-- name: exmaple-broker
-  memory: 128M
-  instances: 2
+- name: domain-broker
+  memory: 256M
+  instances: 1
   command: gunicorn -b 0.0.0.0:$PORT "broker:create_app()"
-  buildpack: python_buildpack
-  env:
-    BROKER_USERNAME: user
-    BROKER_PASSWORD: password
+  docker: ((docker-image))

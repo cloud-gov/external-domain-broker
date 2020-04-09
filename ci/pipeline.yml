@@ -2,13 +2,13 @@ jobs:
 
 - name: reconfigure
   plan:
-  - get: secrets
-    # Remember to manually trigger a new build if you upload a new version of
-    # the credentials file.
-    trigger: false
   - get: src
     params: {depth: 1}
     trigger: true
+  - get: secrets
+    # Remember to manually trigger a new build if you upload a new version
+    # of the credentials file.
+    trigger: false
   - set_pipeline: domain-broker
     file: src/ci/pipeline.yml
     var_files:
@@ -30,11 +30,43 @@ jobs:
       cache: true
 
   - task: test
+    # Run the tests using the image pushed above.
     image: dev-docker-image
     config:
       platform: linux
       run:
         path: /app/docker/run_tests
+
+- name: release
+  # Better would be to tag this as candidate, and upgrade to latest later
+  # in the pipeline.
+  plan:
+  - get: src
+    params: {depth: 1}
+    trigger: true
+    passed: [test]
+
+  - put: docker-image
+    params:
+      build: src
+      dockerfile: src/docker/Dockerfile
+      tag_as_latest: true
+      target_name: prod
+      cache: true
+
+- name: deploy-dev
+  plan:
+  - get: src
+    params: {depth: 1}
+    trigger: true
+    passed: [release]
+  - put: cf-dev
+    params:
+      manifest: src/manifest.yml
+      current_app_name: domain-broker
+      show_app_log: true
+      vars:
+        docker-image: ((release-docker-image))
 
 resources:
 
@@ -47,7 +79,6 @@ resources:
     versioned_file: ((name)).yml
 
 - name: src
-  check_every: 10s
   type: git
   icon: github-circle
   source:
@@ -58,10 +89,27 @@ resources:
   type: docker-image
   icon: docker
   source: &docker-image-params
-    repository: ((dev-docker-image))
+    repository: ((docker-image-dev))
     email: ((docker-email))
     username: ((docker-username))
     password: ((docker-password))
+
+- name: docker-image
+  type: docker-image
+  icon: docker
+  source:
+    <<: *docker-image-params
+    repository: ((docker-image-release))
+
+- name: cf-dev
+  type: cf
+  icon: cloud-upload
+  source:
+    api: ((dev-cf-api-url))
+    username: ((dev-cf-username))
+    password: ((dev-cf-password))
+    organization: ((dev-cf-organization))
+    space: ((dev-cf-space))
 
 resource_types:
 
