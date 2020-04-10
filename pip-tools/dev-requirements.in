@@ -1,5 +1,5 @@
 # Include base requirements
--c requirements.txt
+-r requirements.txt
 
 flask-testing
 requests

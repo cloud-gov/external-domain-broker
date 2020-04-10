@@ -1,13 +1,15 @@
 FROM python:3.8-slim as base
 
 WORKDIR /app
-COPY pip-tools/requirements.txt ./pip-tools/
-RUN pip install -r pip-tools/requirements.txt
 
 # ============================================
 # ==  DEVELOPMENT                           ==
 # ============================================
 FROM base as dev
+
+ENV TINI_VERSION v0.18.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN chmod +x /tini
 
 COPY pip-tools/dev-requirements.txt ./pip-tools/
 RUN pip install -r pip-tools/dev-requirements.txt
@@ -24,6 +26,9 @@ CMD ["docker/run_tests"]
 # ==  PRODUCTION                            ==
 # ============================================
 FROM base as prod
+
+COPY pip-tools/requirements.txt ./pip-tools/
+RUN pip install -r pip-tools/requirements.txt
 
 COPY . .
 
