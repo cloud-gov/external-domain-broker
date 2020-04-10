@@ -41,8 +41,13 @@ class Broker(ServiceBroker):
             plans=[
                 ServicePlan(
                     id="6f60835c-8964-4f1f-a19a-579fb27ce694",
-                    name="FAKE",
-                    description="FAKE",
+                    name="domain",
+                    description="Basic custom domain with TLS.",
+                ),
+                ServicePlan(
+                    id="1cc78b0c-c296-48f5-9182-0b38404f79ef",
+                    name="domain-with-cdn",
+                    description="Custom domain with TLS and CloudFront.",
                 )
             ]
         )
