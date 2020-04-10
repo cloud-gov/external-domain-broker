@@ -141,8 +141,8 @@ resources:
     api: ((dev-cf-api-url))
     username: ((dev-cf-username))
     password: ((dev-cf-password))
-    organization: ((dev-cf-organization))
-    space: ((dev-cf-space))
+    organization: ((broker-organization))
+    space: ((broker-space))
 
 - name: pipeline-tasks
   type: git
