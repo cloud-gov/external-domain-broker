@@ -27,6 +27,7 @@ FROM base as prod
 
 COPY . .
 
+ENV PORT=8000
 EXPOSE 8000
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "broker:create_app"]
+CMD ["bash", "-c", "gunicorn -b 0.0.0.0:$PORT 'broker:create_app()'"]
 
