@@ -21,17 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 class Broker(ServiceBroker):
-    """
-    This class should be implemented.
-
-    The minimum setup to register a service broker requires the `catalog()`. To
-    create and delete a service instance `provision` and `deprovision` are
-    required. To bind and unbind a service instance you have to implement
-    `bind` and `unbind` in addition.
-
-    If some steps are async, you will have to add further methods. Please have
-    a look in the Open Service Broker Spec. """
-
     def __init__(self):
         pass
 
@@ -51,9 +40,9 @@ class Broker(ServiceBroker):
             ),
             plans=[
                 ServicePlan(
-                    id='',
-                    name='',
-                    description='',
+                    id="6f60835c-8964-4f1f-a19a-579fb27ce694",
+                    name="FAKE",
+                    description="FAKE",
                 )
             ]
         )

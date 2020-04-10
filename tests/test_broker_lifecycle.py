@@ -6,6 +6,11 @@ def catalog():
     return Broker().catalog()
 
 
+def assert_not_empty(value: str):
+    assert value is not None
+    assert value != ""
+
+
 def test_catalog_has_top_level_values():
     assert catalog().id is not None
     assert catalog().name == "custom-domain"
@@ -14,6 +19,17 @@ def test_catalog_has_top_level_values():
     assert "domain" in catalog().metadata.longDescription
     assert catalog().metadata.supportUrl == "https://cloud.gov/support"
     assert catalog().metadata.providerDisplayName == "Cloud.gov"
+
+
+def test_catalog_has_some_plans():
+    assert catalog().plans is not []
+    for plan in catalog().plans:
+        assert plan.id is not None
+        assert plan.id != ""
+        assert plan.name is not None
+        assert plan.name != ""
+        assert plan.description is not None
+        assert plan.description != ""
 
 
 def test_provision_returns_spec_with_dashboard_id():
