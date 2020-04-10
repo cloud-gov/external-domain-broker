@@ -1,7 +1,7 @@
 ############################
 #  SHARED
 
-broker-register-params: &cf-register-params
+broker-register-params: &broker-register-params
   CF_ORGANIZATION: ((broker-organization))
   CF_SPACE: ((broker-space))
   BROKER_NAME: ((name))
