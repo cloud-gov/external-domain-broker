@@ -116,6 +116,7 @@ resources:
 - name: src
   type: git
   icon: github-circle
+  check_every: 10s
   source:
     uri: https://github.com/cloud-gov/((name))
     branch: ((git-branch))
