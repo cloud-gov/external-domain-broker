@@ -1,11 +1,18 @@
 ############################
 #  SHARED
 
-cf-creds: &cf-creds
-  CF_USERNAME: ((broker-username))
-  CF_PASSWORD: ((broker-password))
+broker-register-params: &cf-register-params
   CF_ORGANIZATION: ((broker-organization))
   CF_SPACE: ((broker-space))
+  BROKER_NAME: ((name))
+  AUTH_USER: ((name))
+  AUTH_PASS: ((broker-auth-password))
+  SERVICES: "custom-domain"
+
+cf-creds-dev: &cf-creds-dev
+  CF_API_URL: ((dev-cf-api-url))
+  CF_USERNAME: ((dev-cf-username))
+  CF_PASSWORD: ((dev-cf-password))
 
 docker-image-params: &docker-image-params
   email: ((docker-email))
@@ -89,12 +96,8 @@ jobs:
   - task: register-broker
     file: pipeline-tasks/register-service-broker.yml
     params:
-      <<: *cf-creds
-      CF_API_URL: ((dev-cf-api-url))
-      BROKER_NAME: ((name))
-      AUTH_USER: ((name))
-      AUTH_PASS: ((broker-auth-password))
-      SERVICES: "custom-domain"
+      <<: *cf-creds-dev
+      <<: *broker-register-params
 
 
 ############################
