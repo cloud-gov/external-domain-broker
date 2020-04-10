@@ -1,0 +1,15 @@
+" To make use of this vim configuration, ensure you have both ALE and
+" localvimrc installed and configured:
+"
+"   https://github.com/dense-analysis/ale 
+"   https://github.com/embear/vim-localvimrc
+"
+" This file is called on every BuffWinEnter, so make sure all commands are
+" buffer-local
+"
+if &ft == 'python'
+  let b:ale_python_black_executable = g:localvimrc_script_dir_unresolved.'/scripts/black'
+  let b:ale_fixers = ['black', 'remove_trailing_lines', 'trim_whitespace'] 
+endif
+
+
