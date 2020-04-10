@@ -1,3 +1,20 @@
+############################
+#  SHARED
+
+cf-creds: &cf-creds
+  CF_USERNAME: ((broker-username))
+  CF_PASSWORD: ((broker-password))
+  CF_ORGANIZATION: ((broker-organization))
+  CF_SPACE: ((broker-space))
+
+docker-image-params: &docker-image-params
+  email: ((docker-email))
+  username: ((docker-username))
+  password: ((docker-password))
+
+############################
+#  JOBS
+
 jobs:
 
 - name: reconfigure
@@ -56,10 +73,12 @@ jobs:
 
 - name: deploy-dev
   plan:
-  - get: src
-    params: {depth: 1}
-    trigger: true
-    passed: [release]
+  - in_parallel:
+    - get: src
+      params: {depth: 1}
+      trigger: true
+      passed: [release]
+    - get: pipeline-tasks
   - put: cf-dev
     params:
       manifest: src/manifest.yml
@@ -67,6 +86,19 @@ jobs:
       show_app_log: true
       vars:
         docker-image: ((docker-image-release))
+  - task: register-broker
+    file: pipeline-tasks/register-service-broker.yml
+    params:
+      <<: *cf-creds
+      CF_API_URL: ((dev-cf-api-url))
+      BROKER_NAME: ((name))
+      AUTH_USER: ((name))
+      AUTH_PASS: ((broker-auth-password))
+      SERVICES: "custom-domain"
+
+
+############################
+#  RESOURCES
 
 resources:
 
@@ -88,11 +120,9 @@ resources:
 - name: dev-docker-image
   type: docker-image
   icon: docker
-  source: &docker-image-params
+  source:
+    <<: *docker-image-params
     repository: ((docker-image-dev))
-    email: ((docker-email))
-    username: ((docker-username))
-    password: ((docker-password))
 
 - name: docker-image
   type: docker-image
@@ -110,6 +140,16 @@ resources:
     password: ((dev-cf-password))
     organization: ((dev-cf-organization))
     space: ((dev-cf-space))
+
+- name: pipeline-tasks
+  type: git
+  icon: github-circle
+  source:
+    uri: ((pipeline-tasks-git-url))
+    branch: ((pipeline-tasks-git-branch))
+
+############################
+#  RESOURCE TYPES
 
 resource_types:
 
