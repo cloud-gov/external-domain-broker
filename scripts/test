@@ -40,7 +40,7 @@ build_image_and_return_id() {
 }
 
 run_docker() {
-  docker run -it -v "$PWD:/app" "$@"
+  docker run -it -v "$PWD:/app" --tmpfs=/db "$@"
 }
 
 run_tests() {
