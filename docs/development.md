@@ -54,3 +54,16 @@ also included a `.lvimrc`, which will configure ALE and black for vim using
 localvimrc (both plugins are required).
 
 ## Architecture
+
+## WIP Notes and Useful Links
+
+- https://acme-python.readthedocs.io/en/stable/index.html
+- http://www.gilesthomas.com/2018/11/python-code-to-generate-lets-encrypt-certificates/ (outdated, but still useful)
+- https://github.com/eruvanos/openbrokerapi-skeleton - where we started
+- https://github.com/eruvanos/openbrokerapi
+- https://openbrokerapi.readthedocs.io/en/latest/openbrokerapi.html#module-openbrokerapi.api
+- https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md
+- https://github.com/openservicebrokerapi/servicebroker/blob/v2.14/spec.md#polling-last-operation-for-service-bindings
+- https://github.com/openservicebrokerapi/servicebroker/blob/master/profile.md#service-metadata
+- https://docs.cloudfoundry.org/services/managing-service-brokers.html
+- https://docs.cloudfoundry.org/services/access-control.html#enable-access
