@@ -4,9 +4,10 @@ import pytest
 import requests
 
 
-def test_server_runs(monkeypatch):
+def test_server_runs():
     def run_server():
         from broker import setup_app
+
         setup_app().run()
 
     server = Process(target=run_server)
@@ -15,7 +16,7 @@ def test_server_runs(monkeypatch):
 
     response = requests.get("http://localhost:5000/ping")
     assert response.status_code == 200
-    assert response.text == 'PONG'
+    assert response.text == "PONG"
 
     server.terminate()
     server.join()

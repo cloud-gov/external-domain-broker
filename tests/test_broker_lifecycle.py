@@ -1,6 +1,5 @@
-import pytest
-
 from broker.broker import Broker
+
 
 def catalog():
     return Broker().catalog()

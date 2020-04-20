@@ -47,11 +47,8 @@ Compiling dev-requirements.txt
 
 ## Code Style
 
-We use [Black](https://github.com/psf/black) to format our code.  Please do the same.
-
-We've provided a `scripts/black` script, which runs black via docker. We've
-also included a `.lvimrc`, which will configure ALE and black for vim using
-localvimrc (both plugins are required).
+We use [Black](https://github.com/psf/black) to format our code.  Please do
+the same.
 
 ## Architecture
 
