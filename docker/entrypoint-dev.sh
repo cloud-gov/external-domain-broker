@@ -1,31 +1,13 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-shopt -s inherit_errexit
+if [[ ! -v PGBASE ]]; then
+  echo "Expected \$PGBASE to be defined in the Dockerfile"
+  exit 2
+fi
 
-# Use with `docker run --tmpfs=/db`
-BASE=/db
-
-mkdir -p $BASE/data
-export PGDATA=$BASE/data
-export PGHOST="$BASE/tmp"
-
-{
-  echo "Running initdb"
-  initdb -A trust
-  echo "listen_addresses = '127.0.0.1'" >> /db/data/postgresql.conf
-
-  echo
-  echo "Creating database and user"
-  postgres --single postgres <<-EOF
-    CREATE DATABASE pgdb;
-    CREATE USER pguser WITH ENCRYPTED PASSWORD 'pgpasswd';
-    GRANT ALL PRIVILEGES ON DATABASE pgdb TO pguser;
-	EOF
-
-  echo
-  echo "Starting postgres"
-} >> $BASE/logs
-pg_ctl --silent --log=$BASE/logs start
+if ! pg_ctl --silent --log="$PGBASE/logs" start; then
+  echo "Error starting postgres"
+  exit 2
+fi
 
 exec "$@"
