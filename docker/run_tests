@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 
-cd /app
-eval pytest -p no:cacheprovider
+cd /app || (echo "Cannot find /app directory"; exit 2)
+set -x
+eval python -m pytest

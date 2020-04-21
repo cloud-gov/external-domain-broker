@@ -1,0 +1,8 @@
+Dockerfile
+.dockerignore
+.git
+.gitignore
+do-not-commit
+docs
+README.md
+scripts

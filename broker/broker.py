@@ -1,8 +1,6 @@
 import logging
 
-import os
-import sys
-from openbrokerapi import api
+from openbrokerapi import api, errors
 from openbrokerapi.service_broker import (
     ServiceBroker,
     UnbindDetails,
@@ -10,12 +8,14 @@ from openbrokerapi.service_broker import (
     Binding,
     DeprovisionDetails,
     DeprovisionServiceSpec,
+    ProvisionState,
     ProvisionDetails,
     ProvisionedServiceSpec,
     Service,
     ServicePlan,
     ServiceMetadata,
-    UnbindSpec)
+    UnbindSpec,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,20 +48,44 @@ class Broker(ServiceBroker):
                     id="1cc78b0c-c296-48f5-9182-0b38404f79ef",
                     name="domain-with-cdn",
                     description="Custom domain with TLS and CloudFront.",
-                )
-            ]
+                ),
+            ],
         )
 
-    def provision(self, instance_id: str, details: ProvisionDetails, async_allowed: bool, **kwargs) -> ProvisionedServiceSpec:
+    def provision(
+        self, instance_id: str, details: ProvisionDetails, async_allowed: bool, **kwargs
+    ) -> ProvisionedServiceSpec:
+        if not async_allowed:
+            raise errors.ErrAsyncRequired()
+        return ProvisionedServiceSpec(state=ProvisionState.IS_ASYNC)
+
+    def deprovision(
+        self,
+        instance_id: str,
+        details: DeprovisionDetails,
+        async_allowed: bool,
+        **kwargs
+    ) -> DeprovisionServiceSpec:
         pass
 
-    def deprovision(self, instance_id: str, details: DeprovisionDetails, async_allowed: bool, **kwargs) -> DeprovisionServiceSpec:
+    def bind(
+        self,
+        instance_id: str,
+        binding_id: str,
+        details: BindDetails,
+        async_allowed: bool,
+        **kwargs
+    ) -> Binding:
         pass
 
-    def bind(self, instance_id: str, binding_id: str, details: BindDetails, async_allowed: bool, **kwargs) -> Binding:
-        pass
-
-    def unbind(self, instance_id: str, binding_id: str, details: UnbindDetails, async_allowed: bool, **kwargs) -> UnbindSpec:
+    def unbind(
+        self,
+        instance_id: str,
+        binding_id: str,
+        details: UnbindDetails,
+        async_allowed: bool,
+        **kwargs
+    ) -> UnbindSpec:
         pass
 
 

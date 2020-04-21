@@ -40,8 +40,6 @@ build_image_and_return_id() {
 }
 
 run_docker() {
-  # The Dockerfile specifies a /db VOLUME, and --rm will automatically
-  # remove that volume after it's done.
   docker run --rm -it -v "$PWD:/app" "$@"
 }
 

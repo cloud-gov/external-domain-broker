@@ -1,5 +1,10 @@
 # Development
 
+## Open Service Broker API
+
+We're using https://github.com/eruvanos/openbrokerapi, and we used
+https://github.com/eruvanos/openbrokerapi-skeleton to start the project.
+
 ## Running Tests
 
 Run tests via the `./scripts/test` script.  This uses the `dev` stage of the
