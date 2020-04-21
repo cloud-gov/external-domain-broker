@@ -1,19 +1,22 @@
 import logging
+from typing import Optional
 
 from openbrokerapi import api, errors
 from openbrokerapi.service_broker import (
-    ServiceBroker,
-    UnbindDetails,
     BindDetails,
     Binding,
     DeprovisionDetails,
     DeprovisionServiceSpec,
-    ProvisionState,
+    LastOperation,
+    OperationState,
     ProvisionDetails,
     ProvisionedServiceSpec,
+    ProvisionState,
     Service,
-    ServicePlan,
+    ServiceBroker,
     ServiceMetadata,
+    ServicePlan,
+    UnbindDetails,
     UnbindSpec,
 )
 
@@ -51,6 +54,20 @@ class Broker(ServiceBroker):
                 ),
             ],
         )
+
+    def last_operation(
+        self, instance_id: str, operation_data: Optional[str], **kwargs
+    ) -> LastOperation:
+        """
+        Further readings `CF Broker API#LastOperation <https://docs.cloudfoundry.org/services/api.html#polling>`_
+
+        :param instance_id: Instance id provided by the platform
+        :param operation_data: Operation data received from async operation
+        :param kwargs: May contain additional information, improves
+                       compatibility with upstream versions
+        :rtype: LastOperation
+        """
+        return LastOperation(state=OperationState.IN_PROGRESS)
 
     def provision(
         self, instance_id: str, details: ProvisionDetails, async_allowed: bool, **kwargs
