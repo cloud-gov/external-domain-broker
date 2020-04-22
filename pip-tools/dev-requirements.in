@@ -1,5 +1,5 @@
 # Include base requirements
--r requirements.txt
+-r ../requirements.txt
 flask-testing
 pip-tools
 pytest
