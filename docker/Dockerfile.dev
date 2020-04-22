@@ -1,0 +1,36 @@
+FROM python:3.8-slim as base
+
+# When building locally, these should be set to your UID/GID.  That way, any
+# files written to the $PWD mount will be owned by you.  This is not
+# necessary (or wanted) when building in Concourse.
+ARG UID=2000
+ARG GID=2000
+ARG USER=app
+
+RUN groupadd --gid=$GID $USER
+RUN useradd \
+      --home-dir=/home/$USER \
+      --no-log-init \
+      --create-home \
+      --shell=/bin/bash \
+      --gid=$GID \
+      --uid=$UID \
+      $USER
+
+ENV PATH=/usr/local/bin:$PATH
+ENV FLASK_APP="broker:create_app()"
+
+WORKDIR /app
+
+COPY pip-tools/dev-requirements.txt ./pip-tools/
+RUN pip install -r pip-tools/dev-requirements.txt
+
+USER $USER:$USER
+
+ENV FLASK_ENV=development
+ENV DATABASE_URL="sqlite:////app/db.sqlite"
+
+COPY . .
+
+CMD ["bash"]
+

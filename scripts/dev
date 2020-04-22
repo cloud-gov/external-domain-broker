@@ -46,7 +46,7 @@ build_image_and_return_id() {
   # concourse pipeline.
   docker build \
     -q \
-    -f docker/Dockerfile \
+    -f docker/Dockerfile.dev \
     --build-arg UID="$(id -u)" \
     --build-arg GID="$(id -g)" \
     --build-arg USER="$USER" \

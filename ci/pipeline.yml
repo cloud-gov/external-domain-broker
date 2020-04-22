@@ -14,11 +14,6 @@ cf-creds-dev: &cf-creds-dev
   CF_USERNAME: ((dev-cf-username))
   CF_PASSWORD: ((dev-cf-password))
 
-docker-image-params: &docker-image-params
-  email: ((docker-email))
-  username: ((docker-username))
-  password: ((docker-password))
-
 ############################
 #  JOBS
 
@@ -48,9 +43,8 @@ jobs:
   - put: dev-docker-image
     params:
       build: src
-      dockerfile: src/docker/Dockerfile
+      dockerfile: src/docker/Dockerfile.dev
       tag_as_latest: true
-      target_name: dev
       cache: true
 
   - task: test
@@ -61,38 +55,19 @@ jobs:
       run:
         path: /app/docker/run_tests
 
-- name: release
-  # Better would be to tag this as candidate, and upgrade to latest later
-  # in the pipeline.
-  plan:
-  - get: src
-    params: {depth: 1}
-    trigger: true
-    passed: [test]
-
-  - put: docker-image
-    params:
-      build: src
-      dockerfile: src/docker/Dockerfile
-      tag_as_latest: true
-      target_name: prod
-      cache: true
-
 - name: deploy-dev
   plan:
   - in_parallel:
     - get: src
       params: {depth: 1}
       trigger: true
-      passed: [release]
+      passed: [test]
     - get: pipeline-tasks
   - put: cf-dev
     params:
       manifest: src/manifest.yml
       current_app_name: domain-broker
       show_app_log: true
-      vars:
-        docker-image: ((docker-image-release))
   - task: register-broker
     file: pipeline-tasks/register-service-broker.yml
     params:
@@ -125,15 +100,10 @@ resources:
   type: docker-image
   icon: docker
   source:
-    <<: *docker-image-params
+    email: ((docker-email))
+    username: ((docker-username))
+    password: ((docker-password))
     repository: ((docker-image-dev))
-
-- name: docker-image
-  type: docker-image
-  icon: docker
-  source:
-    <<: *docker-image-params
-    repository: ((docker-image-release))
 
 - name: cf-dev
   type: cf

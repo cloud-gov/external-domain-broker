@@ -3,5 +3,7 @@ applications:
 - name: domain-broker
   memory: 256M
   instances: 1
-  docker:
-    image: ((docker-image))
+  buildpack: python_buildpack
+  command: gunicorn -b 0.0.0.0:$PORT "broker:create_app()"
+  env:
+    FLASK_ENV: production
