@@ -7,8 +7,8 @@ https://github.com/eruvanos/openbrokerapi-skeleton to start the project.
 
 ## Running Tests
 
-Run tests via the `./scripts/test` script. This uses the `dev` stage of the
-Dockerfile, to ensure we're as close to parity with prod as possible.
+Run tests via the `./scripts/dev tests` script. This uses the `dev` stage of
+the Dockerfile, to ensure we're as close to parity with prod as possible.
 
 ### In Production
 
@@ -16,13 +16,9 @@ Runs release image
 
 ### Local Tests
 
-1. Run `./script/test watch`
-1. which composes `docker-compose.yml` and `docker-compose-tests.yml`
-1. `docker-compose-tests.yml` runs extra container using `dev` stage
+1. Run `./script/dev watch-tests`
+1. which builds the container using `dev` stage
 1. watches the tests inside it.
-1. Some of those tests run units against the local FS.
-1. Some run acceptance against `HOST:PORT`
-1. `<ctrl-c>` kills compose and DB, etc.
 
 ### Concourse Tests
 
@@ -44,8 +40,7 @@ requirements) or `pip-tools/dev-requirements.in` (for development requirements)
 files and run:
 
 ```console
-$ ./scripts/update-requirements-txt
-Building the temporary docker image
+$ ./scripts/dev update-requirements
 Compiling requirements.txt
 Compiling dev-requirements.txt
 ```

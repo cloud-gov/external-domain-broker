@@ -1,5 +1,5 @@
+Flask-Migrate
 Flask-SQLAlchemy
-alembic
 cfenv
 flask
 gunicorn

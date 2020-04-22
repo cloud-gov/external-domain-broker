@@ -2,9 +2,10 @@ import logging
 import os
 
 from flask import Flask
-
 from flask_sqlalchemy import SQLAlchemy
 from openbrokerapi.api import BrokerCredentials
+
+from flask_migrate import Migrate
 
 from . import log_util
 from .broker import create_broker_blueprint
@@ -15,6 +16,7 @@ log_util.configure(logging.root, log_level="INFO")
 logger = logging.getLogger(__name__)
 
 db = SQLAlchemy()
+migrate = Migrate()
 
 
 def create_app():
@@ -23,7 +25,9 @@ def create_app():
     app.config["SECRET_KEY"] = "dev"
     app.config["DATABASE"] = db_path
     app.config["SQLALCHEMY_DATABASE_URI"] = db_path
+
     db.init_app(app)
+    migrate.init_app(app, db)
 
     # ensure the instance folder exists
     try:

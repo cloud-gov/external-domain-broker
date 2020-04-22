@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+shopt -s inherit_errexit
+
+main() {
+  if [[ $# -eq 0 ]]; then
+    command=tests
+  else
+    command="$1"
+    shift
+  fi
+
+  cd "$(git rev-parse --show-toplevel)"
+
+  case $command in
+    -h)
+      usage
+      ;;
+    tests)
+      tests "$@"
+      ;;
+    watch-tests)
+      watch-tests "$@"
+      ;;
+    run)
+      run "$@"
+      ;;
+    update-requirements)
+      update-requirements "$@"
+      ;;
+    shell)
+      shell
+      ;;
+    *)
+      usage "Unknown command: $command"
+      ;;
+  esac
+}
+
+build_image_and_return_id() {
+  # The build-args are used to create a user with the same UID/GID as
+  # yourself. That way, any files written to the $PWD mount will be owned by
+  # you.  This user is embedded in the docker image, so the resulting image
+  # should only be used locally.  These arguments are not used in our
+  # concourse pipeline.
+  docker build \
+    -q \
+    -f docker/Dockerfile \
+    --build-arg UID="$(id -u)" \
+    --build-arg GID="$(id -g)" \
+    --build-arg USER="$USER" \
+    --target=dev \
+    .
+}
+
+run_docker() {
+  docker run --rm -it -v "$PWD:/app" "$@"
+}
+
+tests() {
+  id=$(build_image_and_return_id)
+  run_docker "$id" docker/run_tests "$@"
+}
+
+watch-tests() {
+  id=$(build_image_and_return_id)
+  run_docker "$id" ptw -cw "$@"
+}
+
+run() {
+  id=$(build_image_and_return_id)
+  run_docker "$id" "$@"
+}
+
+shell() {
+  id=$(build_image_and_return_id)
+  run_docker "$id" "bash"
+}
+
+update-requirements() {
+  id=$(build_image_and_return_id)
+  run_docker "$id" "docker/update-requirements-txt"
+}
+
+usage() {
+  [[ $# -gt 0 ]] && echo "ERROR: $*"
+  local me=$(basename "$0")
+  cat <<-EOF
+
+  USAGE: $me COMMAND
+
+  Runs the commands in the development container.
+
+  Examples:
+
+    # Runs the tests once
+    $me
+
+    # Same as above
+    $me tests
+
+    # Continually watch for file changes and runs tests
+    $me watch-tests
+
+    # Start an interactive bash shell in the tests container
+    $me shell
+
+    # Generate the pip-tools/*requirements.txt files from
+    # pip-tools/*requirements.in
+    $me update-requirements
+
+    # Run 'foo' in the test container
+    $me run foo
+	EOF
+  exit 1
+}
+
+main "$@"
