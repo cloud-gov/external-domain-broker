@@ -1,4 +1,6 @@
-flask
-openbrokerapi
-gunicorn
+Flask-SQLAlchemy
+alembic
 cfenv
+flask
+gunicorn
+openbrokerapi

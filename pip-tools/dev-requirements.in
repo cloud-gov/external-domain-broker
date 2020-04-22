@@ -1,7 +1,6 @@
 # Include base requirements
 -r requirements.txt
-
 flask-testing
-requests
 pytest
 pytest-watch
+requests

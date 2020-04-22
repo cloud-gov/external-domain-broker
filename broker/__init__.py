@@ -2,6 +2,8 @@ import logging
 import os
 
 from flask import Flask
+
+from flask_sqlalchemy import SQLAlchemy
 from openbrokerapi.api import BrokerCredentials
 
 from . import log_util
@@ -12,11 +14,16 @@ from .broker import create_broker_blueprint
 log_util.configure(logging.root, log_level="INFO")
 logger = logging.getLogger(__name__)
 
+db = SQLAlchemy()
+
 
 def create_app():
     app = Flask(__name__)
     db_path = os.path.join(app.instance_path, "db.sqlite")
-    app.config.from_mapping(SECRET_KEY="dev", DATABASE=db_path)
+    app.config["SECRET_KEY"] = "dev"
+    app.config["DATABASE"] = db_path
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_path
+    db.init_app(app)
 
     # ensure the instance folder exists
     try:
