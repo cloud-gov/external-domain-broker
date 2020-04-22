@@ -7,7 +7,7 @@ https://github.com/eruvanos/openbrokerapi-skeleton to start the project.
 
 ## Running Tests
 
-Run tests via the `./scripts/test` script.  This uses the `dev` stage of the
+Run tests via the `./scripts/test` script. This uses the `dev` stage of the
 Dockerfile, to ensure we're as close to parity with prod as possible.
 
 ### In Production
@@ -36,14 +36,14 @@ Runs release image
 ## Adding Packages
 
 We're using [pip-tools](https://github.com/jazzband/pip-tools) for managing
-packages.  It provides the same strong locking semantics that Pipenv provides,
+packages. It provides the same strong locking semantics that Pipenv provides,
 but it's actually maintained.
 
 To add a new package, edit the `pip-tools/requirements.in` (for production
 requirements) or `pip-tools/dev-requirements.in` (for development requirements)
 files and run:
 
-``` console
+```console
 $ ./scripts/update-requirements-txt
 Building the temporary docker image
 Compiling requirements.txt
@@ -52,7 +52,7 @@ Compiling dev-requirements.txt
 
 ## Code Style
 
-We use [Black](https://github.com/psf/black) to format our code.  Please do
+We use [Black](https://github.com/psf/black) to format our code. Please do
 the same.
 
 ## Architecture

@@ -5,7 +5,7 @@ Cloud Foundry service broker to manage AWS CloudFront, AWS ALBs and Let's Encryp
 Like the [cf-domain-broker](https://github.com/18F/cf-domain-broker), this
 broker combines the features of the
 [cf-cdn-service-broker](https://github.com/18F/cf-cdn-service-broker) and
-the [cf-domain-broker-alb](https://github.com/18F/cf-domain-broker-alb).  It
+the [cf-domain-broker-alb](https://github.com/18F/cf-domain-broker-alb). It
 provisions Let's Encrypt certificates for a given domain, and configures
 either AWS ABLs or an AWS CloudFront distribution to use that certificate.
 
@@ -22,11 +22,11 @@ commercial cloud.
 
 When users request a domain service instance, this broker will provision a
 Let's Encrypt certificate, an ELB and a CloudFront CDN, and wire them all up
-together.  It does _not_ attempt to manage DNS (as most users already have DNS
+together. It does _not_ attempt to manage DNS (as most users already have DNS
 solutions in place).
 
 This requires a manual step to be performed by the user after the instance is
-created, as described...  here:
+created, as described... here:
 
 ### Let's Encrypt Challenge Challenges
 
@@ -56,9 +56,9 @@ likely hit the same CloudFront limitation listed above.
 
 Investigation pointers:
 
-* [CloudFront supports HTTP/2](https://aws.amazon.com/about-aws/whats-new/2016/09/amazon-cloudfront-now-supports-http2/)
-* [ALPN is the required SSL implementation for HTTP/2](https://en.wikipedia.org/wiki/Application-Layer_Protocol_Negotiation)
-* [Dehydrate](https://github.com/lukas2511/dehydrated/blob/master/docs/tls-alpn.md) bash ACME client can generate ALPN certs.
+- [CloudFront supports HTTP/2](https://aws.amazon.com/about-aws/whats-new/2016/09/amazon-cloudfront-now-supports-http2/)
+- [ALPN is the required SSL implementation for HTTP/2](https://en.wikipedia.org/wiki/Application-Layer_Protocol_Negotiation)
+- [Dehydrate](https://github.com/lukas2511/dehydrated/blob/master/docs/tls-alpn.md) bash ACME client can generate ALPN certs.
 
 #### `DNS01`
 
@@ -68,7 +68,7 @@ automate the `DNS01` challenge.
 #### Our Solution - Manual DNS Updates
 
 Because of these limitations, we return instructions to the end user as to how
-to configure their DNS `TXT` record.  We then monitor DNS for the record to be
+to configure their DNS `TXT` record. We then monitor DNS for the record to be
 set and propagated globally before continuing with the `DNS01` challenge
 verification.
 
@@ -76,26 +76,26 @@ verification.
 
 The Broker can be configured via the following environment variables:
 
-Variable                       | Meaning
--------------------------------|------------------------------------------------------
-`AWS_ACCESS_KEY_ID`            | AWS access key
-`AWS_SECRET_ACCESS_KEY`        | AWS secret access key
-`AWS_DEFAULT_REGION`           | AWS region to use
-`ACME_ROOT`                    | _todo (mxplusb):_ this needs to go in acceptance_tests
-`ACME_URL`                     | ACME server url, self-hosted, LE staging, or LE prod works.
-`ALB_NAMES`                    | The resource names of the ELBs/ALBs you want to use for brokering custom domains. format: `alb-0,alb-1`
-`BROKER_NAME`                  | The name of the cf app which gets deployed.
-`BUCKET`                       | The S3 bucket which will be used for HTTP01 renewals.
-`DATABASE_URL`                 | The Postgres database URL.
-`DELETE_TEST_SERVICE_INSTANCE` | _todo (mxplusb):_ this needs to go in acceptance-tests
-`EMAIL`                        | The registration email used to register new domain names.
-`IAM_PATH_PREFIX`              | The IAM namespace to use.
-`LOG_LEVEL`                    | _todo (mxplusb):_ make sure this actually does the thing
-`PASS`                         | _todo (mxplusb):_ I think this is the broker password, need to document better
-`RESOLVERS`                    | DNS pre-check resolvers, see more below
-`SERVICE_OFFERINGS`            | _todo (mxplusb):_ figure out what this means
-`URL`                          | _todo (mxplusb):_ this too
-`USER`                         | _todo (mxplusb):_ I think this is the cf broker username
+| Variable                       | Meaning                                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `AWS_ACCESS_KEY_ID`            | AWS access key                                                                                          |
+| `AWS_SECRET_ACCESS_KEY`        | AWS secret access key                                                                                   |
+| `AWS_DEFAULT_REGION`           | AWS region to use                                                                                       |
+| `ACME_ROOT`                    | _todo (mxplusb):_ this needs to go in acceptance_tests                                                  |
+| `ACME_URL`                     | ACME server url, self-hosted, LE staging, or LE prod works.                                             |
+| `ALB_NAMES`                    | The resource names of the ELBs/ALBs you want to use for brokering custom domains. format: `alb-0,alb-1` |
+| `BROKER_NAME`                  | The name of the cf app which gets deployed.                                                             |
+| `BUCKET`                       | The S3 bucket which will be used for HTTP01 renewals.                                                   |
+| `DATABASE_URL`                 | The Postgres database URL.                                                                              |
+| `DELETE_TEST_SERVICE_INSTANCE` | _todo (mxplusb):_ this needs to go in acceptance-tests                                                  |
+| `EMAIL`                        | The registration email used to register new domain names.                                               |
+| `IAM_PATH_PREFIX`              | The IAM namespace to use.                                                                               |
+| `LOG_LEVEL`                    | _todo (mxplusb):_ make sure this actually does the thing                                                |
+| `PASS`                         | _todo (mxplusb):_ I think this is the broker password, need to document better                          |
+| `RESOLVERS`                    | DNS pre-check resolvers, see more below                                                                 |
+| `SERVICE_OFFERINGS`            | _todo (mxplusb):_ figure out what this means                                                            |
+| `URL`                          | _todo (mxplusb):_ this too                                                                              |
+| `USER`                         | _todo (mxplusb):_ I think this is the cf broker username                                                |
 
 > **Tip**: These map directly to the keys in [`RuntimeSettings`](/types/broker.go).
 
@@ -111,7 +111,7 @@ created as nothing will resolve (and the broker will likely crash).
 The resolvers (can be more than one) must be in the following format per resolver:
 `{Name}={IP}:{Port}`. For example:
 
-``` bash
+```bash
 RESOLVERS="level3=4.2.2.2:53,google=8.8.8.8:53,internal=192.168.0.2:53"
 ```
 
@@ -125,7 +125,7 @@ responsible for auditing your own security policies. No warranty, etc, etc.
 ## Pipeline Configuration
 
 This broker leverages [Concourse](https://concourse-ci.org) for it's deployment
-automation, but it's not dependent on it.  You can find example and live
+automation, but it's not dependent on it. You can find example and live
 concourse configuration files in [the `ci/` directory](/ci).
 
 ## History
@@ -144,7 +144,7 @@ The ACMEv1 deprecation deadline is currently looming, and the
 [cf-domain-broker](https://github.com/18F/cf-domain-broker) is half-completed.
 Our team is much stronger in Python than in Go, and this broker is not in a
 performance-sensitive path, nor does it benefit from Go's phenomenal static
-compilation feature.  In addition, the Go [lego
+compilation feature. In addition, the Go [lego
 library](https://github.com/go-acme/lego) is ill-suited for the asynchronous
 and manual workflow this broker must provide.
 
