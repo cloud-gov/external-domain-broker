@@ -30,7 +30,7 @@ class Broker(ServiceBroker):
     def catalog(self) -> Service:
         return Service(
             id="8c16de31-104a-47b0-ba79-25e747be91d6",
-            name="custom-domain",
+            name="external-domain",
             description="Assign a custom domain to your application with TLS and an optional CDN.",
             bindable=False,
             metadata=ServiceMetadata(

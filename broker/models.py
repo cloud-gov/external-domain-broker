@@ -1,7 +1,11 @@
-from . import db
+from .db import TIMESTAMP, Column, Model, String, Text, func
 
 
-class ServiceInstance(db.Model):
-    id = db.Column(db.String, primary_key=True)
-    status = db.Column(db.String, nullable=False)
-    # TODO created_at? updated_at?
+class TimestampMixin(object):
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at = Column(TIMESTAMP(timezone=True), onupdate=func.now())
+
+
+class ServiceInstance(Model, TimestampMixin):
+    id = Column(String, length=36, primary_key=True)
+    status = Column(Text, nullable=False)

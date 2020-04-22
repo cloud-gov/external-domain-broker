@@ -36,6 +36,7 @@ RUN useradd \
 USER $USER:$USER
 
 ENV FLASK_ENV=development
+ENV DATABASE_URL="sqlite:////app/db.sqlite"
 
 COPY . .
 

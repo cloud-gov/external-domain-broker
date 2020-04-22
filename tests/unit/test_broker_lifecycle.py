@@ -12,7 +12,7 @@ def assert_not_empty(value: str):
 
 def test_catalog_has_top_level_values():
     assert catalog().id is not None
-    assert catalog().name == "custom-domain"
+    assert catalog().name == "external-domain"
     assert "domain" in catalog().description
     assert "domain" in catalog().metadata.displayName
     assert "domain" in catalog().metadata.longDescription
