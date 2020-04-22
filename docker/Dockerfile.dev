@@ -17,18 +17,23 @@ RUN useradd \
       --uid=$UID \
       $USER
 
-ENV PATH=/usr/local/bin:$PATH
-ENV FLASK_APP="broker:create_app()"
-
-WORKDIR /app
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      sqlite3 \
+      libsqlite3-dev
 
 COPY pip-tools/dev-requirements.txt ./pip-tools/
 RUN pip install -r pip-tools/dev-requirements.txt
 
 USER $USER:$USER
 
+WORKDIR /app
+
+ENV PATH=/usr/local/bin:$PATH
+ENV FLASK_APP="broker:create_app()"
 ENV FLASK_ENV=development
-ENV DATABASE_URL="sqlite:////app/db.sqlite"
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV DATABASE_URL="sqlite:////app/dev.sqlite"
 
 COPY . .
 
