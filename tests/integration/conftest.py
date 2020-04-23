@@ -2,6 +2,7 @@ import base64
 import os
 import tempfile
 
+import flask_migrate
 import pytest
 from flask.testing import FlaskClient
 from flask.wrappers import Response
@@ -100,6 +101,7 @@ def client(app):
     db_fd, app.config["DATABASE"] = tempfile.mkstemp()
     app.test_client_class = CFAPIClient
     app.response_class = CFAPIResponse
+    flask_migrate.upgrade()
 
     yield app.test_client()
 
