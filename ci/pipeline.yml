@@ -65,6 +65,7 @@ jobs:
     - get: pipeline-tasks
   - put: cf-dev
     params:
+      path: src
       manifest: src/manifest.yml
       current_app_name: domain-broker
       show_app_log: true
