@@ -50,7 +50,6 @@ build_image_and_return_id() {
     --build-arg UID="$(id -u)" \
     --build-arg GID="$(id -g)" \
     --build-arg USER="$USER" \
-    --target=dev \
     .
 }
 
