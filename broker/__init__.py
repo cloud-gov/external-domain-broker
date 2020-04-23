@@ -2,10 +2,9 @@ import logging
 import os
 
 from flask import Flask
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from openbrokerapi.api import BrokerCredentials
-
-from flask_migrate import Migrate
 
 from . import log_util
 from .broker import create_broker_blueprint
@@ -20,6 +19,10 @@ migrate = Migrate()
 
 
 def create_app():
+    # We need to import models, even though it's unused, in order to enable
+    # `flask db migrate`
+    from broker import models  # noqa: F401
+
     app = Flask(__name__)
     app.config["SECRET_KEY"] = "dev"
     app.config["DATABASE"] = os.environ.get("DATABASE_URL")

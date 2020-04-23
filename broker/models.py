@@ -1,11 +1,11 @@
-from .db import TIMESTAMP, Column, Model, String, Text, func
+from . import db
 
 
 class TimestampMixin(object):
-    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
-    updated_at = Column(TIMESTAMP(timezone=True), onupdate=func.now())
+    created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.now())
+    updated_at = db.Column(db.TIMESTAMP(timezone=True), onupdate=db.func.now())
 
 
-class ServiceInstance(Model, TimestampMixin):
-    id = Column(String, length=36, primary_key=True)
-    status = Column(Text, nullable=False)
+class ServiceInstance(db.Model, TimestampMixin):
+    id = db.Column(db.String(36), primary_key=True)
+    status = db.Column(db.Text, nullable=False)

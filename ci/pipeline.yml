@@ -5,9 +5,9 @@ broker-register-params: &broker-register-params
   CF_ORGANIZATION: ((broker-organization))
   CF_SPACE: ((broker-space))
   BROKER_NAME: ((name))
-  AUTH_USER: ((name))
+  AUTH_USER: ((broker-auth-username))
   AUTH_PASS: ((broker-auth-password))
-  SERVICES: "external-domain"
+  SERVICES: ((service-name))
 
 cf-creds-dev: &cf-creds-dev
   CF_API_URL: ((dev-cf-api-url))
@@ -28,7 +28,7 @@ jobs:
     # Remember to manually trigger a new build if you upload a new version
     # of the credentials file.
     trigger: false
-  - set_pipeline: domain-broker
+  - set_pipeline: ((name))
     file: src/ci/pipeline.yml
     var_files:
     - secrets/((name)).yml
@@ -63,14 +63,24 @@ jobs:
       trigger: true
       passed: [test]
     - get: pipeline-tasks
-  - task: migrate
-    file: src/ci/migrate.yml
+  - task: create-db
+    file: src/ci/create-db.yml
+    vars:
+      app: ((app))
+      service: ((service))
+      plan: ((plan))
+  - task: migrate-db
+    file: src/ci/migrate-db.yml
+    vars:
+      app: ((app))
   - put: cf-dev
     params:
       path: src
       manifest: src/manifest.yml
-      current_app_name: domain-broker
+      current_app_name: ((name))
       show_app_log: true
+      vars:
+        name: ((name))
   - task: register-broker
     file: pipeline-tasks/register-service-broker.yml
     params:
