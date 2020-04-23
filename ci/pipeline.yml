@@ -7,7 +7,7 @@ broker-register-params: &broker-register-params
   BROKER_NAME: ((name))
   AUTH_USER: ((name))
   AUTH_PASS: ((broker-auth-password))
-  SERVICES: "custom-domain"
+  SERVICES: "external-domain"
 
 cf-creds-dev: &cf-creds-dev
   CF_API_URL: ((dev-cf-api-url))
@@ -63,6 +63,8 @@ jobs:
       trigger: true
       passed: [test]
     - get: pipeline-tasks
+  - task: migrate
+    file: src/ci/migrate.yml
   - put: cf-dev
     params:
       path: src
