@@ -3,8 +3,6 @@ applications:
 - name: domain-broker
   memory: 256M
   instances: 3
-  buildpacks:
-  - python_buildpack
-  command: "gunicorn -b 0.0.0.0:$PORT 'broker:create_app()'"
+  command: gunicorn -b 0.0.0.0:$PORT 'broker:create_app()'
   env:
     FLASK_ENV: production
