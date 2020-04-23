@@ -7,7 +7,7 @@ ARG UID=2000
 ARG GID=2000
 ARG USER=app
 
-RUN groupadd --gid=$GID $USER
+RUN grep -q ":$GID:" /etc/group || groupadd --gid=$GID $USER
 RUN useradd \
       --home-dir=/home/$USER \
       --no-log-init \
