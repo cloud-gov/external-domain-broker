@@ -27,9 +27,10 @@ RUN apt-get update \
 COPY pip-tools/dev-requirements.txt ./pip-tools/
 RUN pip install -r pip-tools/dev-requirements.txt
 
+WORKDIR /app
+RUN chown "$UID:$GID" .
 USER $UID:$GID
 
-WORKDIR /app
 
 ENV PATH=/usr/local/bin:$PATH
 ENV FLASK_APP="broker:create_app()"

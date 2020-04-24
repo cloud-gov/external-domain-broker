@@ -45,8 +45,9 @@ build_image_and_return_id() {
   # should only be used locally.  These arguments are not used in our
   # concourse pipeline.
   docker build \
-    -q \
-    -f docker/Dockerfile.dev \
+    --quiet \
+    --file=docker/Dockerfile.dev \
+    --tag=external-domain-broker-dev \
     --build-arg UID="$(id -u)" \
     --build-arg GID="$(id -g)" \
     --build-arg USER="$USER" \
