@@ -13,7 +13,7 @@ class ServiceInstance(db.Model, TimestampMixin):
     operations = db.relationship("Operation", backref="service_instance", lazy="joined")
 
     def __repr__(self):
-        return "<ServiceInstance %r>" % self.id
+        return f"<ServiceInstance {self.id}>"
 
 
 class Operation(db.Model, TimestampMixin):
@@ -24,4 +24,4 @@ class Operation(db.Model, TimestampMixin):
     state = db.Column(db.Enum(OperationState), nullable=False)
 
     def __repr__(self):
-        return "<Operation %r %r>" % self.id, self.state
+        return f"<Operation {self.id} {self.state}>"

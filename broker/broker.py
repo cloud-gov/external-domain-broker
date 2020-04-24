@@ -77,7 +77,20 @@ class Broker(ServiceBroker):
     ) -> ProvisionedServiceSpec:
         if not async_allowed:
             raise errors.ErrAsyncRequired()
-        return ProvisionedServiceSpec(state=ProvisionState.IS_ASYNC)
+
+        instance = ServiceInstance(id=instance_id)
+        db.session.add(instance)
+        db.session.commit()
+
+        operation = Operation(
+            state=OperationState.IN_PROGRESS, service_instance=instance
+        )
+        db.session.add(operation)
+        db.session.commit()
+
+        return ProvisionedServiceSpec(
+            state=ProvisionState.IS_ASYNC, operation=operation.id
+        )
 
     def deprovision(
         self,

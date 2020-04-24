@@ -7,7 +7,7 @@ from flask.testing import FlaskClient
 from flask.wrappers import Response
 from werkzeug.datastructures import Headers
 
-from broker import create_app
+from broker import create_app, db
 
 
 class CFAPIResponse(Response):
@@ -47,9 +47,9 @@ class CFAPIClient(FlaskClient):
         self.response = super().open(url, *args, **kwargs)
         return self.response
 
-    def provision_instance(self, accepts_incomplete="true"):
+    def provision_instance(self, id: str, accepts_incomplete: str = "true"):
         self.put(
-            "/v2/service_instances/1234",
+            f"/v2/service_instances/{id}",
             json={
                 "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
                 "plan_id": "6f60835c-8964-4f1f-a19a-579fb27ce694",
@@ -61,7 +61,7 @@ class CFAPIClient(FlaskClient):
 
     def deprovision_instance(self, id: str, accepts_incomplete: str = "true"):
         self.delete(
-            "/v2/service_instances/" + id,
+            f"/v2/service_instances/{id}",
             query_string={
                 "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
                 "plan_id": "6f60835c-8964-4f1f-a19a-579fb27ce694",
@@ -69,8 +69,11 @@ class CFAPIClient(FlaskClient):
             },
         )
 
-    def get_last_operation(self):
-        self.get("/v2/service_instances/1234/last_operation",)
+    def get_last_operation(self, id: str, op_id: str):
+        self.get(
+            f"/v2/service_instances/{id}/last_operation",
+            query_string={"operation": op_id},
+        )
 
 
 @pytest.fixture(scope="session")
@@ -84,14 +87,15 @@ def app():
 
 @pytest.fixture(scope="function")
 def client(app):
-    def remove_prefix(s, prefix):
-        if s.startswith(prefix):
-            s = s[len(prefix) :]
-        return s
-
     app.test_client_class = CFAPIClient
     app.response_class = CFAPIResponse
 
+    db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
+    db_path = db_uri[len("sqlite:///") :]
+
+    if os.path.isfile(db_path):
+        os.unlink(db_path)
+
     flask_migrate.upgrade()
     yield app.test_client()
-    os.unlink(remove_prefix(app.config["SQLALCHEMY_DATABASE_URI"], "sqlite:///"))
+    db.session.close()
