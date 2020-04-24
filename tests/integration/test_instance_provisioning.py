@@ -1,6 +1,6 @@
 from openbrokerapi.service_broker import OperationState
 
-from broker.models import Operation
+from broker.models import Operation, ServiceInstance
 
 
 def test_refuses_to_provision_synchronously(client):
@@ -30,6 +30,9 @@ def test_starts_instance_provisioning(client):
     assert operation is not None
     assert operation.state == OperationState.IN_PROGRESS
     assert operation.service_instance_id == "4321"
+
+    instance = ServiceInstance.query.get(operation.service_instance_id)
+    assert instance is not None
 
     client.get_last_operation("4321", operation)
 

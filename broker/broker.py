@@ -79,12 +79,12 @@ class Broker(ServiceBroker):
             raise errors.ErrAsyncRequired()
 
         instance = ServiceInstance(id=instance_id)
-        db.session.add(instance)
-        db.session.commit()
 
         operation = Operation(
             state=OperationState.IN_PROGRESS, service_instance=instance
         )
+
+        db.session.add(instance)
         db.session.add(operation)
         db.session.commit()
 
