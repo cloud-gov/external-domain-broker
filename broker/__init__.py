@@ -1,5 +1,4 @@
 import logging
-import os
 
 from flask import Flask
 from flask_migrate import Migrate
@@ -7,10 +6,8 @@ from flask_sqlalchemy import SQLAlchemy
 from openbrokerapi.api import BrokerCredentials
 
 from . import log_util
-from .broker import create_broker_blueprint
+from .config import Config
 
-# Configure logging
-# You can overwrite the log_level by setting LOG_LEVEL in the environment
 log_util.configure(logging.root, log_level="INFO")
 logger = logging.getLogger(__name__)
 
@@ -24,29 +21,16 @@ def create_app():
     from broker import models  # noqa: F401
 
     app = Flask(__name__)
-    app.config["SECRET_KEY"] = "dev"
-    app.config["DATABASE"] = os.environ.get("DATABASE_URL")
-    app.config["SQLALCHEMY_DATABASE_URI"] = app.config["DATABASE"]
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config.from_object(Config)
 
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # ensure the instance folder exists
-    try:
-        os.makedirs(app.instance_path)
-    except OSError:
-        pass
+    credentials = BrokerCredentials(
+        app.config["BROKER_USERNAME"], app.config["BROKER_PASSWORD"]
+    )
 
-    # Read config from env
-    broker_username = os.getenv("BROKER_USERNAME")
-    broker_password = os.getenv("BROKER_PASSWORD")
-
-    # Setup auth if env vars are set
-    if broker_username and broker_password:
-        credentials = BrokerCredentials(broker_username, broker_password)
-    else:
-        credentials = None
+    from .broker import create_broker_blueprint
 
     app.register_blueprint(create_broker_blueprint(credentials))
 

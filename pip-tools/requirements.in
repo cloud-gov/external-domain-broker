@@ -1,6 +1,6 @@
 Flask-Migrate
 Flask-SQLAlchemy
-cfenv
+environs
 flask
 gunicorn
 openbrokerapi

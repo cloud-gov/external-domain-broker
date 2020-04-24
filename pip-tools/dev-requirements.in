@@ -1,5 +1,6 @@
 # Include base requirements
 -r ../requirements.txt
+factory_boy
 flask-testing
 pip-tools
 pytest

@@ -5,22 +5,22 @@
 #    ./scripts/dev update-requirements
 #
 alembic==1.4.2            # via flask-migrate
-cfenv==0.5.3              # via -r pip-tools/requirements.in
 click==7.1.1              # via flask
+environs==7.4.0           # via -r pip-tools/requirements.in
 flask-migrate==2.5.3      # via -r pip-tools/requirements.in
 flask-sqlalchemy==2.4.1   # via -r pip-tools/requirements.in, flask-migrate
 flask==1.1.2              # via -r pip-tools/requirements.in, flask-migrate, flask-sqlalchemy, openbrokerapi
-furl==2.1.0               # via cfenv
 gunicorn==20.0.4          # via -r pip-tools/requirements.in
 itsdangerous==1.1.0       # via flask
 jinja2==2.11.1            # via flask
 mako==1.1.2               # via alembic
 markupsafe==1.1.1         # via jinja2, mako
+marshmallow==3.5.1        # via environs
 openbrokerapi==4.0.2      # via -r pip-tools/requirements.in
-orderedmultidict==1.0.1   # via furl
 python-dateutil==2.8.1    # via alembic
+python-dotenv==0.13.0     # via environs
 python-editor==1.0.4      # via alembic
-six==1.14.0               # via furl, orderedmultidict, python-dateutil
+six==1.14.0               # via python-dateutil
 sqlalchemy==1.3.16        # via alembic, flask-sqlalchemy
 werkzeug==1.0.1           # via flask
 

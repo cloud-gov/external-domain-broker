@@ -20,6 +20,9 @@ from openbrokerapi.service_broker import (
     UnbindSpec,
 )
 
+from . import db
+from .models import Operation, ServiceInstance
+
 logger = logging.getLogger(__name__)
 
 
@@ -83,7 +86,15 @@ class Broker(ServiceBroker):
         async_allowed: bool,
         **kwargs
     ) -> DeprovisionServiceSpec:
-        pass
+        if not async_allowed:
+            raise errors.ErrAsyncRequired()
+        instance = ServiceInstance.query.get(instance_id)
+        operation = Operation(
+            state=OperationState.IN_PROGRESS, service_instance=instance
+        )
+        db.session.add(operation)
+        db.session.commit()
+        return DeprovisionServiceSpec(is_async=True, operation=operation.id)
 
     def bind(
         self,

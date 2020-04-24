@@ -1,6 +1,5 @@
 import base64
 import os
-import tempfile
 
 import flask_migrate
 import pytest
@@ -38,7 +37,7 @@ class CFAPIClient(FlaskClient):
     """
 
     def open(self, url, *args, **kwargs):
-        auth_header = "Basic " + base64.b64encode(b":").decode("ascii")
+        auth_header = "Basic " + base64.b64encode(b"broker:sekrit").decode("ascii")
         headers = kwargs.pop("headers", Headers())
         headers.add_header("X-Broker-Api-Version", "2.13")
         headers.add_header("Content-Type", "application/json")
@@ -60,50 +59,39 @@ class CFAPIClient(FlaskClient):
             query_string={"accepts_incomplete": accepts_incomplete},
         )
 
-    def deprovision_instance(self):
-        self.delete("/v2/service_instances/1234")
+    def deprovision_instance(self, id: str, accepts_incomplete: str = "true"):
+        self.delete(
+            "/v2/service_instances/" + id,
+            query_string={
+                "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
+                "plan_id": "6f60835c-8964-4f1f-a19a-579fb27ce694",
+                "accepts_incomplete": accepts_incomplete,
+            },
+        )
 
     def get_last_operation(self):
         self.get("/v2/service_instances/1234/last_operation",)
 
 
-@pytest.yield_fixture(scope="session")
+@pytest.fixture(scope="session")
 def app():
-    """
-    Setup our flask test app. This only gets executed once.
-
-    Primarily stolen from
-    https://github.com/nickjj/build-a-saas-app-with-flask
-
-    :return: Flask app
-    """
     _app = create_app()
-    _app.config["DEBUG"] = False
-    _app.config["TESTING"] = True
 
     # Establish an application context before running the tests.
-    ctx = _app.app_context()
-    ctx.push()
-
-    yield _app
-
-    ctx.pop()
+    with _app.app_context():
+        yield _app
 
 
-@pytest.yield_fixture(scope="function")
+@pytest.fixture(scope="function")
 def client(app):
-    """
-    Setup an app client. This gets executed for each test function.
+    def remove_prefix(s, prefix):
+        if s.startswith(prefix):
+            s = s[len(prefix) :]
+        return s
 
-    :param app: Pytest fixture
-    :return: Flask app client
-    """
-    db_fd, app.config["DATABASE"] = tempfile.mkstemp()
     app.test_client_class = CFAPIClient
     app.response_class = CFAPIResponse
+
     flask_migrate.upgrade()
-
     yield app.test_client()
-
-    os.close(db_fd)
-    os.unlink(app.config["DATABASE"])
+    os.unlink(remove_prefix(app.config["SQLALCHEMY_DATABASE_URI"], "sqlite:///"))
