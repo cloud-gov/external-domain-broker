@@ -8,10 +8,5 @@ image_resource:
 inputs:
 - name: src
 
-params:
-  app: ((app))
-  service: ((service))
-  plan: ((plan))
-
 run:
   path: src/ci/create-db.sh

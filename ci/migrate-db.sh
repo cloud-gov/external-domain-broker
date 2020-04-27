@@ -1,28 +1,23 @@
 #!/usr/bin/env bash
 
-# Credit to https://gist.github.com/kelapure/ef79419796e35a68629a4e772e4646e4
-
 set -euo pipefail
 shopt -s inherit_errexit
 
-# If the DB doesn't exist:
-  # Create the DB
-  # Wait for the DB
-
-[[ -v app ]] || (echo "Must supply \$app"; exit 1)
+cf api "$CF_API_URL"
+(set +x; cf auth "$CF_USERNAME" "$CF_PASSWORD")
+cf target -o "$CF_ORGANIZATION" -s "$CF_SPACE"
 
 cmd="flask db upgrade"
-name="db-upgrade"
 
 # This is just to put logs in the concourse output.
-(cf logs "$app" | grep "TASK/$name") &
+(cf logs "$APP_NAME" | grep "TASK/db-upgrade") &
 
-id=$(cf run-task "$app" "$cmd" --name="$name" | grep "task id:" | awk '{print $3}')
+id=$(cf run-task "$APP_NAME" "$cmd" --name="db-upgrade" | grep "task id:" | awk '{print $3}')
 
 status=RUNNING
 while [[ "$status" == 'RUNNING' ]]; do
-  sleep 1
-  status=$(cf tasks "$app" | grep "^$id " | awk '{print $3}')
+  sleep 5
+  status=$(cf tasks "$APP_NAME" | grep "^$id " | awk '{print $3}')
 done
 
-exit "$([ "$status" = 'SUCCEEDED' ])"
+exit "$([[ "$status" == 'SUCCEEDED' ]])"

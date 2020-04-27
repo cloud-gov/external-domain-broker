@@ -8,11 +8,5 @@ image_resource:
 inputs:
 - name: src
 
-params:
-  app: ((app))
-  name: ((name))
-  cmd: ((cmd))
-  opts: ((opts))
-
 run:
   path: src/ci/migrate-db.sh

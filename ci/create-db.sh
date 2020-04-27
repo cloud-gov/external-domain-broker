@@ -1,28 +1,20 @@
 #!/usr/bin/env bash
 
-# Credit to https://gist.github.com/kelapure/ef79419796e35a68629a4e772e4646e4
-
 set -euo pipefail
 shopt -s inherit_errexit
 
-# If the DB doesn't exist:
-  # Create the DB
-  # Wait for the DB
+cf api "$CF_API_URL"
+(set +x; cf auth "$CF_USERNAME" "$CF_PASSWORD")
+cf target -o "$CF_ORGANIZATION" -s "$CF_SPACE"
 
-[[ -v app ]] || (echo "Must supply \$app"; exit 1)
+if [[ -n "$(cf service "$DB_NAME" --guid)" ]]; then
+  cf create-service "$DB_SERVICE" "$DB_PLAN" "$DB_NAME"
+fi
 
-cmd="flask db upgrade"
-name="db-upgrade"
-
-# This is just to put logs in the concourse output.
-(cf logs "$app" | grep "TASK/$name") &
-
-id=$(cf run-task "$app" "$cmd" | grep "task id:" | awk '{print $3}')
-
-status=RUNNING
-while [[ "$status" == 'RUNNING' ]]; do
-  sleep 1
-  status=$(cf tasks "$app" | grep "^$id " | awk '{print $3}')
+echo "Waiting for database..."
+while ! cf create-service-key "$DB_NAME" temp-ci-key; do
+  echo -n "."
+  sleep 5
 done
-
-exit "$([ "$status" = 'SUCCEEDED' ])"
+echo
+cf delete-service-key -f "$DB_NAME" temp-ci-key || true

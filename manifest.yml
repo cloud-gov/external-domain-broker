@@ -1,9 +1,11 @@
 ---
 applications:
-- name: ((name))
+- name: ((app_name))
   memory: 256M
   instances: 3
   command: gunicorn -b 0.0.0.0:$PORT 'broker:create_app()'
+  services:
+  - ((db_name))
   buildpacks:
   - python_buildpack
   env:

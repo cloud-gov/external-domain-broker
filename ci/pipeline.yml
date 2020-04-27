@@ -13,6 +13,8 @@ cf-creds-dev: &cf-creds-dev
   CF_API_URL: ((dev-cf-api-url))
   CF_USERNAME: ((dev-cf-username))
   CF_PASSWORD: ((dev-cf-password))
+  CF_ORGANIZATION: ((broker-organization))
+  CF_SPACE: ((broker-space))
 
 ############################
 #  JOBS
@@ -65,14 +67,17 @@ jobs:
     - get: pipeline-tasks
   - task: create-db
     file: src/ci/create-db.yml
-    vars:
-      app: ((app))
-      service: ((service))
-      plan: ((plan))
+    params:
+      <<: *cf-creds-dev
+      APP_NAME: ((name))
+      DB_SERVICE: ((db_service))
+      DB_PLAN: ((db_plan))
+      DB_NAME: ((db_name))
   - task: migrate-db
     file: src/ci/migrate-db.yml
-    vars:
-      app: ((app))
+    params:
+      <<: *cf-creds-dev
+      APP_NAME: ((name))
   - put: cf-dev
     params:
       path: src
@@ -80,7 +85,8 @@ jobs:
       current_app_name: ((name))
       show_app_log: true
       vars:
-        name: ((name))
+        app_name: ((name))
+        db_name: ((db_name))
   - task: register-broker
     file: pipeline-tasks/register-service-broker.yml
     params:
