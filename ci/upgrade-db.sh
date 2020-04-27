@@ -2,6 +2,7 @@
 
 set -euo pipefail
 shopt -s inherit_errexit
+set -x
 
 cf api "$CF_API_URL"
 (set +x; cf auth "$CF_USERNAME" "$CF_PASSWORD")

@@ -73,19 +73,11 @@ jobs:
       DB_SERVICE: ((db_service))
       DB_PLAN: ((db_plan))
       DB_NAME: ((db_name))
-  - put: cf-dev
-    params:
-      path: src
-      manifest: src/manifest.yml
-      no_start: true
-      vars:
-        app_name: ((name))
-        db_name: ((db_name))
-  - task: migrate-db
-    file: src/ci/migrate-db.yml
+  - task: upgrade-db
+    file: src/ci/upgrade-db.yml
     params:
       <<: *cf-creds-dev
-      APP_NAME: ((name))
+      APP_NAME: ((name))-db-upgrade
   - put: cf-dev
     params:
       path: src
