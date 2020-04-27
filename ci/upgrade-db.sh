@@ -37,4 +37,5 @@ set -x
 
 cf delete -r -f "$APP_NAME"
 
-exit "$([[ "$status" == 'SUCCEEDED' ]])"
+[[ "$status" == 'SUCCEEDED' ]] && exit 0
+exit 1
