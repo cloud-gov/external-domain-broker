@@ -11,7 +11,7 @@ if [[ -n "$(cf service "$DB_NAME" --guid)" ]]; then
   cf create-service "$DB_SERVICE" "$DB_PLAN" "$DB_NAME"
 fi
 
-echo "Waiting for database..."
+echo -n "Waiting for database..."
 while ! cf create-service-key "$DB_NAME" temp-ci-key > /dev/null 2>&1; do
   echo -n "."
   sleep 5
