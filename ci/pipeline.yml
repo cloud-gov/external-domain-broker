@@ -78,6 +78,7 @@ jobs:
     params:
       <<: *cf-creds-dev
       APP_NAME: ((name))-db-upgrade
+      DB_NAME: ((db_name))
   - put: cf-dev
     params:
       path: src
