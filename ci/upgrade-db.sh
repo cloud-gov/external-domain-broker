@@ -35,6 +35,6 @@ while [[ "$status" == 'RUNNING' ]]; do
 done
 set -x
 
-cf delete -rf "$APP_NAME"
+cf delete -r -f "$APP_NAME"
 
 exit "$([[ "$status" == 'SUCCEEDED' ]])"
