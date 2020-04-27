@@ -20,7 +20,7 @@ cf push \
   -c "sleep 3600" \
   "$APP_NAME"
 
-cmd="flask db upgrade"
+cmd="FLASK_APP=broker flask db upgrade"
 
 # This is just to put logs in the concourse output.
 (cf logs "$APP_NAME" | grep "TASK/db-upgrade") &
@@ -35,6 +35,6 @@ while [[ "$status" == 'RUNNING' ]]; do
 done
 set -x
 
-cf delete "$APP_NAME"
+cf delete -rf "$APP_NAME"
 
 exit "$([[ "$status" == 'SUCCEEDED' ]])"
