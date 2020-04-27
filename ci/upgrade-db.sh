@@ -17,7 +17,8 @@ cf push \
   -p src \
   --no-route \
   --health-check-type=none \
-  -c sleep 3600
+  -c "sleep 3600" \
+  "$APP_NAME"
 
 cmd="flask db upgrade"
 
