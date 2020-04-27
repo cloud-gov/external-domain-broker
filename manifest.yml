@@ -1,12 +1,16 @@
 ---
 applications:
-- name: ((app_name))
+- name: ((APP_NAME))
   memory: 256M
   instances: 3
   command: gunicorn -b 0.0.0.0:$PORT 'broker:create_app()'
   services:
-  - ((db_name))
+  - ((DB_NAME))
   buildpacks:
   - python_buildpack
   env:
-    FLASK_ENV: production
+    # This is "production" regardless of CF environment.
+    FLASK_ENV: "production"
+    BROKER_USERNAME: ((BROKER_AUTH_USERNAME))
+    BROKER_PASSWORD: ((BROKER_AUTH_PASSWORD))
+    SECRET_KEY: ((FLASK_SECRET_KEY))

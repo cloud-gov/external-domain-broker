@@ -16,6 +16,14 @@ cf-creds-dev: &cf-creds-dev
   CF_ORGANIZATION: ((broker-organization))
   CF_SPACE: ((broker-space))
 
+cf-manifest-vars: &cf-manifest-vars
+  APP_NAME: ((name))
+  DB_NAME: ((db_name))
+  BROKER_AUTH_USERNAME: ((broker-auth-username))
+  BROKER_AUTH_PASSWORD: ((broker-auth-password))
+  FLASK_SECRET_KEY: ((flask-secret-key))
+
+
 ############################
 #  JOBS
 
@@ -77,8 +85,8 @@ jobs:
     file: src/ci/upgrade-db.yml
     params:
       <<: *cf-creds-dev
+      <<: *cf-manifest-vars
       APP_NAME: ((name))-db-upgrade
-      DB_NAME: ((db_name))
   - put: cf-dev
     params:
       path: src
@@ -86,8 +94,7 @@ jobs:
       current_app_name: ((name))
       show_app_log: true
       vars:
-        app_name: ((name))
-        db_name: ((db_name))
+        <<: *cf-manifest-vars
   - task: register-broker
     file: pipeline-tasks/register-service-broker.yml
     params:

@@ -11,10 +11,13 @@ cf target -o "$CF_ORGANIZATION" -s "$CF_SPACE"
 # dummy app so we can run a task.
 cf push \
   -f src/manifest.yml \
-  --var db_name="$DB_NAME" \
-  --var app_name="$APP_NAME" \
-  -i 1 \
   -p src \
+  -i 1 \
+  --var DB_NAME="$DB_NAME" \
+  --var APP_NAME="$APP_NAME" \
+  --var BROKER_AUTH_USERNAME="$BROKER_AUTH_USERNAME" \
+  --var BROKER_AUTH_PASSWORD="$BROKER_AUTH_PASSWORD" \
+  --var FLASK_SECRET_KEY="$FLASK_SECRET_KEY" \
   --no-route \
   --health-check-type=none \
   -c "sleep 3600" \
