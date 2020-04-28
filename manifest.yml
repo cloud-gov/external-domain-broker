@@ -14,3 +14,11 @@ applications:
     BROKER_USERNAME: ((BROKER_AUTH_USERNAME))
     BROKER_PASSWORD: ((BROKER_AUTH_PASSWORD))
     SECRET_KEY: ((FLASK_SECRET_KEY))
+- name: ((APP_NAME))-tasks
+  memory: 256M
+  instances: 3
+  command: huey_consumer.py tasks.huey
+  services:
+  - ((DB_NAME))
+  buildpacks:
+  - python_buildpack

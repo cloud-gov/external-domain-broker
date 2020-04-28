@@ -2,4 +2,11 @@
 
 cd /app || (echo "Cannot find /app directory"; exit 2)
 set -x
-eval python -m pytest
+
+export FLASK_ENV=test
+
+if [[ "$#" -ge 1 ]] && [[ "$1" == "watch" ]]; then
+  ptw -- -v
+else
+  eval python -m pytest -v
+fi

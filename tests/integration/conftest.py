@@ -1,5 +1,8 @@
 import base64
+import contextlib
 import os
+import subprocess
+import sys
 
 import flask_migrate
 import pytest
@@ -9,6 +12,37 @@ from flask.wrappers import Response
 from werkzeug.datastructures import Headers
 
 from broker import create_app, db
+
+
+@contextlib.contextmanager
+def hidden_output():
+    _stderr = sys.stderr
+    _stdout = sys.stdout
+    null = open(os.devnull, "w")
+    sys.stdout = sys.stderr = null
+    try:
+        yield
+    finally:
+        sys.stderr = _stderr
+        sys.stdout = _stdout
+
+
+class Tasks:
+    def __init__(self):
+        self.huey = current_app.huey
+
+    def run_all_queued(self):
+        __tracebackhide__ = True
+
+        found_at_least_one_queued_task = False
+        task = self.huey.dequeue()
+        while task:
+            found_at_least_one_queued_task = True
+            task.execute()
+            task = self.huey.dequeue()
+
+        if not found_at_least_one_queued_task:
+            pytest.fail("No tasks queued to run.")
 
 
 class CFAPIResponse(Response):
@@ -80,9 +114,59 @@ class CFAPIClient(FlaskClient):
         )
 
 
+class Pebble:
+    def __init__(self):
+        self._pebble_startup_string = "ACME directory available at"
+        self._challtestsrv_startup_string = "Starting management server on"
+        self._pebble = None
+        self._challtestsrv = None
+
+    def _wait_for_text(self, substring: str, from_process: subprocess.Popen):
+        for line in from_process.stdout:
+            if substring in line:
+                return
+
+    def _run(self, cmd_array):
+        return subprocess.Popen(
+            cmd_array,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            cwd="/",
+        )
+
+    def start(self):
+        self._pebble = self._run(
+            [
+                "/usr/bin/pebble",
+                "-dnsserver",
+                ":5053",
+                "-config",
+                "/test/config/pebble-config.json",
+            ]
+        )
+        self._challtestsrv = self._run(["/usr/bin/pebble-challtestsrv"])
+        self._wait_for_text(self._pebble_startup_string, from_process=self._pebble)
+        self._wait_for_text(
+            self._challtestsrv_startup_string, from_process=self._challtestsrv
+        )
+
+    def stop(self):
+        # kill -9 and let God sort em out.
+        self._challtestsrv.kill()
+        self._pebble.kill()
+
+    def is_running(self):
+        if self._pebble.poll():
+            return False
+        if self._challtestsrv.poll():
+            return False
+        return True
+
+
 @pytest.fixture(scope="session")
 def app():
-    _app = create_app("test")
+    _app = create_app()
 
     # The Exception errorhandler seems to be firing in testing mode.  Remove
     # it.
@@ -93,7 +177,7 @@ def app():
 
 
 @pytest.fixture(scope="function")
-def client(app):
+def client(app, capsys):
     app.test_client_class = CFAPIClient
     app.response_class = CFAPIResponse
 
@@ -101,8 +185,28 @@ def client(app):
     if os.path.isfile(db_path):
         os.remove(app.config["SQLITE_DB_PATH"])
 
-    flask_migrate.upgrade()
+    with hidden_output():
+        flask_migrate.upgrade()
+    current_app.huey.storage.conn.flushall()
 
     yield app.test_client()
 
     db.session.close()
+    if os.path.isfile(db_path):
+        os.remove(app.config["SQLITE_DB_PATH"])
+
+
+# This may be slow (starting/stopping procs with each test).  If so,
+# we'll need to move it to a "session" fixture, and have a function
+# fixture that clears data after each test.
+@pytest.fixture(scope="function")
+def pebble():
+    pebble_client = Pebble()
+    pebble_client.start()
+    yield pebble_client
+    pebble_client.stop()
+
+
+@pytest.fixture(scope="function")
+def tasks():
+    return Tasks()

@@ -10,24 +10,25 @@ https://github.com/eruvanos/openbrokerapi-skeleton to start the project.
 Run tests via the `./scripts/dev tests` script. This uses the `dev` stage of
 the Dockerfile, to ensure we're as close to parity with prod as possible.
 
-### In Production
+## Generate a DB Migration File
 
-Runs release image
+We're using [flask-migrate](https://flask-migrate.readthedocs.io/en/latest/)
+for migrations.  flask-migrate can auto-generate a migration file by looking
+at what's currently in the database, what's defined in our
+[models](/broker/models.py), and generating a migration file that would
+bridge the gap.  However, our `dev.sqlite` database is automatically created
+and destroyed with each test run.  In order to generate a migration, you
+should first create the `dev.sqlite` database:
 
-### Local Tests
+``` console
+$ ./scripts/dev run flask db upgrade
+```
 
-1. Run `./script/dev watch-tests`
-1. which builds the container using `dev` stage
-1. watches the tests inside it.
+...and then generate the migration file:
 
-### Concourse Tests
-
-1. Build `dev` image
-1. Run unit tests inside it
-1. Deploy shared DB in dev (fast, but old psql version)
-1. Deploy app to dev
-1. Run acceptance tests inside `dev` image against `HOST:PORT` of app
-1. Delete DB and app?
+``` console
+$ ./scripts/dev run flask db migrate -m "Change description"
+```
 
 ## Adding Packages
 

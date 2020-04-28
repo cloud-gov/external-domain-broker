@@ -5,11 +5,6 @@ def catalog():
     return API().catalog()
 
 
-def assert_not_empty(value: str):
-    assert value is not None
-    assert value != ""
-
-
 def test_catalog_has_top_level_values():
     assert catalog().id is not None
     assert catalog().name == "external-domain"

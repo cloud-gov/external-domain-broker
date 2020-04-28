@@ -99,6 +99,7 @@ class API(ServiceBroker):
         db.session.add(instance)
         db.session.add(operation)
         db.session.commit()
+        operation.queue_tasks()
 
         return ProvisionedServiceSpec(
             state=ProvisionState.IS_ASYNC, operation=operation.id

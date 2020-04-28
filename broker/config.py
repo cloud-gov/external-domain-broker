@@ -4,49 +4,99 @@ import os
 from environs import Env
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
+env = Env()
 
 
 class Config:
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    def __init__(self):
+        self.SQLALCHEMY_TRACK_MODIFICATIONS = False
+        self.TESTING = True
+        self.DEBUG = True
 
 
 class ProdConfig(Config):
-    TESTING = False
-    DEBUG = False
-
     def __init__(self):
-        self.env = Env()
+        super().__init__()
+        self.TESTING = False
+        self.DEBUG = False
+        self.SECRET_KEY = env("SECRET_KEY")
+        self.BROKER_USERNAME = env("BROKER_USERNAME")
+        self.BROKER_PASSWORD = env("BROKER_PASSWORD")
+        self.SQLALCHEMY_DATABASE_URI = env("DATABASE_URL")
+        self.REDIS_HOST = env("REDIS_HOST")
+        self.REDIS_PORT = env.int("REDIS_PORT")
+        self.REDIS_PASSWORD = env("REDIS_PASSWORD")
+        self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"
 
-    @property
-    def SECRET_KEY(self):
-        return self.env("SECRET_KEY")
 
-    @property
-    def BROKER_USERNAME(self):
-        return self.env("BROKER_USERNAME")
+class StagingConfig(Config):
+    def __init__(self):
+        super().__init__()
+        self.TESTING = False
+        self.DEBUG = False
+        self.SECRET_KEY = env("SECRET_KEY")
+        self.BROKER_USERNAME = env("BROKER_USERNAME")
+        self.BROKER_PASSWORD = env("BROKER_PASSWORD")
+        self.SQLALCHEMY_DATABASE_URI = env("DATABASE_URL")
+        self.REDIS_HOST = env("REDIS_HOST")
+        self.REDIS_PORT = env.int("REDIS_PORT")
+        self.REDIS_PASSWORD = env("REDIS_PASSWORD")
+        self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
-    @property
-    def BROKER_PASSWORD(self):
-        return self.env("BROKER_PASSWORD")
 
-    @property
-    def SQLALCHEMY_DATABASE_URI(self):
-        return self.env("DATABASE_URL")
+class DevelopmentConfig(Config):
+    def __init__(self):
+        super().__init__()
+        self.TESTING = False
+        self.DEBUG = False
+        self.SECRET_KEY = env("SECRET_KEY")
+        self.BROKER_USERNAME = env("BROKER_USERNAME")
+        self.BROKER_PASSWORD = env("BROKER_PASSWORD")
+        self.SQLALCHEMY_DATABASE_URI = env("DATABASE_URL")
+        self.REDIS_HOST = env("REDIS_HOST")
+        self.REDIS_PORT = env.int("REDIS_PORT")
+        self.REDIS_PASSWORD = env("REDIS_PASSWORD")
+        self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
+
+
+class LocalDevelopmentConfig(Config):
+    def __init__(self):
+        super().__init__()
+        self.SQLITE_DB_PATH = os.path.join(base_dir, "..", "dev.sqlite")
+        self.SQLALCHEMY_DATABASE_URI = "sqlite:///" + self.SQLITE_DB_PATH
+        self.REDIS_HOST = "localhost"
+        self.REDIS_PORT = 6379
+        self.REDIS_PASSWORD = "sekrit"
+        self.SECRET_KEY = "Sekrit Key"
+        self.BROKER_USERNAME = "broker"
+        self.BROKER_PASSWORD = "sekrit"
+        self.ACME_DIRECTORY = "https://localhost:14000/dir"  # Local Pebble server.
 
 
 class TestConfig(Config):
-    TESTING = True
-    DEBUG = True
-    SQLITE_DB_PATH = os.path.join(base_dir, "..", "dev.sqlite")
-    SQLALCHEMY_DATABASE_URI = "sqlite:///" + SQLITE_DB_PATH
-    SECRET_KEY = "Sekrit Key"
-    BROKER_USERNAME = "broker"
-    BROKER_PASSWORD = "sekrit"
+    def __init__(self):
+        super().__init__()
+        self.SQLITE_DB_PATH = os.path.join(base_dir, "..", "test.sqlite")
+        self.SQLALCHEMY_DATABASE_URI = "sqlite:///" + self.SQLITE_DB_PATH
+        self.REDIS_HOST = "localhost"
+        self.REDIS_PORT = 6379
+        self.REDIS_PASSWORD = "sekrit"
+        self.SECRET_KEY = "Sekrit Key"
+        self.BROKER_USERNAME = "broker"
+        self.BROKER_PASSWORD = "sekrit"
+        self.ACME_DIRECTORY = "https://localhost:14000/dir"
 
 
-def config(env):
+def _flask_config():
+    return env("FLASK_ENV")
+
+
+def config_from_env():
     mapping = {
         "test": TestConfig,
-        "prod": ProdConfig,
+        "local-development": LocalDevelopmentConfig,
+        "development": DevelopmentConfig,
+        "staging": StagingConfig,
+        "production": ProdConfig,
     }
-    return mapping[env]()
+    return mapping[_flask_config()]()

@@ -27,6 +27,18 @@ RUN apt-get update \
       libpq-dev \
       git
 
+# Install Fake Pebble LE server
+COPY --from=letsencrypt/pebble /usr/bin/pebble /usr/bin/pebble
+COPY --from=letsencrypt/pebble /test/ /test/
+COPY --from=letsencrypt/pebble-challtestsrv /usr/bin/pebble-challtestsrv /usr/bin/pebble-challtestsrv
+
+# Install Redis
+COPY --from=redis /usr/local/bin/redis-server /usr/bin/redis-server
+COPY --from=redis /usr/local/bin/redis-cli /usr/bin/redis-cli
+
+RUN cp /test/certs/pebble.minica.pem /usr/local/share/ca-certificates/pebble.crt
+RUN update-ca-certificates
+
 RUN pip install --upgrade pip
 COPY pip-tools/dev-requirements.txt ./pip-tools/
 RUN pip install -r pip-tools/dev-requirements.txt
@@ -35,13 +47,15 @@ WORKDIR /app
 RUN chown "$UID:$GID" .
 USER $UID:$GID
 
+COPY . .
 
 ENV PATH=/usr/local/bin:$PATH
 ENV FLASK_APP="broker:create_app()"
-ENV FLASK_ENV=development
+ENV FLASK_ENV=local-development
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
-COPY . .
-
+ENTRYPOINT ["/app/docker/entrypoint.sh"]
 CMD ["bash"]
 

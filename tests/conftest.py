@@ -20,6 +20,6 @@ def pytest_collection_modifyitems(items, config):
             deselected_items.append(item)
 
     if focused:
-        print("\n⚠️ Only running @pytest.mark.focus tests ⚠️")
+        print("\nOnly running @pytest.mark.focus tests")
         config.hook.pytest_deselected(items=deselected_items)
         items[:] = selected_items
