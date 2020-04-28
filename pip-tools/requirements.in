@@ -1,7 +1,7 @@
+git+git://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d#egg=openbrokerapi
 Flask-Migrate
 Flask-SQLAlchemy
 environs
 flask
 gunicorn
-openbrokerapi
 psycopg2-binary

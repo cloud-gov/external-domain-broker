@@ -3,6 +3,7 @@ import os
 
 import flask_migrate
 import pytest
+from flask import current_app
 from flask.testing import FlaskClient
 from flask.wrappers import Response
 from werkzeug.datastructures import Headers
@@ -69,20 +70,23 @@ class CFAPIClient(FlaskClient):
             },
         )
 
-    def get_last_operation(self, id: str, op_id: str):
+    def get_last_operation(self, instance_id: str, op_id: str):
         self.get(
-            f"/v2/service_instances/{id}/last_operation",
+            f"/v2/service_instances/{instance_id}/last_operation",
             query_string={"operation": op_id},
         )
 
 
 @pytest.fixture(scope="session")
 def app():
-    _app = create_app()
+    _app = create_app("test")
 
+    # The Exception errorhandler seems to be firing in testing mode.  Remove
+    # it.
+    del _app.error_handler_spec["open_broker"][None][Exception]
     # Establish an application context before running the tests.
     with _app.app_context():
-        yield _app
+        yield current_app
 
 
 @pytest.fixture(scope="function")
@@ -90,12 +94,12 @@ def client(app):
     app.test_client_class = CFAPIClient
     app.response_class = CFAPIResponse
 
-    db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
-    db_path = db_uri[len("sqlite:///") :]
-
+    db_path = app.config["SQLITE_DB_PATH"]
     if os.path.isfile(db_path):
-        os.unlink(db_path)
+        os.remove(app.config["SQLITE_DB_PATH"])
 
     flask_migrate.upgrade()
+
     yield app.test_client()
+
     db.session.close()

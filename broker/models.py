@@ -10,7 +10,7 @@ class TimestampMixin(object):
 
 class ServiceInstance(db.Model, TimestampMixin):
     id = db.Column(db.String(36), primary_key=True)
-    operations = db.relationship("Operation", backref="service_instance", lazy="joined")
+    operations = db.relation("Operation", backref="service_instance", lazy="dynamic")
 
     def __repr__(self):
         return f"<ServiceInstance {self.id}>"

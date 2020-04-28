@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from openbrokerapi import api, errors
+from openbrokerapi import errors
 from openbrokerapi.service_broker import (
     BindDetails,
     Binding,
@@ -62,7 +62,8 @@ class Broker(ServiceBroker):
         self, instance_id: str, operation_data: Optional[str], **kwargs
     ) -> LastOperation:
         """
-        Further readings `CF Broker API#LastOperation <https://docs.cloudfoundry.org/services/api.html#polling>`_
+        Further readings `CF Broker API#LastOperation
+        <https://docs.cloudfoundry.org/services/api.html#polling>`_
 
         :param instance_id: Instance id provided by the platform
         :param operation_data: Operation data received from async operation
@@ -70,7 +71,18 @@ class Broker(ServiceBroker):
                        compatibility with upstream versions
         :rtype: LastOperation
         """
-        return LastOperation(state=OperationState.IN_PROGRESS)
+
+        instance = ServiceInstance.query.get(instance_id)
+        if not instance:
+            raise errors.ErrInstanceDoesNotExist
+
+        operation = instance.operations.filter_by(id=int(operation_data)).first()
+        if not operation:
+            raise errors.ServiceException(
+                description=f"Invalid operation id {operation_data} for service {instance_id}"
+            )
+
+        return LastOperation(state=operation.state)
 
     def provision(
         self, instance_id: str, details: ProvisionDetails, async_allowed: bool, **kwargs
@@ -97,7 +109,7 @@ class Broker(ServiceBroker):
         instance_id: str,
         details: DeprovisionDetails,
         async_allowed: bool,
-        **kwargs
+        **kwargs,
     ) -> DeprovisionServiceSpec:
         if not async_allowed:
             raise errors.ErrAsyncRequired()
@@ -115,7 +127,7 @@ class Broker(ServiceBroker):
         binding_id: str,
         details: BindDetails,
         async_allowed: bool,
-        **kwargs
+        **kwargs,
     ) -> Binding:
         pass
 
@@ -125,10 +137,6 @@ class Broker(ServiceBroker):
         binding_id: str,
         details: UnbindDetails,
         async_allowed: bool,
-        **kwargs
+        **kwargs,
     ) -> UnbindSpec:
         pass
-
-
-def create_broker_blueprint(credentials: api.BrokerCredentials):
-    return api.get_blueprint(Broker(), credentials, logger)

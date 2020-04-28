@@ -26,7 +26,7 @@ mako==1.1.2               # via -r pip-tools/../requirements.txt, alembic
 markupsafe==1.1.1         # via -r pip-tools/../requirements.txt, jinja2, mako
 marshmallow==3.5.1        # via -r pip-tools/../requirements.txt, environs
 more-itertools==8.2.0     # via pytest
-openbrokerapi==4.0.2      # via -r pip-tools/../requirements.txt
+git+git://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d#egg=openbrokerapi  # via -r pip-tools/../requirements.txt
 packaging==20.3           # via pytest
 pathtools==0.1.2          # via watchdog
 pip-tools==5.0.0          # via -r pip-tools/dev-requirements.in

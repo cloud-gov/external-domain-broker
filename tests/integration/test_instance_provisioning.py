@@ -34,7 +34,7 @@ def test_starts_instance_provisioning(client):
     instance = ServiceInstance.query.get(operation.service_instance_id)
     assert instance is not None
 
-    client.get_last_operation("4321", operation)
+    client.get_last_operation("4321", operation.id)
 
     assert "state" in client.response.json
     assert client.response.json["state"] == "in progress"

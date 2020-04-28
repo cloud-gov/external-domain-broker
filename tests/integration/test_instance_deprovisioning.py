@@ -1,7 +1,7 @@
 from openbrokerapi.service_broker import OperationState
+from tests import factories
 
 from broker.models import Operation
-from tests import factories
 
 
 def test_refuses_to_deprovision_synchronously(client):
@@ -34,7 +34,7 @@ def test_starts_instance_deprovisioning(client):
     assert operation.state == OperationState.IN_PROGRESS
     assert operation.service_instance_id == "1234"
 
-    client.get_last_operation("1234", operation)
+    client.get_last_operation("1234", operation.id)
 
     assert "state" in client.response.json
     assert client.response.json["state"] == "in progress"
