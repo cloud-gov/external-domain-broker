@@ -70,6 +70,9 @@ class CFAPIClient(FlaskClient):
             },
         )
 
+    def get_catalog(self):
+        self.get(f"/v2/catalog")
+
     def get_last_operation(self, instance_id: str, op_id: str):
         self.get(
             f"/v2/service_instances/{instance_id}/last_operation",
