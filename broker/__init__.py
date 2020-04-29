@@ -22,7 +22,7 @@ def create_app(env: str = "prod"):
     from broker.api import API
 
     app = Flask(__name__)
-    app.config.from_object(config[env])
+    app.config.from_object(config(env))
 
     db.init_app(app)
     migrate.init_app(app, db)

@@ -40,10 +40,6 @@ ENV PATH=/usr/local/bin:$PATH
 ENV FLASK_APP="broker:create_app()"
 ENV FLASK_ENV=development
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV DATABASE_URL="sqlite:////app/dev.sqlite"
-ENV SECRET_KEY="test key"
-ENV BROKER_USERNAME="broker"
-ENV BROKER_PASSWORD="sekrit"
 
 COPY . .
 

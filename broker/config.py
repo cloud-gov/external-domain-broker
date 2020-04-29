@@ -11,13 +11,27 @@ class Config:
 
 
 class ProdConfig(Config):
-    env = Env()
     TESTING = False
     DEBUG = False
-    SECRET_KEY = env("SECRET_KEY")
-    BROKER_USERNAME = env("BROKER_USERNAME")
-    BROKER_PASSWORD = env("BROKER_PASSWORD")
-    SQLALCHEMY_DATABASE_URI = env("DATABASE_URL")
+
+    def __init__(self):
+        self.env = Env()
+
+    @property
+    def SECRET_KEY(self):
+        return self.env("SECRET_KEY")
+
+    @property
+    def BROKER_USERNAME(self):
+        return self.env("BROKER_USERNAME")
+
+    @property
+    def BROKER_PASSWORD(self):
+        return self.env("BROKER_PASSWORD")
+
+    @property
+    def SQLALCHEMY_DATABASE_URI(self):
+        return self.env("DATABASE_URL")
 
 
 class TestConfig(Config):
@@ -30,4 +44,9 @@ class TestConfig(Config):
     BROKER_PASSWORD = "sekrit"
 
 
-config = {"test": TestConfig, "prod": ProdConfig}
+def config(env):
+    mapping = {
+        "test": TestConfig,
+        "prod": ProdConfig,
+    }
+    return mapping[env]()
