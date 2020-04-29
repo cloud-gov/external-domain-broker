@@ -1,8 +1,8 @@
-from broker.broker import Broker
+from broker.api import API
 
 
 def catalog():
-    return Broker().catalog()
+    return API().catalog()
 
 
 def assert_not_empty(value: str):

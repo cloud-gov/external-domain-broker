@@ -26,7 +26,7 @@ from .models import Operation, ServiceInstance
 logger = logging.getLogger(__name__)
 
 
-class Broker(ServiceBroker):
+class API(ServiceBroker):
     def __init__(self):
         pass
 
