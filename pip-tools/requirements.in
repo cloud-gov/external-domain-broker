@@ -4,4 +4,4 @@ Flask-SQLAlchemy
 environs
 flask
 gunicorn
-psycopg2-binary
+psycopg2

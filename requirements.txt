@@ -17,7 +17,7 @@ mako==1.1.2               # via alembic
 markupsafe==1.1.1         # via jinja2, mako
 marshmallow==3.5.1        # via environs
 git+git://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d#egg=openbrokerapi  # via -r pip-tools/requirements.in
-psycopg2-binary==2.8.5    # via -r pip-tools/requirements.in
+psycopg2==2.8.5           # via -r pip-tools/requirements.in
 python-dateutil==2.8.1    # via alembic
 python-dotenv==0.13.0     # via environs
 python-editor==1.0.4      # via alembic
