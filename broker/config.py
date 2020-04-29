@@ -23,7 +23,7 @@ class ProdConfig(Config):
 class TestConfig(Config):
     TESTING = True
     DEBUG = True
-    SQLITE_DB_PATH = os.path.join(base_dir, "dev.sqlite")
+    SQLITE_DB_PATH = os.path.join(base_dir, "..", "dev.sqlite")
     SQLALCHEMY_DATABASE_URI = "sqlite:///" + SQLITE_DB_PATH
     SECRET_KEY = "Sekrit Key"
     BROKER_USERNAME = "broker"
