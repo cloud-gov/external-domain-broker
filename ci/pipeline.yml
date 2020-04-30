@@ -51,6 +51,8 @@ jobs:
     passed: [reconfigure]
 
   - put: dev-docker-image
+    # We push this docker image _only_ so that we can use it in the next task
+    # below.  :shrug: concourse.
     params:
       build: src
       dockerfile: src/docker/Dockerfile.dev
