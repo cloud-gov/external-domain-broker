@@ -171,16 +171,6 @@ resources:
     uri: ((pipeline-tasks-git-url))
     branch: ((pipeline-tasks-git-branch))
 
-- name: cf-cli-dev
-  type: cf-cli-resource
-  icon: keyboard
-  source:
-    api: ((dev-cf-api-url))
-    username: ((dev-cf-username))
-    password: ((dev-cf-password))
-    org: ((broker-organization))
-    space: ((broker-space))
-
 ############################
 #  RESOURCE TYPES
 
@@ -190,9 +180,3 @@ resource_types:
   type: docker-image
   source:
     repository: 18fgsa/s3-resource
-
-- name: cf-cli-resource
-  type: docker-image
-  source:
-    repository: nulldriver/cf-cli-resource
-    tag: latest
