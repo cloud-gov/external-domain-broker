@@ -9,4 +9,4 @@ inputs:
 - name: src
 
 run:
-  path: src/ci/create-db.sh
+  path: src/ci/upgrade-schemas.sh

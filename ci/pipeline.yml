@@ -19,6 +19,7 @@ cf-creds-dev: &cf-creds-dev
 cf-manifest-vars: &cf-manifest-vars
   APP_NAME: ((name))
   DB_NAME: ((db_name))
+  REDIS_NAME: ((redis_name))
   BROKER_AUTH_USERNAME: ((broker-auth-username))
   BROKER_AUTH_PASSWORD: ((broker-auth-password))
   FLASK_SECRET_KEY: ((flask-secret-key))
@@ -75,16 +76,34 @@ jobs:
       trigger: true
       passed: [test]
     - get: pipeline-tasks
-  - task: create-db
-    file: src/ci/create-db.yml
+  - task: create-postgres
+    file: src/ci/create-service.yml
     params:
       <<: *cf-creds-dev
       APP_NAME: ((name))
-      DB_SERVICE: ((db_service))
-      DB_PLAN: ((db_plan))
-      DB_NAME: ((db_name))
-  - task: upgrade-db
-    file: src/ci/upgrade-db.yml
+      SVC_SERVICE: ((db_service))
+      SVC_PLAN: ((db_plan))
+      SVC_NAME: ((db_name))
+  - task: create-redis
+    file: src/ci/create-service.yml
+    params:
+      <<: *cf-creds-dev
+      APP_NAME: ((name))
+      SVC_SERVICE: ((redis_service))
+      SVC_PLAN: ((redis_plan))
+      SVC_NAME: ((redis_name))
+  - put: cf-stop
+    resource: cf-env
+    params:
+      command: stop
+      app_name: myapp-ui
+  - put: cf-stop
+    resource: cf-env
+    params:
+      command: stop
+      app_name: myapp-ui
+  - task: upgrade-schemas
+    file: src/ci/upgrade-schemas.yml
     params:
       <<: *cf-creds-dev
       <<: *cf-manifest-vars
@@ -92,8 +111,16 @@ jobs:
   - put: cf-dev
     params:
       path: src
-      manifest: src/manifest.yml
-      current_app_name: ((name))
+      manifest: src/manifests/app.yml
+      show_app_log: true
+      vars:
+        <<: *cf-manifest-vars
+  - put: cf-dev
+    params:
+      path: src
+      manifest: src/manifests/workers.yml
+      # Not bothering with zdd
+      # current_app_name: ((name))-workers
       show_app_log: true
       vars:
         <<: *cf-manifest-vars

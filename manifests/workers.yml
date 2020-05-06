@@ -1,0 +1,12 @@
+---
+applications:
+- name: ((APP_NAME))-workers
+  no-route: true
+  memory: 256M
+  instances: 3
+  command: huey_consumer.py broker.tasks.huey
+  services:
+  - ((DB_NAME))
+  - ((REDIS_NAME))
+  buildpacks:
+  - python_buildpack
