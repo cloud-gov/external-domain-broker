@@ -10,7 +10,7 @@ cf target -o "$CF_ORGANIZATION" -s "$CF_SPACE"
 
 # dummy app so we can run a task.
 cf push \
-  -f src/manifest.yml \
+  -f src/manifests/app.yml \
   -p src \
   -i 1 \
   --var DB_NAME="$DB_NAME" \
