@@ -92,16 +92,11 @@ jobs:
       SVC_SERVICE: ((redis_service))
       SVC_PLAN: ((redis_plan))
       SVC_NAME: ((redis_name))
-  - put: cf-stop
-    resource: cf-cli-dev
+  - task: stop-apps
+    file: src/ci/stop-apps.yml
     params:
-      command: stop
-      app_name: ((name))
-  - put: cf-stop
-    resource: cf-cli-dev
-    params:
-      command: stop
-      app_name: ((name))-workers
+      <<: *cf-creds-dev
+      APPLICATIONS: "((name)) ((name))-workers"
   - task: upgrade-schemas
     file: src/ci/upgrade-schemas.yml
     params:
