@@ -16,7 +16,7 @@ cf push \
   --var DB_NAME="$DB_NAME" \
   --var REDIS_NAME="$REDIS_NAME" \
   --var APP_NAME="$APP_NAME" \
-  --var FLASK_ENV="$FLASK_APP" \
+  --var FLASK_ENV="$FLASK_ENV" \
   --no-route \
   --health-check-type=none \
   -c "sleep 3600" \
