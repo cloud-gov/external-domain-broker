@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+cd /app || (echo "Cannot find /app directory"; exit 2)
+set -x
+
+if ! pgrep -x redis-server > /dev/null; then
+  echo "Redis not running.  Assuming we're in Concourse, which politely ignores our ENTRYPOINT. :shrug:"
+  /app/docker/start-redis.sh
+fi
+
+export FLASK_ENV=test
+
+if [[ "$#" -ge 1 ]] && [[ "$1" == "watch" ]]; then
+  shift
+  eval ptw -- -v "$@"
+else
+  eval python -m pytest -v "$@"
+fi

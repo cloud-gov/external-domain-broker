@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-redis-server tests/redis.conf &
+/app/docker/start-redis.sh
 
 exec "$@"

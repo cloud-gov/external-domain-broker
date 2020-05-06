@@ -25,6 +25,7 @@ RUN apt-get update \
       libsqlite3-dev \
       build-essential \
       libpq-dev \
+      procps \
       git
 
 # Install Fake Pebble LE server

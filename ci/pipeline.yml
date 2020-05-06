@@ -66,7 +66,7 @@ jobs:
     config:
       platform: linux
       run:
-        path: /app/docker/run_tests
+        path: /app/docker/run-tests
 
 - name: deploy-dev
   plan:
@@ -178,6 +178,7 @@ resources:
 
 - name: cf-cli-dev
   type: cf-cli-resource
+  icon: keyboard
   source:
     api: ((dev-cf-api-url))
     username: ((dev-cf-username))

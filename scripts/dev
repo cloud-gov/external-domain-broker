@@ -60,12 +60,12 @@ run_docker() {
 
 tests() {
   id=$(build_image_and_return_id)
-  run_docker "$id" docker/run_tests "$@"
+  run_docker "$id" docker/run-tests "$@"
 }
 
 watch-tests() {
   id=$(build_image_and_return_id)
-  run_docker "$id" docker/run_tests watch "$@"
+  run_docker "$id" docker/run-tests watch "$@"
 }
 
 run() {
