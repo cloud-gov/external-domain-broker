@@ -10,3 +10,5 @@ applications:
   - ((REDIS_NAME))
   buildpacks:
   - python_buildpack
+  env:
+    FLASK_ENV: ((FLASK_ENV))

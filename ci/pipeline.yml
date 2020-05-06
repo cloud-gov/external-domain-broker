@@ -103,6 +103,7 @@ jobs:
       <<: *cf-creds-dev
       <<: *cf-manifest-vars
       APP_NAME: ((name))-db-upgrade
+      FLASK_ENV: upgrade-schema
   - put: cf-dev
     params:
       path: src
@@ -110,6 +111,7 @@ jobs:
       show_app_log: true
       vars:
         <<: *cf-manifest-vars
+        FLASK_ENV: development
   - put: cf-dev
     params:
       path: src
@@ -117,6 +119,7 @@ jobs:
       show_app_log: true
       vars:
         <<: *cf-manifest-vars
+        FLASK_ENV: development
   - task: register-broker
     file: pipeline-tasks/register-service-broker.yml
     params:

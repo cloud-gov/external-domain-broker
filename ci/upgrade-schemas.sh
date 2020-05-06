@@ -16,9 +16,7 @@ cf push \
   --var DB_NAME="$DB_NAME" \
   --var REDIS_NAME="$REDIS_NAME" \
   --var APP_NAME="$APP_NAME" \
-  --var BROKER_AUTH_USERNAME="$BROKER_AUTH_USERNAME" \
-  --var BROKER_AUTH_PASSWORD="$BROKER_AUTH_PASSWORD" \
-  --var FLASK_SECRET_KEY="$FLASK_SECRET_KEY" \
+  --var FLASK_ENV="$FLASK_APP" \
   --no-route \
   --health-check-type=none \
   -c "sleep 3600" \
