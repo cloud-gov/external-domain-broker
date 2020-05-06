@@ -77,7 +77,7 @@ jobs:
       passed: [test]
     - get: pipeline-tasks
   - task: create-postgres
-    file: src/ci/create-service.yml
+    file: pipeline-tasks/ensure-misbehaved-service.yml
     params:
       <<: *cf-creds-dev
       APP_NAME: ((name))
@@ -85,7 +85,7 @@ jobs:
       SVC_PLAN: ((db_plan))
       SVC_NAME: ((db_name))
   - task: create-redis
-    file: src/ci/create-service.yml
+    file: pipeline-tasks/ensure-misbehaved-service.yml
     params:
       <<: *cf-creds-dev
       APP_NAME: ((name))
