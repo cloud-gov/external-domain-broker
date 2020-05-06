@@ -93,15 +93,15 @@ jobs:
       SVC_PLAN: ((redis_plan))
       SVC_NAME: ((redis_name))
   - put: cf-stop
-    resource: cf-env
+    resource: cf-cli-dev
     params:
       command: stop
-      app_name: myapp-ui
+      app_name: ((name))
   - put: cf-stop
-    resource: cf-env
+    resource: cf-cli-dev
     params:
       command: stop
-      app_name: myapp-ui
+      app_name: ((name))-workers
   - task: upgrade-schemas
     file: src/ci/upgrade-schemas.yml
     params:
@@ -119,8 +119,6 @@ jobs:
     params:
       path: src
       manifest: src/manifests/workers.yml
-      # Not bothering with zdd
-      # current_app_name: ((name))-workers
       show_app_log: true
       vars:
         <<: *cf-manifest-vars
@@ -178,6 +176,15 @@ resources:
     uri: ((pipeline-tasks-git-url))
     branch: ((pipeline-tasks-git-branch))
 
+- name: cf-cli-dev
+  type: cf-cli-resource
+  source:
+    api: ((dev-cf-api-url))
+    username: ((dev-cf-username))
+    password: ((dev-cf-password))
+    org: ((broker-organization))
+    space: ((broker-space))
+
 ############################
 #  RESOURCE TYPES
 
@@ -187,3 +194,9 @@ resource_types:
   type: docker-image
   source:
     repository: 18fgsa/s3-resource
+
+- name: cf-cli-resource
+  type: docker-image
+  source:
+    repository: nulldriver/cf-cli-resource
+    tag: latest
