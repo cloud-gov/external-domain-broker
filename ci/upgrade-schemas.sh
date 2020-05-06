@@ -14,6 +14,7 @@ cf push \
   -p src \
   -i 1 \
   --var DB_NAME="$DB_NAME" \
+  --var REDIS_NAME="$REDIS_NAME" \
   --var APP_NAME="$APP_NAME" \
   --var BROKER_AUTH_USERNAME="$BROKER_AUTH_USERNAME" \
   --var BROKER_AUTH_PASSWORD="$BROKER_AUTH_PASSWORD" \
