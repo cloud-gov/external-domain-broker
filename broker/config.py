@@ -14,7 +14,7 @@ class Config:
         self.DEBUG = True
 
 
-class ProdConfig(Config):
+class ProductionConfig(Config):
     def __init__(self):
         super().__init__()
         self.TESTING = False
@@ -27,6 +27,24 @@ class ProdConfig(Config):
         self.REDIS_PORT = env.int("REDIS_PORT")
         self.REDIS_PASSWORD = env("REDIS_PASSWORD")
         self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"
+
+
+class UpgradeSchemaConfig(Config):
+    """
+    I'm used when running flask db upgrade in any environment
+    """
+    def __init__(self):
+        super().__init__()
+        self.SQLALCHEMY_DATABASE_URI = env("DATABASE_URL")
+        self.TESTING = False
+        self.DEBUG = False
+        self.SECRET_KEY = "NONE"
+        self.BROKER_USERNAME = "NONE"
+        self.BROKER_PASSWORD = "NONE"
+        self.REDIS_HOST = "NONE"
+        self.REDIS_PORT = 1234
+        self.REDIS_PASSWORD = "NONE"
+        self.ACME_DIRECTORY = "NONE"
 
 
 class StagingConfig(Config):
@@ -87,16 +105,13 @@ class TestConfig(Config):
         self.ACME_DIRECTORY = "https://localhost:14000/dir"
 
 
-def _flask_config():
-    return env("FLASK_ENV")
-
-
 def config_from_env():
     mapping = {
         "test": TestConfig,
         "local-development": LocalDevelopmentConfig,
         "development": DevelopmentConfig,
         "staging": StagingConfig,
-        "production": ProdConfig,
+        "upgrade-schema": UpgradeSchemaConfig,
+        "production": ProductionConfig,
     }
-    return mapping[_flask_config()]()
+    return mapping[env("FLASK_ENV")]()
