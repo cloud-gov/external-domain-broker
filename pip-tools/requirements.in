@@ -1,10 +1,11 @@
 Flask-Migrate
 Flask-SQLAlchemy
 acme
+cfenv
 environs
 flask
-redis
 git+git://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d#egg=openbrokerapi
 gunicorn
-psycopg2
 huey
+psycopg2
+redis

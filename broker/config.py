@@ -1,14 +1,30 @@
 """Flask config class."""
 import os
 
+from cfenv import AppEnv
 from environs import Env
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
-env = Env()
+
+
+class MissingNameError(RuntimeError):
+    def __init__(self):
+        env = Env()
+        super().__init__(
+            f"Can't find name in VCAP_APPLICATION: {env('VCAP_APPLICATION')}"
+        )
+
+
+class MissingRedisError(RuntimeError):
+    def __init__(self):
+        env = Env()
+        super().__init__(f"Cannot find redis in VCAP_SERVICES: {env('VCAP_SERVICES')}")
 
 
 class Config:
     def __init__(self):
+        self.env = Env()
+        self.cfenv = AppEnv()
         self.SQLALCHEMY_TRACK_MODIFICATIONS = False
         self.TESTING = True
         self.DEBUG = True
@@ -19,23 +35,32 @@ class ProductionConfig(Config):
         super().__init__()
         self.TESTING = False
         self.DEBUG = False
-        self.SECRET_KEY = env("SECRET_KEY")
-        self.BROKER_USERNAME = env("BROKER_USERNAME")
-        self.BROKER_PASSWORD = env("BROKER_PASSWORD")
-        self.SQLALCHEMY_DATABASE_URI = env("DATABASE_URL")
-        self.REDIS_HOST = env("REDIS_HOST")
-        self.REDIS_PORT = env.int("REDIS_PORT")
-        self.REDIS_PASSWORD = env("REDIS_PASSWORD")
+        self.SECRET_KEY = self.env("SECRET_KEY")
+        self.BROKER_USERNAME = self.env("BROKER_USERNAME")
+        self.BROKER_PASSWORD = self.env("BROKER_PASSWORD")
+        self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
+        my_name = self.cfenv.name
+        if not my_name:
+            raise MissingNameError
+
+        redis = self.cfenv.get_service(name=f"{self.cfenv.name}-redis")
+        if not redis:
+            raise MissingRedisError
+
+        self.REDIS_HOST = redis.credentials["hostname"]
+        self.REDIS_PORT = redis.credentials["port"]
+        self.REDIS_PASSWORD = redis.credentials["password"]
         self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"
 
 
 class UpgradeSchemaConfig(Config):
     """
-    I'm used when running flask db upgrade in any environment
+    I'm used when running flask db upgrade in any self.environment
     """
+
     def __init__(self):
         super().__init__()
-        self.SQLALCHEMY_DATABASE_URI = env("DATABASE_URL")
+        self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
         self.TESTING = False
         self.DEBUG = False
         self.SECRET_KEY = "NONE"
@@ -52,13 +77,13 @@ class StagingConfig(Config):
         super().__init__()
         self.TESTING = False
         self.DEBUG = False
-        self.SECRET_KEY = env("SECRET_KEY")
-        self.BROKER_USERNAME = env("BROKER_USERNAME")
-        self.BROKER_PASSWORD = env("BROKER_PASSWORD")
-        self.SQLALCHEMY_DATABASE_URI = env("DATABASE_URL")
-        self.REDIS_HOST = env("REDIS_HOST")
-        self.REDIS_PORT = env.int("REDIS_PORT")
-        self.REDIS_PASSWORD = env("REDIS_PASSWORD")
+        self.SECRET_KEY = self.env("SECRET_KEY")
+        self.BROKER_USERNAME = self.env("BROKER_USERNAME")
+        self.BROKER_PASSWORD = self.env("BROKER_PASSWORD")
+        self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
+        self.REDIS_HOST = self.env("REDIS_HOST")
+        self.REDIS_PORT = self.env.int("REDIS_PORT")
+        self.REDIS_PASSWORD = self.env("REDIS_PASSWORD")
         self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
 
@@ -67,13 +92,13 @@ class DevelopmentConfig(Config):
         super().__init__()
         self.TESTING = False
         self.DEBUG = False
-        self.SECRET_KEY = env("SECRET_KEY")
-        self.BROKER_USERNAME = env("BROKER_USERNAME")
-        self.BROKER_PASSWORD = env("BROKER_PASSWORD")
-        self.SQLALCHEMY_DATABASE_URI = env("DATABASE_URL")
-        self.REDIS_HOST = env("REDIS_HOST")
-        self.REDIS_PORT = env.int("REDIS_PORT")
-        self.REDIS_PASSWORD = env("REDIS_PASSWORD")
+        self.SECRET_KEY = self.env("SECRET_KEY")
+        self.BROKER_USERNAME = self.env("BROKER_USERNAME")
+        self.BROKER_PASSWORD = self.env("BROKER_PASSWORD")
+        self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
+        self.REDIS_HOST = self.env("REDIS_HOST")
+        self.REDIS_PORT = self.env.int("REDIS_PORT")
+        self.REDIS_PASSWORD = self.env("REDIS_PASSWORD")
         self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
 
@@ -106,6 +131,7 @@ class TestConfig(Config):
 
 
 def config_from_env():
+    env = Env()
     mapping = {
         "test": TestConfig,
         "local-development": LocalDevelopmentConfig,

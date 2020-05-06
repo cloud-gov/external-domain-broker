@@ -22,11 +22,10 @@ cf push \
   -c "sleep 3600" \
   "$APP_NAME"
 
-cmd="FLASK_APP=broker flask db upgrade"
-
 # This is just to put logs in the concourse output.
 (cf logs "$APP_NAME" | grep "TASK/db-upgrade") &
 
+cmd="FLASK_APP=broker flask db upgrade"
 id=$(cf run-task "$APP_NAME" "$cmd" --name="db-upgrade" | grep "task id:" | awk '{print $3}')
 
 set +x
