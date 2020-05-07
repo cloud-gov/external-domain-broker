@@ -1,5 +1,6 @@
 """Flask config class."""
 import os
+import re
 
 from cfenv import AppEnv
 from environs import Env
@@ -43,11 +44,8 @@ class LiveConfig(Config):
         self.BROKER_USERNAME = self.env("BROKER_USERNAME")
         self.BROKER_PASSWORD = self.env("BROKER_PASSWORD")
         self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
-        my_name = self.cfenv.name
-        if not my_name:
-            raise MissingNameError
 
-        redis = self.cfenv.get_service(name=f"{self.cfenv.name}-redis")
+        redis = self.cfenv.get_service(label=re.compile("redis.*"))
         if not redis:
             raise MissingRedisError
 
