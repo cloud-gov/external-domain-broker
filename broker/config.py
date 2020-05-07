@@ -8,12 +8,17 @@ from environs import Env
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
 
-class MissingNameError(RuntimeError):
-    def __init__(self):
-        env = Env()
-        super().__init__(
-            f"Can't find name in VCAP_APPLICATION: {env('VCAP_APPLICATION')}"
-        )
+def config_from_env():
+    env = Env()
+    mapping = {
+        "test": TestConfig,
+        "local-development": LocalDevelopmentConfig,
+        "development": DevelopmentConfig,
+        "staging": StagingConfig,
+        "upgrade-schema": UpgradeSchemaConfig,
+        "production": ProductionConfig,
+    }
+    return mapping[env("FLASK_ENV")]()
 
 
 class MissingRedisError(RuntimeError):
@@ -117,16 +122,3 @@ class TestConfig(Config):
         self.BROKER_USERNAME = "broker"
         self.BROKER_PASSWORD = "sekrit"
         self.ACME_DIRECTORY = "https://localhost:14000/dir"
-
-
-def config_from_env():
-    env = Env()
-    mapping = {
-        "test": TestConfig,
-        "local-development": LocalDevelopmentConfig,
-        "development": DevelopmentConfig,
-        "staging": StagingConfig,
-        "upgrade-schema": UpgradeSchemaConfig,
-        "production": ProductionConfig,
-    }
-    return mapping[env("FLASK_ENV")]()

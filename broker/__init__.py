@@ -13,13 +13,11 @@ from .config import config_from_env
 log_util.configure(logging.root, log_level="INFO")
 logger = logging.getLogger(__name__)
 
-config_obj = config_from_env()
+config = config_from_env()
 db = SQLAlchemy()
 migrate = Migrate()
 huey = RedisHuey(
-    host=config_obj.REDIS_HOST,
-    port=config_obj.REDIS_PORT,
-    password=config_obj.REDIS_PASSWORD,
+    host=config.REDIS_HOST, port=config.REDIS_PORT, password=config.REDIS_PASSWORD,
 )
 
 
@@ -30,7 +28,7 @@ def create_app():
     from broker.api import API
 
     app = Flask(__name__)
-    app.config.from_object(config_obj)
+    app.config.from_object(config)
     app.huey = huey
 
     db.init_app(app)
