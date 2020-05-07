@@ -30,7 +30,11 @@ class Config:
         self.DEBUG = True
 
 
-class ProductionConfig(Config):
+class LiveConfig(Config):
+    """
+    Base class for apps running in Cloud Foundry
+    """
+
     def __init__(self):
         super().__init__()
         self.TESTING = False
@@ -50,7 +54,24 @@ class ProductionConfig(Config):
         self.REDIS_HOST = redis.credentials["hostname"]
         self.REDIS_PORT = redis.credentials["port"]
         self.REDIS_PASSWORD = redis.credentials["password"]
+
+
+class ProductionConfig(LiveConfig):
+    def __init__(self):
+        super().__init__()
         self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"
+
+
+class StagingConfig(LiveConfig):
+    def __init__(self):
+        super().__init__()
+        self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
+
+
+class DevelopmentConfig(LiveConfig):
+    def __init__(self):
+        super().__init__()
+        self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
 
 class UpgradeSchemaConfig(Config):
@@ -70,36 +91,6 @@ class UpgradeSchemaConfig(Config):
         self.REDIS_PORT = 1234
         self.REDIS_PASSWORD = "NONE"
         self.ACME_DIRECTORY = "NONE"
-
-
-class StagingConfig(Config):
-    def __init__(self):
-        super().__init__()
-        self.TESTING = False
-        self.DEBUG = False
-        self.SECRET_KEY = self.env("SECRET_KEY")
-        self.BROKER_USERNAME = self.env("BROKER_USERNAME")
-        self.BROKER_PASSWORD = self.env("BROKER_PASSWORD")
-        self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
-        self.REDIS_HOST = self.env("REDIS_HOST")
-        self.REDIS_PORT = self.env.int("REDIS_PORT")
-        self.REDIS_PASSWORD = self.env("REDIS_PASSWORD")
-        self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
-
-
-class DevelopmentConfig(Config):
-    def __init__(self):
-        super().__init__()
-        self.TESTING = False
-        self.DEBUG = False
-        self.SECRET_KEY = self.env("SECRET_KEY")
-        self.BROKER_USERNAME = self.env("BROKER_USERNAME")
-        self.BROKER_PASSWORD = self.env("BROKER_PASSWORD")
-        self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
-        self.REDIS_HOST = self.env("REDIS_HOST")
-        self.REDIS_PORT = self.env.int("REDIS_PORT")
-        self.REDIS_PASSWORD = self.env("REDIS_PASSWORD")
-        self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
 
 class LocalDevelopmentConfig(Config):
