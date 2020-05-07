@@ -76,10 +76,13 @@ class API(ServiceBroker):
         if not instance:
             raise errors.ErrInstanceDoesNotExist
 
+        if not operation_data:
+            raise errors.ErrBadRequest(msg="Missing operation ID")
+
         operation = instance.operations.filter_by(id=int(operation_data)).first()
         if not operation:
-            raise errors.ServiceException(
-                description=f"Invalid operation id {operation_data} for service {instance_id}"
+            raise errors.ErrBadRequest(
+                msg=f"Invalid operation id {operation_data} for service {instance_id}"
             )
 
         return LastOperation(state=operation.state)
