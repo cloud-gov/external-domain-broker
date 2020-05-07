@@ -5,6 +5,7 @@ applications:
   memory: 256M
   instances: 3
   command: ./scripts/run-worker
+  health-check-type: process
   services:
   - ((DB_NAME))
   - ((REDIS_NAME))
