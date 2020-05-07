@@ -1,7 +1,7 @@
 from openbrokerapi.service_broker import OperationState
 
 from . import db
-from .tasks import create_le_user
+from .tasks import queue_all_provision_tasks_for_operation
 
 
 class Base(db.Model):
@@ -17,7 +17,7 @@ class ACMEUser(Base):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String, nullable=False)
     uri = db.Column(db.String, nullable=False)
-    private_key = db.Column(db.Text, nullable=False)
+    private_key_pem = db.Column(db.Text, nullable=False)
     registration_json = db.Column(db.Text)
     service_instances = db.relation(
         "ServiceInstance", backref="acme_user", lazy="dynamic"
@@ -27,7 +27,11 @@ class ACMEUser(Base):
 class ServiceInstance(Base):
     id = db.Column(db.String(36), primary_key=True)
     operations = db.relation("Operation", backref="service_instance", lazy="dynamic")
+    challenges = db.relation("Challenge", backref="service_instance", lazy="dynamic")
     acme_user_id = db.Column(db.Integer, db.ForeignKey("acme_user.id"))
+    private_key_pem = db.Column(db.Text)
+    csr_pem = db.Column(db.Text)
+    domain_names = db.Column(db.JSON, default=[])
 
     def __repr__(self):
         return f"<ServiceInstance {self.id}>"
@@ -44,4 +48,17 @@ class Operation(Base):
         return f"<Operation {self.id} {self.state}>"
 
     def queue_tasks(self):
-        create_le_user(self.id)
+        queue_all_provision_tasks_for_operation(self.id)
+
+
+class Challenge(Base):
+    id = db.Column(db.Integer, primary_key=True)
+    service_instance_id = db.Column(
+        db.String, db.ForeignKey("service_instance.id"), nullable=False
+    )
+    domain = db.Column(db.String, nullable=False)
+    validation_domain = db.Column(db.String, nullable=False)
+    validation_contents = db.Column(db.Text, nullable=False)
+
+    def __repr__(self):
+        return f"<Challenge {self.id} {self.domain}>"

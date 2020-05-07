@@ -29,6 +29,9 @@ main() {
     run)
       run "$@"
       ;;
+    new-migration)
+      new-migration "$@"
+      ;;
     update-requirements)
       update-requirements "$@"
       ;;
@@ -91,6 +94,12 @@ update-requirements() {
   run "docker/update-requirements-txt"
 }
 
+new-migration() {
+  [[ "$#" -eq 1 ]] || usage "Missing migration description"
+  run flask db upgrade
+  run flask db migrate -m "$1"
+}
+
 usage() {
   [[ $# -gt 0 ]] && echo "ERROR: $*"
   local me=$(basename "$0")
@@ -98,11 +107,14 @@ usage() {
 
   USAGE: $me COMMAND
 
-  Runs the commands in the development container.
+  Run workflows via the development docker image.
+
+  This provides a consistent developer experience, and avoids the "works on my
+  laptop" issue.
 
   Examples:
 
-    # Runs the tests once
+    # Run the tests once
     $me
 
     # Same as above
@@ -117,11 +129,15 @@ usage() {
     # Start an interactive bash shell in the tests container
     $me shell
 
+    # Create a new database migration file.
+    # The new file will be in migrations/versions/
+    $me new-migration "Add sprocket column to widget table"
+
     # Generate the pip-tools/*requirements.txt files from
     # pip-tools/*requirements.in
     $me update-requirements
 
-    # Run 'foo' in the test container
+    # Run command 'foo' in the container
     $me run foo
 	EOF
   exit 1

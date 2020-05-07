@@ -6,3 +6,5 @@ pip-tools
 pytest
 pytest-watch
 requests
+black
+mypy

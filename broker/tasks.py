@@ -1,16 +1,26 @@
 import josepy
+import json
+import OpenSSL
+from acme import challenges, client, crypto_util, messages
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-
-from acme import client, messages
 
 from . import db, huey
 from .config import config_from_env
 
 
+def queue_all_provision_tasks_for_operation(operation_id: int):
+    task_pipeline = (
+        create_le_user.s(operation_id)
+        .then(generate_private_key, operation_id)
+        .then(initiate_challenges, operation_id)
+    )
+    huey.enqueue(task_pipeline)
+
+
 @huey.task()
-def create_le_user(operation_id: str):
+def create_le_user(operation_id: int):
     from .models import ACMEUser, Operation
 
     acme_user = ACMEUser()
@@ -23,12 +33,12 @@ def create_le_user(operation_id: str):
             public_exponent=65537, key_size=2048, backend=default_backend()
         )
     )
-    pem = key.key.private_bytes(
+    private_key_pem_in_binary = key.key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.NoEncryption(),
-    ).decode("utf-8")
-    acme_user.private_key = pem
+    )
+    acme_user.private_key_pem = private_key_pem_in_binary.decode("utf-8")
 
     net = client.ClientNetwork(key, user_agent="cloud.gov external domain broker")
     directory = messages.Directory.from_json(
@@ -48,3 +58,80 @@ def create_le_user(operation_id: str):
     db.session.add(service_instance)
     db.session.add(acme_user)
     db.session.commit()
+
+
+@huey.task()
+def generate_private_key(operation_id: int):
+    from .models import Operation
+
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    # Create private key.
+    pkey = OpenSSL.crypto.PKey()
+    pkey.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
+
+    # Get the PEM
+    private_key_pem_in_binary = OpenSSL.crypto.dump_privatekey(
+        OpenSSL.crypto.FILETYPE_PEM, pkey
+    )
+
+    # Get the CSR for the domains
+    csr_pem_in_binary = crypto_util.make_csr(
+        private_key_pem_in_binary, service_instance.domain_names
+    )
+
+    # Store them as text for later
+    service_instance.private_key_pem = private_key_pem_in_binary.decode("utf-8")
+    service_instance.csr_pem = csr_pem_in_binary.decode("utf-8")
+
+    db.session.add(service_instance)
+    db.session.add(operation)
+    db.session.commit()
+
+
+@huey.task()
+def initiate_challenges(operation_id: int):
+    from .models import Operation, Challenge
+
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    acme_user = service_instance.acme_user
+
+    account_key = serialization.load_pem_private_key(
+        acme_user.private_key_pem.encode(), password=None, backend=default_backend()
+    )
+    wrapped_account_key = josepy.JWKRSA(key=account_key)
+
+    registration = json.loads(acme_user.registration_json)
+    net = client.ClientNetwork(
+        wrapped_account_key,
+        user_agent="cloud.gov external domain broker",
+        account=registration,
+    )
+    directory = messages.Directory.from_json(
+        net.get(config_from_env().ACME_DIRECTORY).json()
+    )
+    client_acme = client.ClientV2(directory, net=net)
+
+    order = client_acme.new_order(service_instance.csr_pem.encode())
+
+    for domain in service_instance.domain_names:
+        challenge_body = dns_challenge(order)
+
+        challenge = Challenge()
+        challenge.domain = domain
+        challenge.service_instance = service_instance
+        challenge.validation_domain = challenge_body.validation_domain_name(domain)
+        challenge.validation_contents = challenge_body.validation(wrapped_account_key)
+
+
+def dns_challenge(order):
+    """Extract authorization resource from within order resource."""
+
+    for authorization in order.authorizations:
+        # authorization.body.challenges is a set of ChallengeBody objects.
+
+        for challenge_body in authorization.body.challenges:
+            if isinstance(challenge_body.chall, challenges.DNS01):
+                return challenge_body

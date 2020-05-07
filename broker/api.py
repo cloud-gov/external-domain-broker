@@ -93,7 +93,14 @@ class API(ServiceBroker):
         if not async_allowed:
             raise errors.ErrAsyncRequired()
 
-        instance = ServiceInstance(id=instance_id)
+        if details.parameters and details.parameters["domains"]:
+            domain_names = [
+                d.strip().lower() for d in details.parameters["domains"].split(",")
+            ]
+        else:
+            raise errors.ErrBadRequest("'domains' parameter required.")
+
+        instance = ServiceInstance(id=instance_id, domain_names=domain_names)
 
         operation = Operation(
             state=OperationState.IN_PROGRESS, service_instance=instance
@@ -118,6 +125,8 @@ class API(ServiceBroker):
         if not async_allowed:
             raise errors.ErrAsyncRequired()
         instance = ServiceInstance.query.get(instance_id)
+        if not instance:
+            raise errors.ErrInstanceDoesNotExist
         operation = Operation(
             state=OperationState.IN_PROGRESS, service_instance=instance
         )

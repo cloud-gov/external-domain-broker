@@ -25,17 +25,10 @@ at what's currently in the database, what's defined in our
 [models](/broker/models.py), and generating a migration file that would
 bridge the gap.
 
-First ensure the `tmp/dev.sqlite` database is up to date (this also happens
-when you run `./dev serve`):
+To generate a new migration file, add the columns to `./broker/models.py` and run:
 
 ``` console
-$ ./dev run flask db upgrade
-```
-
-...and then generate the migration file:
-
-``` console
-$ ./dev run flask db migrate -m "Change description"
+$ ./dev new-migration "Description of the change"
 ```
 
 ## Adding Packages

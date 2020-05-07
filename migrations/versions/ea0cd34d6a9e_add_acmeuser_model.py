@@ -29,7 +29,7 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("email", sa.String(), nullable=False),
         sa.Column("uri", sa.String(), nullable=False),
-        sa.Column("private_key", sa.Text(), nullable=False),
+        sa.Column("private_key_pem", sa.Text(), nullable=False),
         sa.Column("registration_json", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
