@@ -4,7 +4,7 @@ applications:
   no-route: true
   memory: 256M
   instances: 3
-  command: huey_consumer.py broker.tasks.huey
+  command: ./scripts/run-worker
   services:
   - ((DB_NAME))
   - ((REDIS_NAME))

@@ -57,7 +57,7 @@ ENV FLASK_ENV=local-development
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+ENV PORT=8000
 
-ENTRYPOINT ["/app/docker/entrypoint.sh"]
 CMD ["bash"]
 

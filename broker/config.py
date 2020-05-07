@@ -96,7 +96,7 @@ class UpgradeSchemaConfig(Config):
 class LocalDevelopmentConfig(Config):
     def __init__(self):
         super().__init__()
-        self.SQLITE_DB_PATH = os.path.join(base_dir, "..", "dev.sqlite")
+        self.SQLITE_DB_PATH = os.path.join(base_dir, "..", "tmp", "dev.sqlite")
         self.SQLALCHEMY_DATABASE_URI = "sqlite:///" + self.SQLITE_DB_PATH
         self.REDIS_HOST = "localhost"
         self.REDIS_PORT = 6379

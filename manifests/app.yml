@@ -3,7 +3,7 @@ applications:
 - name: ((APP_NAME))
   memory: 256M
   instances: 3
-  command: gunicorn -b 0.0.0.0:$PORT 'broker:create_app()'
+  command: /app/scripts/run-app
   services:
   - ((DB_NAME))
   - ((REDIS_NAME))

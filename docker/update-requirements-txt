@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-export CUSTOM_COMPILE_COMMAND="./scripts/dev update-requirements"
+export CUSTOM_COMPILE_COMMAND="./dev update-requirements"
 echo "Compiling requirements.txt"
 pip-compile \
   --quiet \

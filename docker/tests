@@ -3,8 +3,7 @@
 cd /app || (echo "Cannot find /app directory"; exit 2)
 set -x
 
-# Concourse politely ignores our ENTRYPOINT. :shrug:"
-/app/docker/start-redis.sh
+./docker/start-redis.sh
 
 export FLASK_ENV=test
 
@@ -15,4 +14,4 @@ else
   python -m pytest -v "$@"
 fi
 
-/app/docker/stop-redis.sh
+./docker/stop-redis.sh

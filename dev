@@ -17,6 +17,9 @@ main() {
     -h)
       usage
       ;;
+    serve)
+      serve "$@"
+      ;;
     tests)
       tests "$@"
       ;;
@@ -55,17 +58,17 @@ build_image_and_return_id() {
 }
 
 run_docker() {
-  docker run --rm -it -v "$PWD:/app" "$@"
+  docker run --rm -it -v "$PWD:/app" -p "0.0.0.0:8000:8000" "$@"
 }
 
 tests() {
   id=$(build_image_and_return_id)
-  run_docker "$id" docker/run-tests "$@"
+  run_docker "$id" docker/tests "$@"
 }
 
 watch-tests() {
   id=$(build_image_and_return_id)
-  run_docker "$id" docker/run-tests watch "$@"
+  run_docker "$id" docker/tests watch "$@"
 }
 
 run() {
@@ -76,6 +79,11 @@ run() {
 shell() {
   id=$(build_image_and_return_id)
   run_docker "$id" "bash"
+}
+
+serve() {
+  id=$(build_image_and_return_id)
+  run_docker "$id" docker/serve "$@"
 }
 
 update-requirements() {
@@ -98,6 +106,9 @@ usage() {
 
     # Same as above
     $me tests
+
+    # Run the application, binding to port 8000
+    $me serve
 
     # Continually watch for file changes and runs tests
     $me watch-tests

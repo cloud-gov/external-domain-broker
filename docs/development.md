@@ -7,7 +7,7 @@ https://github.com/eruvanos/openbrokerapi-skeleton to start the project.
 
 ## Running Tests
 
-Run tests via the `./scripts/dev tests` script. This uses the `dev` stage of
+Run tests via the `./dev tests` script. This uses the `dev` stage of
 the Dockerfile, to ensure we're as close to parity with prod as possible.
 
 ## Generate a DB Migration File
@@ -16,18 +16,18 @@ We're using [flask-migrate](https://flask-migrate.readthedocs.io/en/latest/)
 for migrations.  flask-migrate can auto-generate a migration file by looking
 at what's currently in the database, what's defined in our
 [models](/broker/models.py), and generating a migration file that would
-bridge the gap.  However, our `dev.sqlite` database is automatically created
+bridge the gap.  However, our `tmp/dev.sqlite` database is automatically created
 and destroyed with each test run.  In order to generate a migration, you
-should first create the `dev.sqlite` database:
+should first create the `tmp/dev.sqlite` database:
 
 ``` console
-$ ./scripts/dev run flask db upgrade
+$ ./dev run flask db upgrade
 ```
 
 ...and then generate the migration file:
 
 ``` console
-$ ./scripts/dev run flask db migrate -m "Change description"
+$ ./dev run flask db migrate -m "Change description"
 ```
 
 ## Adding Packages
@@ -41,7 +41,7 @@ requirements) or `pip-tools/dev-requirements.in` (for development requirements)
 files and run:
 
 ```console
-$ ./scripts/dev update-requirements
+$ ./dev update-requirements
 Compiling requirements.txt
 Compiling dev-requirements.txt
 ```
