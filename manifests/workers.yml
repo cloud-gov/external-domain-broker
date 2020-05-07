@@ -12,3 +12,6 @@ applications:
   - python_buildpack
   env:
     FLASK_ENV: ((FLASK_ENV))
+    SECRET_KEY: None
+    BROKER_USERNAME: None
+    BROKER_PASSWORD: None
