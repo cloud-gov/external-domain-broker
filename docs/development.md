@@ -1,14 +1,21 @@
 # Development
 
-## Open Service Broker API
+## General development workflow
 
-We're using https://github.com/eruvanos/openbrokerapi, and we used
-https://github.com/eruvanos/openbrokerapi-skeleton to start the project.
+In one window, run the tests continually via the `./dev watch-tests` script.
+This runs the test watcher in a Docker container, and mounts your local
+directory over the container's application codebase.
 
-## Running Tests
+In another, simply edit your files as normal.  The test watcher should pick up
+any changes when you save files and run the tests again.  If you'd like it to
+only run the test(s) you care about, annotate them with the `focus` mark like
+such:
 
-Run tests via the `./dev tests` script. This uses the `dev` stage of
-the Dockerfile, to ensure we're as close to parity with prod as possible.
+``` python
+@pytest.mark.focus
+def test_provision_creates_LE_user(client, tasks, pebble):
+    ...
+```
 
 ## Generate a DB Migration File
 
@@ -16,9 +23,10 @@ We're using [flask-migrate](https://flask-migrate.readthedocs.io/en/latest/)
 for migrations.  flask-migrate can auto-generate a migration file by looking
 at what's currently in the database, what's defined in our
 [models](/broker/models.py), and generating a migration file that would
-bridge the gap.  However, our `tmp/dev.sqlite` database is automatically created
-and destroyed with each test run.  In order to generate a migration, you
-should first create the `tmp/dev.sqlite` database:
+bridge the gap.
+
+First ensure the `tmp/dev.sqlite` database is up to date (this also happens
+when you run `./dev serve`):
 
 ``` console
 $ ./dev run flask db upgrade
@@ -52,6 +60,11 @@ We use [Black](https://github.com/psf/black) to format our code. Please do
 the same.
 
 ## Architecture
+
+### Open Service Broker API
+
+We're using https://github.com/eruvanos/openbrokerapi, and we used
+https://github.com/eruvanos/openbrokerapi-skeleton to start the project.
 
 ## WIP Notes and Useful Links
 
