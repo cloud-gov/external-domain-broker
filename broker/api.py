@@ -1,4 +1,5 @@
 import logging
+import textwrap
 from typing import Optional
 
 from openbrokerapi import errors
@@ -73,6 +74,7 @@ class API(ServiceBroker):
         """
 
         instance = ServiceInstance.query.get(instance_id)
+
         if not instance:
             raise errors.ErrInstanceDoesNotExist
 
@@ -80,12 +82,13 @@ class API(ServiceBroker):
             raise errors.ErrBadRequest(msg="Missing operation ID")
 
         operation = instance.operations.filter_by(id=int(operation_data)).first()
+
         if not operation:
             raise errors.ErrBadRequest(
                 msg=f"Invalid operation id {operation_data} for service {instance_id}"
             )
 
-        return LastOperation(state=operation.state)
+        return LastOperation(state=operation.state, description=instance.description)
 
     def provision(
         self, instance_id: str, details: ProvisionDetails, async_allowed: bool, **kwargs
@@ -125,6 +128,7 @@ class API(ServiceBroker):
         if not async_allowed:
             raise errors.ErrAsyncRequired()
         instance = ServiceInstance.query.get(instance_id)
+
         if not instance:
             raise errors.ErrInstanceDoesNotExist
         operation = Operation(
@@ -132,6 +136,7 @@ class API(ServiceBroker):
         )
         db.session.add(operation)
         db.session.commit()
+
         return DeprovisionServiceSpec(is_async=True, operation=operation.id)
 
     def bind(

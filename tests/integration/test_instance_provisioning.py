@@ -26,7 +26,7 @@ def test_refuses_to_provision_without_domains(client):
     assert client.response.status_code == 400
 
 
-def test_provision_creates_provision_operation(client):
+def test_provision_creates_provision_operation(client, simple_regex):
     client.provision_instance("4321", params={"domains": "example.com, Cloud.Gov"})
 
     assert "AsyncRequired" not in client.response.body
@@ -44,13 +44,19 @@ def test_provision_creates_provision_operation(client):
     assert instance is not None
     assert instance.domain_names == ["example.com", "cloud.gov"]
 
+    client.get_last_operation("4321", operation_id)
+    assert client.response.json.get("description") == simple_regex(
+        r"run this command again"
+    )
 
-def test_provision_creates_LE_user(client, tasks, pebble):
+
+def test_provision_creates_LE_user(client, tasks, pebble, simple_regex):
     client.provision_instance(
         "4321", accepts_incomplete="true", params={"domains": "example.com"}
     )
 
     assert client.response.status_code == 202, client.response.body
+    operation_id = client.response.json["operation"]
 
     tasks.run_pipeline_stages(1)
 
@@ -62,6 +68,11 @@ def test_provision_creates_LE_user(client, tasks, pebble):
     assert "localhost:14000" in acme_user.uri
 
     assert "body" in json.loads(acme_user.registration_json)
+
+    client.get_last_operation("4321", operation_id)
+    assert client.response.json.get("description") == simple_regex(
+        r"run this command again"
+    )
 
 
 def test_provision_creates_private_key_and_csr(client, tasks, pebble):
@@ -78,12 +89,13 @@ def test_provision_creates_private_key_and_csr(client, tasks, pebble):
     assert "BEGIN CERTIFICATE REQUEST" in service_instance.csr_pem
 
 
-def test_provision_initiates_LE_challenge(client, tasks, pebble):
+def test_provision_initiates_LE_challenge(client, tasks, pebble, simple_regex):
     client.provision_instance(
         "4321", accepts_incomplete="true", params={"domains": "example.com,cloud.gov"}
     )
 
     assert client.response.status_code == 202, client.response.body
+    operation_id = client.response.json["operation"]
 
     tasks.run_pipeline_stages(3)
 
@@ -91,8 +103,14 @@ def test_provision_initiates_LE_challenge(client, tasks, pebble):
 
     assert service_instance.challenges.count() == 2
 
+    client.get_last_operation("4321", operation_id)
+    description = client.response.json.get("description")
+    assert description == simple_regex(r"add the following TXT DNS records:")
+
     for challenge in service_instance.challenges:
         assert challenge.validation_domain
         assert challenge.validation_contents
         assert "_acme-challenge." in challenge.validation_domain
         assert len(challenge.validation_contents) == 43
+        assert description == simple_regex(rf"{challenge.validation_domain}")
+        assert description == simple_regex(rf"{challenge.validation_contents}")

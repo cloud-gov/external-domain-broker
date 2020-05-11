@@ -2,6 +2,7 @@ from openbrokerapi.service_broker import OperationState
 
 from . import db
 from .tasks import queue_all_provision_tasks_for_operation
+import textwrap
 
 
 class Base(db.Model):
@@ -35,6 +36,41 @@ class ServiceInstance(Base):
 
     def __repr__(self):
         return f"<ServiceInstance {self.id}>"
+
+    @property
+    def description(self):
+        if self.challenges.count() == 0:
+            return textwrap.dedent(
+                """\
+                    We're still attempting to provision your TLS
+                    certificates. Once we're done, we'll provide
+                    instructions on how to update DNS to finalize the
+                    certificates.  This is a time-sensitive operation,
+                    so please please wait 10 minutes and run this
+                    command again.
+                    """
+            )
+        else:
+            desc = []
+            desc.append("Please add the following TXT DNS records:")
+
+            for challenge in self.challenges:
+                d = challenge.validation_domain
+                c = challenge.validation_contents
+                desc.append(f"  {d} with contents {c}")
+
+            desc.append(
+                textwrap.dedent(
+                    """\
+                    We will detect those records and continue with the
+                    domain creation.  Please allow time for the DNS
+                    records to propagate and run this command again to
+                    review status.
+                    """
+                )
+            )
+
+            return textwrap.dedent(" ".join(desc))
 
 
 class Operation(Base):

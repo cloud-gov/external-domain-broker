@@ -26,9 +26,7 @@ def test_last_operation_with_id_returns_state(client):
     )
 
     client.get_last_operation("1234", operation_1.id)
-    assert "state" in client.response.json
-    assert client.response.json["state"] == "failed"
+    assert client.response.json.get("state") == "failed"
 
     client.get_last_operation("1234", operation_2.id)
-    assert "state" in client.response.json
-    assert client.response.json["state"] == "succeeded"
+    assert client.response.json.get("state") == "succeeded"
