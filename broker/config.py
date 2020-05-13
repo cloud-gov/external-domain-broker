@@ -6,6 +6,7 @@ from cfenv import AppEnv
 from environs import Env
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
+tmp_dir = os.path.join(base_dir, "..", "tmp")
 
 
 def config_from_env():
@@ -18,13 +19,13 @@ def config_from_env():
         "upgrade-schema": UpgradeSchemaConfig,
         "production": ProductionConfig,
     }
+
     return mapping[env("FLASK_ENV")]()
 
 
 class MissingRedisError(RuntimeError):
     def __init__(self):
-        env = Env()
-        super().__init__(f"Cannot find redis in VCAP_SERVICES: {env('VCAP_SERVICES')}")
+        super().__init__(f"Cannot find redis in VCAP_SERVICES")
 
 
 class Config:
@@ -37,9 +38,7 @@ class Config:
 
 
 class LiveConfig(Config):
-    """
-    Base class for apps running in Cloud Foundry
-    """
+    """ Base class for apps running in Cloud Foundry """
 
     def __init__(self):
         super().__init__()
@@ -51,12 +50,14 @@ class LiveConfig(Config):
         self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
 
         redis = self.cfenv.get_service(label=re.compile("redis.*"))
+
         if not redis:
             raise MissingRedisError
 
         self.REDIS_HOST = redis.credentials["hostname"]
         self.REDIS_PORT = redis.credentials["port"]
         self.REDIS_PASSWORD = redis.credentials["password"]
+        self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
 
 
 class ProductionConfig(LiveConfig):
@@ -78,9 +79,7 @@ class DevelopmentConfig(LiveConfig):
 
 
 class UpgradeSchemaConfig(Config):
-    """
-    I'm used when running flask db upgrade in any self.environment
-    """
+    """ I'm used when running flask db upgrade in any self.environment """
 
     def __init__(self):
         super().__init__()
@@ -96,10 +95,12 @@ class UpgradeSchemaConfig(Config):
         self.ACME_DIRECTORY = "NONE"
 
 
-class LocalDevelopmentConfig(Config):
+class DockerConfig(Config):
+    """ Base class for running in the local dev docker image """
+
     def __init__(self):
         super().__init__()
-        self.SQLITE_DB_PATH = os.path.join(base_dir, "..", "tmp", "dev.sqlite")
+        self.SQLITE_DB_PATH = os.path.join(tmp_dir, self.SQLITE_DB_NAME)
         self.SQLALCHEMY_DATABASE_URI = "sqlite:///" + self.SQLITE_DB_PATH
         self.REDIS_HOST = "localhost"
         self.REDIS_PORT = 6379
@@ -107,18 +108,19 @@ class LocalDevelopmentConfig(Config):
         self.SECRET_KEY = "Sekrit Key"
         self.BROKER_USERNAME = "broker"
         self.BROKER_PASSWORD = "sekrit"
-        self.ACME_DIRECTORY = "https://localhost:14000/dir"  # Local Pebble server.
-
-
-class TestConfig(Config):
-    def __init__(self):
-        super().__init__()
-        self.SQLITE_DB_PATH = os.path.join(base_dir, "..", "test.sqlite")
-        self.SQLALCHEMY_DATABASE_URI = "sqlite:///" + self.SQLITE_DB_PATH
-        self.REDIS_HOST = "localhost"
-        self.REDIS_PORT = 6379
-        self.REDIS_PASSWORD = "sekrit"
-        self.SECRET_KEY = "Sekrit Key"
-        self.BROKER_USERNAME = "broker"
-        self.BROKER_PASSWORD = "sekrit"
+        # Local pebble server.
         self.ACME_DIRECTORY = "https://localhost:14000/dir"
+        # Local pebble-challtestsrv server.
+        self.DNS_VERIFICATION_SERVER = "127.0.0.1:8053"
+
+
+class LocalDevelopmentConfig(DockerConfig):
+    def __init__(self):
+        self.SQLITE_DB_NAME = "dev.sqlite"
+        super().__init__()
+
+
+class TestConfig(DockerConfig):
+    def __init__(self):
+        self.SQLITE_DB_NAME = "test.sqlite"
+        super().__init__()

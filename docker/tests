@@ -3,15 +3,15 @@
 cd /app || (echo "Cannot find /app directory"; exit 2)
 set -x
 
-./docker/start-redis.sh
+./docker/start-servers.sh
 
 export FLASK_ENV=test
 
 if [[ "$#" -ge 1 ]] && [[ "$1" == "watch" ]]; then
   shift
-  ptw --spool=500 -- -v "$@"
+  ptw --spool=500 -- -vv "$@"
 else
-  python -m pytest -v "$@"
+  python -m pytest -vv "$@"
 fi
 
-./docker/stop-redis.sh
+./docker/stop-servers.sh

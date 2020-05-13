@@ -1,8 +1,8 @@
 import base64
 import contextlib
 import os
-import subprocess
 import sys
+import requests
 
 import flask_migrate
 import pytest
@@ -10,6 +10,7 @@ from flask import current_app
 from flask.testing import FlaskClient
 from flask.wrappers import Response
 from werkzeug.datastructures import Headers
+from dataclasses import dataclass, asdict
 
 from broker import create_app, db
 
@@ -34,7 +35,10 @@ class Tasks:
     def run_pipeline_stages(self, num_pipeline_stages: int):
         """
         Runs run_all_queued_without_pipelines the specified number of times.
+
+        Will fail the test if there's not at least a single Task to be run.
         """
+
         for _ in range(num_pipeline_stages):
             self.run_all_queued_without_pipelines()
 
@@ -48,18 +52,23 @@ class Tasks:
         You could also call run_all_queued_including_pipelines, but that's
         slower and less controlled, resulting in confusing test failures from
         later pipeline stages.
+
+        Will fail the test if there's not at least a single Task to be run.
         """
         # __tracebackhide__ = True
 
         found_at_least_one_queued_task = False
         task = self.huey.dequeue()
         pipeline_tasks = []
+
         while task:
             found_at_least_one_queued_task = True
             task.execute()
+
             if task.on_complete:
                 pipeline_tasks.append(task.on_complete)
             task = self.huey.dequeue()
+
         for task in pipeline_tasks:
             self.huey.enqueue(task)
 
@@ -70,14 +79,18 @@ class Tasks:
         """
         Runs all currently queued tasks and their pipelines, created with
         `Task.then()`.
+
+        Will fail the test if there's not at least a single Task to be run.
         """
         # __tracebackhide__ = True
 
         found_at_least_one_queued_task = False
         task = self.huey.dequeue()
+
         while task:
             found_at_least_one_queued_task = True
             task.execute()
+
             if task.on_complete:
                 task = task.on_complete
             else:
@@ -85,6 +98,11 @@ class Tasks:
 
         if not found_at_least_one_queued_task:
             pytest.fail("No tasks queued to run.")
+
+
+@pytest.fixture(scope="function")
+def tasks():
+    return Tasks()
 
 
 class CFAPIResponse(Response):
@@ -122,6 +140,7 @@ class CFAPIClient(FlaskClient):
         kwargs["headers"] = headers
 
         self.response = super().open(url, *args, **kwargs)
+
         return self.response
 
     def provision_instance(
@@ -133,6 +152,7 @@ class CFAPIClient(FlaskClient):
             "organization_guid": "abc",
             "space_guid": "123",
         }
+
         if params is not None:
             json["parameters"] = params
 
@@ -162,64 +182,83 @@ class CFAPIClient(FlaskClient):
         )
 
 
-class Pebble:
+class DNS:
+    """
+    I interact with the pebble-challtestsrv process to add and clear DNS
+    entries.  See
+    https://github.com/letsencrypt/pebble/blob/master/cmd/pebble-challtestsrv/README.md
+    for the API.
+    """
+
+    @dataclass
+    class Entry:
+        record_type: str
+        host: str
+        base: str
+        target: str = ""
+        value: str = ""
+
+        def __post_init__(self):
+            if self.record_type == "txt":
+                requests.post(
+                    self.base + f"/add-txt",
+                    json={"host": self.host, "value": self.value},
+                )
+            elif self.record_type == "cname":
+                requests.post(
+                    self.base + f"/set-cname",
+                    json={"host": self.host, "target": self.target},
+                )
+            else:
+                raise Exception(f"unknown record type: {self.record_type}")
+
+        def clear(self):
+            requests.post(
+                self.base + f"/clear-{self.record_type}", json={"host": self.host}
+            )
+
     def __init__(self):
-        self._pebble_startup_string = "ACME directory available at"
-        self._challtestsrv_startup_string = "Starting management server on"
-        self._pebble = None
-        self._challtestsrv = None
+        self.base = "http://localhost:8055"
+        self.entries = []
 
-    def _wait_for_text(self, substring: str, from_process: subprocess.Popen):
-        for line in from_process.stdout:
-            if substring in line:
-                return
-
-    def _run(self, cmd_array):
-        return subprocess.Popen(
-            cmd_array,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            cwd="/",
+    def add_txt(self, host, value):
+        self.entries.append(
+            self.Entry(record_type="txt", host=host, value=value, base=self.base)
         )
 
-    def start(self):
-        self._pebble = self._run(
-            [
-                "/usr/bin/pebble",
-                "-dnsserver",
-                ":5053",
-                "-config",
-                "/test/config/pebble-config.json",
-            ]
-        )
-        self._challtestsrv = self._run(["/usr/bin/pebble-challtestsrv"])
-        self._wait_for_text(self._pebble_startup_string, from_process=self._pebble)
-        self._wait_for_text(
-            self._challtestsrv_startup_string, from_process=self._challtestsrv
+    def add_cname(self, host, target=None):
+        if not host.startswith("_acme-challenge"):
+            raise Exception("host needs to start with _acme-challenge")
+
+        if not target:
+            target = f"{host}.domains.cloud.gov"
+        self.entries.append(
+            self.Entry(record_type="cname", host=host, target=target, base=self.base)
         )
 
-    def stop(self):
-        # kill -9 and let God sort em out.
-        self._challtestsrv.kill()
-        self._pebble.kill()
+    def clear_all(self):
+        # Unfortunately, the pebble-challtestsrv doesn't expose a "clear-all"
+        # endpoint.
 
-    def is_running(self):
-        if self._pebble.poll():
-            return False
-        if self._challtestsrv.poll():
-            return False
-        return True
+        for entry in self.entries:
+            entry.clear()
+        self.entries = []
+
+
+@pytest.fixture(scope="function")
+def dns():
+    dns = DNS()
+    yield dns
+    dns.clear_all()
 
 
 @pytest.fixture(scope="session")
 def app():
     _app = create_app()
 
-    # The Exception errorhandler seems to be firing in testing mode.  Remove
-    # it.
+    # The Exception errorhandler seems to be firing in testing mode.
     del _app.error_handler_spec["open_broker"][None][Exception]
-    # Establish an application context before running the tests.
+
     with _app.app_context():
         yield current_app
 
@@ -230,6 +269,7 @@ def client(app, capsys):
     app.response_class = CFAPIResponse
 
     db_path = app.config["SQLITE_DB_PATH"]
+
     if os.path.isfile(db_path):
         os.remove(app.config["SQLITE_DB_PATH"])
 
@@ -240,21 +280,6 @@ def client(app, capsys):
     yield app.test_client()
 
     db.session.close()
+
     if os.path.isfile(db_path):
         os.remove(app.config["SQLITE_DB_PATH"])
-
-
-# This may be slow (starting/stopping procs with each test).  If so,
-# we'll need to move it to a "session" fixture, and have a function
-# fixture that clears data after each test.
-@pytest.fixture(scope="function")
-def pebble():
-    pebble_client = Pebble()
-    pebble_client.start()
-    yield pebble_client
-    pebble_client.stop()
-
-
-@pytest.fixture(scope="function")
-def tasks():
-    return Tasks()

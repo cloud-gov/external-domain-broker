@@ -1,10 +1,11 @@
 # Include base requirements
 -r ../requirements.txt
+black
 factory_boy
 flask-testing
+mypy
 pip-tools
 pytest
 pytest-watch
 requests
-black
-mypy
+requests

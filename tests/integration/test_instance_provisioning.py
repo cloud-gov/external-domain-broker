@@ -1,4 +1,5 @@
 import json
+import pytest
 
 from openbrokerapi.service_broker import OperationState
 
@@ -26,7 +27,33 @@ def test_refuses_to_provision_without_domains(client):
     assert client.response.status_code == 400
 
 
-def test_provision_creates_provision_operation(client, simple_regex):
+def test_refuses_to_provision_without_any_acme_challenge_CNAMEs(client):
+    client.provision_instance("4321", params={"domains": "bar.com,foo.com"})
+
+    desc = client.response.json.get("description")
+    assert "CNAME" in desc
+    assert "_acme-challenge.foo.com " in desc
+    assert "_acme-challenge.foo.com.domains.cloud.gov" in desc
+    assert "_acme-challenge.bar.com " in desc
+    assert "_acme-challenge.bar.com.domains.cloud.gov" in desc
+    assert client.response.status_code == 400
+
+
+def test_refuses_to_provision_without_one_acme_challenge_CNAME(client, dns):
+    dns.add_cname("_acme-challenge.foo.com")
+    client.provision_instance("4321", params={"domains": "bar.com,foo.com"})
+
+    desc = client.response.json.get("description")
+    assert "CNAME" in desc
+    assert "_acme-challenge.foo.com" not in desc
+    assert "_acme-challenge.bar.com " in desc
+    assert "_acme-challenge.bar.com.domains.cloud.gov" in desc
+    assert client.response.status_code == 400
+
+
+def test_provision_creates_provision_operation(client, simple_regex, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    dns.add_cname("_acme-challenge.cloud.gov")
     client.provision_instance("4321", params={"domains": "example.com, Cloud.Gov"})
 
     assert "AsyncRequired" not in client.response.body
@@ -50,7 +77,8 @@ def test_provision_creates_provision_operation(client, simple_regex):
     )
 
 
-def test_provision_creates_LE_user(client, tasks, pebble, simple_regex):
+def test_provision_creates_LE_user(client, tasks, simple_regex, dns):
+    dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
         "4321", accepts_incomplete="true", params={"domains": "example.com"}
     )
@@ -75,7 +103,8 @@ def test_provision_creates_LE_user(client, tasks, pebble, simple_regex):
     )
 
 
-def test_provision_creates_private_key_and_csr(client, tasks, pebble):
+def test_provision_creates_private_key_and_csr(client, tasks, dns):
+    dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
         "4321", accepts_incomplete="true", params={"domains": "example.com"}
     )
@@ -89,7 +118,9 @@ def test_provision_creates_private_key_and_csr(client, tasks, pebble):
     assert "BEGIN CERTIFICATE REQUEST" in service_instance.csr_pem
 
 
-def test_provision_initiates_LE_challenge(client, tasks, pebble, simple_regex):
+def test_provision_initiates_LE_challenge(client, tasks, simple_regex, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    dns.add_cname("_acme-challenge.cloud.gov")
     client.provision_instance(
         "4321", accepts_incomplete="true", params={"domains": "example.com,cloud.gov"}
     )

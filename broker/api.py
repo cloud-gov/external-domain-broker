@@ -1,5 +1,4 @@
 import logging
-import textwrap
 from typing import Optional
 
 from openbrokerapi import errors
@@ -23,6 +22,7 @@ from openbrokerapi.service_broker import (
 
 from . import db
 from .models import Operation, ServiceInstance
+from .validators import CNAMEValidator
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +102,8 @@ class API(ServiceBroker):
             ]
         else:
             raise errors.ErrBadRequest("'domains' parameter required.")
+
+        CNAMEValidator(domain_names).validate()
 
         instance = ServiceInstance(id=instance_id, domain_names=domain_names)
 

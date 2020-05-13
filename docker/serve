@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 
 flask db upgrade
 
-docker/start-redis.sh &
+docker/start-servers.sh &
 scripts/run-app &
 scripts/run-worker &
 

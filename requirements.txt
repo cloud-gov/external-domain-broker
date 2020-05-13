@@ -12,6 +12,7 @@ cffi==1.14.0              # via cryptography
 chardet==3.0.4            # via requests
 click==7.1.1              # via flask
 cryptography==2.9.2       # via acme, josepy, pyopenssl, requests
+dnspython==1.16.0         # via -r pip-tools/requirements.in
 environs==7.4.0           # via -r pip-tools/requirements.in
 flask-migrate==2.5.3      # via -r pip-tools/requirements.in
 flask-sqlalchemy==2.4.1   # via -r pip-tools/requirements.in, flask-migrate
