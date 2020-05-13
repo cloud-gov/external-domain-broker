@@ -51,6 +51,23 @@ def test_refuses_to_provision_without_one_acme_challenge_CNAME(client, dns):
     assert client.response.status_code == 400
 
 
+def test_refuses_to_provision_with_incorrect_acme_challenge_CNAME(client, dns):
+    dns.add_cname("_acme-challenge.bar.com")
+    dns.add_cname("_acme-challenge.foo.com", target="INCORRECT")
+    client.provision_instance("4321", params={"domains": "bar.com,foo.com"})
+
+    desc = client.response.json.get("description")
+
+    assert "is set incorrectly" in desc
+
+    assert " _acme-challenge.foo.com " in desc
+    assert " _acme-challenge.foo.com.domains.cloud.gov" in desc
+    assert " INCORRECT" in desc
+
+    assert " _acme-challenge.bar.com" not in desc
+    assert client.response.status_code == 400
+
+
 def test_provision_creates_provision_operation(client, simple_regex, dns):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.cloud.gov")

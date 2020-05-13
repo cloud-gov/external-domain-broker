@@ -1,6 +1,7 @@
 import dns.resolver
 from openbrokerapi import errors
 from .config import config_from_env
+from typing import List
 
 config = config_from_env()
 
@@ -18,9 +19,9 @@ class CNAMEValidator:
 
         if instructions:
             msg = [
-                "We could not find a CNAME record for some of your domains.",
-                "Please ensure the following DNS records are in place and",
-                "try to provision this service again:",
+                "We could not find correct CNAME records for one or more of your domains.",
+                "Please ensure the following DNS records are in place and try to provision",
+                "this service again:",
             ]
 
             for error in instructions:
@@ -28,7 +29,7 @@ class CNAMEValidator:
 
             raise errors.ErrBadRequest("\n".join(msg))
 
-    def _instructions(self, domains: list):
+    def _instructions(self, domains: List[str]) -> List[str]:
         errors = []
 
         for d in domains:
@@ -39,26 +40,38 @@ class CNAMEValidator:
 
         return errors
 
-    def _error_for_domain(self, domain):
-        if self._missing_cname(domain):
+    def _error_for_domain(self, domain: str) -> str:
+        cname = self._get_cname(domain)
+
+        if not cname:
             return (
-                f"CNAME _acme-challenge.{domain} "
-                f"should point to "
-                f"_acme-challenge.{domain}.domains.cloud.gov, "
-                f"but it does not exist."
+                f"CNAME {self._cname(domain)} should point to "
+                f"{self._expected_cname(domain)}, but it does not exist."
+            )
+
+        if cname != self._expected_cname(domain):
+            return (
+                f"CNAME {self._cname(domain)} should point to "
+                f"{self._expected_cname(domain)}, but it is set incorrectly to {cname}."
             )
         else:
             return ""
 
-    def _missing_cname(self, domain):
-        challenge_domain = "_acme-challenge." + domain
+    def _get_cname(self, domain: str) -> str:
         try:
-            self.resolver.query(challenge_domain, "CNAME")
+            answers = self.resolver.query(self._cname(domain), "CNAME")
+            print(answers[0].target.to_text(omit_final_dot=True))
+
+            return answers[0].target.to_text(omit_final_dot=True)
 
         except dns.resolver.NXDOMAIN:
-            return True
+            return ""
 
         except dns.resolver.NoAnswer:
-            return True
+            return ""
 
-        return False
+    def _expected_cname(self, domain: str) -> str:
+        return f"_acme-challenge.{domain}.domains.cloud.gov"
+
+    def _cname(self, domain: str) -> str:
+        return f"_acme-challenge.{domain}"

@@ -1,6 +1,6 @@
 Flask-Migrate
 Flask-SQLAlchemy
-acme
+acme>1.4<5
 cfenv
 dnspython
 environs

@@ -4,7 +4,7 @@
 #
 #    ./dev update-requirements
 #
-acme==1.3.0               # via -r pip-tools/requirements.in
+acme==1.4.0               # via -r pip-tools/requirements.in
 alembic==1.4.2            # via flask-migrate
 certifi==2020.4.5.1       # via requests
 cfenv==0.5.3              # via -r pip-tools/requirements.in
@@ -27,7 +27,6 @@ josepy==1.3.0             # via acme
 mako==1.1.2               # via alembic
 markupsafe==1.1.1         # via jinja2, mako
 marshmallow==3.5.1        # via environs
-mock==4.0.2               # via acme
 git+git://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d#egg=openbrokerapi  # via -r pip-tools/requirements.in
 orderedmultidict==1.0.1   # via furl
 psycopg2==2.8.5           # via -r pip-tools/requirements.in

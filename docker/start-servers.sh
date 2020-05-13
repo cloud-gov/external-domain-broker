@@ -11,6 +11,7 @@ if ! pgrep -x pebble > /dev/null; then
     pebble \
       -config="/test/config/pebble-config.json" \
       -dnsserver="127.0.0.1:8053" \
+      -strict \
       > "$LOGS/pebble.log" 2>&1 &
   )
 fi
