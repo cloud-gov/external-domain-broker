@@ -65,6 +65,8 @@ jobs:
     image: dev-docker-image
     config:
       platform: linux
+      params:
+        TMPDIR: /tmp
       run:
         path: /app/docker/tests
 

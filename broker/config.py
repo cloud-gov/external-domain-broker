@@ -5,9 +5,6 @@ import re
 from cfenv import AppEnv
 from environs import Env
 
-base_dir = os.path.abspath(os.path.dirname(__file__))
-tmp_dir = os.path.join(base_dir, "..", "tmp")
-
 
 def config_from_env():
     env = Env()
@@ -32,6 +29,7 @@ class Config:
     def __init__(self):
         self.env = Env()
         self.cfenv = AppEnv()
+        self.TMPDIR = self.env("TMPDIR", "/app/tmp/")
         self.SQLALCHEMY_TRACK_MODIFICATIONS = False
         self.TESTING = True
         self.DEBUG = True
@@ -100,7 +98,7 @@ class DockerConfig(Config):
 
     def __init__(self):
         super().__init__()
-        self.SQLITE_DB_PATH = os.path.join(tmp_dir, self.SQLITE_DB_NAME)
+        self.SQLITE_DB_PATH = os.path.join(self.TMPDIR, self.SQLITE_DB_NAME)
         self.SQLALCHEMY_DATABASE_URI = "sqlite:///" + self.SQLITE_DB_PATH
         self.REDIS_HOST = "localhost"
         self.REDIS_PORT = 6379
