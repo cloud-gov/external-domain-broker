@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-LOGS=/app/logs
+LOGS=${TMPDIR:-/app/logs}
 
 if ! pgrep -x pebble > /dev/null; then
   echo "Starting Pebble"
