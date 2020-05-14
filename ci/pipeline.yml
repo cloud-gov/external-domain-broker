@@ -24,6 +24,17 @@ cf-manifest-vars: &cf-manifest-vars
   BROKER_AUTH_PASSWORD: ((broker-auth-password))
   FLASK_SECRET_KEY: ((flask-secret-key))
 
+cf-manifest-vars-dev: &cf-manifest-vars-dev
+  ROUTE53_ZONE_ID: ((dev-route53-zone-id))
+  DNS_ROOT_DOMAIN: ((dev-dns-root-domain))
+
+cf-manifest-vars-staging: &cf-manifest-vars-staging
+  ROUTE53_ZONE_ID: ((staging-route53-zone-id))
+  DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
+
+cf-manifest-vars-prod: &cf-manifest-vars-prod
+  ROUTE53_ZONE_ID: ((prod-route53-zone-id))
+  DNS_ROOT_DOMAIN: ((prod-dns-root-domain))
 
 ############################
 #  JOBS

@@ -1,5 +1,4 @@
 import json
-import pytest
 
 from openbrokerapi.service_broker import OperationState
 
@@ -33,9 +32,9 @@ def test_refuses_to_provision_without_any_acme_challenge_CNAMEs(client):
     desc = client.response.json.get("description")
     assert "CNAME" in desc
     assert "_acme-challenge.foo.com " in desc
-    assert "_acme-challenge.foo.com.domains.cloud.gov" in desc
+    assert "_acme-challenge.foo.com.domains.cloud.test" in desc
     assert "_acme-challenge.bar.com " in desc
-    assert "_acme-challenge.bar.com.domains.cloud.gov" in desc
+    assert "_acme-challenge.bar.com.domains.cloud.test" in desc
     assert client.response.status_code == 400
 
 
@@ -47,7 +46,7 @@ def test_refuses_to_provision_without_one_acme_challenge_CNAME(client, dns):
     assert "CNAME" in desc
     assert "_acme-challenge.foo.com" not in desc
     assert "_acme-challenge.bar.com " in desc
-    assert "_acme-challenge.bar.com.domains.cloud.gov" in desc
+    assert "_acme-challenge.bar.com.domains.cloud.test" in desc
     assert client.response.status_code == 400
 
 
@@ -61,17 +60,17 @@ def test_refuses_to_provision_with_incorrect_acme_challenge_CNAME(client, dns):
     assert "is set incorrectly" in desc
 
     assert " _acme-challenge.foo.com " in desc
-    assert " _acme-challenge.foo.com.domains.cloud.gov" in desc
+    assert " _acme-challenge.foo.com.domains.cloud.test" in desc
     assert " INCORRECT" in desc
 
     assert " _acme-challenge.bar.com" not in desc
     assert client.response.status_code == 400
 
 
-def test_provision_creates_provision_operation(client, simple_regex, dns):
+def test_provision_creates_provision_operation(client, dns):
     dns.add_cname("_acme-challenge.example.com")
-    dns.add_cname("_acme-challenge.cloud.gov")
-    client.provision_instance("4321", params={"domains": "example.com, Cloud.Gov"})
+    dns.add_cname("_acme-challenge.foo.com")
+    client.provision_instance("4321", params={"domains": "example.com, Foo.com"})
 
     assert "AsyncRequired" not in client.response.body
     assert client.response.status_code == 202, client.response.body
@@ -86,22 +85,16 @@ def test_provision_creates_provision_operation(client, simple_regex, dns):
 
     instance = ServiceInstance.query.get(operation.service_instance_id)
     assert instance is not None
-    assert instance.domain_names == ["example.com", "cloud.gov"]
-
-    client.get_last_operation("4321", operation_id)
-    assert client.response.json.get("description") == simple_regex(
-        r"run this command again"
-    )
+    assert instance.domain_names == ["example.com", "foo.com"]
 
 
-def test_provision_creates_LE_user(client, tasks, simple_regex, dns):
+def test_provision_creates_LE_user(client, tasks, dns):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
         "4321", accepts_incomplete="true", params={"domains": "example.com"}
     )
 
     assert client.response.status_code == 202, client.response.body
-    operation_id = client.response.json["operation"]
 
     tasks.run_pipeline_stages(1)
 
@@ -111,13 +104,7 @@ def test_provision_creates_LE_user(client, tasks, simple_regex, dns):
     assert "RSA" in acme_user.private_key_pem
     assert "@gsa.gov" in acme_user.email
     assert "localhost:14000" in acme_user.uri
-
     assert "body" in json.loads(acme_user.registration_json)
-
-    client.get_last_operation("4321", operation_id)
-    assert client.response.json.get("description") == simple_regex(
-        r"run this command again"
-    )
 
 
 def test_provision_creates_private_key_and_csr(client, tasks, dns):
@@ -135,15 +122,14 @@ def test_provision_creates_private_key_and_csr(client, tasks, dns):
     assert "BEGIN CERTIFICATE REQUEST" in service_instance.csr_pem
 
 
-def test_provision_initiates_LE_challenge(client, tasks, simple_regex, dns):
+def test_provision_initiates_LE_challenge(client, tasks, dns):
     dns.add_cname("_acme-challenge.example.com")
-    dns.add_cname("_acme-challenge.cloud.gov")
+    dns.add_cname("_acme-challenge.foo.com")
     client.provision_instance(
-        "4321", accepts_incomplete="true", params={"domains": "example.com,cloud.gov"}
+        "4321", accepts_incomplete="true", params={"domains": "example.com,foo.com"}
     )
 
     assert client.response.status_code == 202, client.response.body
-    operation_id = client.response.json["operation"]
 
     tasks.run_pipeline_stages(3)
 
@@ -151,14 +137,15 @@ def test_provision_initiates_LE_challenge(client, tasks, simple_regex, dns):
 
     assert service_instance.challenges.count() == 2
 
-    client.get_last_operation("4321", operation_id)
-    description = client.response.json.get("description")
-    assert description == simple_regex(r"add the following TXT DNS records:")
 
-    for challenge in service_instance.challenges:
-        assert challenge.validation_domain
-        assert challenge.validation_contents
-        assert "_acme-challenge." in challenge.validation_domain
-        assert len(challenge.validation_contents) == 43
-        assert description == simple_regex(rf"{challenge.validation_domain}")
-        assert description == simple_regex(rf"{challenge.validation_contents}")
+def test_provision_updates_TXT_record(client, tasks, dns, route53):
+    dns.add_cname("_acme-challenge.example.com")
+    route53.expect_create_txt_for("_acme-challenge.example.com.domains.cloud.test")
+
+    client.provision_instance(
+        "4321", accepts_incomplete="true", params={"domains": "example.com"}
+    )
+
+    assert client.response.status_code == 202, client.response.body
+
+    tasks.run_pipeline_stages(4)

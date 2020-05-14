@@ -55,6 +55,8 @@ class LiveConfig(Config):
         self.REDIS_HOST = redis.credentials["hostname"]
         self.REDIS_PORT = redis.credentials["port"]
         self.REDIS_PASSWORD = redis.credentials["password"]
+        self.ROUTE53_ZONE_ID = self.env("ROUTE53_ZONE_ID")
+        self.DNS_ROOT_DOMAIN = self.env("DNS_ROOT_DOMAIN")
         self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
 
 
@@ -91,6 +93,8 @@ class UpgradeSchemaConfig(Config):
         self.REDIS_PORT = 1234
         self.REDIS_PASSWORD = "NONE"
         self.ACME_DIRECTORY = "NONE"
+        self.ROUTE53_ZONE_ID = "NONE"
+        self.DNS_ROOT_DOMAIN = "NONE"
 
 
 class DockerConfig(Config):
@@ -110,6 +114,8 @@ class DockerConfig(Config):
         self.ACME_DIRECTORY = "https://localhost:14000/dir"
         # Local pebble-challtestsrv server.
         self.DNS_VERIFICATION_SERVER = "127.0.0.1:8053"
+        self.ROUTE53_ZONE_ID = "FakeZoneID"
+        self.DNS_ROOT_DOMAIN = "domains.cloud.test"
 
 
 class LocalDevelopmentConfig(DockerConfig):

@@ -15,6 +15,7 @@ def queue_all_provision_tasks_for_operation(operation_id: int):
         create_le_user.s(operation_id)
         .then(generate_private_key, operation_id)
         .then(initiate_challenges, operation_id)
+        .then(update_txt_records, operation_id)
     )
     huey.enqueue(task_pipeline)
 
@@ -124,6 +125,46 @@ def initiate_challenges(operation_id: int):
         challenge.service_instance = service_instance
         challenge.validation_domain = challenge_body.validation_domain_name(domain)
         challenge.validation_contents = challenge_body.validation(wrapped_account_key)
+        db.session.add(challenge)
+
+    db.session.commit()
+
+
+@huey.task()
+def update_txt_records(operation_id: int):
+    from .models import Operation
+    from .aws import route53
+
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    responses = []
+
+    for challenge in service_instance.challenges:
+        domain = challenge.validation_domain
+        contents = challenge.validation_contents
+        response = route53.change_resource_record_sets(
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "CREATE",
+                        "ResourceRecordSet": {
+                            "Type": "TXT",
+                            "Name": f"{domain}.{config_from_env().DNS_ROOT_DOMAIN}",
+                            "ResourceRecords": [{"Value": f'"{contents}"'}],
+                            "TTL": 60,
+                        },
+                    },
+                ],
+            },
+            HostedZoneId=config_from_env().ROUTE53_ZONE_ID,
+        )
+        responses.append(response)
+
+    for response in responses:
+        change_id = response["ChangeInfo"]["Id"]
+        waiter = route53.get_waiter("resource_record_sets_changed")
+        waiter.wait(Id=change_id)
 
 
 def dns_challenge(order):

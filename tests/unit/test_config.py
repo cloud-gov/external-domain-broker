@@ -20,6 +20,7 @@ def vcap_application():
         "uris": ["my-app-uri"],
         "version": "my-app-version",
     }
+
     return json.dumps(data)
 
 
@@ -60,6 +61,7 @@ def vcap_services():
             }
         ],
     }
+
     return json.dumps(data)
 
 

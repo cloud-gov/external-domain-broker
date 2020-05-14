@@ -88,7 +88,7 @@ class API(ServiceBroker):
                 msg=f"Invalid operation id {operation_data} for service {instance_id}"
             )
 
-        return LastOperation(state=operation.state, description=instance.description)
+        return LastOperation(state=operation.state)
 
     def provision(
         self, instance_id: str, details: ProvisionDetails, async_allowed: bool, **kwargs

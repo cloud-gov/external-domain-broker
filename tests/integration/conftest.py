@@ -10,7 +10,7 @@ from flask import current_app
 from flask.testing import FlaskClient
 from flask.wrappers import Response
 from werkzeug.datastructures import Headers
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 from broker import create_app, db
 
@@ -231,7 +231,7 @@ class DNS:
             raise Exception("host needs to start with _acme-challenge")
 
         if not target:
-            target = f"{host}.domains.cloud.gov"
+            target = f"{host}.domains.cloud.test"
         self.entries.append(
             self.Entry(record_type="cname", host=host, target=target, base=self.base)
         )

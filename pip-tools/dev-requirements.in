@@ -6,6 +6,6 @@ flask-testing
 mypy
 pip-tools
 pytest
+pytest-profiling
 pytest-watch
-requests
 requests
