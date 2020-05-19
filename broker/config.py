@@ -30,6 +30,7 @@ class Config:
         self.env = Env()
         self.cfenv = AppEnv()
         self.TMPDIR = self.env("TMPDIR", "/app/tmp/")
+        self.DNS_PROPAGATION_SLEEP_TIME = self.env("DNS_PROPAGATION_SLEEP_TIME", "300")
         self.SQLALCHEMY_TRACK_MODIFICATIONS = False
         self.TESTING = True
         self.DEBUG = True

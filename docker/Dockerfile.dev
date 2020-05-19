@@ -59,7 +59,9 @@ ENV PYTHONUNBUFFERED=1
 ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 ENV PORT=8000
 # https://github.com/letsencrypt/pebble#testing-at-full-speed
+# ENV PEBBLE_VA_NOSLEEP=1
 ENV PEBBLE_VA_SLEEPTIME=3
+ENV DNS_PROPAGATION_SLEEP_TIME=0
 
 CMD ["bash"]
 

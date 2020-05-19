@@ -1,6 +1,7 @@
 import josepy
 import json
 import OpenSSL
+import time
 from acme import challenges, client, crypto_util, messages
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -16,6 +17,7 @@ def queue_all_provision_tasks_for_operation(operation_id: int):
         .then(generate_private_key, operation_id)
         .then(initiate_challenges, operation_id)
         .then(update_txt_records, operation_id)
+        .then(retrieve_certificate, operation_id)
     )
     huey.enqueue(task_pipeline)
 
@@ -116,15 +118,22 @@ def initiate_challenges(operation_id: int):
     client_acme = client.ClientV2(directory, net=net)
 
     order = client_acme.new_order(service_instance.csr_pem.encode())
+    service_instance.order_json = json.dumps(order.to_json())
+
+    challenge_body = dns_challenge(order)
+    (
+        challenge_response,
+        challenge_validation_contents,
+    ) = challenge_body.response_and_validation(wrapped_account_key)
 
     for domain in service_instance.domain_names:
-        challenge_body = dns_challenge(order)
-
         challenge = Challenge()
+        challenge.body_json = challenge_body.json_dumps()
+
         challenge.domain = domain
         challenge.service_instance = service_instance
         challenge.validation_domain = challenge_body.validation_domain_name(domain)
-        challenge.validation_contents = challenge_body.validation(wrapped_account_key)
+        challenge.validation_contents = challenge_validation_contents
         db.session.add(challenge)
 
     db.session.commit()
@@ -138,12 +147,12 @@ def update_txt_records(operation_id: int):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
-    responses = []
+    route53_responses = []
 
     for challenge in service_instance.challenges:
         domain = challenge.validation_domain
         contents = challenge.validation_contents
-        response = route53.change_resource_record_sets(
+        route53_response = route53.change_resource_record_sets(
             ChangeBatch={
                 "Changes": [
                     {
@@ -159,12 +168,58 @@ def update_txt_records(operation_id: int):
             },
             HostedZoneId=config_from_env().ROUTE53_ZONE_ID,
         )
-        responses.append(response)
+        route53_responses.append(route53_response)
 
-    for response in responses:
-        change_id = response["ChangeInfo"]["Id"]
+    for route53_response in route53_responses:
+        change_id = route53_response["ChangeInfo"]["Id"]
         waiter = route53.get_waiter("resource_record_sets_changed")
         waiter.wait(Id=change_id)
+
+
+@huey.task()
+def retrieve_certificate(operation_id: int):
+    from .models import Operation
+
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    acme_user = service_instance.acme_user
+
+    time.sleep(int(config_from_env().DNS_PROPAGATION_SLEEP_TIME))
+
+    account_key = serialization.load_pem_private_key(
+        acme_user.private_key_pem.encode(), password=None, backend=default_backend()
+    )
+    wrapped_account_key = josepy.JWKRSA(key=account_key)
+
+    registration = json.loads(acme_user.registration_json)
+    net = client.ClientNetwork(
+        wrapped_account_key,
+        user_agent="cloud.gov external domain broker",
+        account=registration,
+    )
+    directory = messages.Directory.from_json(
+        net.get(config_from_env().ACME_DIRECTORY).json()
+    )
+    client_acme = client.ClientV2(directory, net=net)
+
+    for challenge in service_instance.challenges:
+        challenge_body = messages.ChallengeBody.from_json(
+            json.loads(challenge.body_json)
+        )
+        challenge_response = challenge_body.response(wrapped_account_key)
+        # Let the CA server know that we are ready for the challenge.
+        client_acme.answer_challenge(challenge_body, challenge_response)
+
+    order_json = json.loads(service_instance.order_json)
+    # The csr_pem in the JSON is a binary string, but finalize_order() expects
+    # utf-8?  So we set it here from our saved copy.
+    order_json["csr_pem"] = service_instance.csr_pem
+    order = messages.OrderResource.from_json(order_json)
+    finalized_order = client_acme.poll_and_finalize(order)
+
+    service_instance.fullchain_pem = finalized_order.fullchain_pem
+    db.session.add(service_instance)
+    db.session.commit()
 
 
 def dns_challenge(order):

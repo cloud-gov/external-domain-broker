@@ -29,12 +29,15 @@ class ServiceInstance(Base):
     operations = db.relation("Operation", backref="service_instance", lazy="dynamic")
     challenges = db.relation("Challenge", backref="service_instance", lazy="dynamic")
     acme_user_id = db.Column(db.Integer, db.ForeignKey("acme_user.id"))
+    domain_names = db.Column(db.JSON, default=[])
+    order_json = db.Column(db.Text)
+
     private_key_pem = db.Column(db.Text)
     csr_pem = db.Column(db.Text)
-    domain_names = db.Column(db.JSON, default=[])
+    fullchain_pem = db.Column(db.Text)
 
     def __repr__(self):
-        return f"<ServiceInstance {self.id}>"
+        return f"<ServiceInstance {self.id} {self.domain_names}>"
 
 
 class Operation(Base):
@@ -59,6 +62,7 @@ class Challenge(Base):
     domain = db.Column(db.String, nullable=False)
     validation_domain = db.Column(db.String, nullable=False)
     validation_contents = db.Column(db.Text, nullable=False)
+    body_json = db.Column(db.Text)
 
     def __repr__(self):
         return f"<Challenge {self.id} {self.domain}>"

@@ -3,6 +3,7 @@ import json
 from openbrokerapi.service_broker import OperationState
 
 from broker.models import Operation, ServiceInstance
+from broker import db
 
 
 def test_refuses_to_provision_synchronously(client):
@@ -149,3 +150,30 @@ def test_provision_updates_TXT_record(client, tasks, dns, route53):
     assert client.response.status_code == 202, client.response.body
 
     tasks.run_pipeline_stages(4)
+
+
+def test_provision_finishes_certificate_creation(client, tasks, dns, route53):
+    dns.add_cname("_acme-challenge.example.com")
+    route53.expect_create_txt_for("_acme-challenge.example.com.domains.cloud.test")
+
+    client.provision_instance(
+        "4321", accepts_incomplete="true", params={"domains": "example.com"}
+    )
+    assert client.response.status_code == 202, client.response.body
+
+    tasks.run_pipeline_stages(4)
+
+    service_instance = ServiceInstance.query.get("4321")
+    challenge = service_instance.challenges.first()
+    assert challenge.validation_contents is not None
+
+    dns.add_txt(
+        "_acme-challenge.example.com.domains.cloud.test.",
+        f"{challenge.validation_contents}",
+    )
+
+    tasks.run_pipeline_stages(1)
+
+    db.session.refresh(service_instance)
+
+    assert "BEGIN CERTIFICATE" in service_instance.fullchain_pem
