@@ -27,14 +27,21 @@ cf-manifest-vars: &cf-manifest-vars
 cf-manifest-vars-dev: &cf-manifest-vars-dev
   ROUTE53_ZONE_ID: ((dev-route53-zone-id))
   DNS_ROOT_DOMAIN: ((dev-dns-root-domain))
+  FLASK_ENV: development
 
 cf-manifest-vars-staging: &cf-manifest-vars-staging
   ROUTE53_ZONE_ID: ((staging-route53-zone-id))
   DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
+  FLASK_ENV: staging
+
+cf-manifest-vars-upgrade-schema: &cf-manifest-vars-upgrade-schema
+  APP_NAME: ((name))-db-upgrade
+  FLASK_ENV: upgrade-schemas
 
 cf-manifest-vars-prod: &cf-manifest-vars-prod
   ROUTE53_ZONE_ID: ((prod-route53-zone-id))
   DNS_ROOT_DOMAIN: ((prod-dns-root-domain))
+  FLASK_ENV: production
 
 ############################
 #  JOBS
@@ -89,22 +96,23 @@ jobs:
       trigger: true
       passed: [test]
     - get: pipeline-tasks
-  - task: create-postgres
-    file: pipeline-tasks/ensure-misbehaved-service.yml
-    params:
-      <<: *cf-creds-dev
-      APP_NAME: ((name))
-      SVC_SERVICE: ((db_service))
-      SVC_PLAN: ((db_plan))
-      SVC_NAME: ((db_name))
-  - task: create-redis
-    file: pipeline-tasks/ensure-misbehaved-service.yml
-    params:
-      <<: *cf-creds-dev
-      APP_NAME: ((name))
-      SVC_SERVICE: ((redis_service))
-      SVC_PLAN: ((redis_plan))
-      SVC_NAME: ((redis_name))
+  - in_parallel:
+    - task: create-postgres
+      file: pipeline-tasks/ensure-misbehaved-service.yml
+      params:
+        <<: *cf-creds-dev
+        APP_NAME: ((name))
+        SVC_SERVICE: ((db_service))
+        SVC_PLAN: ((db_plan))
+        SVC_NAME: ((db_name))
+    - task: create-redis
+      file: pipeline-tasks/ensure-misbehaved-service.yml
+      params:
+        <<: *cf-creds-dev
+        APP_NAME: ((name))
+        SVC_SERVICE: ((redis_service))
+        SVC_PLAN: ((redis_plan))
+        SVC_NAME: ((redis_name))
   - task: stop-apps
     file: src/ci/stop-apps.yml
     params:
@@ -115,24 +123,24 @@ jobs:
     params:
       <<: *cf-creds-dev
       <<: *cf-manifest-vars
-      APP_NAME: ((name))-db-upgrade
-      FLASK_ENV: upgrade-schema
-  - put: cf-dev
-    params:
-      path: src
-      manifest: src/manifests/app.yml
-      show_app_log: true
-      vars:
-        <<: *cf-manifest-vars
-        FLASK_ENV: development
-  - put: cf-dev
-    params:
-      path: src
-      manifest: src/manifests/workers.yml
-      show_app_log: true
-      vars:
-        <<: *cf-manifest-vars
-        FLASK_ENV: development
+      <<: *cf-manifest-vars-upgrade-schema
+  - in_parallel:
+    - put: cf-dev
+      params:
+        path: src
+        manifest: src/manifests/app.yml
+        show_app_log: true
+        vars:
+          <<: *cf-manifest-vars
+          <<: *cf-manifest-vars-dev
+    - put: cf-dev
+      params:
+        path: src
+        manifest: src/manifests/workers.yml
+        show_app_log: true
+        vars:
+          <<: *cf-manifest-vars
+          <<: *cf-manifest-vars-dev
   - task: register-broker
     file: pipeline-tasks/register-service-broker.yml
     params:
