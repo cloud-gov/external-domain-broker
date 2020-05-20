@@ -95,6 +95,7 @@ class UpgradeSchemaConfig(Config):
         self.ACME_DIRECTORY = "NONE"
         self.ROUTE53_ZONE_ID = "NONE"
         self.DNS_ROOT_DOMAIN = "NONE"
+        self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
 
 
 class DockerConfig(Config):
