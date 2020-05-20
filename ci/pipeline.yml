@@ -36,7 +36,7 @@ cf-manifest-vars-staging: &cf-manifest-vars-staging
 
 cf-manifest-vars-upgrade-schema: &cf-manifest-vars-upgrade-schema
   APP_NAME: ((name))-db-upgrade
-  FLASK_ENV: upgrade-schemas
+  FLASK_ENV: upgrade-schema
 
 cf-manifest-vars-prod: &cf-manifest-vars-prod
   ROUTE53_ZONE_ID: ((prod-route53-zone-id))
@@ -118,8 +118,8 @@ jobs:
     params:
       <<: *cf-creds-dev
       APPLICATIONS: "((name)) ((name))-workers"
-  - task: upgrade-schemas
-    file: src/ci/upgrade-schemas.yml
+  - task: upgrade-schema
+    file: src/ci/upgrade-schema.yml
     params:
       <<: *cf-creds-dev
       <<: *cf-manifest-vars
