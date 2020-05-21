@@ -16,32 +16,42 @@ cf-creds-dev: &cf-creds-dev
   CF_ORGANIZATION: ((broker-organization))
   CF_SPACE: ((broker-space))
 
-cf-manifest-vars: &cf-manifest-vars
-  APP_NAME: ((name))
-  DB_NAME: ((db_name))
-  REDIS_NAME: ((redis_name))
-  BROKER_AUTH_USERNAME: ((broker-auth-username))
-  BROKER_AUTH_PASSWORD: ((broker-auth-password))
-  FLASK_SECRET_KEY: ((flask-secret-key))
-
-cf-manifest-vars-dev: &cf-manifest-vars-dev
-  ROUTE53_ZONE_ID: ((dev-route53-zone-id))
-  DNS_ROOT_DOMAIN: ((dev-dns-root-domain))
-  FLASK_ENV: development
-
-cf-manifest-vars-staging: &cf-manifest-vars-staging
-  ROUTE53_ZONE_ID: ((staging-route53-zone-id))
-  DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
-  FLASK_ENV: staging
-
-cf-manifest-vars-upgrade-schema: &cf-manifest-vars-upgrade-schema
+cf-upgrade-schema-vars: &cf-upgrade-schema-vars
   APP_NAME: ((name))-db-upgrade
   FLASK_ENV: upgrade-schema
 
-cf-manifest-vars-prod: &cf-manifest-vars-prod
-  ROUTE53_ZONE_ID: ((prod-route53-zone-id))
-  DNS_ROOT_DOMAIN: ((prod-dns-root-domain))
-  FLASK_ENV: production
+cf-manifest-vars: &cf-manifest-vars
+  vars:
+    APP_NAME: ((name))
+    DB_NAME: ((db_name))
+    REDIS_NAME: ((redis_name))
+
+cf-manifest-env-dev: &cf-manifest-env-dev
+  environment_varables:
+    BROKER_USERNAME: ((broker-auth-username))
+    BROKER_PASSWORD: ((broker-auth-password))
+    SECRET_KEY: ((flask-secret-key))
+    ROUTE53_ZONE_ID: ((dev-route53-zone-id))
+    DNS_ROOT_DOMAIN: ((dev-dns-root-domain))
+    FLASK_ENV: development
+
+cf-manifest-env-staging: &cf-manifest-env-staging
+  environment_varables:
+    BROKER_USERNAME: ((broker-auth-username))
+    BROKER_PASSWORD: ((broker-auth-password))
+    SECRET_KEY: ((flask-secret-key))
+    ROUTE53_ZONE_ID: ((staging-route53-zone-id))
+    DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
+    FLASK_ENV: staging
+
+cf-manifest-env-prod: &cf-manifest-env-prod
+  environment_varables:
+    BROKER_USERNAME: ((broker-auth-username))
+    BROKER_PASSWORD: ((broker-auth-password))
+    SECRET_KEY: ((flask-secret-key))
+    ROUTE53_ZONE_ID: ((prod-route53-zone-id))
+    DNS_ROOT_DOMAIN: ((prod-dns-root-domain))
+    FLASK_ENV: production
 
 ############################
 #  JOBS
@@ -122,25 +132,22 @@ jobs:
     file: src/ci/upgrade-schema.yml
     params:
       <<: *cf-creds-dev
-      <<: *cf-manifest-vars
-      <<: *cf-manifest-vars-upgrade-schema
+      <<: *cf-upgrade-schema-vars
   - in_parallel:
     - put: cf-dev
       params:
         path: src
         manifest: src/manifests/app.yml
         show_app_log: true
-        vars:
-          <<: *cf-manifest-vars
-          <<: *cf-manifest-vars-dev
+        <<: *cf-manifest-vars
+        <<: *cf-manifest-env-dev
     - put: cf-dev
       params:
         path: src
         manifest: src/manifests/workers.yml
         show_app_log: true
-        vars:
-          <<: *cf-manifest-vars
-          <<: *cf-manifest-vars-dev
+        <<: *cf-manifest-vars
+        <<: *cf-manifest-env-dev
   - task: register-broker
     file: pipeline-tasks/register-service-broker.yml
     params:

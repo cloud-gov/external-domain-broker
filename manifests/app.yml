@@ -9,8 +9,3 @@ applications:
   - ((REDIS_NAME))
   buildpacks:
   - python_buildpack
-  env:
-    FLASK_ENV: ((FLASK_ENV))
-    BROKER_USERNAME: ((BROKER_AUTH_USERNAME))
-    BROKER_PASSWORD: ((BROKER_AUTH_PASSWORD))
-    SECRET_KEY: ((FLASK_SECRET_KEY))
