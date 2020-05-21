@@ -1,9 +1,9 @@
+from factory import Sequence, SubFactory
+from factory.alchemy import SQLAlchemyModelFactory
 from openbrokerapi.service_broker import OperationState
 
 from broker import db
 from broker.models import Operation, ServiceInstance
-from factory import Sequence, SubFactory
-from factory.alchemy import SQLAlchemyModelFactory
 
 
 class BaseFactory(SQLAlchemyModelFactory):

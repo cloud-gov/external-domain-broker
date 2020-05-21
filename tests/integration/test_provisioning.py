@@ -2,8 +2,8 @@ import json
 
 from openbrokerapi.service_broker import OperationState
 
-from broker.models import Operation, ServiceInstance
 from broker import db
+from broker.models import Operation, ServiceInstance
 
 
 def test_refuses_to_provision_synchronously(client):

@@ -1,8 +1,8 @@
 import pytest
 from openbrokerapi.service_broker import OperationState
-from tests import factories
 
 from broker.models import Operation, ServiceInstance
+from tests import factories
 
 
 @pytest.fixture

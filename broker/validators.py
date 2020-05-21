@@ -1,7 +1,8 @@
-from openbrokerapi import errors
 from typing import List
 
-from .dns import get_cname, acme_challenge_cname_target, acme_challenge_cname_name
+from openbrokerapi import errors
+
+from .dns import acme_challenge_cname_name, acme_challenge_cname_target, get_cname
 
 
 class CNAMEValidator:

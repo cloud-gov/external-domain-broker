@@ -3,9 +3,8 @@ import logging
 from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from openbrokerapi import api as openbrokerapi
-
 from huey import RedisHuey
+from openbrokerapi import api as openbrokerapi
 
 from . import log_util
 from .config import config_from_env

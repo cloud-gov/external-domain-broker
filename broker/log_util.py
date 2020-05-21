@@ -2,20 +2,19 @@ import logging
 import os
 import sys
 
-DEFAULT_FORMAT = '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
-NO_TIME_FORMAT = '%(levelname)s - %(name)s - %(message)s'
+DEFAULT_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+NO_TIME_FORMAT = "%(levelname)s - %(name)s - %(message)s"
 
 
-def configure(logger: logging.Logger = logging.root,
-              log_level="INFO",
-              log_format=DEFAULT_FORMAT
-              ):
+def configure(
+    logger: logging.Logger = logging.root, log_level="INFO", log_format=DEFAULT_FORMAT
+):
     class InfoFilter(logging.Filter):
         def filter(self, rec):
             return rec.levelno in (logging.DEBUG, logging.INFO)
 
     formatter = logging.Formatter(log_format)
-    log_level_name=os.environ.get("LOG_LEVEL", log_level)
+    log_level_name = os.environ.get("LOG_LEVEL", log_level)
     logger.setLevel(logging.getLevelName(log_level_name))
 
     std_out_handler = logging.StreamHandler(sys.stdout)
