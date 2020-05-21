@@ -177,3 +177,11 @@ def test_provision_finishes_certificate_creation(client, tasks, dns, route53):
     db.session.refresh(service_instance)
 
     assert "BEGIN CERTIFICATE" in service_instance.fullchain_pem
+
+
+def test_provision_uploads_certificate_to_IAM():
+    pass
+
+
+def test_provision_creates_cloudfront_distribution():
+    pass
