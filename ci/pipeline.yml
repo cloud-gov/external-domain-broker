@@ -17,8 +17,10 @@ cf-creds-dev: &cf-creds-dev
   CF_SPACE: ((broker-space))
 
 cf-upgrade-schema-vars: &cf-upgrade-schema-vars
-  APP_NAME: ((name))-db-upgrade
   FLASK_ENV: upgrade-schema
+  APP_NAME: ((name))-db-upgrade
+  DB_NAME: ((db_name))
+  REDIS_NAME: ((redis_name))
 
 cf-manifest-vars: &cf-manifest-vars
   vars:
