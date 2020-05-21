@@ -29,7 +29,7 @@ cf-manifest-vars: &cf-manifest-vars
     REDIS_NAME: ((redis_name))
 
 cf-manifest-env-dev: &cf-manifest-env-dev
-  environment_varables:
+  environment_variables:
     BROKER_USERNAME: ((broker-auth-username))
     BROKER_PASSWORD: ((broker-auth-password))
     SECRET_KEY: ((flask-secret-key))
@@ -38,7 +38,7 @@ cf-manifest-env-dev: &cf-manifest-env-dev
     FLASK_ENV: development
 
 cf-manifest-env-staging: &cf-manifest-env-staging
-  environment_varables:
+  environment_variables:
     BROKER_USERNAME: ((broker-auth-username))
     BROKER_PASSWORD: ((broker-auth-password))
     SECRET_KEY: ((flask-secret-key))
@@ -47,7 +47,7 @@ cf-manifest-env-staging: &cf-manifest-env-staging
     FLASK_ENV: staging
 
 cf-manifest-env-prod: &cf-manifest-env-prod
-  environment_varables:
+  environment_variables:
     BROKER_USERNAME: ((broker-auth-username))
     BROKER_PASSWORD: ((broker-auth-password))
     SECRET_KEY: ((flask-secret-key))
