@@ -9,3 +9,4 @@ pytest
 pytest-profiling
 pytest-watch
 requests
+rope
