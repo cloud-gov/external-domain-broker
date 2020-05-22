@@ -4,14 +4,12 @@ set -euo pipefail
 shopt -s inherit_errexit
 
 main() {
-  if [[ $# -eq 0 ]]; then
-    command=tests
-  else
-    command="$1"
-    shift
-  fi
+  [[ $# -eq 0 ]] && usage "Expected command."
 
   cd "$(git rev-parse --show-toplevel)"
+
+  command="$1"
+  shift
 
   case $command in
     -h)

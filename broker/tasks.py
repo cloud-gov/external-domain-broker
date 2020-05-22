@@ -1,5 +1,7 @@
 import json
 import time
+import re
+from datetime import date
 
 import josepy
 import OpenSSL
@@ -19,6 +21,7 @@ def queue_all_provision_tasks_for_operation(operation_id: int):
         .then(initiate_challenges, operation_id)
         .then(update_txt_records, operation_id)
         .then(retrieve_certificate, operation_id)
+        .then(upload_certs_to_iam, operation_id)
     )
     huey.enqueue(task_pipeline)
 
@@ -72,12 +75,12 @@ def generate_private_key(operation_id: int):
     service_instance = operation.service_instance
 
     # Create private key.
-    pkey = OpenSSL.crypto.PKey()
-    pkey.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
+    private_key = OpenSSL.crypto.PKey()
+    private_key.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
 
     # Get the PEM
     private_key_pem_in_binary = OpenSSL.crypto.dump_privatekey(
-        OpenSSL.crypto.FILETYPE_PEM, pkey
+        OpenSSL.crypto.FILETYPE_PEM, private_key
     )
 
     # Get the CSR for the domains
@@ -219,6 +222,35 @@ def retrieve_certificate(operation_id: int):
     finalized_order = client_acme.poll_and_finalize(order)
 
     service_instance.fullchain_pem = finalized_order.fullchain_pem
+    service_instance.cert_pem = cert_from_fullchain(service_instance.fullchain_pem)
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+@huey.task()
+def upload_certs_to_iam(operation_id: int):
+    from .models import Operation
+    from .aws import iam
+
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    today = date.today().isoformat()
+    # TODO: extract /cloudfront/external-service-broker-test/
+    response = iam.upload_server_certificate(
+        Path="/cloudfront/test/external-domain-broker/",
+        ServerCertificateName=f"{service_instance.id}-{today}",
+        CertificateBody=service_instance.cert_pem,
+        PrivateKey=service_instance.private_key_pem,
+        CertificateChain=service_instance.fullchain_pem,
+    )
+
+    service_instance.iam_server_certificate_id = response["ServerCertificateMetadata"][
+        "ServerCertificateId"
+    ]
+    service_instance.iam_server_certificate_arn = response["ServerCertificateMetadata"][
+        "Arn"
+    ]
     db.session.add(service_instance)
     db.session.commit()
 
@@ -232,3 +264,30 @@ def dns_challenge(order):
         for challenge_body in authorization.body.challenges:
             if isinstance(challenge_body.chall, challenges.DNS01):
                 return challenge_body
+
+
+def cert_from_fullchain(fullchain_pem: str) -> str:
+    """extract cert_pem from fullchain_pem
+
+    Reference https://github.com/certbot/certbot/blob/b42e24178aaa3f1ad1323acb6a3a9c63e547893f/certbot/certbot/crypto_util.py#L482-L518
+    """
+    cert_pem_regex = re.compile(
+        b"-----BEGIN CERTIFICATE-----\r?.+?\r?-----END CERTIFICATE-----\r?",
+        re.DOTALL,  # DOTALL (/s) because the base64text may include newlines
+    )
+
+    certs = cert_pem_regex.findall(fullchain_pem.encode())
+    if len(certs) < 2:
+        raise RuntimeError(
+            "failed to extract cert from fullchain: less than 2 certificates in chain"
+        )
+
+    certs_normalized = [
+        OpenSSL.crypto.dump_certificate(
+            OpenSSL.crypto.FILETYPE_PEM,
+            OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert),
+        ).decode()
+        for cert in certs
+    ]
+
+    return certs_normalized[0]

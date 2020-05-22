@@ -32,9 +32,13 @@ class ServiceInstance(Base):
     domain_names = db.Column(db.JSON, default=[])
     order_json = db.Column(db.Text)
 
-    private_key_pem = db.Column(db.Text)
     csr_pem = db.Column(db.Text)
+    cert_pem = db.Column(db.Text)
+    private_key_pem = db.Column(db.Text)
     fullchain_pem = db.Column(db.Text)
+
+    iam_server_certificate_id = db.Column(db.String)
+    iam_server_certificate_arn = db.Column(db.String)
 
     def __repr__(self):
         return f"<ServiceInstance {self.id} {self.domain_names}>"

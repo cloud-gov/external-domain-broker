@@ -1,3 +1,4 @@
+from tests.lib.fake_iam import iam  # noqa F401
 from tests.lib.fake_route53 import route53  # noqa F401
 from tests.lib.simple_regex import simple_regex  # noqa F401
 

@@ -29,6 +29,7 @@ class Config:
     def __init__(self):
         self.env = Env()
         self.cfenv = AppEnv()
+        self.FLASK_ENV = self.env("FLASK_ENV")
         self.TMPDIR = self.env("TMPDIR", "/app/tmp/")
         self.DNS_PROPAGATION_SLEEP_TIME = self.env("DNS_PROPAGATION_SLEEP_TIME", "300")
         self.SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -59,31 +60,33 @@ class LiveConfig(Config):
         self.ROUTE53_ZONE_ID = self.env("ROUTE53_ZONE_ID")
         self.DNS_ROOT_DOMAIN = self.env("DNS_ROOT_DOMAIN")
         self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
+        self.IAM_SERVER_CERTIFICATE_PREFIX = (
+            f"/cloudfront/external-service-broker/{self.FLASK_ENV}"
+        )
 
 
 class ProductionConfig(LiveConfig):
     def __init__(self):
-        super().__init__()
         self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"
+        super().__init__()
 
 
 class StagingConfig(LiveConfig):
     def __init__(self):
-        super().__init__()
         self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
+        super().__init__()
 
 
 class DevelopmentConfig(LiveConfig):
     def __init__(self):
-        super().__init__()
         self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
+        super().__init__()
 
 
 class UpgradeSchemaConfig(Config):
     """ I'm used when running flask db upgrade in any self.environment """
 
     def __init__(self):
-        super().__init__()
         self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
         self.TESTING = False
         self.DEBUG = False
@@ -97,6 +100,7 @@ class UpgradeSchemaConfig(Config):
         self.ROUTE53_ZONE_ID = "NONE"
         self.DNS_ROOT_DOMAIN = "NONE"
         self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
+        super().__init__()
 
 
 class DockerConfig(Config):
