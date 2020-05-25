@@ -111,7 +111,7 @@ jobs:
       run:
         path: /app/docker/tests
 
-- name: deploy-dev
+- name: dev
   plan:
   - in_parallel:
     - get: src
@@ -167,13 +167,13 @@ jobs:
       <<: *cf-creds-dev
       <<: *broker-register-params
 
-- name: deploy-staging
+- name: staging
   plan:
   - in_parallel:
     - get: src
       params: {depth: 1}
       trigger: true
-      passed: [deploy-dev]
+      passed: [dev]
     - get: pipeline-tasks
   - in_parallel:
     - task: create-postgres
