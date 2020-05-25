@@ -1,6 +1,6 @@
 from openbrokerapi.service_broker import OperationState
 
-from tests import factories
+from tests.lib import factories
 
 
 def test_last_operation_without_id_fails(client):

@@ -2,7 +2,7 @@ import pytest
 
 from broker import db
 from broker.models import ACMEUser, ServiceInstance
-from tests.factories import ACMEUserFactory, ServiceInstanceFactory
+from tests.lib.factories import ACMEUserFactory, ServiceInstanceFactory
 
 
 def test_stores_acmeuser_private_key_pem_encrypted(client):
