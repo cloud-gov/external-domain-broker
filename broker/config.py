@@ -18,14 +18,13 @@ class Config:
         self.cfenv = AppEnv()
         self.FLASK_ENV = self.env("FLASK_ENV")
         self.TMPDIR = self.env("TMPDIR", "/app/tmp/")
-        self.DB_ENCRYPTION_KEY = self.env("DB_ENCRYPTION_KEY")
         self.DNS_PROPAGATION_SLEEP_TIME = self.env("DNS_PROPAGATION_SLEEP_TIME", "300")
         self.SQLALCHEMY_TRACK_MODIFICATIONS = False
         self.TESTING = True
         self.DEBUG = True
 
 
-class LiveConfig(Config):
+class AppConfig(Config):
     """ Base class for apps running in Cloud Foundry """
 
     def __init__(self):
@@ -51,21 +50,22 @@ class LiveConfig(Config):
         self.IAM_SERVER_CERTIFICATE_PREFIX = (
             f"/cloudfront/external-service-broker/{self.FLASK_ENV}"
         )
+        self.DB_ENCRYPTION_KEY = self.env("DB_ENCRYPTION_KEY")
 
 
-class ProductionConfig(LiveConfig):
+class ProductionConfig(AppConfig):
     def __init__(self):
         self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"
         super().__init__()
 
 
-class StagingConfig(LiveConfig):
+class StagingConfig(AppConfig):
     def __init__(self):
         self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
         super().__init__()
 
 
-class DevelopmentConfig(LiveConfig):
+class DevelopmentConfig(AppConfig):
     def __init__(self):
         self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
         super().__init__()
@@ -105,12 +105,11 @@ class DockerConfig(Config):
         self.SECRET_KEY = "Sekrit Key"
         self.BROKER_USERNAME = "broker"
         self.BROKER_PASSWORD = "sekrit"
-        # Local pebble server.
         self.ACME_DIRECTORY = "https://localhost:14000/dir"
-        # Local pebble-challtestsrv server.
         self.DNS_VERIFICATION_SERVER = "127.0.0.1:8053"
         self.ROUTE53_ZONE_ID = "FakeZoneID"
         self.DNS_ROOT_DOMAIN = "domains.cloud.test"
+        self.DB_ENCRYPTION_KEY = "Local Dev Encrytpion Key"
 
 
 class LocalDevelopmentConfig(DockerConfig):
@@ -122,6 +121,7 @@ class LocalDevelopmentConfig(DockerConfig):
 class TestConfig(DockerConfig):
     def __init__(self):
         self.SQLITE_DB_NAME = "test.sqlite"
+        self.DNS_PROPAGATION_SLEEP_TIME = 0
         super().__init__()
 
 
