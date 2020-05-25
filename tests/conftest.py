@@ -1,6 +1,7 @@
 from tests.lib.fake_iam import iam  # noqa F401
 from tests.lib.fake_route53 import route53  # noqa F401
 from tests.lib.simple_regex import simple_regex  # noqa F401
+from tests.lib.client import app, client  # noqa 401
 
 
 def pytest_configure(config):

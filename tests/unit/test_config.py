@@ -129,5 +129,3 @@ def test_config_doesnt_explode(env, monkeypatch, mocked_env):
     config = config_from_env()
 
     assert env == config.FLASK_ENV
-
-

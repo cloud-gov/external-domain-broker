@@ -9,9 +9,9 @@ export FLASK_ENV=test
 
 if [[ "$#" -ge 1 ]] && [[ "$1" == "watch" ]]; then
   shift
-  ptw --spool=500 -n -c -w -- -vv "$@"
+  ptw --spool=500 -n -c -w -- -Werror -vv "$@"
 else
-  python -m pytest -vv "$@"
+  python -m pytest -Werror -vv "$@"
 fi
 
 ./docker/stop-servers.sh

@@ -1,7 +1,16 @@
 from openbrokerapi.service_broker import OperationState
+from sqlalchemy_utils.types.encrypted.encrypted_type import (
+    AesGcmEngine,
+    StringEncryptedType,
+)
 
 from . import db
+from .config import config_from_env
 from .tasks import queue_all_provision_tasks_for_operation
+
+
+def db_encryption_key():
+    return config_from_env().DB_ENCRYPTION_KEY
 
 
 class Base(db.Model):
@@ -17,7 +26,11 @@ class ACMEUser(Base):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String, nullable=False)
     uri = db.Column(db.String, nullable=False)
-    private_key_pem = db.Column(db.Text, nullable=False)
+    private_key_pem = db.Column(
+        StringEncryptedType(db.Text, db_encryption_key, AesGcmEngine, "pkcs5"),
+        nullable=False,
+    )
+
     registration_json = db.Column(db.Text)
     service_instances = db.relation(
         "ServiceInstance", backref="acme_user", lazy="dynamic"
@@ -34,7 +47,9 @@ class ServiceInstance(Base):
 
     csr_pem = db.Column(db.Text)
     cert_pem = db.Column(db.Text)
-    private_key_pem = db.Column(db.Text)
+    private_key_pem = db.Column(
+        StringEncryptedType(db.Text, db_encryption_key, AesGcmEngine, "pkcs5")
+    )
     fullchain_pem = db.Column(db.Text)
 
     iam_server_certificate_id = db.Column(db.String)

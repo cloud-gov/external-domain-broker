@@ -11,3 +11,4 @@ gunicorn
 huey
 psycopg2
 redis
+sqlalchemy-utils

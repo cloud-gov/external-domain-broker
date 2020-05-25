@@ -3,7 +3,7 @@ from factory.alchemy import SQLAlchemyModelFactory
 from openbrokerapi.service_broker import OperationState
 
 from broker import db
-from broker.models import Operation, ServiceInstance
+from broker.models import Operation, ServiceInstance, ACMEUser
 
 
 class BaseFactory(SQLAlchemyModelFactory):
@@ -17,6 +17,16 @@ class ServiceInstanceFactory(BaseFactory):
         model = ServiceInstance
 
     id = Sequence(lambda n: "UUID {}".format(n))
+
+
+class ACMEUserFactory(BaseFactory):
+    class Meta(object):
+        model = ACMEUser
+
+    id = Sequence(int)
+    email = "foo@exmple.com"
+    uri = "http://exmple.com"
+    private_key_pem = "PRIVATE KEY"
 
 
 class OperationFactory(BaseFactory):

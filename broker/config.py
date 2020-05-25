@@ -18,6 +18,7 @@ class Config:
         self.cfenv = AppEnv()
         self.FLASK_ENV = self.env("FLASK_ENV")
         self.TMPDIR = self.env("TMPDIR", "/app/tmp/")
+        self.DB_ENCRYPTION_KEY = self.env("DB_ENCRYPTION_KEY")
         self.DNS_PROPAGATION_SLEEP_TIME = self.env("DNS_PROPAGATION_SLEEP_TIME", "300")
         self.SQLALCHEMY_TRACK_MODIFICATIONS = False
         self.TESTING = True
