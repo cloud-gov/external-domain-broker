@@ -82,6 +82,7 @@ class UpgradeSchemaConfig(Config):
         self.SECRET_KEY = "NONE"
         self.BROKER_USERNAME = "NONE"
         self.BROKER_PASSWORD = "NONE"
+        self.DB_ENCRYPTION_KEY = "NONE"
         self.REDIS_HOST = "NONE"
         self.REDIS_PORT = 1234
         self.REDIS_PASSWORD = "NONE"
