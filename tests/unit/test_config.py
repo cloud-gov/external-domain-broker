@@ -71,6 +71,7 @@ def mocked_env(monkeypatch, vcap_application, vcap_services):
     monkeypatch.setenv("BROKER_USERNAME", "None")
     monkeypatch.setenv("BROKER_PASSWORD", "None")
     monkeypatch.setenv("DATABASE_URL", "None")
+    monkeypatch.setenv("DATABASE_ENCRYPTION_KEY", "None")
     monkeypatch.setenv("ROUTE53_ZONE_ID", "None")
     monkeypatch.setenv("DNS_ROOT_DOMAIN", "None")
     monkeypatch.setenv("DNS_VERIFICATION_SERVER", "127.0.0.1:53")

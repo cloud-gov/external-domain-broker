@@ -4,12 +4,7 @@ import re
 
 from cfenv import AppEnv
 from environs import Env
-from typing import Type
-
-
-def config_from_env():
-    env = Env()
-    return env_mappings()[env("FLASK_ENV")]()
+from typing import Type, Dict, TypeVar
 
 
 class Config:
@@ -50,7 +45,7 @@ class AppConfig(Config):
         self.IAM_SERVER_CERTIFICATE_PREFIX = (
             f"/cloudfront/external-service-broker/{self.FLASK_ENV}"
         )
-        self.DB_ENCRYPTION_KEY = self.env("DB_ENCRYPTION_KEY")
+        self.DATABASE_ENCRYPTION_KEY = self.env("DATABASE_ENCRYPTION_KEY")
 
 
 class ProductionConfig(AppConfig):
@@ -82,7 +77,7 @@ class UpgradeSchemaConfig(Config):
         self.SECRET_KEY = "NONE"
         self.BROKER_USERNAME = "NONE"
         self.BROKER_PASSWORD = "NONE"
-        self.DB_ENCRYPTION_KEY = "NONE"
+        self.DATABASE_ENCRYPTION_KEY = "NONE"
         self.REDIS_HOST = "NONE"
         self.REDIS_PORT = 1234
         self.REDIS_PASSWORD = "NONE"
@@ -109,7 +104,7 @@ class DockerConfig(Config):
         self.DNS_VERIFICATION_SERVER = "127.0.0.1:8053"
         self.ROUTE53_ZONE_ID = "FakeZoneID"
         self.DNS_ROOT_DOMAIN = "domains.cloud.test"
-        self.DB_ENCRYPTION_KEY = "Local Dev Encrytpion Key"
+        self.DATABASE_ENCRYPTION_KEY = "Local Dev Encrytpion Key"
 
 
 class LocalDevelopmentConfig(DockerConfig):
@@ -121,8 +116,8 @@ class LocalDevelopmentConfig(DockerConfig):
 class TestConfig(DockerConfig):
     def __init__(self):
         self.SQLITE_DB_NAME = "test.sqlite"
-        self.DNS_PROPAGATION_SLEEP_TIME = 0
         super().__init__()
+        self.DNS_PROPAGATION_SLEEP_TIME = 0
 
 
 class MissingRedisError(RuntimeError):
@@ -130,7 +125,7 @@ class MissingRedisError(RuntimeError):
         super().__init__(f"Cannot find redis in VCAP_SERVICES")
 
 
-def env_mappings() -> Type[Config]:
+def env_mappings() -> Dict[str, TypeVar("T", bound="Config")]:
     return {
         "test": TestConfig,
         "local-development": LocalDevelopmentConfig,
@@ -140,4 +135,8 @@ def env_mappings() -> Type[Config]:
         "upgrade-schema": UpgradeSchemaConfig,
     }
 
+
+def config_from_env() -> Type[Config]:
+    env = Env()
+    return env_mappings()[env("FLASK_ENV")]()
 

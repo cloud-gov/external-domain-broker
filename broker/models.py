@@ -10,7 +10,7 @@ from .tasks import queue_all_provision_tasks_for_operation
 
 
 def db_encryption_key():
-    return config_from_env().DB_ENCRYPTION_KEY
+    return config_from_env().DATABASE_ENCRYPTION_KEY
 
 
 class Base(db.Model):

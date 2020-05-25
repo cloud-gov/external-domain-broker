@@ -46,7 +46,7 @@ cf-manifest-env-dev: &cf-manifest-env-dev
     BROKER_USERNAME: ((broker-auth-username))
     BROKER_PASSWORD: ((broker-auth-password))
     SECRET_KEY: ((flask-secret-key))
-    DB_ENCRYPTION_KEY: ((dev-db-encryption-key))
+    DATABASE_ENCRYPTION_KEY: ((dev-db-encryption-key))
     ROUTE53_ZONE_ID: ((dev-route53-zone-id))
     DNS_ROOT_DOMAIN: ((dev-dns-root-domain))
     FLASK_ENV: development
@@ -56,7 +56,7 @@ cf-manifest-env-staging: &cf-manifest-env-staging
     BROKER_USERNAME: ((broker-auth-username))
     BROKER_PASSWORD: ((broker-auth-password))
     SECRET_KEY: ((flask-secret-key))
-    DB_ENCRYPTION_KEY: ((staging-db-encryption-key))
+    DATABASE_ENCRYPTION_KEY: ((staging-db-encryption-key))
     ROUTE53_ZONE_ID: ((staging-route53-zone-id))
     DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
     FLASK_ENV: staging
@@ -66,7 +66,7 @@ cf-manifest-env-prod: &cf-manifest-env-prod
     BROKER_USERNAME: ((broker-auth-username))
     BROKER_PASSWORD: ((broker-auth-password))
     SECRET_KEY: ((flask-secret-key))
-    DB_ENCRYPTION_KEY: ((prod-db-encryption-key))
+    DATABASE_ENCRYPTION_KEY: ((prod-db-encryption-key))
     ROUTE53_ZONE_ID: ((prod-route53-zone-id))
     DNS_ROOT_DOMAIN: ((prod-dns-root-domain))
     FLASK_ENV: production
