@@ -22,6 +22,8 @@ def queue_all_provision_tasks_for_operation(operation_id: int):
         .then(update_txt_records, operation_id)
         .then(retrieve_certificate, operation_id)
         .then(upload_certs_to_iam, operation_id)
+        .then(create_cloudfront_distribution, operation_id)
+        .then(wait_for_cloudfront_distribution, operation_id)
     )
     huey.enqueue(task_pipeline)
 
@@ -99,6 +101,16 @@ def generate_private_key(operation_id: int):
 
 @huey.task()
 def initiate_challenges(operation_id: int):
+    def dns_challenge(order):
+        """Extract authorization resource from within order resource."""
+
+        for authorization in order.authorizations:
+            # authorization.body.challenges is a set of ChallengeBody objects.
+
+            for challenge_body in authorization.body.challenges:
+                if isinstance(challenge_body.chall, challenges.DNS01):
+                    return challenge_body
+
     from .models import Operation, Challenge
 
     operation = Operation.query.get(operation_id)
@@ -182,6 +194,32 @@ def update_txt_records(operation_id: int):
 
 @huey.task()
 def retrieve_certificate(operation_id: int):
+    def cert_from_fullchain(fullchain_pem: str) -> str:
+        """extract cert_pem from fullchain_pem
+
+        Reference https://github.com/certbot/certbot/blob/b42e24178aaa3f1ad1323acb6a3a9c63e547893f/certbot/certbot/crypto_util.py#L482-L518
+        """
+        cert_pem_regex = re.compile(
+            b"-----BEGIN CERTIFICATE-----\r?.+?\r?-----END CERTIFICATE-----\r?",
+            re.DOTALL,  # DOTALL (/s) because the base64text may include newlines
+        )
+
+        certs = cert_pem_regex.findall(fullchain_pem.encode())
+        if len(certs) < 2:
+            raise RuntimeError(
+                "failed to extract cert from fullchain: less than 2 certificates in chain"
+            )
+
+        certs_normalized = [
+            OpenSSL.crypto.dump_certificate(
+                OpenSSL.crypto.FILETYPE_PEM,
+                OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert),
+            ).decode()
+            for cert in certs
+        ]
+
+        return certs_normalized[0]
+
     from .models import Operation
 
     operation = Operation.query.get(operation_id)
@@ -236,9 +274,9 @@ def upload_certs_to_iam(operation_id: int):
     service_instance = operation.service_instance
 
     today = date.today().isoformat()
-    # TODO: extract /cloudfront/external-service-broker-test/
+    iam_server_certificate_prefix = config_from_env().IAM_SERVER_CERTIFICATE_PREFIX
     response = iam.upload_server_certificate(
-        Path="/cloudfront/test/external-domain-broker/",
+        Path=iam_server_certificate_prefix,
         ServerCertificateName=f"{service_instance.id}-{today}",
         CertificateBody=service_instance.cert_pem,
         PrivateKey=service_instance.private_key_pem,
@@ -255,39 +293,109 @@ def upload_certs_to_iam(operation_id: int):
     db.session.commit()
 
 
-def dns_challenge(order):
-    """Extract authorization resource from within order resource."""
+@huey.task()
+def create_cloudfront_distribution(operation_id: int):
+    from .models import Operation
+    from .aws import cloudfront
 
-    for authorization in order.authorizations:
-        # authorization.body.challenges is a set of ChallengeBody objects.
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    domains = service_instance.domain_names
 
-        for challenge_body in authorization.body.challenges:
-            if isinstance(challenge_body.chall, challenges.DNS01):
-                return challenge_body
-
-
-def cert_from_fullchain(fullchain_pem: str) -> str:
-    """extract cert_pem from fullchain_pem
-
-    Reference https://github.com/certbot/certbot/blob/b42e24178aaa3f1ad1323acb6a3a9c63e547893f/certbot/certbot/crypto_util.py#L482-L518
-    """
-    cert_pem_regex = re.compile(
-        b"-----BEGIN CERTIFICATE-----\r?.+?\r?-----END CERTIFICATE-----\r?",
-        re.DOTALL,  # DOTALL (/s) because the base64text may include newlines
+    response = cloudfront.create_distribution(
+        DistributionConfig={
+            "CallerReference": service_instance.id,
+            "Aliases": {"Quantity": len(domains), "Items": domains},
+            "DefaultRootObject": "",
+            "Origins": {
+                "Quantity": 1,
+                "Items": [
+                    {
+                        "Id": "default-origin",
+                        "DomainName": config_from_env().DEFAULT_CLOUDFRONT_ORIGIN_DOMAIN_NAME,
+                        "CustomOriginConfig": {
+                            "HTTPPort": 80,
+                            "HTTPSPort": 443,
+                            "OriginProtocolPolicy": "https-only",
+                            "OriginSslProtocols": {
+                                "Quantity": 1,
+                                "Items": ["TLSv1.2"],
+                            },
+                            "OriginReadTimeout": 30,
+                            "OriginKeepaliveTimeout": 5,
+                        },
+                    }
+                ],
+            },
+            "OriginGroups": {"Quantity": 0},
+            "DefaultCacheBehavior": {
+                "TargetOriginId": "default-origin",
+                "ForwardedValues": {
+                    "QueryString": True,
+                    "Cookies": {"Forward": "all"},
+                    "Headers": {"Quantity": 1, "Items": ["HOST"]},
+                    "QueryStringCacheKeys": {"Quantity": 0},
+                },
+                "TrustedSigners": {"Enabled": False, "Quantity": 0},
+                "ViewerProtocolPolicy": "redirect-to-https",
+                "MinTTL": 0,
+                "AllowedMethods": {
+                    "Quantity": 7,
+                    "Items": [
+                        "GET",
+                        "HEAD",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "OPTIONS",
+                        "DELETE",
+                    ],
+                    "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
+                },
+                "SmoothStreaming": False,
+                "DefaultTTL": 86400,
+                "MaxTTL": 31536000,
+                "Compress": False,
+                "LambdaFunctionAssociations": {"Quantity": 0},
+            },
+            "CacheBehaviors": {"Quantity": 0},
+            "CustomErrorResponses": {"Quantity": 0},
+            "Comment": "external domain service https://cloud-gov/external-domain-broker",
+            "Logging": {
+                "Enabled": False,
+                "IncludeCookies": False,
+                "Bucket": "",
+                "Prefix": "",
+            },
+            "PriceClass": "PriceClass_100",
+            "Enabled": True,
+            "ViewerCertificate": {
+                "CloudFrontDefaultCertificate": False,
+                "IAMCertificateId": service_instance.iam_server_certificate_id,
+                "SSLSupportMethod": "sni-only",
+                "MinimumProtocolVersion": "TLSv1.2_2018",
+            },
+            "IsIPV6Enabled": True,
+        }
     )
 
-    certs = cert_pem_regex.findall(fullchain_pem.encode())
-    if len(certs) < 2:
-        raise RuntimeError(
-            "failed to extract cert from fullchain: less than 2 certificates in chain"
-        )
+    service_instance.cloudfront_distribution_arn = response["Distribution"]["ARN"]
+    service_instance.cloudfront_distribution_id = response["Distribution"]["Id"]
+    db.session.add(service_instance)
+    db.session.commit()
 
-    certs_normalized = [
-        OpenSSL.crypto.dump_certificate(
-            OpenSSL.crypto.FILETYPE_PEM,
-            OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert),
-        ).decode()
-        for cert in certs
-    ]
 
-    return certs_normalized[0]
+@huey.task()
+def wait_for_cloudfront_distribution(operation_id: str):
+    from .models import Operation
+    from .aws import cloudfront
+
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    waiter = cloudfront.get_waiter("distribution_deployed")
+    # Cloudfront distros can take ~1hr to deploy
+    waiter.wait(
+        Id=service_instance.cloudfront_distribution_id,
+        WaiterConfig={"Delay": 60, "MaxAttempts": 120},
+    )
+

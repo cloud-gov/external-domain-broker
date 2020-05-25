@@ -17,30 +17,30 @@ class FakeIAM:
         return ANY
 
     def expect_certificate_upload(
-        self, path: str, name: str, cert: str, private_key: str, chain: str
+        self, name: str, cert: str, private_key: str, chain: str
     ):
         now = datetime.now(timezone.utc)
         three_months_from_now = now + timedelta(90)
-        self.stubber.add_response(
-            "upload_server_certificate",
-            {
-                "ServerCertificateMetadata": {
-                    "ServerCertificateId": "FAKE_CERT_ID_XXXXXXXX",
-                    "Path": "/cloudfront/external-service-broker-test/",
-                    "ServerCertificateName": "cert-name",
-                    "Arn": "arn:aws:iam::000000000000:server-certificate/cloudfront/external-service-broker-test/cert-name",
-                    "UploadDate": now,
-                    "Expiration": three_months_from_now,
-                }
-            },
-            {
+        path = "/cloudfront/external-domain-broker/test"
+        method = "upload_server_certificate"
+        request = {
+            "Path": path,
+            "ServerCertificateName": name,
+            "CertificateBody": cert,
+            "PrivateKey": private_key,
+            "CertificateChain": chain,
+        }
+        response = {
+            "ServerCertificateMetadata": {
+                "ServerCertificateId": "FAKE_CERT_ID_XXXXXXXX",
                 "Path": path,
                 "ServerCertificateName": name,
-                "CertificateBody": cert,
-                "PrivateKey": private_key,
-                "CertificateChain": chain,
-            },
-        )
+                "Arn": f"arn:aws:iam::000000000000:server-certificate{path}/{name}",
+                "UploadDate": now,
+                "Expiration": three_months_from_now,
+            }
+        }
+        self.stubber.add_response(method, response, request)
 
 
 @pytest.fixture(autouse=True)

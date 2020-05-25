@@ -1,5 +1,5 @@
+import pytest  # noqa F401
 import json
-import pytest
 from datetime import date
 
 from openbrokerapi.service_broker import OperationState
@@ -218,7 +218,6 @@ def test_provision_uploads_certificate_to_iam(
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
 
     iam.expect_certificate_upload(
-        path=f"/cloudfront/test/external-domain-broker/",
         name=f"{service_instance.id}-{today}",
         cert=service_instance.cert_pem,
         private_key=service_instance.private_key_pem,
@@ -235,5 +234,63 @@ def test_provision_uploads_certificate_to_iam(
     assert service_instance.iam_server_certificate_arn.startswith("arn:aws:iam")
 
 
-def test_provision_creates_cloudfront_distribution():
-    pass
+def test_provision_creates_cloudfront_distribution(
+    client, tasks, dns, route53, cloudfront, iam
+):
+    dns.add_cname("_acme-challenge.example.com")
+    route53.expect_create_txt_for("_acme-challenge.example.com.domains.cloud.test")
+
+    client.provision_instance(
+        "4321", accepts_incomplete="true", params={"domains": "example.com"}
+    )
+    assert client.response.status_code == 202, client.response.body
+
+    tasks.run_pipeline_stages(4)
+
+    service_instance = ServiceInstance.query.get("4321")
+    challenge = service_instance.challenges.first()
+    assert challenge.validation_contents is not None
+
+    dns.add_txt(
+        "_acme-challenge.example.com.domains.cloud.test.",
+        f"{challenge.validation_contents}",
+    )
+
+    tasks.run_pipeline_stages(1)
+
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("4321")
+    iam.expect_certificate_upload(
+        name=f"{service_instance.id}-{date.today().isoformat()}",
+        cert=service_instance.cert_pem,
+        private_key=service_instance.private_key_pem,
+        chain=service_instance.fullchain_pem,
+    )
+
+    tasks.run_pipeline_stages(1)
+
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("4321")
+
+    cloudfront.expect_create_distribution(
+        service_instance=service_instance, distribution_id="FakeDistributionId"
+    )
+
+    tasks.run_pipeline_stages(1)
+
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("4321")
+
+    assert service_instance.cloudfront_distribution_arn
+    assert service_instance.cloudfront_distribution_arn.startswith("arn:aws:cloudfront")
+    assert service_instance.cloudfront_distribution_arn.endswith("FakeDistributionId")
+
+    assert service_instance.cloudfront_distribution_id == "FakeDistributionId"
+
+    cloudfront.expect_wait_for_distribution(
+        service_instance=service_instance, distribution_id="FakeDistributionId"
+    )
+
+    tasks.run_pipeline_stages(1)
+
+
