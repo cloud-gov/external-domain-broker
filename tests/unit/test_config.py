@@ -5,9 +5,6 @@ import pytest
 from broker.config import config_from_env, env_mappings
 
 
-pytestmark = pytest.mark.focus
-
-
 @pytest.fixture()
 def vcap_application():
     data = {
