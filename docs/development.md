@@ -1,31 +1,18 @@
 # Development
 
-## General development workflow
-
-In one window, run the tests continually via the `./dev watch-tests` script.
-This runs the test watcher in a Docker container, and mounts your local
-directory over the container's application codebase.
-
-In another, simply edit your files as normal.  The test watcher should pick up
-any changes when you save files and run the tests again.  If you'd like it to
-only run the test(s) you care about, annotate them with the `focus` mark like
-such:
-
-``` python
-@pytest.mark.focus
-def test_provision_creates_LE_user(client, tasks, pebble):
-    ...
-```
+See [the tests README](/tests/README.md) for the overall development workflow,
+and information on the testing structure.
 
 ## Generate a DB Migration File
 
 We're using [flask-migrate](https://flask-migrate.readthedocs.io/en/latest/)
 for migrations.  flask-migrate can auto-generate a migration file by looking
-at what's currently in the database, what's defined in our
+at what's currently in the database vs what's defined in our
 [models](/broker/models.py), and generating a migration file that would
 bridge the gap.
 
-To generate a new migration file, add the columns to `./broker/models.py` and run:
+To generate a new migration file, add the required columns to
+`./broker/models.py` and run:
 
 ``` console
 $ ./dev new-migration "Description of the change"
@@ -52,12 +39,13 @@ Compiling dev-requirements.txt
 We use [Black](https://github.com/psf/black) to format our code. Please do
 the same.
 
-## Architecture
+## Open Service Broker API
 
-### Open Service Broker API
-
-We're using https://github.com/eruvanos/openbrokerapi, and we used
-https://github.com/eruvanos/openbrokerapi-skeleton to start the project.
+We're using [the python openbrokerapi
+package](https://github.com/eruvanos/openbrokerapi), and we used [the
+associated skeleton
+example](https://github.com/eruvanos/openbrokerapi-skeleton) to start the
+project.
 
 ## WIP Notes and Useful Links
 
