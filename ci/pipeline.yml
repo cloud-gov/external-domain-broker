@@ -56,7 +56,7 @@ cf-manifest-env-staging: &cf-manifest-env-staging
     BROKER_USERNAME: ((broker-auth-username))
     BROKER_PASSWORD: ((broker-auth-password))
     SECRET_KEY: ((flask-secret-key))
-    DB_ENCRYPTION_KEY: ((stagin-db-encryption-key))
+    DB_ENCRYPTION_KEY: ((staging-db-encryption-key))
     ROUTE53_ZONE_ID: ((staging-route53-zone-id))
     DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
     FLASK_ENV: staging
