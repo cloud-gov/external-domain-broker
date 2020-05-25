@@ -4,25 +4,12 @@ import re
 
 from cfenv import AppEnv
 from environs import Env
+from typing import Type
 
 
 def config_from_env():
     env = Env()
-    mapping = {
-        "test": TestConfig,
-        "local-development": LocalDevelopmentConfig,
-        "development": DevelopmentConfig,
-        "staging": StagingConfig,
-        "upgrade-schema": UpgradeSchemaConfig,
-        "production": ProductionConfig,
-    }
-
-    return mapping[env("FLASK_ENV")]()
-
-
-class MissingRedisError(RuntimeError):
-    def __init__(self):
-        super().__init__(f"Cannot find redis in VCAP_SERVICES")
+    return env_mappings()[env("FLASK_ENV")]()
 
 
 class Config:
@@ -87,6 +74,7 @@ class UpgradeSchemaConfig(Config):
     """ I'm used when running flask db upgrade in any self.environment """
 
     def __init__(self):
+        super().__init__()
         self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
         self.TESTING = False
         self.DEBUG = False
@@ -100,7 +88,6 @@ class UpgradeSchemaConfig(Config):
         self.ROUTE53_ZONE_ID = "NONE"
         self.DNS_ROOT_DOMAIN = "NONE"
         self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
-        super().__init__()
 
 
 class DockerConfig(Config):
@@ -134,3 +121,21 @@ class TestConfig(DockerConfig):
     def __init__(self):
         self.SQLITE_DB_NAME = "test.sqlite"
         super().__init__()
+
+
+class MissingRedisError(RuntimeError):
+    def __init__(self):
+        super().__init__(f"Cannot find redis in VCAP_SERVICES")
+
+
+def env_mappings() -> Type[Config]:
+    return {
+        "test": TestConfig,
+        "local-development": LocalDevelopmentConfig,
+        "development": DevelopmentConfig,
+        "staging": StagingConfig,
+        "production": ProductionConfig,
+        "upgrade-schema": UpgradeSchemaConfig,
+    }
+
+

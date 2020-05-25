@@ -2,7 +2,10 @@ import json
 
 import pytest
 
-from broker.config import config_from_env
+from broker.config import config_from_env, env_mappings
+
+
+pytestmark = pytest.mark.focus
 
 
 @pytest.fixture()
@@ -120,3 +123,14 @@ def test_config_uses_right_iam_prefix(env, monkeypatch, mocked_env):
         config.IAM_SERVER_CERTIFICATE_PREFIX
         == f"/cloudfront/external-service-broker/{env}"
     )
+
+
+@pytest.mark.parametrize("env", env_mappings().keys())
+def test_config_doesnt_explode(env, monkeypatch, mocked_env):
+    monkeypatch.setenv("FLASK_ENV", env)
+
+    config = config_from_env()
+
+    assert env == config.FLASK_ENV
+
+
