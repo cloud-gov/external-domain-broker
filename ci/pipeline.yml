@@ -16,6 +16,13 @@ cf-creds-dev: &cf-creds-dev
   CF_ORGANIZATION: ((broker-organization))
   CF_SPACE: ((broker-space))
 
+cf-creds-staging: &cf-creds-staging
+  CF_API_URL: ((staging-cf-api-url))
+  CF_USERNAME: ((staging-cf-username))
+  CF_PASSWORD: ((staging-cf-password))
+  CF_ORGANIZATION: ((broker-organization))
+  CF_SPACE: ((broker-space))
+
 cf-upgrade-schema-vars: &cf-upgrade-schema-vars
   FLASK_ENV: upgrade-schema
   APP_NAME: ((name))-db-upgrade
@@ -64,6 +71,7 @@ cf-manifest-env-prod: &cf-manifest-env-prod
 jobs:
 
 - name: reconfigure
+  serial: true
   plan:
   - get: src
     params: {depth: 1}
@@ -159,6 +167,62 @@ jobs:
       <<: *cf-creds-dev
       <<: *broker-register-params
 
+- name: deploy-staging
+  plan:
+  - in_parallel:
+    - get: src
+      params: {depth: 1}
+      trigger: true
+      passed: [test]
+    - get: pipeline-tasks
+  - in_parallel:
+    - task: create-postgres
+      file: pipeline-tasks/ensure-misbehaved-service.yml
+      params:
+        <<: *cf-creds-staging
+        APP_NAME: ((name))
+        SVC_SERVICE: ((db_service))
+        SVC_PLAN: ((db_plan))
+        SVC_NAME: ((db_name))
+    - task: create-redis
+      file: pipeline-tasks/ensure-misbehaved-service.yml
+      params:
+        <<: *cf-creds-staging
+        APP_NAME: ((name))
+        SVC_SERVICE: ((redis_service))
+        SVC_PLAN: ((redis_plan))
+        SVC_NAME: ((redis_name))
+  - task: stop-apps
+    file: src/ci/stop-apps.yml
+    params:
+      <<: *cf-creds-staging
+      APPLICATIONS: "((name)) ((name))-workers"
+  - task: upgrade-schema
+    file: src/ci/upgrade-schema.yml
+    params:
+      <<: *cf-creds-staging
+      <<: *cf-upgrade-schema-vars
+  - in_parallel:
+    - put: cf-staging
+      params:
+        path: src
+        manifest: src/manifests/app.yml
+        show_app_log: true
+        <<: *cf-manifest-vars
+        <<: *cf-manifest-env-staging
+    - put: cf-staging
+      params:
+        path: src
+        manifest: src/manifests/workers.yml
+        show_app_log: true
+        <<: *cf-manifest-vars
+        <<: *cf-manifest-env-staging
+  - task: register-broker
+    file: pipeline-tasks/register-service-broker.yml
+    params:
+      <<: *cf-creds-staging
+      <<: *broker-register-params
+
 
 ############################
 #  RESOURCES
@@ -197,6 +261,16 @@ resources:
     api: ((dev-cf-api-url))
     username: ((dev-cf-username))
     password: ((dev-cf-password))
+    organization: ((broker-organization))
+    space: ((broker-space))
+
+- name: cf-staging
+  type: cf
+  icon: cloud-upload
+  source:
+    api: ((staging-cf-api-url))
+    username: ((staging-cf-username))
+    password: ((staging-cf-password))
     organization: ((broker-organization))
     space: ((broker-space))
 
