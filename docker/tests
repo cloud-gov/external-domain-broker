@@ -6,12 +6,6 @@ set -xeuo pipefail
 ./docker/start-servers.sh
 
 export FLASK_ENV=test
-env | sort
-
-ls -lA
-
-echo -n "Python sys.path: "
-python3 -c 'import sys; print(sys.path)'
 
 if [[ "$#" -ge 1 ]] && [[ "$1" == "watch" ]]; then
   shift
