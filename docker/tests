@@ -8,6 +8,11 @@ set -xeuo pipefail
 export FLASK_ENV=test
 env | sort
 
+ls -lA
+
+echo -n "Python sys.path: "
+python3 -c 'import sys; print(sys.path)'
+
 if [[ "$#" -ge 1 ]] && [[ "$1" == "watch" ]]; then
   shift
   ptw --spool=500 -n -c -w -- -Werror -vv "$@"
