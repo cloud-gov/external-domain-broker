@@ -13,19 +13,6 @@ from werkzeug.datastructures import Headers
 from broker import create_app, db
 
 
-@contextlib.contextmanager
-def hidden_output():
-    _stderr = sys.stderr
-    _stdout = sys.stdout
-    null = open(os.devnull, "w")
-    sys.stdout = sys.stderr = null
-    try:
-        yield
-    finally:
-        sys.stderr = _stderr
-        sys.stdout = _stdout
-
-
 class CFAPIResponse(Response):
     @property
     def body(self):
@@ -111,26 +98,33 @@ def app():
     del _app.error_handler_spec["open_broker"][None][Exception]
 
     with _app.app_context():
+        db_path = _app.config["SQLITE_DB_PATH"]
+
+        if os.path.isfile(db_path):
+            print(f"Removing {db_path}")
+            os.remove(db_path)
+
+        print(f"Running migrations")
+        flask_migrate.upgrade()
+        db.session.commit()  # Cargo Cult
         yield current_app
 
 
 @pytest.fixture(scope="function")
-def client(app, capsys):
+def clean_db(app):
+    print(f"Clearing Redis")
+    current_app.huey.storage.conn.flushall()
+
+    yield db
+    print(f"Recreating tables")
+    db.session.remove()
+    db.drop_all()
+    db.create_all()
+
+
+@pytest.fixture(scope="function")
+def client(clean_db, app):
     app.test_client_class = CFAPIClient
     app.response_class = CFAPIResponse
 
-    db_path = app.config["SQLITE_DB_PATH"]
-
-    if os.path.isfile(db_path):
-        os.remove(app.config["SQLITE_DB_PATH"])
-
-    with hidden_output():
-        flask_migrate.upgrade()
-    current_app.huey.storage.conn.flushall()
-
     yield app.test_client()
-
-    db.session.close()
-
-    if os.path.isfile(db_path):
-        os.remove(app.config["SQLITE_DB_PATH"])
