@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
 cd /app || (echo "Cannot find /app directory"; exit 2)
-set -x
+set -xeuo pipefail
 
 ./docker/start-servers.sh
 
 export FLASK_ENV=test
+env | sort
 
 if [[ "$#" -ge 1 ]] && [[ "$1" == "watch" ]]; then
   shift
