@@ -53,7 +53,7 @@ USER $UID:$GID
 COPY . .
 
 ENV PATH=/usr/local/bin:$PATH
-ENV FLASK_APP="broker:create_app()"
+ENV FLASK_APP="broker.app:create_app()"
 ENV FLASK_ENV=local-development
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
