@@ -50,6 +50,16 @@ build_image() {
   # you.  This user is embedded in the docker image, so the resulting image
   # should only be used locally.  These arguments are not used in our
   # concourse pipeline.
+  cat <<- "EOF"
+ ____        _ _     _ _               _____
+|  _ \      (_) |   | (_)             |_   _|
+| |_) |_   _ _| | __| |_ _ __   __ _    | |  _ __ ___   __ _  __ _  ___
+|  _ <| | | | | |/ _` | | '_ \ / _` |   | | | '_ ` _ \ / _` |/ _` |/ _ \
+| |_) | |_| | | | (_| | | | | | (_| |  _| |_| | | | | | (_| | (_| |  __/
+|____/ \__,_|_|_|\__,_|_|_| |_|\__, | |_____|_| |_| |_|\__,_|\__, |\___|
+                                __/ |                         __/ |
+                               |___/                         |___/  
+EOF
   docker build \
     --file=docker/Dockerfile.dev \
     --tag=${built_image_name} \
