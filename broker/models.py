@@ -56,6 +56,7 @@ class ServiceInstance(Base):
     iam_server_certificate_arn = db.Column(db.String)
     cloudfront_distribution_arn = db.Column(db.String)
     cloudfront_distribution_id = db.Column(db.String)
+    cloudfront_distribution_url = db.Column(db.String)
 
     def __repr__(self):
         return f"<ServiceInstance {self.id} {self.domain_names}>"

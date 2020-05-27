@@ -9,19 +9,11 @@ from tests.lib.fake_aws import FakeAWS
 
 
 class FakeRoute53(FakeAWS):
-    def expect_create_txt_and_return_change_id(self, domain) -> str:
-        now = datetime.now(timezone.utc)
+    def expect_create_TXT_and_return_change_id(self, domain) -> str:
         change_id = f"{domain} ID"
         self.stubber.add_response(
             "change_resource_record_sets",
-            {
-                "ChangeInfo": {
-                    "Id": change_id,
-                    "Status": "PENDING",
-                    "SubmittedAt": now,
-                    "Comment": "Some comment",
-                }
-            },
+            self._change_info(change_id, "PENDING"),
             {
                 "ChangeBatch": {
                     "Changes": [
@@ -36,25 +28,56 @@ class FakeRoute53(FakeAWS):
                         },
                     ],
                 },
-                "HostedZoneId": config_from_env().ROUTE53_ZONE_ID,
+                "HostedZoneId": "TestZoneID",
+            },
+        )
+        return change_id
+
+    def expect_create_ALIAS_and_return_change_id(self, domain, target) -> str:
+        change_id = f"{domain} ID"
+        self.stubber.add_response(
+            "change_resource_record_sets",
+            self._change_info(change_id, "PENDING"),
+            {
+                "ChangeBatch": {
+                    "Changes": [
+                        {
+                            "Action": "CREATE",
+                            "ResourceRecordSet": {
+                                "Name": domain,
+                                "Type": "A",
+                                "AliasTarget": {
+                                    "DNSName": target,
+                                    "HostedZoneId": "Z2FDTNDATAQYW2",
+                                    "EvaluateTargetHealth": False
+                                },
+                            },
+                        },
+                    ],
+                },
+                "HostedZoneId": "TestZoneID",
             },
         )
         return change_id
 
     def expect_wait_for_change_insync(self, change_id: str):
-        now = datetime.now(timezone.utc)
         self.stubber.add_response(
-            "get_change",
-            {
-                "ChangeInfo": {
-                    "Id": change_id,
-                    "Status": "INSYNC",
-                    "SubmittedAt": now,
-                    "Comment": "Some comment",
-                }
-            },
-            {"Id": change_id},
+            "get_change", self._change_info(change_id, "PENDING"), {"Id": change_id},
         )
+        self.stubber.add_response(
+            "get_change", self._change_info(change_id, "INSYNC"), {"Id": change_id},
+        )
+
+    def _change_info(self, change_id: str, status: str = "PENDING"):
+        now = datetime.now(timezone.utc)
+        return {
+            "ChangeInfo": {
+                "Id": change_id,
+                "Status": status,
+                "SubmittedAt": now,
+                "Comment": "Some comment",
+            }
+        }
 
 
 @pytest.fixture(autouse=True)

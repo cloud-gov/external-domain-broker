@@ -37,6 +37,9 @@ class Config:
         self.AWS_POLL_WAIT_TIME_IN_SECONDS = 60
         self.AWS_POLL_MAX_ATTEMPTS = 120
 
+        # https://docs.aws.amazon.com/Route53/latest/APIReference/API_AliasTarget.html
+        self.CLOUDFRONT_HOSTED_ZONE_ID = "Z2FDTNDATAQYW2"
+
 
 class AppConfig(Config):
     """ Base class for apps running in Cloud Foundry """
@@ -124,7 +127,7 @@ class DockerConfig(Config):
         self.BROKER_PASSWORD = "sekrit"
         self.ACME_DIRECTORY = "https://localhost:14000/dir"
         self.DNS_VERIFICATION_SERVER = "127.0.0.1:8053"
-        self.ROUTE53_ZONE_ID = "FakeZoneID"
+        self.ROUTE53_ZONE_ID = "TestZoneID"
         self.DNS_ROOT_DOMAIN = "domains.cloud.test"
         self.DATABASE_ENCRYPTION_KEY = "Local Dev Encrytpion Key"
         self.DEFAULT_CLOUDFRONT_ORIGIN_DOMAIN_NAME = "cloud.local"

@@ -11,7 +11,10 @@ from tests.lib.fake_aws import FakeAWS
 
 class FakeCloudFront(FakeAWS):
     def expect_create_distribution(
-        self, service_instance: ServiceInstance, distribution_id: str,
+        self,
+        service_instance: ServiceInstance,
+        distribution_id: str,
+        distribution_hostname: str,
     ):
         self.stubber.add_response(
             "create_distribution",
@@ -20,6 +23,7 @@ class FakeCloudFront(FakeAWS):
                 service_instance.domain_names,
                 service_instance.iam_server_certificate_id,
                 distribution_id,
+                distribution_hostname,
             ),
             {
                 "DistributionConfig": self._fake_distribution_config(
@@ -31,7 +35,7 @@ class FakeCloudFront(FakeAWS):
         )
 
     def expect_wait_for_distribution(
-        self, service_instance: ServiceInstance, distribution_id: str
+        self, service_instance: ServiceInstance, distribution_id: str,
     ):
         self.stubber.add_response(
             "get_distribution",
@@ -40,6 +44,7 @@ class FakeCloudFront(FakeAWS):
                 service_instance.domain_names,
                 service_instance.iam_server_certificate_id,
                 distribution_id,
+                "ignored",
                 "InProgress",
             ),
             {"Id": service_instance.cloudfront_distribution_id},
@@ -51,6 +56,7 @@ class FakeCloudFront(FakeAWS):
                 service_instance.domain_names,
                 service_instance.iam_server_certificate_id,
                 distribution_id,
+                "ignored",
                 "Deployed",
             ),
             {"Id": service_instance.cloudfront_distribution_id},
@@ -140,6 +146,7 @@ class FakeCloudFront(FakeAWS):
         domains: List[str],
         iam_server_certificate_id: str,
         distribution_id: str,
+        distribution_hostname: str,
         status: str = "InProgress",
     ) -> Dict[str, Any]:
         return {
@@ -149,7 +156,7 @@ class FakeCloudFront(FakeAWS):
                 "Status": status,
                 "LastModifiedTime": datetime.utcnow(),
                 "InProgressInvalidationBatches": 0,
-                "DomainName": "d111111abcdef8.cloudfront.net",
+                "DomainName": distribution_hostname,
                 "ActiveTrustedSigners": {"Enabled": False, "Quantity": 0, "Items": []},
                 "DistributionConfig": self._fake_distribution_config(
                     caller_reference, domains, iam_server_certificate_id

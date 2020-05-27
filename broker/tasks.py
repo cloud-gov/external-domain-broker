@@ -19,11 +19,12 @@ def queue_all_provision_tasks_for_operation(operation_id: int):
         create_le_user.s(operation_id)
         .then(generate_private_key, operation_id)
         .then(initiate_challenges, operation_id)
-        .then(update_txt_records, operation_id)
+        .then(update_TXT_records, operation_id)
         .then(retrieve_certificate, operation_id)
         .then(upload_certs_to_iam, operation_id)
         .then(create_cloudfront_distribution, operation_id)
         .then(wait_for_cloudfront_distribution, operation_id)
+        .then(create_ALIAS_records, operation_id)
     )
     huey.enqueue(task_pipeline)
 
@@ -177,7 +178,7 @@ def initiate_challenges(operation_id: int):
 
 
 @huey.task()
-def update_txt_records(operation_id: int):
+def update_TXT_records(operation_id: int):
     from .models import Operation
     from .aws import route53
 
@@ -414,6 +415,9 @@ def create_cloudfront_distribution(operation_id: int):
 
     service_instance.cloudfront_distribution_arn = response["Distribution"]["ARN"]
     service_instance.cloudfront_distribution_id = response["Distribution"]["Id"]
+    service_instance.cloudfront_distribution_url = response["Distribution"][
+        "DomainName"
+    ]
     db.session.add(service_instance)
     db.session.commit()
 
@@ -433,4 +437,51 @@ def wait_for_cloudfront_distribution(operation_id: str):
             "MaxAttempts": config_from_env().AWS_POLL_MAX_ATTEMPTS,
         },
     )
+
+
+@huey.task()
+def create_ALIAS_records(operation_id: str):
+    from .models import Operation
+    from .aws import route53
+
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    route53_responses = []
+
+    for domain in service_instance.domain_names:
+        alias_record = f"{domain}.{config_from_env().DNS_ROOT_DOMAIN}"
+        target = service_instance.cloudfront_distribution_url
+        print(f'Creating ALIAS record {alias_record} pointing to "{target}"')
+        route53_response = route53.change_resource_record_sets(
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "CREATE",
+                        "ResourceRecordSet": {
+                            "Type": "A",
+                            "Name": alias_record,
+                            "AliasTarget": {
+                                "DNSName": target,
+                                "HostedZoneId": "Z2FDTNDATAQYW2",
+                                "EvaluateTargetHealth": False,
+                            },
+                        },
+                    },
+                ],
+            },
+            HostedZoneId=config_from_env().ROUTE53_ZONE_ID,
+        )
+        route53_responses.append(route53_response)
+
+    for route53_response in route53_responses:
+        change_id = route53_response["ChangeInfo"]["Id"]
+        waiter = route53.get_waiter("resource_record_sets_changed")
+        waiter.wait(
+            Id=change_id,
+            WaiterConfig={
+                "Delay": config_from_env().AWS_POLL_WAIT_TIME_IN_SECONDS,
+                "MaxAttempts": config_from_env().AWS_POLL_MAX_ATTEMPTS,
+            },
+        )
 

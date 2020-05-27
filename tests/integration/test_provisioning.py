@@ -125,14 +125,14 @@ def subtest_provision_initiates_LE_challenge(tasks):
 def subtest_provision_updates_TXT_record(tasks, route53):
     db.session.expunge_all()
 
-    change_id_1 = route53.expect_create_txt_and_return_change_id(
+    example_com_change_id = route53.expect_create_TXT_and_return_change_id(
         "_acme-challenge.example.com.domains.cloud.test"
     )
-    change_id_2 = route53.expect_create_txt_and_return_change_id(
+    foo_com_change_id = route53.expect_create_TXT_and_return_change_id(
         "_acme-challenge.foo.com.domains.cloud.test"
     )
-    route53.expect_wait_for_change_insync(change_id_1)
-    route53.expect_wait_for_change_insync(change_id_2)
+    route53.expect_wait_for_change_insync(example_com_change_id)
+    route53.expect_wait_for_change_insync(foo_com_change_id)
 
     tasks.run_pipeline_stages(1)
     route53.assert_no_pending_responses()
@@ -197,7 +197,9 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
     service_instance = ServiceInstance.query.get("4321")
 
     cloudfront.expect_create_distribution(
-        service_instance=service_instance, distribution_id="FakeDistributionId"
+        service_instance=service_instance,
+        distribution_id="FakeDistributionId",
+        distribution_hostname="fake1234.cloudfront.net",
     )
 
     tasks.run_pipeline_stages(1)
@@ -209,6 +211,7 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
     assert service_instance.cloudfront_distribution_arn.startswith("arn:aws:cloudfront")
     assert service_instance.cloudfront_distribution_arn.endswith("FakeDistributionId")
     assert service_instance.cloudfront_distribution_id == "FakeDistributionId"
+    assert service_instance.cloudfront_distribution_url == "fake1234.cloudfront.net"
 
 
 def subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront):
@@ -220,6 +223,19 @@ def subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront):
     )
 
     tasks.run_pipeline_stages(1)
+
+
+def subtest_provision_provisions_ALIAS_record(tasks, route53):
+    example_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
+        "example.com.domains.cloud.test", "fake1234.cloudfront.net"
+    )
+    foo_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
+        "foo.com.domains.cloud.test", "fake1234.cloudfront.net"
+    )
+    route53.expect_wait_for_change_insync(example_com_change_id)
+    route53.expect_wait_for_change_insync(foo_com_change_id)
+    tasks.run_pipeline_stages(1)
+    route53.assert_no_pending_responses()
 
 
 def test_provision_happy_path(
@@ -234,4 +250,5 @@ def test_provision_happy_path(
     subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex)
     subtest_provision_creates_cloudfront_distribution(tasks, cloudfront)
     subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront)
+    subtest_provision_provisions_ALIAS_record(tasks, route53)
 
