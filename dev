@@ -3,6 +3,8 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
+built_image_name="external-domain-broker-dev"
+
 main() {
   [[ $# -eq 0 ]] && usage "Expected command."
 
@@ -42,16 +44,15 @@ main() {
   esac
 }
 
-build_image_and_return_id() {
+build_image() {
   # The build-args are used to create a user with the same UID/GID as
   # yourself. That way, any files written to the $PWD mount will be owned by
   # you.  This user is embedded in the docker image, so the resulting image
   # should only be used locally.  These arguments are not used in our
   # concourse pipeline.
   docker build \
-    --quiet \
     --file=docker/Dockerfile.dev \
-    --tag=external-domain-broker-dev \
+    --tag=${built_image_name} \
     --build-arg UID="$(id -u)" \
     --build-arg GID="$(id -g)" \
     --build-arg USER="$USER" \
@@ -59,13 +60,13 @@ build_image_and_return_id() {
 }
 
 run_docker() {
-  id=$(build_image_and_return_id)
-  docker run --rm -it -v "$PWD:/app" "$id" "$@"
+  build_image
+  docker run --rm -it -v "$PWD:/app" "${built_image_name}" "$@"
 }
 
 run_docker_exposed() {
-  id=$(build_image_and_return_id)
-  docker run --rm -it -v "$PWD:/app" -p "0.0.0.0:8000:8000" "$id" "$@"
+  build_image
+  docker run --rm -it -v "$PWD:/app" -p "0.0.0.0:8000:8000" "${built_image_name}" "$@"
 }
 
 tests() {
