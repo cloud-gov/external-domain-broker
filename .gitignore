@@ -49,3 +49,5 @@ dmypy.json
 .pyre/
 
 !.gitkeep
+
+.vscode

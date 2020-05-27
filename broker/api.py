@@ -20,9 +20,9 @@ from openbrokerapi.service_broker import (
     UnbindSpec,
 )
 
-from . import db
-from .models import Operation, ServiceInstance
-from .validators import CNAMEValidator
+from broker.extensions import db
+from broker.models import Operation, ServiceInstance
+from broker.validators import CNAMEValidator
 
 logger = logging.getLogger(__name__)
 

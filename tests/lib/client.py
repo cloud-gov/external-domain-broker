@@ -10,7 +10,7 @@ from flask.testing import FlaskClient
 from flask.wrappers import Response
 from werkzeug.datastructures import Headers
 
-from broker import create_app, db
+from broker.app import create_app, db
 
 
 class CFAPIResponse(Response):

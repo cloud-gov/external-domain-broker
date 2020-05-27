@@ -2,7 +2,7 @@ from typing import List
 
 from openbrokerapi import errors
 
-from .dns import acme_challenge_cname_name, acme_challenge_cname_target, get_cname
+from broker.dns import acme_challenge_cname_name, acme_challenge_cname_target, get_cname
 
 
 class CNAMEValidator:
