@@ -4,9 +4,9 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import (
     StringEncryptedType,
 )
 
-from . import db
-from .config import config_from_env
-from .tasks import queue_all_provision_tasks_for_operation
+from broker.extensions import db
+from broker.config import config_from_env
+from broker.tasks import queue_all_provision_tasks_for_operation
 
 
 def db_encryption_key():

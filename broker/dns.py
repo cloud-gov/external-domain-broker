@@ -1,6 +1,6 @@
 import dns.resolver
 
-from .config import config_from_env
+from broker.config import config_from_env
 
 (_nameserver, _port) = config_from_env().DNS_VERIFICATION_SERVER.split(":")
 _root_dns = config_from_env().DNS_ROOT_DOMAIN

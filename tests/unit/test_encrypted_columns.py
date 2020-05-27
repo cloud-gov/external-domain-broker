@@ -1,6 +1,6 @@
 import pytest
 
-from broker import db
+from broker.extensions import db
 from broker.models import ACMEUser, ServiceInstance
 from tests.lib.factories import ACMEUserFactory, ServiceInstanceFactory
 

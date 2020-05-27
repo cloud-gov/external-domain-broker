@@ -10,8 +10,8 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from . import db, huey
-from .config import config_from_env
+from broker.extensions import db, huey
+from broker.config import config_from_env
 
 
 def queue_all_provision_tasks_for_operation(operation_id: int):

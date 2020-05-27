@@ -4,7 +4,7 @@ from datetime import date
 
 from openbrokerapi.service_broker import OperationState
 
-from broker import db
+from broker.extensions import db
 from broker.models import Operation, ServiceInstance
 
 
