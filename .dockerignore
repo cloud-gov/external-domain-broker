@@ -10,3 +10,4 @@ do-not-commit
 logs
 tmp
 ci
+venv
