@@ -5,6 +5,8 @@ factory_boy
 flask-testing
 mypy
 pip-tools
+pp-ez
+pprintpp
 pytest
 pytest-profiling
 pytest-watch

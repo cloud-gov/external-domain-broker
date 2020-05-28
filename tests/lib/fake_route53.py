@@ -1,29 +1,22 @@
 from datetime import datetime, timezone
 
 import pytest
-from botocore.stub import ANY, Stubber
 
 from broker.aws import route53 as real_route53
 from broker.config import config_from_env
 
+from tests.lib.fake_aws import FakeAWS
 
-class FakeRoute53:
-    # How I would love to use Localstack or Moto instead.  Unfortunately,
-    # neither (in the OSS free version) supports Route53 and CloudFront.  So
-    # we've been reduced to using the "serviceable" `boto3.stubber`
-    def __init__(self, route53_stubber):
-        self.stubber = route53_stubber
 
-    def any(self):
-        return ANY
-
-    def expect_create_txt_for(self, domain):
+class FakeRoute53(FakeAWS):
+    def expect_create_txt_and_return_change_id(self, domain) -> str:
         now = datetime.now(timezone.utc)
+        change_id = f"{domain} ID"
         self.stubber.add_response(
             "change_resource_record_sets",
             {
                 "ChangeInfo": {
-                    "Id": "FAKEID",
+                    "Id": change_id,
                     "Status": "PENDING",
                     "SubmittedAt": now,
                     "Comment": "Some comment",
@@ -36,7 +29,7 @@ class FakeRoute53:
                             "Action": "CREATE",
                             "ResourceRecordSet": {
                                 "Name": domain,
-                                "ResourceRecords": [{"Value": self.any()}],
+                                "ResourceRecords": [{"Value": self.ANY}],
                                 "TTL": 60,
                                 "Type": "TXT",
                             },
@@ -46,22 +39,25 @@ class FakeRoute53:
                 "HostedZoneId": config_from_env().ROUTE53_ZONE_ID,
             },
         )
+        return change_id
+
+    def expect_wait_for_change_insync(self, change_id: str):
+        now = datetime.now(timezone.utc)
         self.stubber.add_response(
             "get_change",
             {
                 "ChangeInfo": {
-                    "Id": "FAKEID",
+                    "Id": change_id,
                     "Status": "INSYNC",
                     "SubmittedAt": now,
                     "Comment": "Some comment",
                 }
             },
-            {"Id": "FAKEID"},
+            {"Id": change_id},
         )
 
 
 @pytest.fixture(autouse=True)
 def route53():
-    with Stubber(real_route53) as stubber:
-        yield FakeRoute53(stubber)
-        stubber.assert_no_pending_responses()
+    with FakeRoute53.stubbing(real_route53) as route53_stubber:
+        yield route53_stubber

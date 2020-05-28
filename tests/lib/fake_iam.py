@@ -1,21 +1,12 @@
 from datetime import datetime, timezone, timedelta
 
 import pytest
-from botocore.stub import ANY, Stubber
-
 from broker.aws import iam as real_iam
 
+from tests.lib.fake_aws import FakeAWS
 
-class FakeIAM:
-    # How I would love to use Localstack or Moto instead.  Unfortunately,
-    # neither (in the OSS free version) supports Route53 and CloudFront.  So
-    # we've been reduced to using the "serviceable" `boto3.stubber`
-    def __init__(self, iam_stubber):
-        self.stubber = iam_stubber
 
-    def any(self):
-        return ANY
-
+class FakeIAM(FakeAWS):
     def expect_certificate_upload(
         self, name: str, cert: str, private_key: str, chain: str
     ):
@@ -45,6 +36,5 @@ class FakeIAM:
 
 @pytest.fixture(autouse=True)
 def iam():
-    with Stubber(real_iam) as stubber:
-        yield FakeIAM(stubber)
-        stubber.assert_no_pending_responses()
+    with FakeIAM.stubbing(real_iam) as iam_stubber:
+        yield iam_stubber

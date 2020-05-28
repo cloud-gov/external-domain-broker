@@ -1,7 +1,7 @@
 import json
 import time
 import re
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import josepy
 import OpenSSL
@@ -99,18 +99,39 @@ def generate_private_key(operation_id: int):
     db.session.commit()
 
 
+class DNSChallengeNotFound(RuntimeError):
+    def __init__(domain, obj):
+        super().__init__(f"Cannot find DNS challenges for {domain} in {obj}")
+
+
+class ChallengeNotFound(RuntimeError):
+    def __init__(domain, obj):
+        super().__init__(f"Cannot find any challenges for {domain} in {obj}")
+
+
+def dns_challenge(order, domain):
+    """Extract authorization resource from within order resource."""
+
+    # authorization.body.challenges is a set of ChallengeBody
+    # objects.
+    challenges_for_domain = [
+        authorization.body.challenges
+        for authorization in order.authorizations
+        if authorization.body.identifier.value == domain
+    ][0]
+
+    if not challenges_for_domain:
+        raise ChallengeNotFound(domain, order.authorizations)
+
+    for challenge in challenges_for_domain:
+        if isinstance(challenge.chall, challenges.DNS01):
+            return challenge
+
+    raise DNSChallengeNotFound(domain, challenges_for_domain)
+
+
 @huey.task()
 def initiate_challenges(operation_id: int):
-    def dns_challenge(order):
-        """Extract authorization resource from within order resource."""
-
-        for authorization in order.authorizations:
-            # authorization.body.challenges is a set of ChallengeBody objects.
-
-            for challenge_body in authorization.body.challenges:
-                if isinstance(challenge_body.chall, challenges.DNS01):
-                    return challenge_body
-
     from .models import Operation, Challenge
 
     operation = Operation.query.get(operation_id)
@@ -136,13 +157,13 @@ def initiate_challenges(operation_id: int):
     order = client_acme.new_order(service_instance.csr_pem.encode())
     service_instance.order_json = json.dumps(order.to_json())
 
-    challenge_body = dns_challenge(order)
-    (
-        challenge_response,
-        challenge_validation_contents,
-    ) = challenge_body.response_and_validation(wrapped_account_key)
-
     for domain in service_instance.domain_names:
+        challenge_body = dns_challenge(order, domain)
+        (
+            challenge_response,
+            challenge_validation_contents,
+        ) = challenge_body.response_and_validation(wrapped_account_key)
+
         challenge = Challenge()
         challenge.body_json = challenge_body.json_dumps()
 
@@ -167,7 +188,9 @@ def update_txt_records(operation_id: int):
 
     for challenge in service_instance.challenges:
         domain = challenge.validation_domain
+        txt_record = f"{domain}.{config_from_env().DNS_ROOT_DOMAIN}"
         contents = challenge.validation_contents
+        print(f'Creating TXT record {txt_record} with contents "{contents}"')
         route53_response = route53.change_resource_record_sets(
             ChangeBatch={
                 "Changes": [
@@ -175,7 +198,7 @@ def update_txt_records(operation_id: int):
                         "Action": "CREATE",
                         "ResourceRecordSet": {
                             "Type": "TXT",
-                            "Name": f"{domain}.{config_from_env().DNS_ROOT_DOMAIN}",
+                            "Name": txt_record,
                             "ResourceRecords": [{"Value": f'"{contents}"'}],
                             "TTL": 60,
                         },
@@ -189,7 +212,13 @@ def update_txt_records(operation_id: int):
     for route53_response in route53_responses:
         change_id = route53_response["ChangeInfo"]["Id"]
         waiter = route53.get_waiter("resource_record_sets_changed")
-        waiter.wait(Id=change_id)
+        waiter.wait(
+            Id=change_id,
+            WaiterConfig={
+                "Delay": config_from_env().AWS_POLL_WAIT_TIME_IN_SECONDS,
+                "MaxAttempts": config_from_env().AWS_POLL_MAX_ATTEMPTS,
+            },
+        )
 
 
 @huey.task()
@@ -257,7 +286,11 @@ def retrieve_certificate(operation_id: int):
     # utf-8?  So we set it here from our saved copy.
     order_json["csr_pem"] = service_instance.csr_pem
     order = messages.OrderResource.from_json(order_json)
-    finalized_order = client_acme.poll_and_finalize(order)
+
+    deadline = datetime.now() + timedelta(
+        seconds=config_from_env().ACME_POLL_TIMEOUT_IN_SECONDS
+    )
+    finalized_order = client_acme.poll_and_finalize(orderr=order, deadline=deadline)
 
     service_instance.fullchain_pem = finalized_order.fullchain_pem
     service_instance.cert_pem = cert_from_fullchain(service_instance.fullchain_pem)
@@ -393,9 +426,11 @@ def wait_for_cloudfront_distribution(operation_id: str):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     waiter = cloudfront.get_waiter("distribution_deployed")
-    # Cloudfront distros can take ~1hr to deploy
     waiter.wait(
         Id=service_instance.cloudfront_distribution_id,
-        WaiterConfig={"Delay": 60, "MaxAttempts": 120},
+        WaiterConfig={
+            "Delay": config_from_env().AWS_POLL_WAIT_TIME_IN_SECONDS,
+            "MaxAttempts": config_from_env().AWS_POLL_MAX_ATTEMPTS,
+        },
     )
 

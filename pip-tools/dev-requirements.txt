@@ -50,6 +50,8 @@ pathspec==0.8.0           # via black
 pathtools==0.1.2          # via watchdog
 pip-tools==5.0.0          # via -r pip-tools/dev-requirements.in
 pluggy==0.13.1            # via pytest
+pp-ez==0.2.0              # via -r pip-tools/dev-requirements.in
+pprintpp==0.4.0           # via -r pip-tools/dev-requirements.in
 psycopg2==2.8.5           # via -r pip-tools/../requirements.txt
 py==1.8.1                 # via pytest
 pycparser==2.20           # via -r pip-tools/../requirements.txt, cffi

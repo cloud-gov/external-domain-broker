@@ -33,6 +33,9 @@ class Config:
         self.SQLALCHEMY_TRACK_MODIFICATIONS = False
         self.TESTING = True
         self.DEBUG = True
+        self.ACME_POLL_TIMEOUT_IN_SECONDS = self.env("ACME_POLL_TIMEOUT_IN_SECONDS", 90)
+        self.AWS_POLL_WAIT_TIME_IN_SECONDS = 60
+        self.AWS_POLL_MAX_ATTEMPTS = 120
 
 
 class AppConfig(Config):
@@ -139,6 +142,9 @@ class TestConfig(DockerConfig):
         self.SQLITE_DB_NAME = "test.sqlite"
         super().__init__()
         self.DNS_PROPAGATION_SLEEP_TIME = 0
+        self.ACME_POLL_TIMEOUT_IN_SECONDS = 10
+        self.AWS_POLL_WAIT_TIME_IN_SECONDS = 1
+        self.AWS_POLL_MAX_ATTEMPTS = 10
 
 
 class MissingRedisError(RuntimeError):

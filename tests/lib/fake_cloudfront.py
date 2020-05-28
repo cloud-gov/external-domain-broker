@@ -2,19 +2,14 @@ from datetime import datetime
 from typing import List, Dict, Any
 
 import pytest
-from botocore.stub import ANY, Stubber
 
 from broker.aws import cloudfront as real_cloudfront
 from broker.models import ServiceInstance
 
+from tests.lib.fake_aws import FakeAWS
 
-class FakeCloudFront:
-    def __init__(self, cloudfront_stubber):
-        self.stubber = cloudfront_stubber
 
-    def any(self):
-        return ANY
-
+class FakeCloudFront(FakeAWS):
     def expect_create_distribution(
         self, service_instance: ServiceInstance, distribution_id: str,
     ):
@@ -165,6 +160,5 @@ class FakeCloudFront:
 
 @pytest.fixture(autouse=True)
 def cloudfront():
-    with Stubber(real_cloudfront) as stubber:
-        yield FakeCloudFront(stubber)
-        stubber.assert_no_pending_responses()
+    with FakeCloudFront.stubbing(real_cloudfront) as cloudfront_stubber:
+        yield cloudfront_stubber

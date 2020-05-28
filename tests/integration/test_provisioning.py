@@ -5,7 +5,7 @@ from datetime import date
 from openbrokerapi.service_broker import OperationState
 
 from broker.extensions import db
-from broker.models import Operation, ServiceInstance
+from broker.models import Operation, ServiceInstance, Challenge
 
 
 def test_refuses_to_provision_synchronously(client):
@@ -70,7 +70,7 @@ def test_refuses_to_provision_with_incorrect_acme_challenge_CNAME(client, dns):
     assert client.response.status_code == 400
 
 
-def test_provision_creates_provision_operation(client, dns):
+def subtest_provision_creates_provision_operation(client, dns):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
     client.provision_instance("4321", params={"domains": "example.com, Foo.com"})
@@ -91,14 +91,8 @@ def test_provision_creates_provision_operation(client, dns):
     assert instance.domain_names == ["example.com", "foo.com"]
 
 
-def test_provision_creates_LE_user(client, tasks, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_instance(
-        "4321", accepts_incomplete="true", params={"domains": "example.com"}
-    )
-
-    assert client.response.status_code == 202, client.response.body
-
+def subtest_provision_creates_LE_user(tasks):
+    db.session.expunge_all()
     tasks.run_pipeline_stages(1)
 
     service_instance = ServiceInstance.query.get("4321")
@@ -110,68 +104,60 @@ def test_provision_creates_LE_user(client, tasks, dns):
     assert "body" in json.loads(acme_user.registration_json)
 
 
-def test_provision_creates_private_key_and_csr(client, tasks, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_instance(
-        "4321", accepts_incomplete="true", params={"domains": "example.com"}
-    )
-
-    assert client.response.status_code == 202, client.response.body
-
-    tasks.run_pipeline_stages(2)
+def subtest_provision_creates_private_key_and_csr(tasks):
+    db.session.expunge_all()
+    tasks.run_pipeline_stages(1)
 
     service_instance = ServiceInstance.query.get("4321")
     assert "BEGIN PRIVATE KEY" in service_instance.private_key_pem
     assert "BEGIN CERTIFICATE REQUEST" in service_instance.csr_pem
 
 
-def test_provision_initiates_LE_challenge(client, tasks, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    dns.add_cname("_acme-challenge.foo.com")
-    client.provision_instance(
-        "4321", accepts_incomplete="true", params={"domains": "example.com,foo.com"}
-    )
-
-    assert client.response.status_code == 202, client.response.body
-
-    tasks.run_pipeline_stages(3)
+def subtest_provision_initiates_LE_challenge(tasks):
+    db.session.expunge_all()
+    tasks.run_pipeline_stages(1)
 
     service_instance = ServiceInstance.query.get("4321")
 
     assert service_instance.challenges.count() == 2
 
 
-def test_provision_updates_TXT_record(client, tasks, dns, route53):
-    dns.add_cname("_acme-challenge.example.com")
-    route53.expect_create_txt_for("_acme-challenge.example.com.domains.cloud.test")
+def subtest_provision_updates_TXT_record(tasks, route53):
+    db.session.expunge_all()
 
-    client.provision_instance(
-        "4321", accepts_incomplete="true", params={"domains": "example.com"}
+    change_id_1 = route53.expect_create_txt_and_return_change_id(
+        "_acme-challenge.example.com.domains.cloud.test"
     )
-
-    assert client.response.status_code == 202, client.response.body
-
-    tasks.run_pipeline_stages(4)
-
-
-def test_provision_finishes_certificate_creation(client, tasks, dns, route53):
-    dns.add_cname("_acme-challenge.example.com")
-    route53.expect_create_txt_for("_acme-challenge.example.com.domains.cloud.test")
-
-    client.provision_instance(
-        "4321", accepts_incomplete="true", params={"domains": "example.com"}
+    change_id_2 = route53.expect_create_txt_and_return_change_id(
+        "_acme-challenge.foo.com.domains.cloud.test"
     )
-    assert client.response.status_code == 202, client.response.body
+    route53.expect_wait_for_change_insync(change_id_1)
+    route53.expect_wait_for_change_insync(change_id_2)
 
-    tasks.run_pipeline_stages(4)
+    tasks.run_pipeline_stages(1)
+    route53.assert_no_pending_responses()
 
+
+def subtest_provision_finishes_certificate_creation(tasks, dns):
+    db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
-    challenge = service_instance.challenges.first()
-    assert challenge.validation_contents is not None
+
+    example_com_challenge = service_instance.challenges.filter(
+        Challenge.domain.like("%example.com")
+    ).first()
+
+    foo_com_challenge = service_instance.challenges.filter(
+        Challenge.domain.like("%foo.com")
+    ).first()
 
     dns.add_txt(
-        "_acme-challenge.example.com.domains.cloud.test.",
-        f"{challenge.validation_contents}",
+        f"_acme-challenge.example.com.domains.cloud.test.",
+        f"{example_com_challenge.validation_contents}",
+    )
+
+    dns.add_txt(
+        f"_acme-challenge.foo.com.domains.cloud.test.",
+        f"{foo_com_challenge.validation_contents}",
     )
 
     tasks.run_pipeline_stages(1)
@@ -183,37 +169,9 @@ def test_provision_finishes_certificate_creation(client, tasks, dns, route53):
     assert 1 == service_instance.cert_pem.count("BEGIN CERTIFICATE")
 
 
-def test_provision_uploads_certificate_to_iam(
-    client, tasks, dns, route53, iam, simple_regex
-):
-    dns.add_cname("_acme-challenge.example.com")
-    route53.expect_create_txt_for("_acme-challenge.example.com.domains.cloud.test")
-
-    client.provision_instance(
-        "4321", accepts_incomplete="true", params={"domains": "example.com"}
-    )
-    assert client.response.status_code == 202, client.response.body
-
-    tasks.run_pipeline_stages(4)
-
-    service_instance = ServiceInstance.query.get("4321")
-    challenge = service_instance.challenges.first()
-    assert challenge.validation_contents is not None
-
-    dns.add_txt(
-        "_acme-challenge.example.com.domains.cloud.test.",
-        f"{challenge.validation_contents}",
-    )
-
-    tasks.run_pipeline_stages(1)
-
+def subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex):
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
-
-    assert service_instance.fullchain_pem
-    assert service_instance.cert_pem
-    assert service_instance.private_key_pem
-
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
 
@@ -234,41 +192,7 @@ def test_provision_uploads_certificate_to_iam(
     assert service_instance.iam_server_certificate_arn.startswith("arn:aws:iam")
 
 
-def test_provision_creates_cloudfront_distribution(
-    client, tasks, dns, route53, cloudfront, iam
-):
-    dns.add_cname("_acme-challenge.example.com")
-    route53.expect_create_txt_for("_acme-challenge.example.com.domains.cloud.test")
-
-    client.provision_instance(
-        "4321", accepts_incomplete="true", params={"domains": "example.com"}
-    )
-    assert client.response.status_code == 202, client.response.body
-
-    tasks.run_pipeline_stages(4)
-
-    service_instance = ServiceInstance.query.get("4321")
-    challenge = service_instance.challenges.first()
-    assert challenge.validation_contents is not None
-
-    dns.add_txt(
-        "_acme-challenge.example.com.domains.cloud.test.",
-        f"{challenge.validation_contents}",
-    )
-
-    tasks.run_pipeline_stages(1)
-
-    db.session.expunge_all()
-    service_instance = ServiceInstance.query.get("4321")
-    iam.expect_certificate_upload(
-        name=f"{service_instance.id}-{date.today().isoformat()}",
-        cert=service_instance.cert_pem,
-        private_key=service_instance.private_key_pem,
-        chain=service_instance.fullchain_pem,
-    )
-
-    tasks.run_pipeline_stages(1)
-
+def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
 
@@ -284,8 +208,12 @@ def test_provision_creates_cloudfront_distribution(
     assert service_instance.cloudfront_distribution_arn
     assert service_instance.cloudfront_distribution_arn.startswith("arn:aws:cloudfront")
     assert service_instance.cloudfront_distribution_arn.endswith("FakeDistributionId")
-
     assert service_instance.cloudfront_distribution_id == "FakeDistributionId"
+
+
+def subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront):
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("4321")
 
     cloudfront.expect_wait_for_distribution(
         service_instance=service_instance, distribution_id="FakeDistributionId"
@@ -293,4 +221,17 @@ def test_provision_creates_cloudfront_distribution(
 
     tasks.run_pipeline_stages(1)
 
+
+def test_provision_happy_path(
+    client, dns, tasks, route53, iam, simple_regex, cloudfront
+):
+    subtest_provision_creates_provision_operation(client, dns)
+    subtest_provision_creates_LE_user(tasks)
+    subtest_provision_creates_private_key_and_csr(tasks)
+    subtest_provision_initiates_LE_challenge(tasks)
+    subtest_provision_updates_TXT_record(tasks, route53)
+    subtest_provision_finishes_certificate_creation(tasks, dns)
+    subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex)
+    subtest_provision_creates_cloudfront_distribution(tasks, cloudfront)
+    subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront)
 

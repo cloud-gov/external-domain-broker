@@ -9,7 +9,7 @@ export FLASK_ENV=test
 
 if [[ "$#" -ge 1 ]] && [[ "$1" == "watch" ]]; then
   shift
-  ptw --spool=500 -n -c -w -- -Werror -vv "$@"
+  ptw --spool=1000 -n -c -w -- -Werror -vv "$@"
 else
   python -m pytest -Werror -vv "$@"
 fi
