@@ -152,19 +152,3 @@ class TestConfig(DockerConfig):
 class MissingRedisError(RuntimeError):
     def __init__(self):
         super().__init__(f"Cannot find redis in VCAP_SERVICES")
-
-
-def env_mappings() -> Dict[str, TypeVar("T", bound="Config")]:
-    return {
-        "test": TestConfig,
-        "local-development": LocalDevelopmentConfig,
-        "development": DevelopmentConfig,
-        "staging": StagingConfig,
-        "production": ProductionConfig,
-        "upgrade-schema": UpgradeSchemaConfig,
-    }
-
-
-def config_from_env() -> Type[Config]:
-    env = Env()
-    return env_mappings()[env("FLASK_ENV")]()
