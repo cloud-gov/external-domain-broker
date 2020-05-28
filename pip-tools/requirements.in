@@ -12,3 +12,4 @@ huey
 psycopg2
 redis
 sqlalchemy-utils
+sap-cf-logging

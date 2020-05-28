@@ -23,4 +23,3 @@ def test_stores_service_instance_private_key_pem_encrypted(client):
     ).first()
     assert row
     assert row[0] != "UNENCRYPTED"
-
