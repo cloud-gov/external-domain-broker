@@ -25,6 +25,7 @@ def queue_all_provision_tasks_for_operation(operation_id: int):
         .then(create_cloudfront_distribution, operation_id)
         .then(wait_for_cloudfront_distribution, operation_id)
         .then(create_ALIAS_records, operation_id)
+        .then(mark_operation_as_succeeded, operation_id)
     )
     huey.enqueue(task_pipeline)
 
@@ -485,3 +486,12 @@ def create_ALIAS_records(operation_id: str):
             },
         )
 
+
+@huey.task()
+def mark_operation_as_succeeded(operation_id: str):
+    from .models import Operation
+
+    operation = Operation.query.get(operation_id)
+    operation.state = Operation.States.SUCCEEDED
+    db.session.add(operation)
+    db.session.commit()

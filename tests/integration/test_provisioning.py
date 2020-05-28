@@ -238,6 +238,15 @@ def subtest_provision_provisions_ALIAS_record(tasks, route53):
     route53.assert_no_pending_responses()
 
 
+def subtest_provision_marks_operation_as_succeeded(client, tasks):
+    tasks.run_pipeline_stages(1)
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("4321")
+    operation = service_instance.operations.first()
+    assert operation
+    assert operation.States.SUCCEEDED == operation.state
+
+
 def test_provision_happy_path(
     client, dns, tasks, route53, iam, simple_regex, cloudfront
 ):
@@ -251,4 +260,5 @@ def test_provision_happy_path(
     subtest_provision_creates_cloudfront_distribution(tasks, cloudfront)
     subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront)
     subtest_provision_provisions_ALIAS_record(tasks, route53)
+    subtest_provision_marks_operation_as_succeeded(client, tasks)
 

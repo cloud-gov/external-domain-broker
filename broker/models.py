@@ -72,6 +72,8 @@ class Operation(Base):
     def __repr__(self):
         return f"<Operation {self.id} {self.state}>"
 
+    States = OperationState
+
     def queue_tasks(self):
         queue_all_provision_tasks_for_operation(self.id)
 
