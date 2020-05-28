@@ -15,9 +15,12 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from broker.extensions import db, huey, config
+from broker.config import config_from_env
+from broker.models import ACMEUser, Operation, Challenge
+from broker.aws import route53, iam, cloudfront
 
 
-def queue_all_provision_tasks_for_operation(operation_id: int):
+def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: str):
     task_pipeline = (
         create_le_user.s(operation_id)
         .then(generate_private_key, operation_id)
@@ -46,14 +49,12 @@ def queue_all_deprovision_tasks_for_operation(operation_id: int):
 # Normal task, no retries
 nonretriable_task = huey.task()
 
-# These tasks retry every 10 miniutes for a day.
+# These tasks retry every 10 minutes for a day.
 retriable_task = huey.task(retries=(6 * 24), retry_delay=(60 * 10))
 
 
 @retriable_task
-def create_le_user(operation_id: int):
-    from .models import ACMEUser, Operation
-
+def create_le_user(operation_id: int, correlation_id: str = None):
     acme_user = ACMEUser()
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
@@ -90,9 +91,7 @@ def create_le_user(operation_id: int):
 
 
 @nonretriable_task
-def generate_private_key(operation_id: int):
-    from .models import Operation
-
+def generate_private_key(operation_id: int, correlation_id: str = None):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -151,9 +150,7 @@ def dns_challenge(order, domain):
 
 
 @retriable_task
-def initiate_challenges(operation_id: int):
-    from .models import Operation, Challenge
-
+def initiate_challenges(operation_id: int, correlation_id: str = None):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
@@ -196,9 +193,6 @@ def initiate_challenges(operation_id: int):
 
 @retriable_task
 def create_TXT_records(operation_id: int):
-    from .models import Operation
-    from .aws import route53
-
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -233,9 +227,6 @@ def create_TXT_records(operation_id: int):
 
 @nonretriable_task
 def remove_TXT_records(operation_id: int):
-    from .models import Operation
-    from .aws import route53
-
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -291,8 +282,7 @@ def wait_for_route53_changes(operation_id: int):
 
 
 @retriable_task
-def answer_challenges(operation_id: int):
-    from .models import Operation
+def answer_challenges(operation_id: int, correlation_id: str = None):
 
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
@@ -327,7 +317,7 @@ def answer_challenges(operation_id: int):
 
 
 @retriable_task
-def retrieve_certificate(operation_id: int):
+def retrieve_certificate(operation_id: int, correlation_id: str = None):
     def cert_from_fullchain(fullchain_pem: str) -> str:
         """extract cert_pem from fullchain_pem
 
@@ -353,8 +343,6 @@ def retrieve_certificate(operation_id: int):
         ]
 
         return certs_normalized[0]
-
-    from .models import Operation
 
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
@@ -390,10 +378,7 @@ def retrieve_certificate(operation_id: int):
 
 
 @retriable_task
-def upload_certs_to_iam(operation_id: int):
-    from .models import Operation
-    from .aws import iam
-
+def upload_certs_to_iam(operation_id: int, correlation_id: str = None):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -418,10 +403,7 @@ def upload_certs_to_iam(operation_id: int):
 
 
 @retriable_task
-def create_cloudfront_distribution(operation_id: int):
-    from .models import Operation
-    from .aws import cloudfront
-
+def create_cloudfront_distribution(operation_id: int, correlation_id: str = None):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     domains = service_instance.domain_names
@@ -514,10 +496,7 @@ def create_cloudfront_distribution(operation_id: int):
 
 
 @retriable_task
-def wait_for_cloudfront_distribution(operation_id: str):
-    from .models import Operation
-    from .aws import cloudfront
-
+def wait_for_cloudfront_distribution(operation_id: str, correlation_id: str = None):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     waiter = cloudfront.get_waiter("distribution_deployed")
@@ -531,10 +510,7 @@ def wait_for_cloudfront_distribution(operation_id: str):
 
 
 @retriable_task
-def create_ALIAS_records(operation_id: str):
-    from .models import Operation
-    from .aws import route53
-
+def create_ALIAS_records(operation_id: str, correlation_id: str = None):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     print(f"Creating ALIAS records for {service_instance.domain_names}")
@@ -572,9 +548,6 @@ def create_ALIAS_records(operation_id: str):
 
 @nonretriable_task
 def remove_ALIAS_records(operation_id: str):
-    from .models import Operation
-    from .aws import route53
-
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     print(f"Removing ALIAS records for {service_instance.domain_names}")
@@ -607,9 +580,7 @@ def remove_ALIAS_records(operation_id: str):
 
 
 @retriable_task
-def mark_operation_as_succeeded(operation_id: str):
-    from .models import Operation
-
+def mark_operation_as_succeeded(operation_id: str, correlation_id: str = None):
     operation = Operation.query.get(operation_id)
     operation.state = Operation.States.SUCCEEDED
     db.session.add(operation)
