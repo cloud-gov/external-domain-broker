@@ -19,6 +19,7 @@ from openbrokerapi.service_broker import (
     UnbindDetails,
     UnbindSpec,
 )
+from sap import cf_logging
 
 from broker.extensions import db, config
 from broker.models import Operation, ServiceInstance
@@ -126,7 +127,7 @@ class API(ServiceBroker):
         db.session.add(instance)
         db.session.add(operation)
         db.session.commit()
-        queue_all_provision_tasks_for_operation(operation.id)
+        queue_all_provision_tasks_for_operation(operation.id, cf_logging.FRAMEWORK.context.get_correlation_id())
 
         return ProvisionedServiceSpec(
             state=ProvisionState.IS_ASYNC, operation=operation.id

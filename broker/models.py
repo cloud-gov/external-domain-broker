@@ -7,7 +7,6 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import (
 )
 
 from broker.extensions import db, config
-from broker.tasks import queue_all_provision_tasks_for_operation
 
 
 def db_encryption_key():
