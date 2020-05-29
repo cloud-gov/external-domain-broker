@@ -122,23 +122,41 @@ def subtest_provision_initiates_LE_challenge(tasks):
     assert service_instance.challenges.count() == 2
 
 
-def subtest_provision_updates_TXT_record(tasks, route53):
-    db.session.expunge_all()
-
+def subtest_provision_updates_TXT_records(tasks, route53):
     example_com_change_id = route53.expect_create_TXT_and_return_change_id(
         "_acme-challenge.example.com.domains.cloud.test"
     )
     foo_com_change_id = route53.expect_create_TXT_and_return_change_id(
         "_acme-challenge.foo.com.domains.cloud.test"
     )
-    route53.expect_wait_for_change_insync(example_com_change_id)
-    route53.expect_wait_for_change_insync(foo_com_change_id)
 
     tasks.run_pipeline_stages(1)
+
+    route53.assert_no_pending_responses()
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("4321")
+    assert service_instance.route53_change_ids == [
+        example_com_change_id,
+        foo_com_change_id,
+    ]
+
+
+def subtest_provision_waits_for_route53_changes(tasks, route53):
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("4321")
+
+    for change_id in service_instance.route53_change_ids:
+        route53.expect_wait_for_change_insync(change_id)
+
+    tasks.run_pipeline_stages(1)
+
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("4321")
+    assert service_instance.route53_change_ids == []
     route53.assert_no_pending_responses()
 
 
-def subtest_provision_finishes_certificate_creation(tasks, dns):
+def subtest_provision_ansers_challenges(tasks, dns):
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
 
@@ -160,6 +178,13 @@ def subtest_provision_finishes_certificate_creation(tasks, dns):
         f"{foo_com_challenge.validation_contents}",
     )
 
+    tasks.run_pipeline_stages(1)
+
+    answered = [c.answered for c in service_instance.challenges]
+    assert answered == [True, True]
+
+
+def subtest_provision_retrieves_certificate(tasks):
     tasks.run_pipeline_stages(1)
 
     db.session.expunge_all()
@@ -232,10 +257,16 @@ def subtest_provision_provisions_ALIAS_record(tasks, route53):
     foo_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
         "foo.com.domains.cloud.test", "fake1234.cloudfront.net"
     )
-    route53.expect_wait_for_change_insync(example_com_change_id)
-    route53.expect_wait_for_change_insync(foo_com_change_id)
+
     tasks.run_pipeline_stages(1)
+
     route53.assert_no_pending_responses()
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("4321")
+    assert service_instance.route53_change_ids == [
+        example_com_change_id,
+        foo_com_change_id,
+    ]
 
 
 def subtest_provision_marks_operation_as_succeeded(client, tasks):
@@ -254,11 +285,14 @@ def test_provision_happy_path(
     subtest_provision_creates_LE_user(tasks)
     subtest_provision_creates_private_key_and_csr(tasks)
     subtest_provision_initiates_LE_challenge(tasks)
-    subtest_provision_updates_TXT_record(tasks, route53)
-    subtest_provision_finishes_certificate_creation(tasks, dns)
+    subtest_provision_updates_TXT_records(tasks, route53)
+    subtest_provision_waits_for_route53_changes(tasks, route53)
+    subtest_provision_ansers_challenges(tasks, dns)
+    subtest_provision_retrieves_certificate(tasks)
     subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex)
     subtest_provision_creates_cloudfront_distribution(tasks, cloudfront)
     subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront)
     subtest_provision_provisions_ALIAS_record(tasks, route53)
+    subtest_provision_waits_for_route53_changes(tasks, route53)
     subtest_provision_marks_operation_as_succeeded(client, tasks)
 

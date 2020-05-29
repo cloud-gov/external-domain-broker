@@ -2,6 +2,10 @@ import json
 import time
 import re
 from datetime import date, datetime, timedelta
+from sqlalchemy.orm.attributes import flag_modified
+
+from pprint import pp
+
 
 import josepy
 import OpenSSL
@@ -20,17 +24,27 @@ def queue_all_provision_tasks_for_operation(operation_id: int):
         .then(generate_private_key, operation_id)
         .then(initiate_challenges, operation_id)
         .then(update_TXT_records, operation_id)
+        .then(wait_for_route53_changes, operation_id)
+        .then(answer_challenges, operation_id)
         .then(retrieve_certificate, operation_id)
         .then(upload_certs_to_iam, operation_id)
         .then(create_cloudfront_distribution, operation_id)
         .then(wait_for_cloudfront_distribution, operation_id)
         .then(create_ALIAS_records, operation_id)
+        .then(wait_for_route53_changes, operation_id)
         .then(mark_operation_as_succeeded, operation_id)
     )
     huey.enqueue(task_pipeline)
 
 
-@huey.task()
+# Normal task, no retries
+nonretriable_task = huey.task()
+
+# These tasks retry every 10 miniutes for a day.
+retriable_task = huey.task(retries=(6 * 24), retry_delay=(60 * 10))
+
+
+@retriable_task
 def create_le_user(operation_id: int):
     from .models import ACMEUser, Operation
 
@@ -71,7 +85,7 @@ def create_le_user(operation_id: int):
     db.session.commit()
 
 
-@huey.task()
+@nonretriable_task
 def generate_private_key(operation_id: int):
     from .models import Operation
 
@@ -132,7 +146,7 @@ def dns_challenge(order, domain):
     raise DNSChallengeNotFound(domain, challenges_for_domain)
 
 
-@huey.task()
+@retriable_task
 def initiate_challenges(operation_id: int):
     from .models import Operation, Challenge
 
@@ -178,15 +192,13 @@ def initiate_challenges(operation_id: int):
     db.session.commit()
 
 
-@huey.task()
+@retriable_task
 def update_TXT_records(operation_id: int):
     from .models import Operation
     from .aws import route53
 
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
-
-    route53_responses = []
 
     for challenge in service_instance.challenges:
         domain = challenge.validation_domain
@@ -209,10 +221,26 @@ def update_TXT_records(operation_id: int):
             },
             HostedZoneId=config_from_env().ROUTE53_ZONE_ID,
         )
-        route53_responses.append(route53_response)
-
-    for route53_response in route53_responses:
         change_id = route53_response["ChangeInfo"]["Id"]
+        print(f"Saving Route53 TXT change ID: {change_id}")
+        service_instance.route53_change_ids.append(change_id)
+        flag_modified(service_instance, "route53_change_ids")
+        db.session.add(service_instance)
+        db.session.commit()
+
+
+@retriable_task
+def wait_for_route53_changes(operation_id: int):
+    from .models import Operation
+    from .aws import route53
+
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    change_ids = service_instance.route53_change_ids.copy()
+    print(f"Waiting for {len(change_ids)} Route53 change IDs: {change_ids}")
+    for change_id in change_ids:
+        print(f"Waiting for: {change_id}")
         waiter = route53.get_waiter("resource_record_sets_changed")
         waiter.wait(
             Id=change_id,
@@ -221,9 +249,51 @@ def update_TXT_records(operation_id: int):
                 "MaxAttempts": config_from_env().AWS_POLL_MAX_ATTEMPTS,
             },
         )
+        service_instance.route53_change_ids.remove(change_id)
+        flag_modified(service_instance, "route53_change_ids")
+        db.session.add(service_instance)
+        db.session.commit()
 
 
-@huey.task()
+@retriable_task
+def answer_challenges(operation_id: int):
+    from .models import Operation
+
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    acme_user = service_instance.acme_user
+
+    time.sleep(int(config_from_env().DNS_PROPAGATION_SLEEP_TIME))
+
+    account_key = serialization.load_pem_private_key(
+        acme_user.private_key_pem.encode(), password=None, backend=default_backend()
+    )
+    wrapped_account_key = josepy.JWKRSA(key=account_key)
+
+    registration = json.loads(acme_user.registration_json)
+    net = client.ClientNetwork(
+        wrapped_account_key,
+        user_agent="cloud.gov external domain broker",
+        account=registration,
+    )
+    directory = messages.Directory.from_json(
+        net.get(config_from_env().ACME_DIRECTORY).json()
+    )
+    client_acme = client.ClientV2(directory, net=net)
+
+    for challenge in service_instance.challenges:
+        challenge_body = messages.ChallengeBody.from_json(
+            json.loads(challenge.body_json)
+        )
+        challenge_response = challenge_body.response(wrapped_account_key)
+        # Let the CA server know that we are ready for the challenge.
+        client_acme.answer_challenge(challenge_body, challenge_response)
+        challenge.answered = True
+        db.session.add(challenge)
+        db.session.commit()
+
+
+@retriable_task
 def retrieve_certificate(operation_id: int):
     def cert_from_fullchain(fullchain_pem: str) -> str:
         """extract cert_pem from fullchain_pem
@@ -257,8 +327,6 @@ def retrieve_certificate(operation_id: int):
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
 
-    time.sleep(int(config_from_env().DNS_PROPAGATION_SLEEP_TIME))
-
     account_key = serialization.load_pem_private_key(
         acme_user.private_key_pem.encode(), password=None, backend=default_backend()
     )
@@ -274,14 +342,6 @@ def retrieve_certificate(operation_id: int):
         net.get(config_from_env().ACME_DIRECTORY).json()
     )
     client_acme = client.ClientV2(directory, net=net)
-
-    for challenge in service_instance.challenges:
-        challenge_body = messages.ChallengeBody.from_json(
-            json.loads(challenge.body_json)
-        )
-        challenge_response = challenge_body.response(wrapped_account_key)
-        # Let the CA server know that we are ready for the challenge.
-        client_acme.answer_challenge(challenge_body, challenge_response)
 
     order_json = json.loads(service_instance.order_json)
     # The csr_pem in the JSON is a binary string, but finalize_order() expects
@@ -300,7 +360,7 @@ def retrieve_certificate(operation_id: int):
     db.session.commit()
 
 
-@huey.task()
+@retriable_task
 def upload_certs_to_iam(operation_id: int):
     from .models import Operation
     from .aws import iam
@@ -328,7 +388,7 @@ def upload_certs_to_iam(operation_id: int):
     db.session.commit()
 
 
-@huey.task()
+@retriable_task
 def create_cloudfront_distribution(operation_id: int):
     from .models import Operation
     from .aws import cloudfront
@@ -423,7 +483,7 @@ def create_cloudfront_distribution(operation_id: int):
     db.session.commit()
 
 
-@huey.task()
+@retriable_task
 def wait_for_cloudfront_distribution(operation_id: str):
     from .models import Operation
     from .aws import cloudfront
@@ -440,15 +500,14 @@ def wait_for_cloudfront_distribution(operation_id: str):
     )
 
 
-@huey.task()
+@retriable_task
 def create_ALIAS_records(operation_id: str):
     from .models import Operation
     from .aws import route53
 
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
-
-    route53_responses = []
+    print(f"Creating ALIAS records for {service_instance.domain_names}")
 
     for domain in service_instance.domain_names:
         alias_record = f"{domain}.{config_from_env().DNS_ROOT_DOMAIN}"
@@ -473,21 +532,15 @@ def create_ALIAS_records(operation_id: str):
             },
             HostedZoneId=config_from_env().ROUTE53_ZONE_ID,
         )
-        route53_responses.append(route53_response)
-
-    for route53_response in route53_responses:
         change_id = route53_response["ChangeInfo"]["Id"]
-        waiter = route53.get_waiter("resource_record_sets_changed")
-        waiter.wait(
-            Id=change_id,
-            WaiterConfig={
-                "Delay": config_from_env().AWS_POLL_WAIT_TIME_IN_SECONDS,
-                "MaxAttempts": config_from_env().AWS_POLL_MAX_ATTEMPTS,
-            },
-        )
+        print(f"Saving Route53 ALIAS change ID: {change_id}")
+        service_instance.route53_change_ids.append(change_id)
+        flag_modified(service_instance, "route53_change_ids")
+        db.session.add(service_instance)
+        db.session.commit()
 
 
-@huey.task()
+@retriable_task
 def mark_operation_as_succeeded(operation_id: str):
     from .models import Operation
 

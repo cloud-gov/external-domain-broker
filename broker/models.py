@@ -58,6 +58,8 @@ class ServiceInstance(Base):
     cloudfront_distribution_id = db.Column(db.String)
     cloudfront_distribution_url = db.Column(db.String)
 
+    route53_change_ids = db.Column(db.JSON, default=[])
+
     def __repr__(self):
         return f"<ServiceInstance {self.id} {self.domain_names}>"
 
@@ -87,6 +89,7 @@ class Challenge(Base):
     validation_domain = db.Column(db.String, nullable=False)
     validation_contents = db.Column(db.Text, nullable=False)
     body_json = db.Column(db.Text)
+    answered = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return f"<Challenge {self.id} {self.domain}>"
