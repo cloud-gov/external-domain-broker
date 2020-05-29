@@ -5,8 +5,6 @@ from openbrokerapi import api as openbrokerapi
 from sap import cf_logging
 from sap.cf_logging import flask_logging
 
-# from sap.cf_logging import flask_logging
-
 # We need to import models, even though it's unused, in order to enable
 # `flask db migrate`
 from broker import models  # noqa: F401
