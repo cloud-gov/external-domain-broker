@@ -256,7 +256,7 @@ def remove_TXT_records(operation_id: int):
 
 
 @retriable_task
-def wait_for_route53_changes(operation_id: int):
+def wait_for_route53_changes(operation_id: int, correlation_id: str = None):
     from .models import Operation
     from .aws import route53
 
