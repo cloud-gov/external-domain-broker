@@ -14,8 +14,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from broker.extensions import db, huey
-from broker.config import config_from_env
+from broker.extensions import db, huey, config
 
 
 def queue_all_provision_tasks_for_operation(operation_id: int):
@@ -66,9 +65,7 @@ def create_le_user(operation_id: int):
     acme_user.private_key_pem = private_key_pem_in_binary.decode("utf-8")
 
     net = client.ClientNetwork(key, user_agent="cloud.gov external domain broker")
-    directory = messages.Directory.from_json(
-        net.get(config_from_env().ACME_DIRECTORY).json()
-    )
+    directory = messages.Directory.from_json(net.get(config.ACME_DIRECTORY).json())
     client_acme = client.ClientV2(directory, net=net)
 
     acme_user.email = "cloud-gov-operations@gsa.gov"
@@ -165,9 +162,7 @@ def initiate_challenges(operation_id: int):
         user_agent="cloud.gov external domain broker",
         account=registration,
     )
-    directory = messages.Directory.from_json(
-        net.get(config_from_env().ACME_DIRECTORY).json()
-    )
+    directory = messages.Directory.from_json(net.get(config.ACME_DIRECTORY).json())
     client_acme = client.ClientV2(directory, net=net)
 
     order = client_acme.new_order(service_instance.csr_pem.encode())
@@ -202,7 +197,7 @@ def update_TXT_records(operation_id: int):
 
     for challenge in service_instance.challenges:
         domain = challenge.validation_domain
-        txt_record = f"{domain}.{config_from_env().DNS_ROOT_DOMAIN}"
+        txt_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
         contents = challenge.validation_contents
         print(f'Creating TXT record {txt_record} with contents "{contents}"')
         route53_response = route53.change_resource_record_sets(
@@ -219,7 +214,7 @@ def update_TXT_records(operation_id: int):
                     },
                 ],
             },
-            HostedZoneId=config_from_env().ROUTE53_ZONE_ID,
+            HostedZoneId=config.ROUTE53_ZONE_ID,
         )
         change_id = route53_response["ChangeInfo"]["Id"]
         print(f"Saving Route53 TXT change ID: {change_id}")
@@ -245,8 +240,8 @@ def wait_for_route53_changes(operation_id: int):
         waiter.wait(
             Id=change_id,
             WaiterConfig={
-                "Delay": config_from_env().AWS_POLL_WAIT_TIME_IN_SECONDS,
-                "MaxAttempts": config_from_env().AWS_POLL_MAX_ATTEMPTS,
+                "Delay": config.AWS_POLL_WAIT_TIME_IN_SECONDS,
+                "MaxAttempts": config.AWS_POLL_MAX_ATTEMPTS,
             },
         )
         service_instance.route53_change_ids.remove(change_id)
@@ -263,7 +258,7 @@ def answer_challenges(operation_id: int):
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
 
-    time.sleep(int(config_from_env().DNS_PROPAGATION_SLEEP_TIME))
+    time.sleep(int(config.DNS_PROPAGATION_SLEEP_TIME))
 
     account_key = serialization.load_pem_private_key(
         acme_user.private_key_pem.encode(), password=None, backend=default_backend()
@@ -276,9 +271,7 @@ def answer_challenges(operation_id: int):
         user_agent="cloud.gov external domain broker",
         account=registration,
     )
-    directory = messages.Directory.from_json(
-        net.get(config_from_env().ACME_DIRECTORY).json()
-    )
+    directory = messages.Directory.from_json(net.get(config.ACME_DIRECTORY).json())
     client_acme = client.ClientV2(directory, net=net)
 
     for challenge in service_instance.challenges:
@@ -338,9 +331,7 @@ def retrieve_certificate(operation_id: int):
         user_agent="cloud.gov external domain broker",
         account=registration,
     )
-    directory = messages.Directory.from_json(
-        net.get(config_from_env().ACME_DIRECTORY).json()
-    )
+    directory = messages.Directory.from_json(net.get(config.ACME_DIRECTORY).json())
     client_acme = client.ClientV2(directory, net=net)
 
     order_json = json.loads(service_instance.order_json)
@@ -349,9 +340,7 @@ def retrieve_certificate(operation_id: int):
     order_json["csr_pem"] = service_instance.csr_pem
     order = messages.OrderResource.from_json(order_json)
 
-    deadline = datetime.now() + timedelta(
-        seconds=config_from_env().ACME_POLL_TIMEOUT_IN_SECONDS
-    )
+    deadline = datetime.now() + timedelta(seconds=config.ACME_POLL_TIMEOUT_IN_SECONDS)
     finalized_order = client_acme.poll_and_finalize(orderr=order, deadline=deadline)
 
     service_instance.fullchain_pem = finalized_order.fullchain_pem
@@ -369,7 +358,7 @@ def upload_certs_to_iam(operation_id: int):
     service_instance = operation.service_instance
 
     today = date.today().isoformat()
-    iam_server_certificate_prefix = config_from_env().IAM_SERVER_CERTIFICATE_PREFIX
+    iam_server_certificate_prefix = config.IAM_SERVER_CERTIFICATE_PREFIX
     response = iam.upload_server_certificate(
         Path=iam_server_certificate_prefix,
         ServerCertificateName=f"{service_instance.id}-{today}",
@@ -407,7 +396,8 @@ def create_cloudfront_distribution(operation_id: int):
                 "Items": [
                     {
                         "Id": "default-origin",
-                        "DomainName": config_from_env().DEFAULT_CLOUDFRONT_ORIGIN_DOMAIN_NAME,
+                        "DomainName": service_instance.cloudfront_origin_hostname,
+                        "OriginPath": service_instance.cloudfront_origin_path,
                         "CustomOriginConfig": {
                             "HTTPPort": 80,
                             "HTTPSPort": 443,
@@ -494,8 +484,8 @@ def wait_for_cloudfront_distribution(operation_id: str):
     waiter.wait(
         Id=service_instance.cloudfront_distribution_id,
         WaiterConfig={
-            "Delay": config_from_env().AWS_POLL_WAIT_TIME_IN_SECONDS,
-            "MaxAttempts": config_from_env().AWS_POLL_MAX_ATTEMPTS,
+            "Delay": config.AWS_POLL_WAIT_TIME_IN_SECONDS,
+            "MaxAttempts": config.AWS_POLL_MAX_ATTEMPTS,
         },
     )
 
@@ -510,7 +500,7 @@ def create_ALIAS_records(operation_id: str):
     print(f"Creating ALIAS records for {service_instance.domain_names}")
 
     for domain in service_instance.domain_names:
-        alias_record = f"{domain}.{config_from_env().DNS_ROOT_DOMAIN}"
+        alias_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
         target = service_instance.cloudfront_distribution_url
         print(f'Creating ALIAS record {alias_record} pointing to "{target}"')
         route53_response = route53.change_resource_record_sets(
@@ -530,7 +520,7 @@ def create_ALIAS_records(operation_id: str):
                     },
                 ],
             },
-            HostedZoneId=config_from_env().ROUTE53_ZONE_ID,
+            HostedZoneId=config.ROUTE53_ZONE_ID,
         )
         change_id = route53_response["ChangeInfo"]["Id"]
         print(f"Saving Route53 ALIAS change ID: {change_id}")

@@ -77,7 +77,7 @@ def mocked_env(monkeypatch, vcap_application, vcap_services):
     monkeypatch.setenv("DNS_VERIFICATION_SERVER", "127.0.0.1:53")
     monkeypatch.setenv("VCAP_APPLICATION", vcap_application)
     monkeypatch.setenv("VCAP_SERVICES", vcap_services)
-    monkeypatch.setenv("DEFAULT_CLOUDFRONT_ORIGIN_DOMAIN_NAME", "None")
+    monkeypatch.setenv("DEFAULT_CLOUDFRONT_ORIGIN", "None")
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
@@ -94,11 +94,11 @@ def test_config_parses_VCAP_SERVICES(env, monkeypatch, mocked_env):
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
 def test_config_gets_cf_origin_from_env(env, monkeypatch, mocked_env):
     monkeypatch.setenv("FLASK_ENV", env)
-    monkeypatch.setenv("DEFAULT_CLOUDFRONT_ORIGIN_DOMAIN_NAME", "foo")
+    monkeypatch.setenv("DEFAULT_CLOUDFRONT_ORIGIN", "foo")
 
     config = config_from_env()
 
-    assert config.DEFAULT_CLOUDFRONT_ORIGIN_DOMAIN_NAME == "foo"
+    assert config.DEFAULT_CLOUDFRONT_ORIGIN == "foo"
 
 
 @pytest.mark.parametrize("env", ["staging", "development"])

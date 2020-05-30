@@ -4,8 +4,16 @@ from datetime import date
 
 from openbrokerapi.service_broker import OperationState
 
-from broker.extensions import db
+from broker.extensions import db, config
 from broker.models import Operation, ServiceInstance, Challenge
+
+# The subtests below are "interesting".  Before test_provision_happy_path, we
+# had separate tests for each stage in the task pipeline.  But each test would
+# have to duplicate much of the previous test.  This was arduous and slow. Now
+# we have a single test_provision_happy_path, and many subtest_foo helper
+# methods.  This still makes it clear which stage in the task pipeline is
+# failing (look for the subtask_foo in the traceback), and allows us to re-use
+# these subtasks when testing failure scenarios.
 
 
 def test_refuses_to_provision_synchronously(client):
@@ -73,9 +81,16 @@ def test_refuses_to_provision_with_incorrect_acme_challenge_CNAME(client, dns):
 def subtest_provision_creates_provision_operation(client, dns):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
-    client.provision_instance("4321", params={"domains": "example.com, Foo.com"})
+    client.provision_instance(
+        "4321",
+        params={
+            "domains": "example.com, Foo.com",
+            "origin": "origin.com",
+            "path": "/somewhere",
+        },
+    )
+    db.session.expunge_all()
 
-    assert "AsyncRequired" not in client.response.body
     assert client.response.status_code == 202, client.response.body
     assert "operation" in client.response.json
 
@@ -89,6 +104,8 @@ def subtest_provision_creates_provision_operation(client, dns):
     instance = ServiceInstance.query.get(operation.service_instance_id)
     assert instance is not None
     assert instance.domain_names == ["example.com", "foo.com"]
+    assert instance.cloudfront_origin_hostname == "origin.com"
+    assert instance.cloudfront_origin_path == "/somewhere"
 
 
 def subtest_provision_creates_LE_user(tasks):
@@ -222,7 +239,11 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
     service_instance = ServiceInstance.query.get("4321")
 
     cloudfront.expect_create_distribution(
-        service_instance=service_instance,
+        caller_reference=service_instance.id,
+        domains=service_instance.domain_names,
+        certificate_id=service_instance.iam_server_certificate_id,
+        origin_hostname=service_instance.cloudfront_origin_hostname,
+        origin_path=service_instance.cloudfront_origin_path,
         distribution_id="FakeDistributionId",
         distribution_hostname="fake1234.cloudfront.net",
     )
@@ -244,7 +265,12 @@ def subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront):
     service_instance = ServiceInstance.query.get("4321")
 
     cloudfront.expect_wait_for_distribution(
-        service_instance=service_instance, distribution_id="FakeDistributionId"
+        caller_reference=service_instance.id,
+        domains=service_instance.domain_names,
+        certificate_id=service_instance.iam_server_certificate_id,
+        origin_hostname=service_instance.cloudfront_origin_hostname,
+        origin_path=service_instance.cloudfront_origin_path,
+        distribution_id="FakeDistributionId",
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -295,4 +321,18 @@ def test_provision_happy_path(
     subtest_provision_provisions_ALIAS_record(tasks, route53)
     subtest_provision_waits_for_route53_changes(tasks, route53)
     subtest_provision_marks_operation_as_succeeded(client, tasks)
+
+
+def test_provision_sets_default_origin_and_path_if_none_provided(client, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    client.provision_instance("4321", params={"domains": "example.com"})
+    db.session.expunge_all()
+
+    assert client.response.status_code == 202, client.response.body
+
+    instance = ServiceInstance.query.get("4321")
+    assert config.DEFAULT_CLOUDFRONT_ORIGIN == "cloud.local"
+    assert instance.cloudfront_origin_hostname == "cloud.local"
+    assert instance.cloudfront_origin_path == ""
+
 

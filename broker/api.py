@@ -20,7 +20,7 @@ from openbrokerapi.service_broker import (
     UnbindSpec,
 )
 
-from broker.extensions import db
+from broker.extensions import db, config
 from broker.models import Operation, ServiceInstance
 from broker.validators import CNAMEValidator
 
@@ -96,16 +96,21 @@ class API(ServiceBroker):
         if not async_allowed:
             raise errors.ErrAsyncRequired()
 
-        if details.parameters and details.parameters["domains"]:
-            domain_names = [
-                d.strip().lower() for d in details.parameters["domains"].split(",")
-            ]
+        params = details.parameters or {}
+
+        if params.get("domains"):
+            domain_names = [d.strip().lower() for d in params["domains"].split(",")]
         else:
             raise errors.ErrBadRequest("'domains' parameter required.")
 
         CNAMEValidator(domain_names).validate()
 
         instance = ServiceInstance(id=instance_id, domain_names=domain_names)
+
+        instance.cloudfront_origin_hostname = params.get(
+            "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
+        )
+        instance.cloudfront_origin_path = params.get("path", "")
 
         operation = Operation(
             state=OperationState.IN_PROGRESS, service_instance=instance

@@ -4,7 +4,6 @@ from typing import List, Dict, Any
 import pytest
 
 from broker.aws import cloudfront as real_cloudfront
-from broker.models import ServiceInstance
 
 from tests.lib.fake_aws import FakeAWS
 
@@ -12,58 +11,81 @@ from tests.lib.fake_aws import FakeAWS
 class FakeCloudFront(FakeAWS):
     def expect_create_distribution(
         self,
-        service_instance: ServiceInstance,
+        caller_reference: str,
+        domains: List[str],
+        certificate_id: str,
+        origin_hostname: str,
+        origin_path: str,
         distribution_id: str,
         distribution_hostname: str,
     ):
         self.stubber.add_response(
             "create_distribution",
             self._distribution_response(
-                service_instance.id,
-                service_instance.domain_names,
-                service_instance.iam_server_certificate_id,
+                caller_reference,
+                domains,
+                certificate_id,
+                origin_hostname,
+                origin_path,
                 distribution_id,
                 distribution_hostname,
             ),
             {
-                "DistributionConfig": self._fake_distribution_config(
-                    service_instance.id,
-                    service_instance.domain_names,
-                    service_instance.iam_server_certificate_id,
+                "DistributionConfig": self._distribution_config(
+                    caller_reference,
+                    domains,
+                    certificate_id,
+                    origin_hostname,
+                    origin_path,
                 )
             },
         )
 
     def expect_wait_for_distribution(
-        self, service_instance: ServiceInstance, distribution_id: str,
+        self,
+        caller_reference: str,
+        domains: List[str],
+        certificate_id: str,
+        origin_hostname: str,
+        origin_path: str,
+        distribution_id: str,
     ):
         self.stubber.add_response(
             "get_distribution",
             self._distribution_response(
-                service_instance.id,
-                service_instance.domain_names,
-                service_instance.iam_server_certificate_id,
+                caller_reference,
+                domains,
+                certificate_id,
+                origin_hostname,
+                origin_path,
                 distribution_id,
                 "ignored",
                 "InProgress",
             ),
-            {"Id": service_instance.cloudfront_distribution_id},
+            {"Id": distribution_id},
         )
         self.stubber.add_response(
             "get_distribution",
             self._distribution_response(
-                service_instance.id,
-                service_instance.domain_names,
-                service_instance.iam_server_certificate_id,
+                caller_reference,
+                domains,
+                certificate_id,
+                origin_hostname,
+                origin_path,
                 distribution_id,
                 "ignored",
                 "Deployed",
             ),
-            {"Id": service_instance.cloudfront_distribution_id},
+            {"Id": distribution_id},
         )
 
-    def _fake_distribution_config(
-        self, caller_reference: str, domains: List[str], iam_server_certificate_id: str,
+    def _distribution_config(
+        self,
+        caller_reference: str,
+        domains: List[str],
+        iam_server_certificate_id: str,
+        origin_hostname: str,
+        origin_path: str,
     ) -> Dict[str, Any]:
         return {
             "CallerReference": caller_reference,
@@ -74,7 +96,8 @@ class FakeCloudFront(FakeAWS):
                 "Items": [
                     {
                         "Id": "default-origin",
-                        "DomainName": "cloud.local",
+                        "DomainName": origin_hostname,
+                        "OriginPath": origin_path,
                         "CustomOriginConfig": {
                             "HTTPPort": 80,
                             "HTTPSPort": 443,
@@ -145,6 +168,8 @@ class FakeCloudFront(FakeAWS):
         caller_reference: str,
         domains: List[str],
         iam_server_certificate_id: str,
+        origin_hostname: str,
+        origin_path: str,
         distribution_id: str,
         distribution_hostname: str,
         status: str = "InProgress",
@@ -158,8 +183,12 @@ class FakeCloudFront(FakeAWS):
                 "InProgressInvalidationBatches": 0,
                 "DomainName": distribution_hostname,
                 "ActiveTrustedSigners": {"Enabled": False, "Quantity": 0, "Items": []},
-                "DistributionConfig": self._fake_distribution_config(
-                    caller_reference, domains, iam_server_certificate_id
+                "DistributionConfig": self._distribution_config(
+                    caller_reference,
+                    domains,
+                    iam_server_certificate_id,
+                    origin_hostname,
+                    origin_path,
                 ),
             }
         }

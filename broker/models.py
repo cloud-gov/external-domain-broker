@@ -4,13 +4,12 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import (
     StringEncryptedType,
 )
 
-from broker.extensions import db
-from broker.config import config_from_env
+from broker.extensions import db, config
 from broker.tasks import queue_all_provision_tasks_for_operation
 
 
 def db_encryption_key():
-    return config_from_env().DATABASE_ENCRYPTION_KEY
+    return config.DATABASE_ENCRYPTION_KEY
 
 
 class Base(db.Model):
@@ -57,6 +56,8 @@ class ServiceInstance(Base):
     cloudfront_distribution_arn = db.Column(db.String)
     cloudfront_distribution_id = db.Column(db.String)
     cloudfront_distribution_url = db.Column(db.String)
+    cloudfront_origin_hostname = db.Column(db.String)
+    cloudfront_origin_path = db.Column(db.String)
 
     route53_change_ids = db.Column(db.JSON, default=[])
 

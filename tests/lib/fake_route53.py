@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 import pytest
 
 from broker.aws import route53 as real_route53
-from broker.config import config_from_env
 
 from tests.lib.fake_aws import FakeAWS
 
@@ -49,7 +48,7 @@ class FakeRoute53(FakeAWS):
                                 "AliasTarget": {
                                     "DNSName": target,
                                     "HostedZoneId": "Z2FDTNDATAQYW2",
-                                    "EvaluateTargetHealth": False
+                                    "EvaluateTargetHealth": False,
                                 },
                             },
                         },

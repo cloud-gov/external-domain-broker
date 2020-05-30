@@ -1,9 +1,9 @@
 import dns.resolver
 
-from broker.config import config_from_env
+from broker.extensions import config
 
-(_nameserver, _port) = config_from_env().DNS_VERIFICATION_SERVER.split(":")
-_root_dns = config_from_env().DNS_ROOT_DOMAIN
+(_nameserver, _port) = config.DNS_VERIFICATION_SERVER.split(":")
+_root_dns = config.DNS_ROOT_DOMAIN
 _resolver = dns.resolver.Resolver(configure=False)
 _resolver.nameservers = [_nameserver]
 _resolver.port = int(_port)

@@ -20,6 +20,7 @@ def env_mappings():
 
 def config_from_env() -> Type["Config"]:
     env = Env()
+    print(f'Grabbing config for {env("FLASK_ENV")}')
     return env_mappings()[env("FLASK_ENV")]()
 
 
@@ -68,9 +69,7 @@ class AppConfig(Config):
             f"/cloudfront/external-domain-broker/{self.FLASK_ENV}"
         )
         self.DATABASE_ENCRYPTION_KEY = self.env("DATABASE_ENCRYPTION_KEY")
-        self.DEFAULT_CLOUDFRONT_ORIGIN_DOMAIN_NAME = self.env(
-            "DEFAULT_CLOUDFRONT_ORIGIN_DOMAIN_NAME"
-        )
+        self.DEFAULT_CLOUDFRONT_ORIGIN = self.env("DEFAULT_CLOUDFRONT_ORIGIN")
 
 
 class ProductionConfig(AppConfig):
@@ -130,7 +129,7 @@ class DockerConfig(Config):
         self.ROUTE53_ZONE_ID = "TestZoneID"
         self.DNS_ROOT_DOMAIN = "domains.cloud.test"
         self.DATABASE_ENCRYPTION_KEY = "Local Dev Encrytpion Key"
-        self.DEFAULT_CLOUDFRONT_ORIGIN_DOMAIN_NAME = "cloud.local"
+        self.DEFAULT_CLOUDFRONT_ORIGIN = "cloud.local"
         self.IAM_SERVER_CERTIFICATE_PREFIX = "/cloudfront/external-domain-broker/test"
 
 

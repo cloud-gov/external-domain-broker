@@ -45,7 +45,7 @@ class DNS:
             )
             response.raise_for_status()
             items = response.json()
-            print(f"{len(items)} requests for {self.host}")
+            print(f"    {len(items)} requests for {self.host}")
 
         def __str__(self):
             return f"{self.host} {self.record_type.upper()} with value {self.value}{self.target}"
@@ -69,8 +69,9 @@ class DNS:
             self.Entry(record_type="cname", host=host, target=target, base=self.base)
         )
 
-    def print_history(self):
-        print("History of DNS requests:")
+    def print_info(self):
+        print("DNS information:")
+        print("  Request History:")
 
         for entry in self.entries:
             # Unfortunately, "host" is required, so we have to loop through
@@ -78,11 +79,10 @@ class DNS:
             # we haven't created.
             entry.print_history()
 
-    def print_entries(self):
-        print("Local DNS entries:")
+        print("  Local entries:")
 
         for entry in self.entries:
-            print(entry)
+            print(f"    {entry}")
 
     def clear_all(self):
         for entry in self.entries:
@@ -96,6 +96,5 @@ class DNS:
 def dns():
     dns = DNS()
     yield dns
-    dns.print_history()
-    dns.print_entries()
+    dns.print_info()
     dns.clear_all()
