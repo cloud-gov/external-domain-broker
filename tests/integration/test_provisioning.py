@@ -93,7 +93,7 @@ def subtest_provision_creates_provision_operation(client, dns):
 
 def subtest_provision_creates_LE_user(tasks):
     db.session.expunge_all()
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
     service_instance = ServiceInstance.query.get("4321")
     acme_user = service_instance.acme_user
@@ -106,7 +106,7 @@ def subtest_provision_creates_LE_user(tasks):
 
 def subtest_provision_creates_private_key_and_csr(tasks):
     db.session.expunge_all()
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
     service_instance = ServiceInstance.query.get("4321")
     assert "BEGIN PRIVATE KEY" in service_instance.private_key_pem
@@ -115,7 +115,7 @@ def subtest_provision_creates_private_key_and_csr(tasks):
 
 def subtest_provision_initiates_LE_challenge(tasks):
     db.session.expunge_all()
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
     service_instance = ServiceInstance.query.get("4321")
 
@@ -130,7 +130,7 @@ def subtest_provision_updates_TXT_records(tasks, route53):
         "_acme-challenge.foo.com.domains.cloud.test"
     )
 
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
     route53.assert_no_pending_responses()
     db.session.expunge_all()
@@ -148,7 +148,7 @@ def subtest_provision_waits_for_route53_changes(tasks, route53):
     for change_id in service_instance.route53_change_ids:
         route53.expect_wait_for_change_insync(change_id)
 
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
@@ -178,14 +178,14 @@ def subtest_provision_ansers_challenges(tasks, dns):
         f"{foo_com_challenge.validation_contents}",
     )
 
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
     answered = [c.answered for c in service_instance.challenges]
     assert answered == [True, True]
 
 
 def subtest_provision_retrieves_certificate(tasks):
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
@@ -207,7 +207,7 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex):
         chain=service_instance.fullchain_pem,
     )
 
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
@@ -227,7 +227,7 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
         distribution_hostname="fake1234.cloudfront.net",
     )
 
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
@@ -247,7 +247,7 @@ def subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront):
         service_instance=service_instance, distribution_id="FakeDistributionId"
     )
 
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
 
 def subtest_provision_provisions_ALIAS_record(tasks, route53):
@@ -258,7 +258,7 @@ def subtest_provision_provisions_ALIAS_record(tasks, route53):
         "foo.com.domains.cloud.test", "fake1234.cloudfront.net"
     )
 
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
     route53.assert_no_pending_responses()
     db.session.expunge_all()
@@ -270,7 +270,7 @@ def subtest_provision_provisions_ALIAS_record(tasks, route53):
 
 
 def subtest_provision_marks_operation_as_succeeded(client, tasks):
-    tasks.run_pipeline_stages(1)
+    tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
     operation = service_instance.operations.first()
