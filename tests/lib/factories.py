@@ -1,8 +1,8 @@
-from factory import Sequence, SubFactory
+from factory import Sequence, SubFactory, LazyAttribute
 from factory.alchemy import SQLAlchemyModelFactory
 
 from broker.extensions import db
-from broker.models import Operation, ServiceInstance, ACMEUser
+from broker.models import Operation, ServiceInstance, ACMEUser, Challenge
 
 
 class BaseFactory(SQLAlchemyModelFactory):
@@ -35,3 +35,13 @@ class OperationFactory(BaseFactory):
     state = Operation.States.IN_PROGRESS
     action = Operation.Actions.PROVISION
     service_instance = SubFactory(ServiceInstanceFactory)
+
+
+class ChallengeFactory(BaseFactory):
+    class Meta(object):
+        model = Challenge
+
+    id = Sequence(int)
+    domain = "some.domain.com"
+    validation_domain = LazyAttribute(lambda obj: f"_acme-challenge.{obj.domain}")
+    validation_contents = LazyAttribute(lambda obj: f"{obj.domain} response")

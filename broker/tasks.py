@@ -22,7 +22,7 @@ def queue_all_provision_tasks_for_operation(operation_id: int):
         create_le_user.s(operation_id)
         .then(generate_private_key, operation_id)
         .then(initiate_challenges, operation_id)
-        .then(update_TXT_records, operation_id)
+        .then(create_TXT_records, operation_id)
         .then(wait_for_route53_changes, operation_id)
         .then(answer_challenges, operation_id)
         .then(retrieve_certificate, operation_id)
@@ -37,7 +37,9 @@ def queue_all_provision_tasks_for_operation(operation_id: int):
 
 
 def queue_all_deprovision_tasks_for_operation(operation_id: int):
-    task_pipeline = remove_ALIAS_records.s(operation_id)
+    task_pipeline = remove_ALIAS_records.s(operation_id).then(
+        remove_TXT_records, operation_id
+    )
     huey.enqueue(task_pipeline)
 
 
@@ -193,7 +195,7 @@ def initiate_challenges(operation_id: int):
 
 
 @retriable_task
-def update_TXT_records(operation_id: int):
+def create_TXT_records(operation_id: int):
     from .models import Operation
     from .aws import route53
 
@@ -227,6 +229,39 @@ def update_TXT_records(operation_id: int):
         flag_modified(service_instance, "route53_change_ids")
         db.session.add(service_instance)
         db.session.commit()
+
+
+@nonretriable_task
+def remove_TXT_records(operation_id: int):
+    from .models import Operation
+    from .aws import route53
+
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    for challenge in service_instance.challenges:
+        domain = challenge.validation_domain
+        txt_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
+        contents = challenge.validation_contents
+        print(f'Removing TXT record {txt_record} with contents "{contents}"')
+        route53_response = route53.change_resource_record_sets(
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "DELETE",
+                        "ResourceRecordSet": {
+                            "Type": "TXT",
+                            "Name": txt_record,
+                            "ResourceRecords": [{"Value": f'"{contents}"'}],
+                            "TTL": 60,
+                        },
+                    },
+                ],
+            },
+            HostedZoneId=config.ROUTE53_ZONE_ID,
+        )
+        change_id = route53_response["ChangeInfo"]["Id"]
+        print(f"Ignoring Route53 TXT change ID: {change_id}")
 
 
 @retriable_task

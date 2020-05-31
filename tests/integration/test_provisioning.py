@@ -188,12 +188,12 @@ def subtest_provision_ansers_challenges(tasks, dns):
 
     dns.add_txt(
         f"_acme-challenge.example.com.domains.cloud.test.",
-        f"{example_com_challenge.validation_contents}",
+        example_com_challenge.validation_contents,
     )
 
     dns.add_txt(
         f"_acme-challenge.foo.com.domains.cloud.test.",
-        f"{foo_com_challenge.validation_contents}",
+        foo_com_challenge.validation_contents,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -277,7 +277,7 @@ def subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
 
-def subtest_provision_provisions_ALIAS_record(tasks, route53):
+def subtest_provision_provisions_ALIAS_records(tasks, route53):
     example_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
         "example.com.domains.cloud.test", "fake1234.cloudfront.net"
     )
@@ -319,7 +319,7 @@ def test_provision_happy_path(
     subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex)
     subtest_provision_creates_cloudfront_distribution(tasks, cloudfront)
     subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront)
-    subtest_provision_provisions_ALIAS_record(tasks, route53)
+    subtest_provision_provisions_ALIAS_records(tasks, route53)
     subtest_provision_waits_for_route53_changes(tasks, route53)
     subtest_provision_marks_operation_as_succeeded(tasks)
 
