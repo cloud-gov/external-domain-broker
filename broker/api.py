@@ -23,6 +23,10 @@ from openbrokerapi.service_broker import (
 from broker.extensions import db, config
 from broker.models import Operation, ServiceInstance
 from broker.validators import CNAMEValidator
+from broker.tasks import (
+    queue_all_provision_tasks_for_operation,
+    queue_all_deprovision_tasks_for_operation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -113,13 +117,15 @@ class API(ServiceBroker):
         instance.cloudfront_origin_path = params.get("path", "")
 
         operation = Operation(
-            state=OperationState.IN_PROGRESS, service_instance=instance
+            state=OperationState.IN_PROGRESS,
+            service_instance=instance,
+            action=Operation.Actions.PROVISION,
         )
 
         db.session.add(instance)
         db.session.add(operation)
         db.session.commit()
-        operation.queue_tasks()
+        queue_all_provision_tasks_for_operation(operation.id)
 
         return ProvisionedServiceSpec(
             state=ProvisionState.IS_ASYNC, operation=operation.id
@@ -139,10 +145,13 @@ class API(ServiceBroker):
         if not instance:
             raise errors.ErrInstanceDoesNotExist
         operation = Operation(
-            state=OperationState.IN_PROGRESS, service_instance=instance
+            state=OperationState.IN_PROGRESS,
+            service_instance=instance,
+            action=Operation.Actions.DEPROVISION,
         )
         db.session.add(operation)
         db.session.commit()
+        queue_all_deprovision_tasks_for_operation(operation.id)
 
         return DeprovisionServiceSpec(is_async=True, operation=operation.id)
 

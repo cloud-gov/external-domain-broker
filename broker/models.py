@@ -1,3 +1,5 @@
+from enum import Enum
+
 from openbrokerapi.service_broker import OperationState
 from sqlalchemy_utils.types.encrypted.encrypted_type import (
     AesGcmEngine,
@@ -66,19 +68,29 @@ class ServiceInstance(Base):
 
 
 class Operation(Base):
+    States = OperationState
+
+    class Actions(Enum):
+        PROVISION = "Provision"
+        DEPROVISION = "Deprovision"
+
     id = db.Column(db.Integer, primary_key=True)
     service_instance_id = db.Column(
         db.String, db.ForeignKey("service_instance.id"), nullable=False
     )
-    state = db.Column(db.Enum(OperationState), nullable=False)
+    state = db.Column(
+        db.Enum(States, values_callable=lambda obj: [e.value for e in obj]),
+        default=States.IN_PROGRESS.value,
+        server_default=States.IN_PROGRESS.value,
+        nullable=False,
+    )
+    action = db.Column(
+        db.Enum(Actions, values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False,
+    )
 
     def __repr__(self):
         return f"<Operation {self.id} {self.state}>"
-
-    States = OperationState
-
-    def queue_tasks(self):
-        queue_all_provision_tasks_for_operation(self.id)
 
 
 class Challenge(Base):

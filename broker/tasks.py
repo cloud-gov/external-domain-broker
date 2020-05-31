@@ -36,6 +36,11 @@ def queue_all_provision_tasks_for_operation(operation_id: int):
     huey.enqueue(task_pipeline)
 
 
+def queue_all_deprovision_tasks_for_operation(operation_id: int):
+    task_pipeline = remove_ALIAS_records.s(operation_id)
+    huey.enqueue(task_pipeline)
+
+
 # Normal task, no retries
 nonretriable_task = huey.task()
 
@@ -528,6 +533,42 @@ def create_ALIAS_records(operation_id: str):
         flag_modified(service_instance, "route53_change_ids")
         db.session.add(service_instance)
         db.session.commit()
+
+
+@nonretriable_task
+def remove_ALIAS_records(operation_id: str):
+    from .models import Operation
+    from .aws import route53
+
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    print(f"Removing ALIAS records for {service_instance.domain_names}")
+
+    for domain in service_instance.domain_names:
+        alias_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
+        target = service_instance.cloudfront_distribution_url
+        print(f'Removing ALIAS record {alias_record} pointing to "{target}"')
+        route53_response = route53.change_resource_record_sets(
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "DELETE",
+                        "ResourceRecordSet": {
+                            "Type": "A",
+                            "Name": alias_record,
+                            "AliasTarget": {
+                                "DNSName": target,
+                                "HostedZoneId": "Z2FDTNDATAQYW2",
+                                "EvaluateTargetHealth": False,
+                            },
+                        },
+                    },
+                ],
+            },
+            HostedZoneId=config.ROUTE53_ZONE_ID,
+        )
+        change_id = route53_response["ChangeInfo"]["Id"]
+        print(f"Not tracking change ID: {change_id}")
 
 
 @retriable_task

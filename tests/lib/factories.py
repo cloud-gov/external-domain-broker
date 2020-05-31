@@ -1,6 +1,5 @@
 from factory import Sequence, SubFactory
 from factory.alchemy import SQLAlchemyModelFactory
-from openbrokerapi.service_broker import OperationState
 
 from broker.extensions import db
 from broker.models import Operation, ServiceInstance, ACMEUser
@@ -33,5 +32,6 @@ class OperationFactory(BaseFactory):
     class Meta(object):
         model = Operation
 
-    state = OperationState.IN_PROGRESS
+    state = Operation.States.IN_PROGRESS
+    action = Operation.Actions.PROVISION
     service_instance = SubFactory(ServiceInstanceFactory)

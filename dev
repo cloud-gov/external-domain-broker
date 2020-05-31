@@ -7,6 +7,7 @@ built_image_name="external-domain-broker-dev"
 
 main() {
   [[ $# -eq 0 ]] && usage "Expected command."
+  [[ -v DEBUG ]] && set -x
 
   cd "$(git rev-parse --show-toplevel)"
 
@@ -50,17 +51,9 @@ build_image() {
   # you.  This user is embedded in the docker image, so the resulting image
   # should only be used locally.  These arguments are not used in our
   # concourse pipeline.
-  cat <<- "EOF"
- ____        _ _     _ _               _____
-|  _ \      (_) |   | (_)             |_   _|
-| |_) |_   _ _| | __| |_ _ __   __ _    | |  _ __ ___   __ _  __ _  ___
-|  _ <| | | | | |/ _` | | '_ \ / _` |   | | | '_ ` _ \ / _` |/ _` |/ _ \
-| |_) | |_| | | | (_| | | | | | (_| |  _| |_| | | | | | (_| | (_| |  __/
-|____/ \__,_|_|_|\__,_|_|_| |_|\__, | |_____|_| |_| |_|\__,_|\__, |\___|
-                                __/ |                         __/ |
-                               |___/                         |___/  
-EOF
+  echo "Building image..."
   docker build \
+    --quiet \
     --file=docker/Dockerfile.dev \
     --tag=${built_image_name} \
     --build-arg UID="$(id -u)" \
@@ -71,12 +64,12 @@ EOF
 
 run_docker() {
   build_image
-  docker run --rm -it -v "$PWD:/app" "${built_image_name}" "$@"
+  docker run --rm -it -v "$PWD:/app" "${built_image_name}" "$*"
 }
 
 run_docker_exposed() {
   build_image
-  docker run --rm -it -v "$PWD:/app" -p "0.0.0.0:8000:8000" "${built_image_name}" "$@"
+  docker run --rm -it -v "$PWD:/app" -p "0.0.0.0:8000:8000" "${built_image_name}" "$*"
 }
 
 tests() {
@@ -105,8 +98,7 @@ update-requirements() {
 
 new-migration() {
   [[ "$#" -eq 1 ]] || usage "Missing migration description"
-  run flask db upgrade
-  run flask db migrate -m "$1"
+  run "flask db upgrade && flask db migrate -m \"$1\""
 }
 
 usage() {

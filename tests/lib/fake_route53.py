@@ -59,6 +59,31 @@ class FakeRoute53(FakeAWS):
         )
         return change_id
 
+    def expect_remove_ALIAS(self, domain, target):
+        self.stubber.add_response(
+            "change_resource_record_sets",
+            self._change_info("ignored", "PENDING"),
+            {
+                "ChangeBatch": {
+                    "Changes": [
+                        {
+                            "Action": "DELETE",
+                            "ResourceRecordSet": {
+                                "Name": domain,
+                                "Type": "A",
+                                "AliasTarget": {
+                                    "DNSName": target,
+                                    "HostedZoneId": "Z2FDTNDATAQYW2",
+                                    "EvaluateTargetHealth": False,
+                                },
+                            },
+                        },
+                    ],
+                },
+                "HostedZoneId": "TestZoneID",
+            },
+        )
+
     def expect_wait_for_change_insync(self, change_id: str):
         self.stubber.add_response(
             "get_change", self._change_info(change_id, "PENDING"), {"Id": change_id},

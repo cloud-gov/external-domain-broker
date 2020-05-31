@@ -99,6 +99,7 @@ def subtest_provision_creates_provision_operation(client, dns):
 
     assert operation is not None
     assert operation.state == OperationState.IN_PROGRESS
+    assert operation.action == Operation.Actions.PROVISION
     assert operation.service_instance_id == "4321"
 
     instance = ServiceInstance.query.get(operation.service_instance_id)
@@ -295,7 +296,7 @@ def subtest_provision_provisions_ALIAS_record(tasks, route53):
     ]
 
 
-def subtest_provision_marks_operation_as_succeeded(client, tasks):
+def subtest_provision_marks_operation_as_succeeded(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
@@ -320,7 +321,7 @@ def test_provision_happy_path(
     subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront)
     subtest_provision_provisions_ALIAS_record(tasks, route53)
     subtest_provision_waits_for_route53_changes(tasks, route53)
-    subtest_provision_marks_operation_as_succeeded(client, tasks)
+    subtest_provision_marks_operation_as_succeeded(tasks)
 
 
 def test_provision_sets_default_origin_and_path_if_none_provided(client, dns):
