@@ -28,11 +28,6 @@ def upgrade():
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("service_instance_id", sa.String(), nullable=False),
-        sa.Column(
-            "state",
-            sa.Enum("IN_PROGRESS", "SUCCEEDED", "FAILED", name="operationstate"),
-            nullable=False,
-        ),
         sa.ForeignKeyConstraint(["service_instance_id"], ["service_instance.id"],),
         sa.PrimaryKeyConstraint("id"),
     )

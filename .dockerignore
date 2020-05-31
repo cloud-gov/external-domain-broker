@@ -4,4 +4,9 @@ Dockerfile
 .gitignore
 do-not-commit
 docs
-README.md
+*.md
+dev
+do-not-commit
+logs
+tmp
+ci
