@@ -42,10 +42,9 @@ class Tasks:
 
         task = self.huey.dequeue()
         while task:
+            currently_queued_tasks.append(task)
             found_at_least_one_queued_task = True
-            if self.huey._pre_execute:
-                self.huey._run_pre_execute(task)
-            task.execute()
+            task = self.huey.dequeue()
 
         if not currently_queued_tasks:
             pytest.fail("No tasks queued to run!")
