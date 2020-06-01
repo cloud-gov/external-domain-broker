@@ -1,8 +1,9 @@
 import json
+import logging
 import time
 import re
+import sys
 from datetime import date, datetime, timedelta
-from sqlalchemy.orm.attributes import flag_modified
 
 from pprint import pp
 
@@ -10,18 +11,30 @@ from pprint import pp
 import josepy
 import OpenSSL
 from acme import challenges, client, crypto_util, messages
+from sap import cf_logging
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from sqlalchemy.orm.attributes import flag_modified
 
 from broker.extensions import db, huey, config
 from broker.config import config_from_env
 from broker.models import ACMEUser, Operation, Challenge
 from broker.aws import route53, iam, cloudfront
 
+if not cf_logging._SETUP_DONE:
+    cf_logging.init()
+
+
 
 def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: str):
+    logger = logging.getLogger(__name__)
+    if correlation_id is None:
+        raise RuntimeError("correlation_id must be set")
+    if operation_id is None:
+        raise RuntimeError("operation_id must be set")
     task_pipeline = (
+<<<<<<< HEAD
         create_le_user.s(operation_id)
         .then(generate_private_key, operation_id)
         .then(initiate_challenges, operation_id)
@@ -42,6 +55,21 @@ def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: s
 def queue_all_deprovision_tasks_for_operation(operation_id: int):
     task_pipeline = remove_ALIAS_records.s(operation_id).then(
         remove_TXT_records, operation_id
+=======
+        create_le_user.s(operation_id, correlation_id=correlation_id)
+        .then(generate_private_key, operation_id, correlation_id=correlation_id)
+        .then(initiate_challenges, operation_id, correlation_id=correlation_id)
+        .then(update_TXT_records, operation_id, correlation_id=correlation_id)
+        .then(wait_for_route53_changes, operation_id, correlation_id=correlation_id)
+        .then(answer_challenges, operation_id, correlation_id=correlation_id)
+        .then(retrieve_certificate, operation_id, correlation_id=correlation_id)
+        .then(upload_certs_to_iam, operation_id, correlation_id=correlation_id)
+        .then(create_cloudfront_distribution, operation_id, correlation_id=correlation_id)
+        .then(wait_for_cloudfront_distribution, operation_id, correlation_id=correlation_id)
+        .then(create_ALIAS_records, operation_id, correlation_id=correlation_id)
+        .then(wait_for_route53_changes, operation_id, correlation_id=correlation_id)
+        .then(mark_operation_as_succeeded, operation_id, correlation_id=correlation_id)
+>>>>>>> add logging framework
     )
     huey.enqueue(task_pipeline)
 
@@ -53,8 +81,16 @@ nonretriable_task = huey.task()
 retriable_task = huey.task(retries=(6 * 24), retry_delay=(60 * 10))
 
 
+@huey.pre_execute(name="Set Correlation ID")
+def register_correlation_id(task):
+    args, kwargs = task.data
+    if "correlation_id" in kwargs:
+        cf_logging.FRAMEWORK.context.set_correlation_id(kwargs["correlation_id"])
+    else:
+        cf_logging.FRAMEWORK.context.set_correlation_id("Rogue Task")
+
 @retriable_task
-def create_le_user(operation_id: int, correlation_id: str = None):
+def create_le_user(operation_id: int, **kwargs):
     acme_user = ACMEUser()
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
@@ -119,12 +155,12 @@ def generate_private_key(operation_id: int, correlation_id: str = None):
 
 
 class DNSChallengeNotFound(RuntimeError):
-    def __init__(domain, obj):
+    def __init__(self, domain, obj):
         super().__init__(f"Cannot find DNS challenges for {domain} in {obj}")
 
 
 class ChallengeNotFound(RuntimeError):
-    def __init__(domain, obj):
+    def __init__(self, domain, obj):
         super().__init__(f"Cannot find any challenges for {domain} in {obj}")
 
 

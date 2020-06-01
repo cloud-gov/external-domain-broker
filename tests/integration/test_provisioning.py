@@ -18,6 +18,7 @@ from tests.lib.factories import ServiceInstanceFactory
 # these subtasks when testing failure scenarios.
 
 
+
 def test_refuses_to_provision_synchronously(client):
     client.provision_instance("4321", accepts_incomplete="false")
 

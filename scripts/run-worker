@@ -5,4 +5,5 @@ shopt -s inherit_errexit
 
 export PYTHONPATH=$(dirname "$0")/..
 
-exec huey_consumer.py "$@" broker.tasks.huey
+# send logs to dev null, since we create other log handlers elsewhere
+exec huey_consumer.py "$@" broker.tasks.huey -l /dev/null
