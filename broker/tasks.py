@@ -34,32 +34,10 @@ def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: s
     if operation_id is None:
         raise RuntimeError("operation_id must be set")
     task_pipeline = (
-<<<<<<< HEAD
-        create_le_user.s(operation_id)
-        .then(generate_private_key, operation_id)
-        .then(initiate_challenges, operation_id)
-        .then(create_TXT_records, operation_id)
-        .then(wait_for_route53_changes, operation_id)
-        .then(answer_challenges, operation_id)
-        .then(retrieve_certificate, operation_id)
-        .then(upload_certs_to_iam, operation_id)
-        .then(create_cloudfront_distribution, operation_id)
-        .then(wait_for_cloudfront_distribution, operation_id)
-        .then(create_ALIAS_records, operation_id)
-        .then(wait_for_route53_changes, operation_id)
-        .then(mark_operation_as_succeeded, operation_id)
-    )
-    huey.enqueue(task_pipeline)
-
-
-def queue_all_deprovision_tasks_for_operation(operation_id: int):
-    task_pipeline = remove_ALIAS_records.s(operation_id).then(
-        remove_TXT_records, operation_id
-=======
         create_le_user.s(operation_id, correlation_id=correlation_id)
         .then(generate_private_key, operation_id, correlation_id=correlation_id)
         .then(initiate_challenges, operation_id, correlation_id=correlation_id)
-        .then(update_TXT_records, operation_id, correlation_id=correlation_id)
+        .then(create_TXT_records, operation_id, correlation_id=correlation_id)
         .then(wait_for_route53_changes, operation_id, correlation_id=correlation_id)
         .then(answer_challenges, operation_id, correlation_id=correlation_id)
         .then(retrieve_certificate, operation_id, correlation_id=correlation_id)
@@ -69,7 +47,13 @@ def queue_all_deprovision_tasks_for_operation(operation_id: int):
         .then(create_ALIAS_records, operation_id, correlation_id=correlation_id)
         .then(wait_for_route53_changes, operation_id, correlation_id=correlation_id)
         .then(mark_operation_as_succeeded, operation_id, correlation_id=correlation_id)
->>>>>>> add logging framework
+    )
+    huey.enqueue(task_pipeline)
+
+
+def queue_all_deprovision_tasks_for_operation(operation_id: int):
+    task_pipeline = remove_ALIAS_records.s(operation_id).then(
+        remove_TXT_records, operation_id
     )
     huey.enqueue(task_pipeline)
 
