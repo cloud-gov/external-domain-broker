@@ -14,6 +14,7 @@ from broker.extensions import (
     config,
     migrate,
 )
+from broker.api import API
 
 
 def create_app():
@@ -32,7 +33,6 @@ def create_app():
         app.config["BROKER_USERNAME"], app.config["BROKER_PASSWORD"]
     )
 
-    from broker.api import API
     app.register_blueprint(openbrokerapi.get_blueprint(API(), credentials, logger))
 
     # Endpoint to test if server comes up
