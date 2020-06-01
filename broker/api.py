@@ -1,5 +1,8 @@
 import logging
+import sys
 from typing import Optional
+
+from sap import cf_logging
 
 from openbrokerapi import errors
 from openbrokerapi.service_broker import (
@@ -19,7 +22,6 @@ from openbrokerapi.service_broker import (
     UnbindDetails,
     UnbindSpec,
 )
-from sap import cf_logging
 
 from broker.extensions import db, config
 from broker.models import Operation, ServiceInstance
@@ -29,12 +31,10 @@ from broker.tasks import (
     queue_all_deprovision_tasks_for_operation,
 )
 
-logger = logging.getLogger(__name__)
-
 
 class API(ServiceBroker):
     def __init__(self):
-        pass
+        self.logger = logging.getLogger(__name__)
 
     def catalog(self) -> Service:
         return Service(
@@ -151,6 +151,7 @@ class API(ServiceBroker):
             service_instance=instance,
             action=Operation.Actions.DEPROVISION,
         )
+
         db.session.add(operation)
         db.session.commit()
         queue_all_deprovision_tasks_for_operation(operation.id)

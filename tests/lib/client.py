@@ -5,6 +5,7 @@ import sys
 
 import flask_migrate
 import pytest
+from sap import cf_logging
 from flask import current_app
 from flask.testing import FlaskClient
 from flask.wrappers import Response
@@ -92,6 +93,7 @@ class CFAPIClient(FlaskClient):
 
 @pytest.fixture(scope="session")
 def app():
+    cf_logging._SETUP_DONE = False
     _app = create_app()
 
     # The Exception errorhandler seems to be firing in testing mode.

@@ -20,6 +20,14 @@ def stop_task_from_retrying(signal, task):
 def _emit_without_exception_catching(self, signal, task, *args, **kwargs):
     self._signal.send(signal, task, *args, **kwargs)
 
+<<<<<<< HEAD
+=======
+        while task:
+            found_at_least_one_queued_task = True
+            if self.huey._pre_execute:
+                self.huey._run_pre_execute(task)
+            task.execute()
+>>>>>>> add logging framework
 
 Huey._emit = _emit_without_exception_catching
 
@@ -43,8 +51,15 @@ class Tasks:
 
         task = self.huey.dequeue()
         while task:
+<<<<<<< HEAD
             currently_queued_tasks.append(task)
             task = self.huey.dequeue()
+=======
+            found_at_least_one_queued_task = True
+            if self.huey._pre_execute:
+                self.huey._run_pre_execute(task)
+            task.execute()
+>>>>>>> add logging framework
 
         if not currently_queued_tasks:
             pytest.fail("No tasks queued to run!")
