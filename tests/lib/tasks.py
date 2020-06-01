@@ -20,12 +20,6 @@ def stop_task_from_retrying(signal, task):
 def _emit_without_exception_catching(self, signal, task, *args, **kwargs):
     self._signal.send(signal, task, *args, **kwargs)
 
-        while task:
-            found_at_least_one_queued_task = True
-            if self.huey._pre_execute:
-                self.huey._run_pre_execute(task)
-            task.execute()
-
 Huey._emit = _emit_without_exception_catching
 
 
