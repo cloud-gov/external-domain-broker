@@ -154,7 +154,7 @@ class API(ServiceBroker):
 
         db.session.add(operation)
         db.session.commit()
-        queue_all_deprovision_tasks_for_operation(operation.id)
+        queue_all_deprovision_tasks_for_operation(operation.id, cf_logging.FRAMEWORK.context.get_correlation_id())
 
         return DeprovisionServiceSpec(is_async=True, operation=operation.id)
 
