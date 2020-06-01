@@ -7,6 +7,8 @@ from openbrokerapi.service_broker import OperationState
 from broker.extensions import db, config
 from broker.models import Operation, ServiceInstance, Challenge
 
+from tests.lib.factories import ServiceInstanceFactory
+
 # The subtests below are "interesting".  Before test_provision_happy_path, we
 # had separate tests for each stage in the task pipeline.  But each test would
 # have to duplicate much of the previous test.  This was arduous and slow. Now
@@ -35,6 +37,19 @@ def test_refuses_to_provision_without_domains(client):
 
     assert "domains" in client.response.body
     assert client.response.status_code == 400
+
+
+def test_refuses_to_provision_with_duplicate_domains(client, dns):
+    ServiceInstanceFactory.create(domain_names="foo.com,bar.com")
+    dns.add_cname("_acme-challenge.example.com")
+    dns.add_cname("_acme-challenge.foo.com")
+
+    client.provision_instance(
+        "4321", params={"domains": "example.com, Foo.com"},
+    )
+
+    assert "already exists" in client.response.body, client.response.body
+    assert client.response.status_code == 400, client.response.body
 
 
 def test_refuses_to_provision_without_any_acme_challenge_CNAMEs(client):
@@ -76,6 +91,38 @@ def test_refuses_to_provision_with_incorrect_acme_challenge_CNAME(client, dns):
 
     assert " _acme-challenge.bar.com" not in desc
     assert client.response.status_code == 400
+
+
+def test_provision_sets_default_origin_and_path_if_none_provided(client, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    client.provision_instance("4321", params={"domains": "example.com"})
+    db.session.expunge_all()
+
+    assert client.response.status_code == 202, client.response.body
+
+    instance = ServiceInstance.query.get("4321")
+    assert config.DEFAULT_CLOUDFRONT_ORIGIN == "cloud.local"
+    assert instance.cloudfront_origin_hostname == "cloud.local"
+    assert instance.cloudfront_origin_path == ""
+
+
+def test_provision_happy_path(
+    client, dns, tasks, route53, iam, simple_regex, cloudfront
+):
+    subtest_provision_creates_provision_operation(client, dns)
+    subtest_provision_creates_LE_user(tasks)
+    subtest_provision_creates_private_key_and_csr(tasks)
+    subtest_provision_initiates_LE_challenge(tasks)
+    subtest_provision_updates_TXT_records(tasks, route53)
+    subtest_provision_waits_for_route53_changes(tasks, route53)
+    subtest_provision_ansers_challenges(tasks, dns)
+    subtest_provision_retrieves_certificate(tasks)
+    subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex)
+    subtest_provision_creates_cloudfront_distribution(tasks, cloudfront)
+    subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront)
+    subtest_provision_provisions_ALIAS_records(tasks, route53)
+    subtest_provision_waits_for_route53_changes(tasks, route53)
+    subtest_provision_marks_operation_as_succeeded(tasks)
 
 
 def subtest_provision_creates_provision_operation(client, dns):
@@ -303,37 +350,4 @@ def subtest_provision_marks_operation_as_succeeded(tasks):
     operation = service_instance.operations.first()
     assert operation
     assert operation.States.SUCCEEDED == operation.state
-
-
-def test_provision_happy_path(
-    client, dns, tasks, route53, iam, simple_regex, cloudfront
-):
-    subtest_provision_creates_provision_operation(client, dns)
-    subtest_provision_creates_LE_user(tasks)
-    subtest_provision_creates_private_key_and_csr(tasks)
-    subtest_provision_initiates_LE_challenge(tasks)
-    subtest_provision_updates_TXT_records(tasks, route53)
-    subtest_provision_waits_for_route53_changes(tasks, route53)
-    subtest_provision_ansers_challenges(tasks, dns)
-    subtest_provision_retrieves_certificate(tasks)
-    subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex)
-    subtest_provision_creates_cloudfront_distribution(tasks, cloudfront)
-    subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront)
-    subtest_provision_provisions_ALIAS_records(tasks, route53)
-    subtest_provision_waits_for_route53_changes(tasks, route53)
-    subtest_provision_marks_operation_as_succeeded(tasks)
-
-
-def test_provision_sets_default_origin_and_path_if_none_provided(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_instance("4321", params={"domains": "example.com"})
-    db.session.expunge_all()
-
-    assert client.response.status_code == 202, client.response.body
-
-    instance = ServiceInstance.query.get("4321")
-    assert config.DEFAULT_CLOUDFRONT_ORIGIN == "cloud.local"
-    assert instance.cloudfront_origin_hostname == "cloud.local"
-    assert instance.cloudfront_origin_path == ""
-
 

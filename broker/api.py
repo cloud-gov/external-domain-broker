@@ -22,7 +22,7 @@ from openbrokerapi.service_broker import (
 
 from broker.extensions import db, config
 from broker.models import Operation, ServiceInstance
-from broker.validators import CNAMEValidator
+from broker import validators
 from broker.tasks import (
     queue_all_provision_tasks_for_operation,
     queue_all_deprovision_tasks_for_operation,
@@ -107,7 +107,8 @@ class API(ServiceBroker):
         else:
             raise errors.ErrBadRequest("'domains' parameter required.")
 
-        CNAMEValidator(domain_names).validate()
+        validators.CNAME(domain_names).validate()
+        validators.UniqueDomains(domain_names).validate()
 
         instance = ServiceInstance(id=instance_id, domain_names=domain_names)
 

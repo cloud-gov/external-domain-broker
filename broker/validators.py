@@ -3,9 +3,10 @@ from typing import List
 from openbrokerapi import errors
 
 from broker.dns import acme_challenge_cname_name, acme_challenge_cname_target, get_cname
+from broker.models import ServiceInstance
 
 
-class CNAMEValidator:
+class CNAME:
     def __init__(self, domains):
         self.domains = domains
 
@@ -25,15 +26,7 @@ class CNAMEValidator:
             raise errors.ErrBadRequest("\n".join(msg))
 
     def _instructions(self, domains: List[str]) -> List[str]:
-        errors = []
-
-        for d in domains:
-            err = self._error_for_domain(d)
-
-            if err:
-                errors.append(err)
-
-        return errors
+        return [self._error_for_domain(d) for d in domains if self._error_for_domain(d)]
 
     def _error_for_domain(self, domain: str) -> str:
         cname = get_cname(acme_challenge_cname_name(domain))
@@ -49,5 +42,34 @@ class CNAMEValidator:
                 f"CNAME {acme_challenge_cname_name(domain)} should point to "
                 f"{acme_challenge_cname_target(domain)}, but it is set incorrectly to {cname}."
             )
+        else:
+            return ""
+
+
+class UniqueDomains:
+    def __init__(self, domains):
+        self.domains = domains
+
+    def validate(self):
+        instructions = self._instructions(self.domains)
+
+        if instructions:
+            msg = [
+                "An external domain service already exists for the following domains:"
+            ]
+
+            for error in instructions:
+                msg.append("  " + error)
+
+            raise errors.ErrBadRequest("\n".join(msg))
+
+    def _instructions(self, domains: List[str]) -> List[str]:
+        return [self._error_for_domain(d) for d in domains if self._error_for_domain(d)]
+
+    def _error_for_domain(self, domain: str) -> str:
+        if ServiceInstance.query.filter(
+            ServiceInstance.domain_names.contains(domain)
+        ).count():
+            return domain
         else:
             return ""
