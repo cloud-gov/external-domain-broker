@@ -3,7 +3,7 @@ applications:
 - name: ((APP_NAME))-workers
   no-route: true
   memory: 256M
-  instances: 3
+  instances: 10
   command: ./scripts/run-worker
   health-check-type: process
   services:

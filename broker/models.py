@@ -85,10 +85,7 @@ class Operation(Base):
         server_default=States.IN_PROGRESS.value,
         nullable=False,
     )
-    action = db.Column(
-        db.String,
-        nullable=False,
-    )
+    action = db.Column(db.String, nullable=False,)
 
     def __repr__(self):
         return f"<Operation {self.id} {self.state}>"

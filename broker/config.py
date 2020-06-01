@@ -31,6 +31,7 @@ class Config:
         self.FLASK_ENV = self.env("FLASK_ENV")
         self.TMPDIR = self.env("TMPDIR", "/app/tmp/")
         self.DNS_PROPAGATION_SLEEP_TIME = self.env("DNS_PROPAGATION_SLEEP_TIME", "300")
+        self.CLOUDFRONT_PROPAGATION_SLEEP_TIME = 60  # Seconds
         self.SQLALCHEMY_TRACK_MODIFICATIONS = False
         self.TESTING = True
         self.DEBUG = True
@@ -144,6 +145,7 @@ class TestConfig(DockerConfig):
         self.SQLITE_DB_NAME = "test.sqlite"
         super().__init__()
         self.DNS_PROPAGATION_SLEEP_TIME = 0
+        self.CLOUDFRONT_PROPAGATION_SLEEP_TIME = 0
         self.ACME_POLL_TIMEOUT_IN_SECONDS = 10
         self.AWS_POLL_WAIT_TIME_IN_SECONDS = 1
         self.AWS_POLL_MAX_ATTEMPTS = 10

@@ -41,7 +41,7 @@ class FakeCloudFront(FakeAWS):
             },
         )
 
-    def expect_wait_for_distribution(
+    def expect_get_distribution_config(
         self,
         caller_reference: str,
         domains: List[str],
@@ -49,6 +49,75 @@ class FakeCloudFront(FakeAWS):
         origin_hostname: str,
         origin_path: str,
         distribution_id: str,
+    ):
+        self.stubber.add_response(
+            "get_distribution_config",
+            {
+                "DistributionConfig": self._distribution_config(
+                    caller_reference,
+                    domains,
+                    certificate_id,
+                    origin_hostname,
+                    origin_path,
+                )
+            },
+            {"Id": distribution_id},
+        )
+
+    def expect_disable_distribution(
+        self,
+        caller_reference: str,
+        domains: List[str],
+        certificate_id: str,
+        origin_hostname: str,
+        origin_path: str,
+        distribution_id: str,
+        distribution_hostname: str,
+    ):
+        self.stubber.add_response(
+            "update_distribution",
+            self._distribution_response(
+                caller_reference,
+                domains,
+                certificate_id,
+                origin_hostname,
+                origin_path,
+                distribution_id,
+                distribution_hostname,
+            ),
+            {
+                "DistributionConfig": self._distribution_config(
+                    caller_reference,
+                    domains,
+                    certificate_id,
+                    origin_hostname,
+                    origin_path,
+                    enabled=False
+                ),
+                "Id": distribution_id
+            },
+        )
+
+    def expect_delete_distribution(
+        self,
+        distribution_id: str,
+    ):
+        self.stubber.add_response(
+            "delete_distribution",
+            {},
+            {"Id": distribution_id},
+        )
+
+    def expect_get_distribution(
+        self,
+        caller_reference: str,
+        domains: List[str],
+        certificate_id: str,
+        origin_hostname: str,
+        origin_path: str,
+        distribution_id: str,
+        status: str,
+        enabled: bool = True
     ):
         self.stubber.add_response(
             "get_distribution",
@@ -60,21 +129,8 @@ class FakeCloudFront(FakeAWS):
                 origin_path,
                 distribution_id,
                 "ignored",
-                "InProgress",
-            ),
-            {"Id": distribution_id},
-        )
-        self.stubber.add_response(
-            "get_distribution",
-            self._distribution_response(
-                caller_reference,
-                domains,
-                certificate_id,
-                origin_hostname,
-                origin_path,
-                distribution_id,
-                "ignored",
-                "Deployed",
+                status,
+                enabled
             ),
             {"Id": distribution_id},
         )
@@ -86,6 +142,7 @@ class FakeCloudFront(FakeAWS):
         iam_server_certificate_id: str,
         origin_hostname: str,
         origin_path: str,
+        enabled: bool = True
     ) -> Dict[str, Any]:
         return {
             "CallerReference": caller_reference,
@@ -153,7 +210,7 @@ class FakeCloudFront(FakeAWS):
                 "Prefix": "",
             },
             "PriceClass": "PriceClass_100",
-            "Enabled": True,
+            "Enabled": enabled,
             "ViewerCertificate": {
                 "CloudFrontDefaultCertificate": False,
                 "IAMCertificateId": iam_server_certificate_id,
@@ -173,6 +230,7 @@ class FakeCloudFront(FakeAWS):
         distribution_id: str,
         distribution_hostname: str,
         status: str = "InProgress",
+        enabled: bool = True
     ) -> Dict[str, Any]:
         return {
             "Distribution": {
@@ -189,6 +247,7 @@ class FakeCloudFront(FakeAWS):
                     iam_server_certificate_id,
                     origin_hostname,
                     origin_path,
+                    enabled
                 ),
             }
         }

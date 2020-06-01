@@ -39,4 +39,5 @@ def create_app():
     @app.route("/ping")
     def ping():
         return "PONG"
+
     return app

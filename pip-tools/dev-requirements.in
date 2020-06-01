@@ -2,6 +2,7 @@
 -r ../requirements.txt
 black
 factory_boy
+flake8
 flask-testing
 mypy
 pip-tools
@@ -10,6 +11,6 @@ pprintpp
 pytest
 pytest-profiling
 pytest-watch
+python-language-server
 requests
 rope
-flake8

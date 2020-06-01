@@ -42,8 +42,14 @@ def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: s
         .then(answer_challenges, operation_id, correlation_id=correlation_id)
         .then(retrieve_certificate, operation_id, correlation_id=correlation_id)
         .then(upload_certs_to_iam, operation_id, correlation_id=correlation_id)
-        .then(create_cloudfront_distribution, operation_id, correlation_id=correlation_id)
-        .then(wait_for_cloudfront_distribution, operation_id, correlation_id=correlation_id)
+        .then(
+            create_cloudfront_distribution, operation_id, correlation_id=correlation_id
+        )
+        .then(
+            wait_for_cloudfront_distribution,
+            operation_id,
+            correlation_id=correlation_id,
+        )
         .then(create_ALIAS_records, operation_id, correlation_id=correlation_id)
         .then(wait_for_route53_changes, operation_id, correlation_id=correlation_id)
         .then(mark_operation_as_succeeded, operation_id, correlation_id=correlation_id)
@@ -56,8 +62,18 @@ def queue_all_deprovision_tasks_for_operation(operation_id: int, correlation_id:
         raise RuntimeError("correlation_id must be set")
     if operation_id is None:
         raise RuntimeError("operation_id must be set")
-    task_pipeline = remove_ALIAS_records.s(operation_id).then(
-        remove_TXT_records, operation_id, correlation_id=correlation_id
+    task_pipeline = (
+        remove_ALIAS_records.s(operation_id, correlation_id=correlation_id)
+        .then(remove_TXT_records, operation_id, correlation_id=correlation_id)
+        .then(
+            disable_cloudfront_distribution, operation_id, correlation_id=correlation_id
+        )
+        .then(
+            wait_for_cloudfront_distribution_disabled, operation_id, correlation_id=correlation_id
+        )
+        .then(
+            delete_cloudfront_distribution_disabled, operation_id, correlation_id=correlation_id
+        )
     )
     huey.enqueue(task_pipeline)
 
@@ -72,8 +88,9 @@ retriable_task = huey.task(retries=(6 * 24), retry_delay=(60 * 10))
 @huey.pre_execute(name="Set Correlation ID")
 def register_correlation_id(task):
     args, kwargs = task.data
-    correlation_id = kwargs.pop('correlation_id', 'Rogue Task')
+    correlation_id = kwargs.pop("correlation_id", "Rogue Task")
     cf_logging.FRAMEWORK.context.set_correlation_id(correlation_id)
+
 
 @huey.signal()
 def log_task_transition(signal, task, exc=None):
@@ -82,6 +99,7 @@ def log_task_transition(signal, task, exc=None):
     logger.info("task signal received", extra=extra)
     if exc is not None:
         logger.exception(msg="task raised exception", extra=extra, exc_info=exc)
+
 
 @retriable_task
 def create_le_user(operation_id: int, **kwargs):
@@ -344,7 +362,7 @@ def answer_challenges(operation_id: int, **kwargs):
 
 
 @retriable_task
-def retrieve_certificate(operation_id: int,  **kwargs):
+def retrieve_certificate(operation_id: int, **kwargs):
     def cert_from_fullchain(fullchain_pem: str) -> str:
         """extract cert_pem from fullchain_pem
 
@@ -523,6 +541,41 @@ def create_cloudfront_distribution(operation_id: int, **kwargs):
 
 
 @retriable_task
+def disable_cloudfront_distribution(operation_id: int, **kwargs):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    distribution_config = cloudfront.get_distribution_config(
+        Id=service_instance.cloudfront_distribution_id
+    )
+    distribution_config["DistributionConfig"]["Enabled"] = False
+    cloudfront.update_distribution(DistributionConfig=distribution_config["DistributionConfig"], Id=service_instance.cloudfront_distribution_id)
+
+
+@retriable_task
+def wait_for_cloudfront_distribution_disabled(operation_id: int, **kwargs):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    enabled = True
+    num_times = 0
+    while enabled:
+        num_times+=1
+        if num_times >= 60:
+            logger.info("Failed to disable distribution", extra={"operation_id": operation_id, "cloudfront_distribution_id": service_instance.cloudfront_distribution_id})
+            raise RuntimeError("Failed to disable distribution")
+        time.sleep(config.CLOUDFRONT_PROPAGATION_SLEEP_TIME)
+        status = cloudfront.get_distribution(Id=service_instance.cloudfront_distribution_id)
+        enabled = status['Distribution']['DistributionConfig']['Enabled']
+
+
+@retriable_task
+def delete_cloudfront_distribution_disabled(operation_id: int, **kwargs):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    cloudfront.delete_distribution(Id=service_instance.cloudfront_distribution_id)
+
+@retriable_task
 def wait_for_cloudfront_distribution(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
@@ -537,7 +590,7 @@ def wait_for_cloudfront_distribution(operation_id: str, **kwargs):
 
 
 @retriable_task
-def create_ALIAS_records(operation_id: str,  **kwargs):
+def create_ALIAS_records(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     print(f"Creating ALIAS records for {service_instance.domain_names}")

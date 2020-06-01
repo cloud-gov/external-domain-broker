@@ -16,7 +16,6 @@ from tests.lib.factories import ServiceInstanceFactory
 # these subtasks when testing failure scenarios.
 
 
-
 def test_refuses_to_provision_synchronously(client):
     client.provision_instance("4321", accepts_incomplete="false")
 
@@ -311,13 +310,23 @@ def subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront):
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
 
-    cloudfront.expect_wait_for_distribution(
+    cloudfront.expect_get_distribution(
         caller_reference=service_instance.id,
         domains=service_instance.domain_names,
         certificate_id=service_instance.iam_server_certificate_id,
         origin_hostname=service_instance.cloudfront_origin_hostname,
         origin_path=service_instance.cloudfront_origin_path,
         distribution_id="FakeDistributionId",
+        status="InProgress"
+    )
+    cloudfront.expect_get_distribution(
+        caller_reference=service_instance.id,
+        domains=service_instance.domain_names,
+        certificate_id=service_instance.iam_server_certificate_id,
+        origin_hostname=service_instance.cloudfront_origin_hostname,
+        origin_path=service_instance.cloudfront_origin_path,
+        distribution_id="FakeDistributionId",
+        status="Deployed"
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -349,4 +358,3 @@ def subtest_provision_marks_operation_as_succeeded(tasks):
     operation = service_instance.operations.first()
     assert operation
     assert "succeeded" == operation.state
-

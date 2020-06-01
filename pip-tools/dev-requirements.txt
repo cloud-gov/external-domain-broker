@@ -35,6 +35,7 @@ gunicorn==20.0.4          # via -r pip-tools/../requirements.txt
 huey==2.2.0               # via -r pip-tools/../requirements.txt
 idna==2.9                 # via -r pip-tools/../requirements.txt, requests
 itsdangerous==1.1.0       # via -r pip-tools/../requirements.txt, flask
+jedi==0.17.0              # via python-language-server
 jinja2==2.11.1            # via -r pip-tools/../requirements.txt, flask
 jmespath==0.10.0          # via -r pip-tools/../requirements.txt, boto3, botocore
 josepy==1.3.0             # via -r pip-tools/../requirements.txt, acme
@@ -48,10 +49,11 @@ mypy==0.770               # via -r pip-tools/dev-requirements.in
 git+git://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d#egg=openbrokerapi  # via -r pip-tools/../requirements.txt
 orderedmultidict==1.0.1   # via -r pip-tools/../requirements.txt, furl
 packaging==20.3           # via pytest
+parso==0.7.0              # via jedi
 pathspec==0.8.0           # via black
 pathtools==0.1.2          # via watchdog
 pip-tools==5.0.0          # via -r pip-tools/dev-requirements.in
-pluggy==0.13.1            # via pytest
+pluggy==0.13.1            # via pytest, python-language-server
 pp-ez==0.2.0              # via -r pip-tools/dev-requirements.in
 pprintpp==0.4.0           # via -r pip-tools/dev-requirements.in
 psycopg2==2.8.5           # via -r pip-tools/../requirements.txt
@@ -68,6 +70,8 @@ pytest==5.4.1             # via -r pip-tools/dev-requirements.in, pytest-profili
 python-dateutil==2.8.1    # via -r pip-tools/../requirements.txt, alembic, botocore, faker
 python-dotenv==0.13.0     # via -r pip-tools/../requirements.txt, environs
 python-editor==1.0.4      # via -r pip-tools/../requirements.txt, alembic
+python-jsonrpc-server==0.3.4  # via python-language-server
+python-language-server==0.33.0  # via -r pip-tools/dev-requirements.in
 pytz==2020.1              # via -r pip-tools/../requirements.txt, acme, pyrfc3339
 redis==3.5.0              # via -r pip-tools/../requirements.txt
 regex==2020.5.7           # via black
@@ -83,6 +87,7 @@ text-unidecode==1.3       # via faker
 toml==0.10.0              # via black
 typed-ast==1.4.1          # via black, mypy
 typing-extensions==3.7.4.2  # via mypy
+ujson==1.35               # via python-jsonrpc-server, python-language-server
 urllib3==1.25.9           # via -r pip-tools/../requirements.txt, botocore, requests
 watchdog==0.10.2          # via pytest-watch
 wcwidth==0.1.9            # via pytest
