@@ -73,10 +73,8 @@ retriable_task = huey.task(retries=(6 * 24), retry_delay=(60 * 10))
 @huey.pre_execute(name="Set Correlation ID")
 def register_correlation_id(task):
     args, kwargs = task.data
-    if "correlation_id" in kwargs:
-        cf_logging.FRAMEWORK.context.set_correlation_id(kwargs["correlation_id"])
-    else:
-        cf_logging.FRAMEWORK.context.set_correlation_id("Rogue Task")
+    correlation_id = kwargs.pop('correlation_id', 'Rogue Task')
+    cf_logging.FRAMEWORK.context.set_correlation_id(correlation_id)
 
 @retriable_task
 def create_le_user(operation_id: int, **kwargs):
