@@ -64,6 +64,20 @@ class FakeCloudFront(FakeAWS):
             {"Id": distribution_id},
         )
 
+
+    def expect_get_distribution_config_returning_no_such_distribution(
+        self,
+        distribution_id: str,
+    ):
+        self.stubber.add_client_error(
+            "get_distribution_config",
+            service_error_code='NoSuchDistribution',
+            service_message="'Ain't there.",
+            http_status_code=404,
+            expected_params={"Id": distribution_id}
+        )
+
+
     def expect_disable_distribution(
         self,
         caller_reference: str,
@@ -108,6 +122,18 @@ class FakeCloudFront(FakeAWS):
             {"Id": distribution_id},
         )
 
+    def expect_delete_distribution_returning_no_such_distribution(
+        self,
+        distribution_id: str,
+    ):
+        self.stubber.add_client_error(
+            "delete_distribution",
+            service_error_code='NoSuchDistribution',
+            service_message="'Ain't there.",
+            http_status_code=404,
+            expected_params={"Id": distribution_id}
+        )
+
     def expect_get_distribution(
         self,
         caller_reference: str,
@@ -133,6 +159,18 @@ class FakeCloudFront(FakeAWS):
                 enabled
             ),
             {"Id": distribution_id},
+        )
+
+    def expect_get_distribution_returning_no_such_distribution(
+        self,
+        distribution_id: str,
+    ):
+        self.stubber.add_client_error(
+            "get_distribution",
+            service_error_code='NoSuchDistribution',
+            service_message="'Ain't there.",
+            http_status_code=404,
+            expected_params={"Id": distribution_id}
         )
 
     def _distribution_config(

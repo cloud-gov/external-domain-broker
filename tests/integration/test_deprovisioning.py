@@ -43,6 +43,19 @@ def test_refuses_to_deprovision_synchronously_by_default(client, service_instanc
     assert "AsyncRequired" in client.response.body
     assert client.response.status_code == 422
 
+def test_deprovision_continues_when_distribution_is_already_gone(
+    client, service_instance, dns, tasks, route53, iam, simple_regex, cloudfront
+):
+    subtest_deprovision_creates_deprovision_operation(client, service_instance)
+    subtest_deprovision_removes_ALIAS_records(tasks, route53)
+    subtest_deprovision_removes_TXT_records(tasks, route53)
+
+    subtest_deprovision_disables_cloudfront_distribution_when_missing(
+        tasks, service_instance, cloudfront
+    )
+    subtest_deprovision_waits_for_cloudfront_distribution_disabled_when_missing(tasks, service_instance, cloudfront)
+    subtest_deprovision_removes_cloudfront_distribution_when_missing(tasks, service_instance, cloudfront)
+
 
 def test_deprovision_happy_path(
     client, service_instance, dns, tasks, route53, iam, simple_regex, cloudfront
@@ -151,5 +164,32 @@ def subtest_deprovision_waits_for_cloudfront_distribution_disabled(tasks, servic
 
 def subtest_deprovision_removes_cloudfront_distribution(tasks, service_instance, cloudfront):
     cloudfront.expect_delete_distribution(distribution_id=service_instance.cloudfront_distribution_id)
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    cloudfront.assert_no_pending_responses()
+
+
+def subtest_deprovision_disables_cloudfront_distribution_when_missing(
+    tasks, service_instance, cloudfront
+):
+    cloudfront.expect_get_distribution_config_returning_no_such_distribution(
+        distribution_id=service_instance.cloudfront_distribution_id,
+    )
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    cloudfront.assert_no_pending_responses()
+
+
+def subtest_deprovision_waits_for_cloudfront_distribution_disabled_when_missing(tasks, service_instance, cloudfront):
+    cloudfront.expect_get_distribution_returning_no_such_distribution(
+        distribution_id=service_instance.cloudfront_distribution_id,
+    )
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    cloudfront.assert_no_pending_responses()
+
+
+def subtest_deprovision_removes_cloudfront_distribution_when_missing(tasks, service_instance, cloudfront):
+    cloudfront.expect_delete_distribution_returning_no_such_distribution(
+        distribution_id=service_instance.cloudfront_distribution_id,
+    )
     tasks.run_queued_tasks_and_enqueue_dependents()
     cloudfront.assert_no_pending_responses()

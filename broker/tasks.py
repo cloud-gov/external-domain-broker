@@ -545,11 +545,14 @@ def disable_cloudfront_distribution(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
-    distribution_config = cloudfront.get_distribution_config(
-        Id=service_instance.cloudfront_distribution_id
-    )
-    distribution_config["DistributionConfig"]["Enabled"] = False
-    cloudfront.update_distribution(DistributionConfig=distribution_config["DistributionConfig"], Id=service_instance.cloudfront_distribution_id)
+    try:
+        distribution_config = cloudfront.get_distribution_config(
+            Id=service_instance.cloudfront_distribution_id
+        )
+        distribution_config["DistributionConfig"]["Enabled"] = False
+        cloudfront.update_distribution(DistributionConfig=distribution_config["DistributionConfig"], Id=service_instance.cloudfront_distribution_id)
+    except cloudfront.exceptions.NoSuchDistribution:
+        return
 
 
 @retriable_task
@@ -565,7 +568,10 @@ def wait_for_cloudfront_distribution_disabled(operation_id: int, **kwargs):
             logger.info("Failed to disable distribution", extra={"operation_id": operation_id, "cloudfront_distribution_id": service_instance.cloudfront_distribution_id})
             raise RuntimeError("Failed to disable distribution")
         time.sleep(config.CLOUDFRONT_PROPAGATION_SLEEP_TIME)
-        status = cloudfront.get_distribution(Id=service_instance.cloudfront_distribution_id)
+        try:
+            status = cloudfront.get_distribution(Id=service_instance.cloudfront_distribution_id)
+        except cloudfront.exceptions.NoSuchDistribution:
+            return
         enabled = status['Distribution']['DistributionConfig']['Enabled']
 
 
@@ -573,7 +579,10 @@ def wait_for_cloudfront_distribution_disabled(operation_id: int, **kwargs):
 def delete_cloudfront_distribution_disabled(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
-    cloudfront.delete_distribution(Id=service_instance.cloudfront_distribution_id)
+    try:
+        cloudfront.delete_distribution(Id=service_instance.cloudfront_distribution_id)
+    except cloudfront.exceptions.NoSuchDistribution:
+        return
 
 @retriable_task
 def wait_for_cloudfront_distribution(operation_id: str, **kwargs):
