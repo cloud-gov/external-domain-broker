@@ -20,8 +20,8 @@ from broker.api import API
 def create_app():
 
     app = Flask(__name__)
-    if not cf_logging._SETUP_DONE:
-        flask_logging.init(app)
+    cf_logging._SETUP_DONE = False
+    flask_logging.init(app)
     logger = logging.getLogger(__name__)
     app.config.from_object(config)
     app.huey = huey
