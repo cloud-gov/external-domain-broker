@@ -25,10 +25,10 @@ from broker.aws import route53, iam, cloudfront
 if not cf_logging._SETUP_DONE:
     cf_logging.init()
 
+logger = logging.getLogger(__name__)
 
 
 def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: str):
-    logger = logging.getLogger(__name__)
     if correlation_id is None:
         raise RuntimeError("correlation_id must be set")
     if operation_id is None:
@@ -52,7 +52,6 @@ def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: s
 
 
 def queue_all_deprovision_tasks_for_operation(operation_id: int, correlation_id: str):
-    logger = logging.getLogger(__name__)
     if correlation_id is None:
         raise RuntimeError("correlation_id must be set")
     if operation_id is None:
@@ -75,6 +74,12 @@ def register_correlation_id(task):
     args, kwargs = task.data
     correlation_id = kwargs.pop('correlation_id', 'Rogue Task')
     cf_logging.FRAMEWORK.context.set_correlation_id(correlation_id)
+
+@huey.signal()
+def log_task_transition(signal, task, exc=None):
+    args, kwargs = task.data
+    extra = dict(operation_id=args[0], task_id=task.id)
+    logger.info("task signal received", extra=extra)
 
 @retriable_task
 def create_le_user(operation_id: int, **kwargs):
