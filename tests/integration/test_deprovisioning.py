@@ -1,5 +1,4 @@
 import pytest
-from openbrokerapi.service_broker import OperationState
 
 from broker.models import Operation
 from broker.extensions import db
@@ -51,8 +50,8 @@ def subtest_deprovision_creates_deprovision_operation(client, service_instance):
     operation = Operation.query.get(operation_id)
 
     assert operation is not None
-    assert operation.state == OperationState.IN_PROGRESS
-    assert operation.action == Operation.Actions.DEPROVISION
+    assert operation.state == Operation.States.IN_PROGRESS.value
+    assert operation.action == Operation.Actions.DEPROVISION.value
     assert operation.service_instance_id == service_instance.id
 
 

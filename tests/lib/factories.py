@@ -32,8 +32,8 @@ class OperationFactory(BaseFactory):
     class Meta(object):
         model = Operation
 
-    state = Operation.States.IN_PROGRESS
-    action = Operation.Actions.PROVISION
+    state = Operation.States.IN_PROGRESS.value
+    action = Operation.Actions.PROVISION.value
     service_instance = SubFactory(ServiceInstanceFactory)
 
 

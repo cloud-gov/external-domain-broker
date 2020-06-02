@@ -11,7 +11,6 @@ from openbrokerapi.service_broker import (
     DeprovisionDetails,
     DeprovisionServiceSpec,
     LastOperation,
-    OperationState,
     ProvisionDetails,
     ProvisionedServiceSpec,
     ProvisionState,
@@ -93,7 +92,7 @@ class API(ServiceBroker):
                 msg=f"Invalid operation id {operation_data} for service {instance_id}"
             )
 
-        return LastOperation(state=operation.state)
+        return LastOperation(state=Operation.States(operation.state))
 
     def provision(
         self, instance_id: str, details: ProvisionDetails, async_allowed: bool, **kwargs
@@ -119,9 +118,9 @@ class API(ServiceBroker):
         instance.cloudfront_origin_path = params.get("path", "")
 
         operation = Operation(
-            state=OperationState.IN_PROGRESS,
+            state=Operation.States.IN_PROGRESS.value,
             service_instance=instance,
-            action=Operation.Actions.PROVISION,
+            action=Operation.Actions.PROVISION.value,
         )
 
         db.session.add(instance)
@@ -147,9 +146,9 @@ class API(ServiceBroker):
         if not instance:
             raise errors.ErrInstanceDoesNotExist
         operation = Operation(
-            state=OperationState.IN_PROGRESS,
+            state=Operation.States.IN_PROGRESS.value,
             service_instance=instance,
-            action=Operation.Actions.DEPROVISION,
+            action=Operation.Actions.DEPROVISION.value,
         )
 
         db.session.add(operation)

@@ -609,6 +609,6 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
 @retriable_task
 def mark_operation_as_succeeded(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
-    operation.state = Operation.States.SUCCEEDED
+    operation.state = Operation.States.SUCCEEDED.value
     db.session.add(operation)
     db.session.commit()

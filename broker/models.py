@@ -67,8 +67,10 @@ class ServiceInstance(Base):
 
 
 class Operation(Base):
+    # operation.state = Operation.States.IN_PROGRESS.value
     States = OperationState
 
+    # operation.action = Operation.Actions.PROVISION.value
     class Actions(Enum):
         PROVISION = "Provision"
         DEPROVISION = "Deprovision"
@@ -78,13 +80,13 @@ class Operation(Base):
         db.String, db.ForeignKey("service_instance.id"), nullable=False
     )
     state = db.Column(
-        db.Enum(States, values_callable=lambda obj: [e.value for e in obj]),
+        db.String,
         default=States.IN_PROGRESS.value,
         server_default=States.IN_PROGRESS.value,
         nullable=False,
     )
     action = db.Column(
-        db.Enum(Actions, values_callable=lambda obj: [e.value for e in obj]),
+        db.String,
         nullable=False,
     )
 

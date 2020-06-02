@@ -2,8 +2,6 @@ import pytest  # noqa F401
 import json
 from datetime import date
 
-from openbrokerapi.service_broker import OperationState
-
 from broker.extensions import db, config
 from broker.models import Operation, ServiceInstance, Challenge
 
@@ -146,8 +144,8 @@ def subtest_provision_creates_provision_operation(client, dns):
     operation = Operation.query.get(operation_id)
 
     assert operation is not None
-    assert operation.state == OperationState.IN_PROGRESS
-    assert operation.action == Operation.Actions.PROVISION
+    assert operation.state == "in progress"
+    assert operation.action == "Provision"
     assert operation.service_instance_id == "4321"
 
     instance = ServiceInstance.query.get(operation.service_instance_id)
@@ -350,5 +348,5 @@ def subtest_provision_marks_operation_as_succeeded(tasks):
     service_instance = ServiceInstance.query.get("4321")
     operation = service_instance.operations.first()
     assert operation
-    assert operation.States.SUCCEEDED == operation.state
+    assert "succeeded" == operation.state
 
