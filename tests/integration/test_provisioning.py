@@ -1,10 +1,10 @@
-import pytest  # noqa F401
 import json
-from datetime import date
+from datetime import date, datetime
 
-from broker.extensions import db, config
-from broker.models import Operation, ServiceInstance, Challenge
+import pytest  # noqa F401
 
+from broker.extensions import config, db
+from broker.models import Challenge, Operation, ServiceInstance
 from tests.lib.factories import ServiceInstanceFactory
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we
@@ -48,6 +48,17 @@ def test_refuses_to_provision_with_duplicate_domains(client, dns):
 
     assert "already exists" in client.response.body, client.response.body
     assert client.response.status_code == 400, client.response.body
+
+
+def test_duplicate_domain_check_ignores_deactivated(client, dns):
+    ServiceInstanceFactory.create(
+        domain_names="foo.com", deactivated_at=datetime.utcnow()
+    )
+    dns.add_cname("_acme-challenge.foo.com")
+
+    client.provision_instance("4321", params={"domains": "foo.com"})
+
+    assert client.response.status_code == 202, client.response.body
 
 
 def test_refuses_to_provision_without_any_acme_challenge_CNAMEs(client):
@@ -232,12 +243,12 @@ def subtest_provision_ansers_challenges(tasks, dns):
     ).first()
 
     dns.add_txt(
-        f"_acme-challenge.example.com.domains.cloud.test.",
+        "_acme-challenge.example.com.domains.cloud.test.",
         example_com_challenge.validation_contents,
     )
 
     dns.add_txt(
-        f"_acme-challenge.foo.com.domains.cloud.test.",
+        "_acme-challenge.foo.com.domains.cloud.test.",
         foo_com_challenge.validation_contents,
     )
 

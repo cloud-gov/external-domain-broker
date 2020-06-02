@@ -1,8 +1,8 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
-from broker.aws import iam as real_iam
 
+from broker.aws import iam as real_iam
 from tests.lib.fake_aws import FakeAWS
 
 
@@ -35,7 +35,7 @@ class FakeIAM(FakeAWS):
 
     def expects_delete_server_certificate(self, name: str):
         self.stubber.add_response(
-            "delete_server_certificate", {}, {"ServerCertificateName": name,}
+            "delete_server_certificate", {}, {"ServerCertificateName": name}
         )
 
     def expects_delete_server_certificate_returning_no_such_entity(self, name: str):

@@ -1,7 +1,7 @@
 import pytest  # noqa F401
 
-from tests.lib import factories
 from broker.models import Operation
+from tests.lib import factories
 
 
 def test_last_operation_without_id_fails(client):

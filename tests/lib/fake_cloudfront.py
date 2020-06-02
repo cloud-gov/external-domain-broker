@@ -1,10 +1,9 @@
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 import pytest
 
 from broker.aws import cloudfront as real_cloudfront
-
 from tests.lib.fake_aws import FakeAWS
 
 

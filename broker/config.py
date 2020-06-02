@@ -1,10 +1,10 @@
 """Flask config class."""
 import os
 import re
+from typing import Type
 
 from cfenv import AppEnv
 from environs import Env
-from typing import Type
 
 
 def env_mappings():
@@ -153,4 +153,4 @@ class TestConfig(DockerConfig):
 
 class MissingRedisError(RuntimeError):
     def __init__(self):
-        super().__init__(f"Cannot find redis in VCAP_SERVICES")
+        super().__init__("Cannot find redis in VCAP_SERVICES")

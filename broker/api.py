@@ -1,8 +1,5 @@
 import logging
-import sys
 from typing import Optional
-
-from sap import cf_logging
 
 from openbrokerapi import errors
 from openbrokerapi.service_broker import (
@@ -21,13 +18,14 @@ from openbrokerapi.service_broker import (
     UnbindDetails,
     UnbindSpec,
 )
+from sap import cf_logging
 
-from broker.extensions import db, config
-from broker.models import Operation, ServiceInstance
 from broker import validators
-from broker.tasks import (
-    queue_all_provision_tasks_for_operation,
+from broker.extensions import config, db
+from broker.models import Operation, ServiceInstance
+from broker.tasks.pipelines import (
     queue_all_deprovision_tasks_for_operation,
+    queue_all_provision_tasks_for_operation,
 )
 
 

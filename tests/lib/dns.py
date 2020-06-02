@@ -23,12 +23,12 @@ class DNS:
         def __post_init__(self):
             if self.record_type == "txt":
                 requests.post(
-                    self.base + f"/set-txt",
+                    self.base + "/set-txt",
                     json={"host": self.host, "value": self.value},
                 ).raise_for_status()
             elif self.record_type == "cname":
                 requests.post(
-                    self.base + f"/set-cname",
+                    self.base + "/set-cname",
                     json={"host": self.host, "target": self.target},
                 ).raise_for_status()
             else:
@@ -41,7 +41,7 @@ class DNS:
 
         def print_history(self):
             response = requests.post(
-                self.base + f"/dns-request-history", json={"host": self.host}
+                self.base + "/dns-request-history", json={"host": self.host}
             )
             response.raise_for_status()
             items = response.json()

@@ -1,17 +1,16 @@
 import base64
-import contextlib
 import os
-import sys
 
 import flask_migrate
 import pytest
-from sap import cf_logging
 from flask import current_app
 from flask.testing import FlaskClient
 from flask.wrappers import Response
+from sap import cf_logging
 from werkzeug.datastructures import Headers
 
 from broker.app import create_app, db
+from broker.tasks.huey import huey
 
 
 class CFAPIResponse(Response):
@@ -82,7 +81,7 @@ class CFAPIClient(FlaskClient):
         )
 
     def get_catalog(self):
-        self.get(f"/v2/catalog")
+        self.get("/v2/catalog")
 
     def get_last_operation(self, instance_id: str, op_id: str):
         self.get(
@@ -106,7 +105,7 @@ def app():
             print(f"Removing {db_path}")
             os.remove(db_path)
 
-        print(f"Running migrations")
+        print("Running migrations")
         flask_migrate.upgrade()
         db.session.commit()  # Cargo Cult
         yield current_app
@@ -114,11 +113,11 @@ def app():
 
 @pytest.fixture(scope="function")
 def clean_db(app):
-    print(f"Clearing Redis")
-    current_app.huey.storage.conn.flushall()
+    print("Clearing Redis")
+    huey.storage.conn.flushall()
 
     yield db
-    print(f"Recreating tables")
+    print("Recreating tables")
     db.session.remove()
     db.drop_all()
     db.create_all()

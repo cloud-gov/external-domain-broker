@@ -68,7 +68,8 @@ class UniqueDomains:
 
     def _error_for_domain(self, domain: str) -> str:
         if ServiceInstance.query.filter(
-            ServiceInstance.domain_names.contains(domain)
+            ServiceInstance.deactivated_at == None,  # noqa: E711
+            ServiceInstance.domain_names.contains(domain),
         ).count():
             return domain
         else:

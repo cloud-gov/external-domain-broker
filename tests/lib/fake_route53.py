@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 import pytest
 
 from broker.aws import route53 as real_route53
-
 from tests.lib.fake_aws import FakeAWS
 
 

@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+
 from botocore import stub
 
 # How I would love to use Localstack or Moto instead.

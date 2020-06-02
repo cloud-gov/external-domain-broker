@@ -1,8 +1,8 @@
-from factory import Sequence, SubFactory, LazyAttribute
+from factory import LazyAttribute, Sequence, SubFactory
 from factory.alchemy import SQLAlchemyModelFactory
 
 from broker.extensions import db
-from broker.models import Operation, ServiceInstance, ACMEUser, Challenge
+from broker.models import ACMEUser, Challenge, Operation, ServiceInstance
 
 
 class BaseFactory(SQLAlchemyModelFactory):

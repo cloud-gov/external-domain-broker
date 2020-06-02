@@ -6,7 +6,7 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import (
     StringEncryptedType,
 )
 
-from broker.extensions import db, config
+from broker.extensions import config, db
 
 
 def db_encryption_key():
@@ -62,6 +62,8 @@ class ServiceInstance(Base):
     cloudfront_origin_path = db.Column(db.String)
 
     route53_change_ids = db.Column(db.JSON, default=[])
+
+    deactivated_at = db.Column(db.TIMESTAMP(timezone=True))
 
     def __repr__(self):
         return f"<ServiceInstance {self.id} {self.domain_names}>"

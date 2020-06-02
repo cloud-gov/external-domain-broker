@@ -1,7 +1,6 @@
-import pytest
+import pytest  # noqa F401
 
 from broker.extensions import db
-from broker.models import ACMEUser, ServiceInstance
 from tests.lib.factories import ACMEUserFactory, ServiceInstanceFactory
 
 

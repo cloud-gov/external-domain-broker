@@ -1,9 +1,8 @@
 import pytest
-from flask import current_app
-from broker.extensions import huey
-from huey import signals as S
 from huey import Huey
-import traceback
+from huey import signals as S
+
+from broker.tasks.huey import huey
 
 
 @huey.signal(S.SIGNAL_ERROR)
@@ -25,9 +24,6 @@ Huey._emit = _emit_without_exception_catching
 
 
 class Tasks:
-    def __init__(self):
-        self.huey = current_app.huey
-
     def run_queued_tasks_and_enqueue_dependents(self):
         """
         Runs all currently queued tasks.  Enqueues pipeline tasks (created with
@@ -41,17 +37,17 @@ class Tasks:
 
         currently_queued_tasks = []
 
-        task = self.huey.dequeue()
+        task = huey.dequeue()
         while task:
             currently_queued_tasks.append(task)
-            task = self.huey.dequeue()
+            task = huey.dequeue()
 
         if not currently_queued_tasks:
             pytest.fail("No tasks queued to run!")
 
         for task in currently_queued_tasks:
             print(f"Executing Task {task.name}")
-            self.huey.execute(task, None)
+            huey.execute(task, None)
 
 
 @pytest.fixture(scope="function")

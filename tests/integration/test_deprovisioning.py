@@ -1,7 +1,7 @@
 import pytest  # noqa F401
 
-from broker.models import Operation
 from broker.extensions import db
+from broker.models import Operation, ServiceInstance
 from tests.lib import factories
 
 
@@ -16,6 +16,7 @@ def service_instance():
         cloudfront_distribution_id="FakeDistributionId",
         cloudfront_origin_hostname="origin_hostname",
         cloudfront_origin_path="origin_path",
+        private_key_pem="SOMEPRIVATEKEY",
     )
     factories.ChallengeFactory.create(
         domain="example.com",
@@ -82,10 +83,7 @@ def test_deprovision_happy_path(
         tasks, service_instance, cloudfront
     )
     subtest_deprovision_removes_certificate_from_iam(tasks, service_instance, iam)
-    # subtest_deprovision_waits_for_route53_changes(tasks, service_instance, route53)
-    # subtest_deprovision_removes_LE_certificate(tasks, service_instance)
-    # subtest_deprovision_removes_LE_user(tasks, service_instance)
-    # subtest_deprovision_marks_operation_as_succeeded(tasks, service_instance)
+    subtest_deprovision_marks_operation_as_succeeded(tasks)
 
 
 def subtest_deprovision_creates_deprovision_operation(client, service_instance):
@@ -232,3 +230,19 @@ def subtest_deprovision_removes_certificate_from_iam_when_missing(
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
     iam.assert_no_pending_responses()
+
+
+def subtest_deprovision_marks_operation_as_succeeded(tasks):
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("1234")
+    assert not service_instance.deactivated_at
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("1234")
+    assert service_instance.deactivated_at
+    assert not service_instance.private_key_pem
+
+    operation = service_instance.operations.first()
+    assert operation.state == "succeeded"
