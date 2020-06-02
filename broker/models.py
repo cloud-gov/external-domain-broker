@@ -53,6 +53,7 @@ class ServiceInstance(Base):
     fullchain_pem = db.Column(db.Text)
 
     iam_server_certificate_id = db.Column(db.String)
+    iam_server_certificate_name = db.Column(db.String)
     iam_server_certificate_arn = db.Column(db.String)
     cloudfront_distribution_arn = db.Column(db.String)
     cloudfront_distribution_id = db.Column(db.String)

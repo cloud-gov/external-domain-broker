@@ -263,7 +263,7 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex):
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
 
-    iam.expect_certificate_upload(
+    iam.expect_upload_server_certificate(
         name=f"{service_instance.id}-{today}",
         cert=service_instance.cert_pem,
         private_key=service_instance.private_key_pem,
@@ -274,6 +274,8 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex):
 
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
+    assert service_instance.iam_server_certificate_name
+    assert service_instance.iam_server_certificate_name.startswith("4321")
     assert service_instance.iam_server_certificate_id
     assert service_instance.iam_server_certificate_id.startswith("FAKE_CERT_ID")
     assert service_instance.iam_server_certificate_arn
@@ -317,7 +319,7 @@ def subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront):
         origin_hostname=service_instance.cloudfront_origin_hostname,
         origin_path=service_instance.cloudfront_origin_path,
         distribution_id="FakeDistributionId",
-        status="InProgress"
+        status="InProgress",
     )
     cloudfront.expect_get_distribution(
         caller_reference=service_instance.id,
@@ -326,7 +328,7 @@ def subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront):
         origin_hostname=service_instance.cloudfront_origin_hostname,
         origin_path=service_instance.cloudfront_origin_path,
         distribution_id="FakeDistributionId",
-        status="Deployed"
+        status="Deployed",
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

@@ -69,10 +69,17 @@ def queue_all_deprovision_tasks_for_operation(operation_id: int, correlation_id:
             disable_cloudfront_distribution, operation_id, correlation_id=correlation_id
         )
         .then(
-            wait_for_cloudfront_distribution_disabled, operation_id, correlation_id=correlation_id
+            wait_for_cloudfront_distribution_disabled,
+            operation_id,
+            correlation_id=correlation_id,
         )
         .then(
-            delete_cloudfront_distribution_disabled, operation_id, correlation_id=correlation_id
+            delete_cloudfront_distribution_disabled,
+            operation_id,
+            correlation_id=correlation_id,
+        )
+        .then(
+            delete_iam_server_certificate, operation_id, correlation_id=correlation_id
         )
     )
     huey.enqueue(task_pipeline)
@@ -429,9 +436,10 @@ def upload_certs_to_iam(operation_id: int, **kwargs):
 
     today = date.today().isoformat()
     iam_server_certificate_prefix = config.IAM_SERVER_CERTIFICATE_PREFIX
+    service_instance.iam_server_certificate_name = f"{service_instance.id}-{today}"
     response = iam.upload_server_certificate(
         Path=iam_server_certificate_prefix,
-        ServerCertificateName=f"{service_instance.id}-{today}",
+        ServerCertificateName=service_instance.iam_server_certificate_name,
         CertificateBody=service_instance.cert_pem,
         PrivateKey=service_instance.private_key_pem,
         CertificateChain=service_instance.fullchain_pem,
@@ -550,7 +558,10 @@ def disable_cloudfront_distribution(operation_id: int, **kwargs):
             Id=service_instance.cloudfront_distribution_id
         )
         distribution_config["DistributionConfig"]["Enabled"] = False
-        cloudfront.update_distribution(DistributionConfig=distribution_config["DistributionConfig"], Id=service_instance.cloudfront_distribution_id)
+        cloudfront.update_distribution(
+            DistributionConfig=distribution_config["DistributionConfig"],
+            Id=service_instance.cloudfront_distribution_id,
+        )
     except cloudfront.exceptions.NoSuchDistribution:
         return
 
@@ -563,16 +574,24 @@ def wait_for_cloudfront_distribution_disabled(operation_id: int, **kwargs):
     enabled = True
     num_times = 0
     while enabled:
-        num_times+=1
+        num_times += 1
         if num_times >= 60:
-            logger.info("Failed to disable distribution", extra={"operation_id": operation_id, "cloudfront_distribution_id": service_instance.cloudfront_distribution_id})
+            logger.info(
+                "Failed to disable distribution",
+                extra={
+                    "operation_id": operation_id,
+                    "cloudfront_distribution_id": service_instance.cloudfront_distribution_id,
+                },
+            )
             raise RuntimeError("Failed to disable distribution")
         time.sleep(config.CLOUDFRONT_PROPAGATION_SLEEP_TIME)
         try:
-            status = cloudfront.get_distribution(Id=service_instance.cloudfront_distribution_id)
+            status = cloudfront.get_distribution(
+                Id=service_instance.cloudfront_distribution_id
+            )
         except cloudfront.exceptions.NoSuchDistribution:
             return
-        enabled = status['Distribution']['DistributionConfig']['Enabled']
+        enabled = status["Distribution"]["DistributionConfig"]["Enabled"]
 
 
 @retriable_task
@@ -583,6 +602,7 @@ def delete_cloudfront_distribution_disabled(operation_id: int, **kwargs):
         cloudfront.delete_distribution(Id=service_instance.cloudfront_distribution_id)
     except cloudfront.exceptions.NoSuchDistribution:
         return
+
 
 @retriable_task
 def wait_for_cloudfront_distribution(operation_id: str, **kwargs):
@@ -674,3 +694,16 @@ def mark_operation_as_succeeded(operation_id: str, **kwargs):
     operation.state = Operation.States.SUCCEEDED.value
     db.session.add(operation)
     db.session.commit()
+
+
+@retriable_task
+def delete_iam_server_certificate(operation_id: str, **kwargs):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    try:
+        iam.delete_server_certificate(
+            ServerCertificateName=service_instance.iam_server_certificate_name
+        )
+    except iam.exceptions.NoSuchEntityException:
+        return

@@ -7,7 +7,7 @@ from tests.lib.fake_aws import FakeAWS
 
 
 class FakeIAM(FakeAWS):
-    def expect_certificate_upload(
+    def expect_upload_server_certificate(
         self, name: str, cert: str, private_key: str, chain: str
     ):
         now = datetime.now(timezone.utc)
@@ -32,6 +32,20 @@ class FakeIAM(FakeAWS):
             }
         }
         self.stubber.add_response(method, response, request)
+
+    def expects_delete_server_certificate(self, name: str):
+        self.stubber.add_response(
+            "delete_server_certificate", {}, {"ServerCertificateName": name,}
+        )
+
+    def expects_delete_server_certificate_returning_no_such_entity(self, name: str):
+        self.stubber.add_client_error(
+            "delete_server_certificate",
+            service_error_code="NoSuchEntity",
+            service_message="'Ain't there.",
+            http_status_code=404,
+            expected_params={"ServerCertificateName": name},
+        )
 
 
 @pytest.fixture(autouse=True)
