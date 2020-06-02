@@ -46,9 +46,7 @@ def run_migrations_offline():
 
     """
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(
-        url=url, target_metadata=target_metadata, literal_binds=True,
-    )
+    context.configure(url=url, target_metadata=target_metadata, literal_binds=True)
 
     with context.begin_transaction():
         context.run_migrations()
@@ -86,7 +84,7 @@ def run_migrations_online():
             # Added by Tammer Saleh as a fix for
             # https://stackoverflow.com/questions/30394222/why-flask-migrate-cannot-upgrade-when-drop-column
             render_as_batch=True,
-            **current_app.extensions["migrate"].configure_args
+            **current_app.extensions["migrate"].configure_args,
         )
 
         with context.begin_transaction():

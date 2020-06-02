@@ -20,6 +20,7 @@ def stop_task_from_retrying(signal, task):
 def _emit_without_exception_catching(self, signal, task, *args, **kwargs):
     self._signal.send(signal, task, *args, **kwargs)
 
+
 Huey._emit = _emit_without_exception_catching
 
 

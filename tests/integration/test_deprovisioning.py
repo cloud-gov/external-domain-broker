@@ -68,7 +68,7 @@ def subtest_deprovision_removes_ALIAS_records(tasks, service_instance, route53):
 
 def subtest_deprovision_removes_TXT_records(tasks, service_instance, route53):
     route53.expect_remove_TXT(
-        "_acme-challenge.example.com.domains.cloud.test", "example txt",
+        "_acme-challenge.example.com.domains.cloud.test", "example txt"
     )
     route53.expect_remove_TXT("_acme-challenge.foo.com.domains.cloud.test", "foo txt")
 
@@ -89,4 +89,3 @@ def test_deprovision_happy_path(
     # subtest_deprovision_removes_LE_certificate(tasks, service_instance)
     # subtest_deprovision_removes_LE_user(tasks, service_instance)
     # subtest_deprovision_marks_operation_as_succeeded(tasks, service_instance)
-

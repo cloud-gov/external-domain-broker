@@ -16,7 +16,6 @@ from tests.lib.factories import ServiceInstanceFactory
 # these subtasks when testing failure scenarios.
 
 
-
 def test_refuses_to_provision_synchronously(client):
     client.provision_instance("4321", accepts_incomplete="false")
 
@@ -43,9 +42,7 @@ def test_refuses_to_provision_with_duplicate_domains(client, dns):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
-    client.provision_instance(
-        "4321", params={"domains": "example.com, Foo.com"},
-    )
+    client.provision_instance("4321", params={"domains": "example.com, Foo.com"})
 
     assert "already exists" in client.response.body, client.response.body
     assert client.response.status_code == 400, client.response.body
@@ -349,4 +346,3 @@ def subtest_provision_marks_operation_as_succeeded(tasks):
     operation = service_instance.operations.first()
     assert operation
     assert "succeeded" == operation.state
-

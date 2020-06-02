@@ -9,5 +9,5 @@ config = config_from_env()
 db = SQLAlchemy()
 migrate = Migrate()
 huey = RedisHuey(
-    host=config.REDIS_HOST, port=config.REDIS_PORT, password=config.REDIS_PASSWORD,
+    host=config.REDIS_HOST, port=config.REDIS_PORT, password=config.REDIS_PASSWORD
 )

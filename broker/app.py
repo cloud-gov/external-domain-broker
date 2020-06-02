@@ -8,12 +8,7 @@ from sap.cf_logging import flask_logging
 # We need to import models, even though it's unused, in order to enable
 # `flask db migrate`
 from broker import models  # noqa: F401
-from broker.extensions import (
-    db,
-    huey,
-    config,
-    migrate,
-)
+from broker.extensions import db, huey, config, migrate
 from broker.api import API
 
 
@@ -39,4 +34,5 @@ def create_app():
     @app.route("/ping")
     def ping():
         return "PONG"
+
     return app

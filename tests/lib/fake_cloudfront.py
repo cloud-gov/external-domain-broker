@@ -102,10 +102,7 @@ class FakeCloudFront(FakeAWS):
                             "HTTPPort": 80,
                             "HTTPSPort": 443,
                             "OriginProtocolPolicy": "https-only",
-                            "OriginSslProtocols": {
-                                "Quantity": 1,
-                                "Items": ["TLSv1.2"],
-                            },
+                            "OriginSslProtocols": {"Quantity": 1, "Items": ["TLSv1.2"]},
                             "OriginReadTimeout": 30,
                             "OriginKeepaliveTimeout": 5,
                         },
