@@ -78,8 +78,10 @@ def register_correlation_id(task):
 @huey.signal()
 def log_task_transition(signal, task, exc=None):
     args, kwargs = task.data
-    extra = dict(operation_id=args[0], task_id=task.id)
+    extra = dict(operation_id=args[0], task_id=task.id, signal=signal)
     logger.info("task signal received", extra=extra)
+    if exc is not None:
+        logger.exception(msg="task raised exception", extra=extra, exc_info=exc)
 
 @retriable_task
 def create_le_user(operation_id: int, **kwargs):
