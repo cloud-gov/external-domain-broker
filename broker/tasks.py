@@ -73,11 +73,13 @@ retriable_task = huey.task(retries=(6 * 24), retry_delay=(60 * 10))
 @huey.pre_execute(name="Set Correlation ID")
 def register_correlation_id(task):
     args, kwargs = task.data
-    correlation_id = kwargs.pop('correlation_id', 'rogue task')
-    cf_logging.FRAMEWORK.context.set_correlation_id(correlation_id)
+    if "correlation_id" in kwargs:
+        cf_logging.FRAMEWORK.context.set_correlation_id(kwargs["correlation_id"])
+    else:
+        cf_logging.FRAMEWORK.context.set_correlation_id("Rogue Task")
 
 @retriable_task
-def create_le_user(operation_id: int):
+def create_le_user(operation_id: int, **kwargs):
     acme_user = ACMEUser()
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
@@ -114,7 +116,7 @@ def create_le_user(operation_id: int):
 
 
 @nonretriable_task
-def generate_private_key(operation_id: int):
+def generate_private_key(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -173,7 +175,7 @@ def dns_challenge(order, domain):
 
 
 @retriable_task
-def initiate_challenges(operation_id: int):
+def initiate_challenges(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
@@ -215,7 +217,7 @@ def initiate_challenges(operation_id: int):
 
 
 @retriable_task
-def create_TXT_records(operation_id: int):
+def create_TXT_records(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -249,7 +251,7 @@ def create_TXT_records(operation_id: int):
 
 
 @nonretriable_task
-def remove_TXT_records(operation_id: int):
+def remove_TXT_records(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -279,7 +281,7 @@ def remove_TXT_records(operation_id: int):
 
 
 @retriable_task
-def wait_for_route53_changes(operation_id: int):
+def wait_for_route53_changes(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -302,7 +304,7 @@ def wait_for_route53_changes(operation_id: int):
 
 
 @retriable_task
-def answer_challenges(operation_id: int):
+def answer_challenges(operation_id: int, **kwargs):
 
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
@@ -337,7 +339,7 @@ def answer_challenges(operation_id: int):
 
 
 @retriable_task
-def retrieve_certificate(operation_id: int,  ):
+def retrieve_certificate(operation_id: int,  **kwargs):
     def cert_from_fullchain(fullchain_pem: str) -> str:
         """extract cert_pem from fullchain_pem
 
@@ -398,7 +400,7 @@ def retrieve_certificate(operation_id: int,  ):
 
 
 @retriable_task
-def upload_certs_to_iam(operation_id: int):
+def upload_certs_to_iam(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -423,7 +425,7 @@ def upload_certs_to_iam(operation_id: int):
 
 
 @retriable_task
-def create_cloudfront_distribution(operation_id: int):
+def create_cloudfront_distribution(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     domains = service_instance.domain_names
@@ -516,7 +518,7 @@ def create_cloudfront_distribution(operation_id: int):
 
 
 @retriable_task
-def wait_for_cloudfront_distribution(operation_id: str):
+def wait_for_cloudfront_distribution(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     waiter = cloudfront.get_waiter("distribution_deployed")
@@ -530,7 +532,7 @@ def wait_for_cloudfront_distribution(operation_id: str):
 
 
 @retriable_task
-def create_ALIAS_records(operation_id: str,  ):
+def create_ALIAS_records(operation_id: str,  **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     print(f"Creating ALIAS records for {service_instance.domain_names}")
@@ -567,7 +569,7 @@ def create_ALIAS_records(operation_id: str,  ):
 
 
 @nonretriable_task
-def remove_ALIAS_records(operation_id: str):
+def remove_ALIAS_records(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     print(f"Removing ALIAS records for {service_instance.domain_names}")
@@ -600,7 +602,7 @@ def remove_ALIAS_records(operation_id: str):
 
 
 @retriable_task
-def mark_operation_as_succeeded(operation_id: str):
+def mark_operation_as_succeeded(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     operation.state = Operation.States.SUCCEEDED
     db.session.add(operation)
