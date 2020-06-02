@@ -73,7 +73,16 @@ run_docker() {
 }
 
 run_docker_read_only() {
-  docker run --rm -it -v "$PWD:/app:ro" "${built_image_name}" "$*"
+  docker \
+    run \
+    --rm \
+    -it \
+    -v "$PWD:/app:ro" \
+    -v "$PWD/tmp:/app/tmp:rw" \
+    -v "$PWD/logs:/app/logs:rw" \
+    -v "$PWD/.pytest_cache:/app/.pytest_cache:rw" \
+    "${built_image_name}" \
+    "$*"
 }
 
 run_docker_exposed() {
