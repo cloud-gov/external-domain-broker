@@ -24,6 +24,7 @@ docutils==0.15.2          # via -r pip-tools/../requirements.txt, botocore
 environs==7.4.0           # via -r pip-tools/../requirements.txt
 factory-boy==2.12.0       # via -r pip-tools/dev-requirements.in
 faker==4.0.3              # via factory-boy
+flake8==3.8.2             # via -r pip-tools/dev-requirements.in
 flask-migrate==2.5.3      # via -r pip-tools/../requirements.txt
 flask-sqlalchemy==2.4.1   # via -r pip-tools/../requirements.txt, flask-migrate
 flask-testing==0.8.0      # via -r pip-tools/dev-requirements.in
@@ -40,6 +41,7 @@ josepy==1.3.0             # via -r pip-tools/../requirements.txt, acme
 mako==1.1.2               # via -r pip-tools/../requirements.txt, alembic
 markupsafe==1.1.1         # via -r pip-tools/../requirements.txt, jinja2, mako
 marshmallow==3.5.1        # via -r pip-tools/../requirements.txt, environs
+mccabe==0.6.1             # via flake8
 more-itertools==8.2.0     # via pytest
 mypy-extensions==0.4.3    # via mypy
 mypy==0.770               # via -r pip-tools/dev-requirements.in
@@ -54,7 +56,9 @@ pp-ez==0.2.0              # via -r pip-tools/dev-requirements.in
 pprintpp==0.4.0           # via -r pip-tools/dev-requirements.in
 psycopg2==2.8.5           # via -r pip-tools/../requirements.txt
 py==1.8.1                 # via pytest
+pycodestyle==2.6.0        # via flake8
 pycparser==2.20           # via -r pip-tools/../requirements.txt, cffi
+pyflakes==2.2.0           # via flake8
 pyopenssl==19.1.0         # via -r pip-tools/../requirements.txt, acme, josepy, requests
 pyparsing==2.4.7          # via packaging
 pyrfc3339==1.1            # via -r pip-tools/../requirements.txt, acme
