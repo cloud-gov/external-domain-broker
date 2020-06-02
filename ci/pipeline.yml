@@ -23,11 +23,17 @@ cf-creds-staging: &cf-creds-staging
   CF_ORGANIZATION: ((broker-organization))
   CF_SPACE: ((broker-space))
 
-create-service-params: &create-service-params
+create-postgres-service-params: &create-postgres-service-params
   APP_NAME: ((name))
   SVC_SERVICE: ((db_service))
   SVC_PLAN: ((db_plan))
   SVC_NAME: ((db_name))
+
+create-redis-service-params: &create-redis-service-params
+  APP_NAME: ((name))
+  SVC_SERVICE: ((redis_service))
+  SVC_PLAN: ((redis_plan))
+  SVC_NAME: ((redis_name))
 
 upgrade-schema-vars: &upgrade-schema-vars
   FLASK_ENV: upgrade-schema
@@ -133,12 +139,12 @@ jobs:
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
         <<: *cf-creds-dev
-        <<: *create-service-params
+        <<: *create-postgres-service-params
     - task: create-redis
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
         <<: *cf-creds-dev
-        <<: *create-service-params
+        <<: *create-redis-service-params
   - task: stop-apps
     file: src/ci/stop-apps.yml
     params:
@@ -183,12 +189,12 @@ jobs:
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
         <<: *cf-creds-staging
-        <<: *create-service-params
+        <<: *create-postgres-service-params
     - task: create-redis
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
         <<: *cf-creds-staging
-        <<: *create-service-params
+        <<: *create-redis-service-params
   - task: stop-apps
     file: src/ci/stop-apps.yml
     params:

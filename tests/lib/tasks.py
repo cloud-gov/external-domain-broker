@@ -43,7 +43,6 @@ class Tasks:
         task = self.huey.dequeue()
         while task:
             currently_queued_tasks.append(task)
-            found_at_least_one_queued_task = True
             task = self.huey.dequeue()
 
         if not currently_queued_tasks:

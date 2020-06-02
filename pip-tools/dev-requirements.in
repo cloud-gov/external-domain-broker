@@ -12,3 +12,4 @@ pytest-profiling
 pytest-watch
 requests
 rope
+flake8

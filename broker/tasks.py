@@ -25,10 +25,10 @@ from broker.aws import route53, iam, cloudfront
 if not cf_logging._SETUP_DONE:
     cf_logging.init()
 
+logger = logging.getLogger(__name__)
 
 
 def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: str):
-    logger = logging.getLogger(__name__)
     if correlation_id is None:
         raise RuntimeError("correlation_id must be set")
     if operation_id is None:
@@ -52,7 +52,6 @@ def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: s
 
 
 def queue_all_deprovision_tasks_for_operation(operation_id: int, correlation_id: str):
-    logger = logging.getLogger(__name__)
     if correlation_id is None:
         raise RuntimeError("correlation_id must be set")
     if operation_id is None:
@@ -73,10 +72,16 @@ retriable_task = huey.task(retries=(6 * 24), retry_delay=(60 * 10))
 @huey.pre_execute(name="Set Correlation ID")
 def register_correlation_id(task):
     args, kwargs = task.data
-    if "correlation_id" in kwargs:
-        cf_logging.FRAMEWORK.context.set_correlation_id(kwargs["correlation_id"])
-    else:
-        cf_logging.FRAMEWORK.context.set_correlation_id("Rogue Task")
+    correlation_id = kwargs.pop('correlation_id', 'Rogue Task')
+    cf_logging.FRAMEWORK.context.set_correlation_id(correlation_id)
+
+@huey.signal()
+def log_task_transition(signal, task, exc=None):
+    args, kwargs = task.data
+    extra = dict(operation_id=args[0], task_id=task.id, signal=signal)
+    logger.info("task signal received", extra=extra)
+    if exc is not None:
+        logger.exception(msg="task raised exception", extra=extra, exc_info=exc)
 
 @retriable_task
 def create_le_user(operation_id: int, **kwargs):
@@ -604,6 +609,6 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
 @retriable_task
 def mark_operation_as_succeeded(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
-    operation.state = Operation.States.SUCCEEDED
+    operation.state = Operation.States.SUCCEEDED.value
     db.session.add(operation)
     db.session.commit()

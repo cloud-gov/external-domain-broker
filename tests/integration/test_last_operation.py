@@ -1,6 +1,7 @@
-from openbrokerapi.service_broker import OperationState
+import pytest  # noqa F401
 
 from tests.lib import factories
+from broker.models import Operation
 
 
 def test_last_operation_without_id_fails(client):
@@ -20,10 +21,10 @@ def test_last_operation_with_unknown_id_fails(client):
 def test_last_operation_with_id_returns_state(client):
     instance = factories.ServiceInstanceFactory.create(id="1234")
     operation_1 = factories.OperationFactory.create(
-        service_instance=instance, state=OperationState.FAILED
+        service_instance=instance, state=Operation.States.FAILED.value
     )
     operation_2 = factories.OperationFactory.create(
-        service_instance=instance, state=OperationState.SUCCEEDED
+        service_instance=instance, state=Operation.States.SUCCEEDED.value
     )
 
     client.get_last_operation("1234", operation_1.id)

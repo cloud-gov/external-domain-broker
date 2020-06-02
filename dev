@@ -19,21 +19,27 @@ main() {
       usage
       ;;
     serve)
+      build_image
       serve "$@"
       ;;
     tests)
+      build_image
       tests "$@"
       ;;
     watch-tests)
+      build_image
       watch-tests "$@"
       ;;
     run)
+      build_image
       run "$@"
       ;;
     new-migration)
+      build_image
       new-migration "$@"
       ;;
     update-requirements)
+      build_image
       update-requirements "$@"
       ;;
     shell)
@@ -63,21 +69,32 @@ build_image() {
 }
 
 run_docker() {
-  build_image
   docker run --rm -it -v "$PWD:/app" "${built_image_name}" "$*"
 }
 
+run_docker_read_only() {
+  docker \
+    run \
+    --rm \
+    -it \
+    -v "$PWD:/app:ro" \
+    -v "$PWD/tmp:/app/tmp:rw" \
+    -v "$PWD/logs:/app/logs:rw" \
+    -v "$PWD/.pytest_cache:/app/.pytest_cache:rw" \
+    "${built_image_name}" \
+    "$*"
+}
+
 run_docker_exposed() {
-  build_image
   docker run --rm -it -v "$PWD:/app" -p "0.0.0.0:8000:8000" "${built_image_name}" "$*"
 }
 
 tests() {
-  run_docker docker/tests "$@"
+  run_docker_read_only docker/tests "$@"
 }
 
 watch-tests() {
-  run_docker docker/tests watch "$@"
+  run_docker_read_only docker/tests watch "$@"
 }
 
 run() {
