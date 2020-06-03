@@ -60,7 +60,7 @@ class AppConfig(Config):
         if not redis:
             raise MissingRedisError
 
-        self.REDIS_HOST = redis.credentials["hostname"]
+        self.REDIS_HOST = redis.credentials["host"]
         self.REDIS_PORT = redis.credentials["port"]
         self.REDIS_PASSWORD = redis.credentials["password"]
         self.ROUTE53_ZONE_ID = self.env("ROUTE53_ZONE_ID")

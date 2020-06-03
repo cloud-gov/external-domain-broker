@@ -44,20 +44,20 @@ def vcap_services():
                 "tags": ["database", "RDS"],
             }
         ],
-        "redis32": [
+        "redis": [
             {
                 "credentials": {
-                    "hostname": "my-redis-hostname",
+                    "host": "my-redis-hostname",
                     "password": "my-redis-password",
                     "port": "my-redis-port",
                     "ports": {"6379/tcp": "my-redis-port-tuple"},
                     "uri": "my-redis-uri",
                 },
                 "instance_name": "my-app-name-redis",
-                "label": "redis32",
+                "label": "redis",
                 "name": "my-app-name-redis",
                 "plan": "standard-ha",
-                "tags": ["redis32", "redis"],
+                "tags": ["redis", "Elasticache"],
             }
         ],
     }
