@@ -80,6 +80,18 @@ cf-manifest-env-prod: &cf-manifest-env-prod
     DNS_ROOT_DOMAIN: ((prod-dns-root-domain))
     DEFAULT_CLOUDFRONT_ORIGIN: ((prod-default-cloudfront-origin-domain-name))
 
+acceptance-tests-params: &acceptance-tests-params
+  PLAN_NAME: "domain-with-cdn"
+  SERVICE_NAME: "external-domain"
+
+acceptance-tests-params-staging: &acceptance-tests-params-staging
+  DOMAIN_0: ((staging-test-domain-0))
+  DOMAIN_1: ((staging-test-domain-1))
+
+acceptance-tests-params-prod: &acceptance-tests-params-prod
+  DOMAIN_0: ((prod-test-domain-0))
+  DOMAIN_1: ((prod-test-domain-1))
+
 ############################
 #  JOBS
 
@@ -226,6 +238,22 @@ jobs:
       <<: *cf-creds-staging
       <<: *broker-register-params
 
+- name: staging-e2e
+  plan:
+  - get: dev-docker-image
+    trigger: true
+    passed: [staging]
+
+  - task: acceptance
+    image: dev-docker-image
+    config:
+      platform: linux
+      params:
+        <<: *cf-creds-staging
+        <<: *acceptance-tests-params
+        <<: *acceptance-tests-params-staging
+      run:
+        path: /app/acceptance/run.sh
 
 ############################
 #  RESOURCES
