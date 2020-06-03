@@ -98,6 +98,7 @@ tests() {
 }
 
 cleanup() {
+  set -euxo pipefail
   echo "Deleting the service instance"
   if cf service "$INSTANCE" > /dev/null; then
     cf delete-service -f "$INSTANCE"
