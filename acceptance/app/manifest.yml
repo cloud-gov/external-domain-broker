@@ -1,7 +1,6 @@
 applications:
 - name: ((name))
   buildpack: staticfile_buildpack
-  domains:
-  - ((domain_0))
-  - ((domain_1))
-  no-hostname: true
+  routes:
+  - route: ((domain_0))
+  - route: ((domain_1))
