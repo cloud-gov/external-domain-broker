@@ -238,12 +238,6 @@ jobs:
       <<: *cf-creds-staging
       <<: *broker-register-params
 
-- name: staging-e2e
-  plan:
-  - get: dev-docker-image
-    trigger: true
-    passed: [staging]
-
   - task: acceptance
     image: dev-docker-image
     config:
