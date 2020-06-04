@@ -1,4 +1,5 @@
 from enum import Enum
+from sqlalchemy.dialects import postgresql
 
 from openbrokerapi.service_broker import OperationState
 from sqlalchemy_utils.types.encrypted.encrypted_type import (
@@ -42,7 +43,7 @@ class ServiceInstance(Base):
     operations = db.relation("Operation", backref="service_instance", lazy="dynamic")
     challenges = db.relation("Challenge", backref="service_instance", lazy="dynamic")
     acme_user_id = db.Column(db.Integer, db.ForeignKey("acme_user.id"))
-    domain_names = db.Column(db.JSON, default=[])
+    domain_names = db.Column(postgresql.JSONB, default=[])
     order_json = db.Column(db.Text)
 
     csr_pem = db.Column(db.Text)
@@ -61,7 +62,7 @@ class ServiceInstance(Base):
     cloudfront_origin_hostname = db.Column(db.String)
     cloudfront_origin_path = db.Column(db.String)
 
-    route53_change_ids = db.Column(db.JSON, default=[])
+    route53_change_ids = db.Column(postgresql.JSONB, default=[])
 
     deactivated_at = db.Column(db.TIMESTAMP(timezone=True))
 

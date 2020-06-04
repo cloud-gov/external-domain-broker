@@ -38,12 +38,12 @@ def test_refuses_to_provision_without_domains(client):
 
 
 def test_refuses_to_provision_with_duplicate_domains(client, dns):
-    ServiceInstanceFactory.create(domain_names="foo.com,bar.com")
+    ServiceInstanceFactory.create(domain_names=["foo.com", "bar.com"])
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
     client.provision_instance(
-        "4321", params={"domains": "example.com, Foo.com"},
+        "4321", params={"domains": "example.com, foo.com"},
     )
 
     assert "already exists" in client.response.body, client.response.body

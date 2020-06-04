@@ -70,7 +70,12 @@ build_image() {
 }
 
 run_docker() {
-  docker run --rm -it -v "$PWD:/app" "${built_image_name}" "$*"
+  docker run \
+    --rm \
+    -it \
+    -v "$PWD:/app" \
+    "${built_image_name}" \
+    "$*"
 }
 
 run_docker_read_only() {
@@ -87,7 +92,13 @@ run_docker_read_only() {
 }
 
 run_docker_exposed() {
-  docker run --rm -it -v "$PWD:/app" -p "0.0.0.0:8000:8000" "${built_image_name}" "$*"
+  docker run \
+    --rm \
+    -it \
+    -v "$PWD:/app" \
+    -p "0.0.0.0:8000:8000" \
+    "${built_image_name}" \
+    "$*"
 }
 
 tests() {
@@ -103,7 +114,7 @@ run() {
 }
 
 shell() {
-  run_docker "bash"
+  run "./docker/start-servers.sh && bash"
 }
 
 serve() {
@@ -116,7 +127,7 @@ update-requirements() {
 
 new-migration() {
   [[ "$#" -eq 1 ]] || usage "Missing migration description"
-  run "flask db upgrade && flask db migrate -m \"$1\""
+  run "./docker/start-servers.sh && flask db upgrade && flask db migrate -m \"$1\""
 }
 
 usage() {

@@ -99,13 +99,8 @@ def app():
     del _app.error_handler_spec["open_broker"][None][Exception]
 
     with _app.app_context():
-        db_path = _app.config["SQLITE_DB_PATH"]
-
-        if os.path.isfile(db_path):
-            print(f"Removing {db_path}")
-            os.remove(db_path)
-
         print("Running migrations")
+        db.drop_all()
         flask_migrate.upgrade()
         db.session.commit()  # Cargo Cult
         yield current_app

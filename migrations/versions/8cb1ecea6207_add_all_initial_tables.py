@@ -1,17 +1,17 @@
-"""Add all initial tables
+"""add all initial tables
 
-Revision ID: 9876ac4778c2
+Revision ID: 8cb1ecea6207
 Revises: 
-Create Date: 2020-06-02 16:57:02.209813
+Create Date: 2020-06-04 20:51:39.664779
 
 """
 from alembic import op
 import sqlalchemy as sa
 import sqlalchemy_utils
-
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "9876ac4778c2"
+revision = "8cb1ecea6207"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -24,7 +24,7 @@ def upgrade():
         sa.Column(
             "created_at",
             sa.TIMESTAMP(timezone=True),
-            server_default=sa.text("(CURRENT_TIMESTAMP)"),
+            server_default=sa.text("now()"),
             nullable=True,
         ),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=True),
@@ -44,13 +44,15 @@ def upgrade():
         sa.Column(
             "created_at",
             sa.TIMESTAMP(timezone=True),
-            server_default=sa.text("(CURRENT_TIMESTAMP)"),
+            server_default=sa.text("now()"),
             nullable=True,
         ),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("id", sa.String(length=36), nullable=False),
         sa.Column("acme_user_id", sa.Integer(), nullable=True),
-        sa.Column("domain_names", sa.JSON(), nullable=True),
+        sa.Column(
+            "domain_names", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+        ),
         sa.Column("order_json", sa.Text(), nullable=True),
         sa.Column("csr_pem", sa.Text(), nullable=True),
         sa.Column("cert_pem", sa.Text(), nullable=True),
@@ -61,13 +63,17 @@ def upgrade():
         ),
         sa.Column("fullchain_pem", sa.Text(), nullable=True),
         sa.Column("iam_server_certificate_id", sa.String(), nullable=True),
+        sa.Column("iam_server_certificate_name", sa.String(), nullable=True),
         sa.Column("iam_server_certificate_arn", sa.String(), nullable=True),
         sa.Column("cloudfront_distribution_arn", sa.String(), nullable=True),
         sa.Column("cloudfront_distribution_id", sa.String(), nullable=True),
         sa.Column("cloudfront_distribution_url", sa.String(), nullable=True),
         sa.Column("cloudfront_origin_hostname", sa.String(), nullable=True),
         sa.Column("cloudfront_origin_path", sa.String(), nullable=True),
-        sa.Column("route53_change_ids", sa.JSON(), nullable=True),
+        sa.Column(
+            "route53_change_ids", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+        ),
+        sa.Column("deactivated_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["acme_user_id"], ["acme_user.id"],),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -76,7 +82,7 @@ def upgrade():
         sa.Column(
             "created_at",
             sa.TIMESTAMP(timezone=True),
-            server_default=sa.text("(CURRENT_TIMESTAMP)"),
+            server_default=sa.text("now()"),
             nullable=True,
         ),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=True),
@@ -95,7 +101,7 @@ def upgrade():
         sa.Column(
             "created_at",
             sa.TIMESTAMP(timezone=True),
-            server_default=sa.text("(CURRENT_TIMESTAMP)"),
+            server_default=sa.text("now()"),
             nullable=True,
         ),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=True),

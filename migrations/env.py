@@ -83,9 +83,6 @@ def run_migrations_online():
             connection=connection,
             target_metadata=target_metadata,
             process_revision_directives=process_revision_directives,
-            # Added by Tammer Saleh as a fix for
-            # https://stackoverflow.com/questions/30394222/why-flask-migrate-cannot-upgrade-when-drop-column
-            render_as_batch=True,
             **current_app.extensions["migrate"].configure_args,
         )
 

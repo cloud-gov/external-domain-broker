@@ -4,6 +4,15 @@ set -euo pipefail
 
 LOGS=${TMPDIR:-/app/logs}
 
+if ! pgrep -x postgres > /dev/null; then
+  echo "Starting Postgresql"
+  (
+    cd "$PGDATA"
+    echo > "$LOGS/postgres.log"
+    pg_ctl -l "$LOGS/postgres.log" start 
+  )
+fi
+
 if ! pgrep -x pebble > /dev/null; then
   echo "Starting Pebble"
   (
@@ -33,3 +42,4 @@ if ! pgrep -x redis-server > /dev/null; then
       > "$LOGS/redis.log" 2>&1 &
   )
 fi
+

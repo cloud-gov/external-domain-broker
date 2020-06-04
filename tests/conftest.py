@@ -3,6 +3,8 @@ from tests.lib.fake_cloudfront import cloudfront  # noqa F401
 from tests.lib.fake_iam import iam  # noqa F401
 from tests.lib.fake_route53 import route53  # noqa F401
 from tests.lib.simple_regex import simple_regex  # noqa F401
+from tests.lib.dns import dns  # noqa 401
+from tests.lib.tasks import tasks  # noqa 401
 
 
 def pytest_configure(config):

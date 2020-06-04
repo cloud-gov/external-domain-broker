@@ -3,3 +3,4 @@
 pkill -x pebble
 pkill -x pebble-challtestsrv
 pkill -x redis-server
+pg_ctl stop 

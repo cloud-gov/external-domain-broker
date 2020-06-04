@@ -117,8 +117,7 @@ class DockerConfig(Config):
 
     def __init__(self):
         super().__init__()
-        self.SQLITE_DB_PATH = os.path.join(self.TMPDIR, self.SQLITE_DB_NAME)
-        self.SQLALCHEMY_DATABASE_URI = "sqlite:///" + self.SQLITE_DB_PATH
+        self.SQLALCHEMY_DATABASE_URI = f"postgresql://localhost/{self.FLASK_ENV}"
         self.REDIS_HOST = "localhost"
         self.REDIS_PORT = 6379
         self.REDIS_PASSWORD = "sekrit"
@@ -136,13 +135,11 @@ class DockerConfig(Config):
 
 class LocalDevelopmentConfig(DockerConfig):
     def __init__(self):
-        self.SQLITE_DB_NAME = "dev.sqlite"
         super().__init__()
 
 
 class TestConfig(DockerConfig):
     def __init__(self):
-        self.SQLITE_DB_NAME = "test.sqlite"
         super().__init__()
         self.DNS_PROPAGATION_SLEEP_TIME = 0
         self.CLOUDFRONT_PROPAGATION_SLEEP_TIME = 0
