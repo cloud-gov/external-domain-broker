@@ -8,7 +8,7 @@ from broker.extensions import config
 logger = logging.getLogger(__name__)
 
 huey = RedisHuey(
-    host=config.REDIS_HOST, port=config.REDIS_PORT, password=config.REDIS_PASSWORD,
+    host=config.REDIS_HOST, port=config.REDIS_PORT, password=config.REDIS_PASSWORD, ssl=True, ssl_cert_reqs=None
 )
 
 # Normal task, no retries
