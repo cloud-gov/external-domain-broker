@@ -1,4 +1,4 @@
-import cf_logging
+from sap import cf_logging
 from broker.tasks import pipelines  # noqa F401
 from broker.tasks.huey import huey  # noqa F401
 
