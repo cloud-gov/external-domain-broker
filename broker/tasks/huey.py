@@ -1,5 +1,6 @@
 import logging
 
+from redis import ConnectionPool
 from huey import RedisHuey
 
 from sap import cf_logging
@@ -7,9 +8,10 @@ from broker.extensions import config
 
 logger = logging.getLogger(__name__)
 
-huey = RedisHuey(
-    host=config.REDIS_HOST, port=config.REDIS_PORT, password=config.REDIS_PASSWORD, ssl=True, ssl_cert_reqs=None
+connection_pool = ConnectionPool(
+    host=config.REDIS_HOST, port=config.REDIS_PORT, password=config.REDIS_PASSWORD, **config.REDIS_EXTRA_CONFIG
 )
+huey = RedisHuey(connection_pool=connection_pool)
 
 # Normal task, no retries
 nonretriable_task = huey.task()

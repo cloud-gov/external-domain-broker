@@ -110,6 +110,7 @@ class UpgradeSchemaConfig(Config):
         self.ROUTE53_ZONE_ID = "NONE"
         self.DNS_ROOT_DOMAIN = "NONE"
         self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
+        self.REDIS_EXTRA_CONFIG = dict(ssl=True, ssl_cert_reqs=None)
 
 
 class DockerConfig(Config):
@@ -131,6 +132,7 @@ class DockerConfig(Config):
         self.DATABASE_ENCRYPTION_KEY = "Local Dev Encrytpion Key"
         self.DEFAULT_CLOUDFRONT_ORIGIN = "cloud.local"
         self.IAM_SERVER_CERTIFICATE_PREFIX = "/cloudfront/external-domain-broker/test"
+        self.REDIS_EXTRA_CONFIG = {}
 
 
 class LocalDevelopmentConfig(DockerConfig):
