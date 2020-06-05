@@ -95,6 +95,7 @@ class API(ServiceBroker):
     def provision(
         self, instance_id: str, details: ProvisionDetails, async_allowed: bool, **kwargs
     ) -> ProvisionedServiceSpec:
+        self.logger.info("starting provision request") 
         if not async_allowed:
             raise errors.ErrAsyncRequired()
 
@@ -105,15 +106,20 @@ class API(ServiceBroker):
         else:
             raise errors.ErrBadRequest("'domains' parameter required.")
 
+        self.logger.info("validating CNAMEs")
         validators.CNAME(domain_names).validate()
+        self.logger.info("validating unique domains")
         validators.UniqueDomains(domain_names).validate()
 
         instance = ServiceInstance(id=instance_id, domain_names=domain_names)
+    
 
+        self.logger.info("setting origin hostname")
         instance.cloudfront_origin_hostname = params.get(
             "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
         )
         instance.cloudfront_origin_path = params.get("path", "")
+        self.logger.info("creating operation")
 
         operation = Operation(
             state=Operation.States.IN_PROGRESS.value,
@@ -123,10 +129,13 @@ class API(ServiceBroker):
 
         db.session.add(instance)
         db.session.add(operation)
+        self.logger.info("committing db session")
         db.session.commit()
+        self.logger.info("queueing tasks")
         queue_all_provision_tasks_for_operation(
             operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
         )
+        self.logger.info("all done. Returning provisioned service spec")
 
         return ProvisionedServiceSpec(
             state=ProvisionState.IS_ASYNC, operation=operation.id
