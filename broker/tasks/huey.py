@@ -1,6 +1,6 @@
 import logging
 
-from redis import ConnectionPool
+from redis import ConnectionPool, SSLConnection
 from huey import RedisHuey
 
 from sap import cf_logging
@@ -8,8 +8,13 @@ from broker.extensions import config
 
 logger = logging.getLogger(__name__)
 
+if config.REDIS_SSL:
+    redis_kwargs = dict(connection_class=SSLConnection, ssl_cert_reqs=None)
+else:
+    redis_kwargs = dict()
+
 connection_pool = ConnectionPool(
-    host=config.REDIS_HOST, port=config.REDIS_PORT, password=config.REDIS_PASSWORD, **config.REDIS_EXTRA_CONFIG
+    host=config.REDIS_HOST, port=config.REDIS_PORT, password=config.REDIS_PASSWORD, **redis_kwargs
 )
 huey = RedisHuey(connection_pool=connection_pool)
 

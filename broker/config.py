@@ -71,7 +71,7 @@ class AppConfig(Config):
         )
         self.DATABASE_ENCRYPTION_KEY = self.env("DATABASE_ENCRYPTION_KEY")
         self.DEFAULT_CLOUDFRONT_ORIGIN = self.env("DEFAULT_CLOUDFRONT_ORIGIN")
-        self.REDIS_EXTRA_CONFIG = dict(ssl=True, ssl_cert_reqs=None)
+        self.REDIS_SSL = True
 
 
 class ProductionConfig(AppConfig):
@@ -111,7 +111,7 @@ class UpgradeSchemaConfig(Config):
         self.ROUTE53_ZONE_ID = "NONE"
         self.DNS_ROOT_DOMAIN = "NONE"
         self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
-        self.REDIS_EXTRA_CONFIG = {}
+        self.REDIS_SSL = False
 
 
 class DockerConfig(Config):
@@ -133,7 +133,7 @@ class DockerConfig(Config):
         self.DATABASE_ENCRYPTION_KEY = "Local Dev Encrytpion Key"
         self.DEFAULT_CLOUDFRONT_ORIGIN = "cloud.local"
         self.IAM_SERVER_CERTIFICATE_PREFIX = "/cloudfront/external-domain-broker/test"
-        self.REDIS_EXTRA_CONFIG = {}
+        self.REDIS_SSL = False
 
 
 class LocalDevelopmentConfig(DockerConfig):
