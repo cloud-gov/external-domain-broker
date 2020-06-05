@@ -62,7 +62,7 @@ ENV PGCONFIG /tmp/data/postgresql.conf
 ENV PATH $PATH:/usr/lib/postgresql/$PG_MAJOR/bin
 
 RUN mkdir -p "$PGDATA" \
- && chown -R "$USER:$USER" "$PGDATA" \
+ && chown -R "$USER:" "$PGDATA" \
  && chmod 700 "$PGDATA"
 
 ENV POSTGRES_HOST_AUTH_METHOD=trust
