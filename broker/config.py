@@ -71,6 +71,7 @@ class AppConfig(Config):
         )
         self.DATABASE_ENCRYPTION_KEY = self.env("DATABASE_ENCRYPTION_KEY")
         self.DEFAULT_CLOUDFRONT_ORIGIN = self.env("DEFAULT_CLOUDFRONT_ORIGIN")
+        self.REDIS_EXTRA_CONFIG = dict(ssl=True, ssl_cert_reqs=None)
 
 
 class ProductionConfig(AppConfig):
@@ -110,7 +111,7 @@ class UpgradeSchemaConfig(Config):
         self.ROUTE53_ZONE_ID = "NONE"
         self.DNS_ROOT_DOMAIN = "NONE"
         self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
-        self.REDIS_EXTRA_CONFIG = dict(ssl=True, ssl_cert_reqs=None)
+        self.REDIS_EXTRA_CONFIG = {}
 
 
 class DockerConfig(Config):
