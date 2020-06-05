@@ -138,7 +138,7 @@ class API(ServiceBroker):
         self.logger.info("all done. Returning provisioned service spec")
 
         return ProvisionedServiceSpec(
-            state=ProvisionState.IS_ASYNC, operation=operation.id
+            state=ProvisionState.IS_ASYNC, operation=str(operation.id)
         )
 
     def deprovision(
@@ -166,7 +166,7 @@ class API(ServiceBroker):
             operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
         )
 
-        return DeprovisionServiceSpec(is_async=True, operation=operation.id)
+        return DeprovisionServiceSpec(is_async=True, operation=str(operation.id))
 
     def bind(
         self,
