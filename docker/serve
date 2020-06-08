@@ -7,9 +7,9 @@ shopt -s inherit_errexit
 
 cd "$(dirname "$0")/.."
 
-flask db upgrade
 
-docker/start-servers.sh &
+docker/start-servers.sh
+flask db upgrade
 scripts/run-app &
 scripts/run-worker &
 

@@ -254,6 +254,8 @@ def subtest_provision_ansers_challenges(tasks, dns):
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
+    db.session.expunge_all()
+    service_instance = ServiceInstance.query.get("4321")
     answered = [c.answered for c in service_instance.challenges]
     assert answered == [True, True]
 

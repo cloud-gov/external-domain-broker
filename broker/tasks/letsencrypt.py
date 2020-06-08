@@ -11,9 +11,10 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from broker.extensions import config, db
+from broker.extensions import config
 from broker.models import ACMEUser, Challenge, Operation
 from broker.tasks import huey
+from broker.tasks.db_injection import inject_db
 
 logger = logging.getLogger(__name__)
 
@@ -50,12 +51,13 @@ def dns_challenge(order, domain):
 
 
 @huey.retriable_task
+@inject_db
 def create_user(operation_id: int, **kwargs):
+    db = kwargs['db']
     acme_user = ACMEUser()
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     service_instance.acme_user = acme_user
-
     key = josepy.JWKRSA(
         key=rsa.generate_private_key(
             public_exponent=65537, key_size=2048, backend=default_backend()
@@ -87,7 +89,9 @@ def create_user(operation_id: int, **kwargs):
 
 
 @huey.nonretriable_task
+@inject_db
 def generate_private_key(operation_id: int, **kwargs):
+    db = kwargs['db']
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -115,7 +119,9 @@ def generate_private_key(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
+@inject_db
 def initiate_challenges(operation_id: int, **kwargs):
+    db = kwargs['db']
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
@@ -157,7 +163,9 @@ def initiate_challenges(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
+@inject_db
 def answer_challenges(operation_id: int, **kwargs):
+    db = kwargs['db']
 
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
@@ -192,7 +200,9 @@ def answer_challenges(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
+@inject_db
 def retrieve_certificate(operation_id: int, **kwargs):
+    db = kwargs['db']
     def cert_from_fullchain(fullchain_pem: str) -> str:
         """extract cert_pem from fullchain_pem
 
