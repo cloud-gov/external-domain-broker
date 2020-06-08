@@ -2,15 +2,18 @@ import logging
 import time
 
 from broker.aws import cloudfront
-from broker.extensions import config, db
+from broker.extensions import config
 from broker.models import Operation
 from broker.tasks import huey
+from broker.tasks.db_injection import inject_db
 
 logger = logging.getLogger(__name__)
 
 
 @huey.retriable_task
+@inject_db
 def create_distribution(operation_id: int, **kwargs):
+    db = kwargs['db']
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     domains = service_instance.domain_names
@@ -103,7 +106,9 @@ def create_distribution(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
+@inject_db
 def disable_distribution(operation_id: int, **kwargs):
+    db = kwargs['db']
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -121,7 +126,9 @@ def disable_distribution(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
+@inject_db
 def wait_for_distribution_disabled(operation_id: int, **kwargs):
+    db = kwargs['db']
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -149,7 +156,9 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
+@inject_db
 def delete_distribution(operation_id: int, **kwargs):
+    db = kwargs['db']
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     try:
@@ -159,7 +168,9 @@ def delete_distribution(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
+@inject_db
 def wait_for_distribution(operation_id: str, **kwargs):
+    db = kwargs['db']
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     waiter = cloudfront.get_waiter("distribution_deployed")
