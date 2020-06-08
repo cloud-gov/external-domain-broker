@@ -252,6 +252,7 @@ jobs:
     image: dev-docker-image
     config:
       platform: linux
+      timeout: 6h
       params:
         <<: *cf-creds-staging
         <<: *acceptance-tests-params
