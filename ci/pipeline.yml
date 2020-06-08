@@ -250,6 +250,7 @@ jobs:
 
   - task: acceptance
     image: dev-docker-image
+    timeout: 6h
     config:
       platform: linux
       params:
