@@ -84,7 +84,7 @@ tests() {
 
   echo "Pushing the test application."
   (
-    cd "$(dirname "$0")/acceptance-tests-app"
+    cd "$(dirname "$0")/app"
     cf push "$INSTANCE" \
       -f manifest.yml \
       --var "domain_0=$DOMAIN_0" \
