@@ -12,7 +12,7 @@ class FakeIAM(FakeAWS):
     ):
         now = datetime.now(timezone.utc)
         three_months_from_now = now + timedelta(90)
-        path = "/cloudfront/external-domain-broker/test/"
+        path = "/cloudfront/external-domains-test/"
         method = "upload_server_certificate"
         request = {
             "Path": path,
