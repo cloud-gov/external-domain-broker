@@ -112,7 +112,7 @@ class FakeCloudFront(FakeAWS):
         )
 
     def expect_delete_distribution(self, distribution_id: str):
-        self.stubber.add_response("delete_distribution", {}, {"Id": distribution_id})
+        self.stubber.add_response("delete_distribution", {}, {"Id": distribution_id, 'IfMatch': self.etag})
 
     def expect_delete_distribution_returning_no_such_distribution(
         self, distribution_id: str
@@ -122,7 +122,7 @@ class FakeCloudFront(FakeAWS):
             service_error_code="NoSuchDistribution",
             service_message="'Ain't there.",
             http_status_code=404,
-            expected_params={"Id": distribution_id},
+            expected_params={"Id": distribution_id, "IfMatch": "No-ETag"},
         )
 
     def expect_get_distribution(
@@ -136,9 +136,8 @@ class FakeCloudFront(FakeAWS):
         status: str,
         enabled: bool = True,
     ):
-        self.stubber.add_response(
-            "get_distribution",
-            self._distribution_response(
+        self.etag = str(datetime.now().timestamp())
+        distribution = self._distribution_response(
                 caller_reference,
                 domains,
                 certificate_id,
@@ -148,7 +147,11 @@ class FakeCloudFront(FakeAWS):
                 "ignored",
                 status,
                 enabled,
-            ),
+            )
+        distribution['ETag'] = self.etag
+        self.stubber.add_response(
+            "get_distribution",
+            distribution,
             {"Id": distribution_id},
         )
 

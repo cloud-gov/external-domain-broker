@@ -149,18 +149,20 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
                 Id=service_instance.cloudfront_distribution_id
             )
         except cloudfront.exceptions.NoSuchDistribution:
-            return
+            return "No-ETag"
         enabled = status["Distribution"]["DistributionConfig"]["Enabled"]
+        etag = status["ETag"]
+    return etag
 
 
 @huey.retriable_task
 @inject_db
-def delete_distribution(operation_id: int, **kwargs):
+def delete_distribution(etag: str, operation_id: int, **kwargs):
     db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     try:
-        cloudfront.delete_distribution(Id=service_instance.cloudfront_distribution_id)
+        cloudfront.delete_distribution(Id=service_instance.cloudfront_distribution_id, IfMatch=etag)
     except cloudfront.exceptions.NoSuchDistribution:
         return
 
