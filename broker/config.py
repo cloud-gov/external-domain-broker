@@ -82,7 +82,7 @@ class ProductionConfig(AppConfig):
 
 class StagingConfig(AppConfig):
     def __init__(self):
-        self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
+        self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"
         super().__init__()
 
 

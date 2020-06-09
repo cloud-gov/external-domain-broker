@@ -266,7 +266,7 @@ def subtest_provision_retrieves_certificate(tasks):
     db.session.expunge_all()
     service_instance = ServiceInstance.query.get("4321")
 
-    assert 2 == service_instance.fullchain_pem.count("BEGIN CERTIFICATE")
+    assert 1 == service_instance.fullchain_pem.count("BEGIN CERTIFICATE")
     assert 1 == service_instance.cert_pem.count("BEGIN CERTIFICATE")
 
 

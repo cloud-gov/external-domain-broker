@@ -101,7 +101,7 @@ def test_config_gets_cf_origin_from_env(env, monkeypatch, mocked_env):
     assert config.DEFAULT_CLOUDFRONT_ORIGIN == "foo"
 
 
-@pytest.mark.parametrize("env", ["staging", "development"])
+@pytest.mark.parametrize("env", ["development"])
 def test_config_uses_staging_acme_url(env, monkeypatch, mocked_env):
     monkeypatch.setenv("FLASK_ENV", env)
 
@@ -113,7 +113,7 @@ def test_config_uses_staging_acme_url(env, monkeypatch, mocked_env):
     )
 
 
-@pytest.mark.parametrize("env", ["production"])
+@pytest.mark.parametrize("env", ["staging", "production"])
 def test_config_uses_prod_acme_url(env, monkeypatch, mocked_env):
     monkeypatch.setenv("FLASK_ENV", env)
 

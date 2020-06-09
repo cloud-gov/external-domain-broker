@@ -227,7 +227,7 @@ def retrieve_certificate(operation_id: int, **kwargs):
             for cert in certs
         ]
 
-        return certs_normalized[0]
+        return certs_normalized[0], "".join(certs_normalized[1:])
 
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
@@ -256,7 +256,6 @@ def retrieve_certificate(operation_id: int, **kwargs):
     deadline = datetime.now() + timedelta(seconds=config.ACME_POLL_TIMEOUT_IN_SECONDS)
     finalized_order = client_acme.poll_and_finalize(orderr=order, deadline=deadline)
 
-    service_instance.fullchain_pem = finalized_order.fullchain_pem
-    service_instance.cert_pem = cert_from_fullchain(service_instance.fullchain_pem)
+    service_instance.cert_pem, service_instance.fullchain_pem = cert_from_fullchain(finalized_order.fullchain_pem)
     db.session.add(service_instance)
     db.session.commit()
