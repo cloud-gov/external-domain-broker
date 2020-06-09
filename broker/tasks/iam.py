@@ -17,7 +17,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
-    today = date.today().strftime("%Y-%m-%d_%H-%M-%S")
+    today = date.today().isoformat()
     iam_server_certificate_prefix = config.IAM_SERVER_CERTIFICATE_PREFIX
     service_instance.iam_server_certificate_name = f"{service_instance.id}-{today}"
     response = iam.upload_server_certificate(
