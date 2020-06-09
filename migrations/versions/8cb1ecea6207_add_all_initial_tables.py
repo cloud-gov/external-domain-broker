@@ -74,7 +74,7 @@ def upgrade():
             "route53_change_ids", postgresql.JSONB(astext_type=sa.Text()), nullable=True
         ),
         sa.Column("deactivated_at", sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.ForeignKeyConstraint(["acme_user_id"], ["acme_user.id"],),
+        sa.ForeignKeyConstraint(["acme_user_id"], ["acme_user.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -93,7 +93,7 @@ def upgrade():
         sa.Column("validation_contents", sa.Text(), nullable=False),
         sa.Column("body_json", sa.Text(), nullable=True),
         sa.Column("answered", sa.Boolean(), nullable=True),
-        sa.ForeignKeyConstraint(["service_instance_id"], ["service_instance.id"],),
+        sa.ForeignKeyConstraint(["service_instance_id"], ["service_instance.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -109,7 +109,7 @@ def upgrade():
         sa.Column("service_instance_id", sa.String(), nullable=False),
         sa.Column("state", sa.String(), server_default="in progress", nullable=False),
         sa.Column("action", sa.String(), nullable=False),
-        sa.ForeignKeyConstraint(["service_instance_id"], ["service_instance.id"],),
+        sa.ForeignKeyConstraint(["service_instance_id"], ["service_instance.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     # ### end Alembic commands ###

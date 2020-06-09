@@ -42,9 +42,7 @@ def test_refuses_to_provision_with_duplicate_domains(client, dns):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
-    client.provision_instance(
-        "4321", params={"domains": "example.com, foo.com"},
-    )
+    client.provision_instance("4321", params={"domains": "example.com, foo.com"})
 
     assert "already exists" in client.response.body, client.response.body
     assert client.response.status_code == 400, client.response.body

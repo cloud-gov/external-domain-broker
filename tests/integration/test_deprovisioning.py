@@ -114,7 +114,7 @@ def subtest_deprovision_removes_ALIAS_records(tasks, route53):
 
 def subtest_deprovision_removes_TXT_records(tasks, route53):
     route53.expect_remove_TXT(
-        "_acme-challenge.example.com.domains.cloud.test", "example txt",
+        "_acme-challenge.example.com.domains.cloud.test", "example txt"
     )
     route53.expect_remove_TXT("_acme-challenge.foo.com.domains.cloud.test", "foo txt")
 
@@ -189,7 +189,7 @@ def subtest_deprovision_disables_cloudfront_distribution_when_missing(
     tasks, service_instance, cloudfront
 ):
     cloudfront.expect_get_distribution_config_returning_no_such_distribution(
-        distribution_id=service_instance.cloudfront_distribution_id,
+        distribution_id=service_instance.cloudfront_distribution_id
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
     cloudfront.assert_no_pending_responses()
@@ -199,7 +199,7 @@ def subtest_deprovision_waits_for_cloudfront_distribution_disabled_when_missing(
     tasks, service_instance, cloudfront
 ):
     cloudfront.expect_get_distribution_returning_no_such_distribution(
-        distribution_id=service_instance.cloudfront_distribution_id,
+        distribution_id=service_instance.cloudfront_distribution_id
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
 
@@ -210,7 +210,7 @@ def subtest_deprovision_removes_cloudfront_distribution_when_missing(
     tasks, service_instance, cloudfront
 ):
     cloudfront.expect_delete_distribution_returning_no_such_distribution(
-        distribution_id=service_instance.cloudfront_distribution_id,
+        distribution_id=service_instance.cloudfront_distribution_id
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
     cloudfront.assert_no_pending_responses()
@@ -226,7 +226,7 @@ def subtest_deprovision_removes_certificate_from_iam_when_missing(
     tasks, service_instance, iam
 ):
     iam.expects_delete_server_certificate_returning_no_such_entity(
-        name=service_instance.iam_server_certificate_name,
+        name=service_instance.iam_server_certificate_name
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
     iam.assert_no_pending_responses()

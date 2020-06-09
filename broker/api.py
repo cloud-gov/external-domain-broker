@@ -95,7 +95,7 @@ class API(ServiceBroker):
     def provision(
         self, instance_id: str, details: ProvisionDetails, async_allowed: bool, **kwargs
     ) -> ProvisionedServiceSpec:
-        self.logger.info("starting provision request") 
+        self.logger.info("starting provision request")
         if not async_allowed:
             raise errors.ErrAsyncRequired()
 
@@ -112,7 +112,6 @@ class API(ServiceBroker):
         validators.UniqueDomains(domain_names).validate()
 
         instance = ServiceInstance(id=instance_id, domain_names=domain_names)
-    
 
         self.logger.info("setting origin hostname")
         instance.cloudfront_origin_hostname = params.get(

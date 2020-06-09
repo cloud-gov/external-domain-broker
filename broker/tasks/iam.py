@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 @huey.retriable_task
 @inject_db
 def upload_server_certificate(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -41,7 +41,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
 @huey.retriable_task
 @inject_db
 def delete_server_certificate(operation_id: str, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 

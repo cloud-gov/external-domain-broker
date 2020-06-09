@@ -14,7 +14,10 @@ else:
     redis_kwargs = dict()
 
 connection_pool = ConnectionPool(
-    host=config.REDIS_HOST, port=config.REDIS_PORT, password=config.REDIS_PASSWORD, **redis_kwargs
+    host=config.REDIS_HOST,
+    port=config.REDIS_PORT,
+    password=config.REDIS_PASSWORD,
+    **redis_kwargs,
 )
 huey = RedisHuey(connection_pool=connection_pool)
 

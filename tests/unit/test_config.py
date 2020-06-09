@@ -129,8 +129,7 @@ def test_config_uses_right_iam_prefix(env, monkeypatch, mocked_env):
     config = config_from_env()
 
     assert (
-        config.IAM_SERVER_CERTIFICATE_PREFIX
-        == f"/cloudfront/external-domains-{env}/"
+        config.IAM_SERVER_CERTIFICATE_PREFIX == f"/cloudfront/external-domains-{env}/"
     )
 
 

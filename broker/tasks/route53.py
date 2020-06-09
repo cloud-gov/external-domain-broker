@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 @huey.retriable_task
 @inject_db
 def create_TXT_records(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -34,8 +34,8 @@ def create_TXT_records(operation_id: int, **kwargs):
                             "ResourceRecords": [{"Value": f'"{contents}"'}],
                             "TTL": 60,
                         },
-                    },
-                ],
+                    }
+                ]
             },
             HostedZoneId=config.ROUTE53_ZONE_ID,
         )
@@ -50,7 +50,7 @@ def create_TXT_records(operation_id: int, **kwargs):
 @huey.nonretriable_task
 @inject_db
 def remove_TXT_records(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -70,8 +70,8 @@ def remove_TXT_records(operation_id: int, **kwargs):
                             "ResourceRecords": [{"Value": f'"{contents}"'}],
                             "TTL": 60,
                         },
-                    },
-                ],
+                    }
+                ]
             },
             HostedZoneId=config.ROUTE53_ZONE_ID,
         )
@@ -82,7 +82,7 @@ def remove_TXT_records(operation_id: int, **kwargs):
 @huey.retriable_task
 @inject_db
 def wait_for_changes(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -107,7 +107,7 @@ def wait_for_changes(operation_id: int, **kwargs):
 @huey.retriable_task
 @inject_db
 def create_ALIAS_records(operation_id: str, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     logger.info(f"Creating ALIAS records for {service_instance.domain_names}")
@@ -130,8 +130,8 @@ def create_ALIAS_records(operation_id: str, **kwargs):
                                 "EvaluateTargetHealth": False,
                             },
                         },
-                    },
-                ],
+                    }
+                ]
             },
             HostedZoneId=config.ROUTE53_ZONE_ID,
         )
@@ -146,7 +146,7 @@ def create_ALIAS_records(operation_id: str, **kwargs):
 @huey.nonretriable_task
 @inject_db
 def remove_ALIAS_records(operation_id: str, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     logger.info(f"Removing ALIAS records for {service_instance.domain_names}")
@@ -169,8 +169,8 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
                                 "EvaluateTargetHealth": False,
                             },
                         },
-                    },
-                ],
+                    }
+                ]
             },
             HostedZoneId=config.ROUTE53_ZONE_ID,
         )

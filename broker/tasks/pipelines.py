@@ -44,7 +44,7 @@ def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: s
         )
         .then(route53.create_ALIAS_records, operation_id, correlation_id=correlation_id)
         .then(route53.wait_for_changes, operation_id, correlation_id=correlation_id)
-        .then(finalize.provision, operation_id, correlation_id=correlation_id,)
+        .then(finalize.provision, operation_id, correlation_id=correlation_id)
     )
     huey.enqueue(task_pipeline)
 
@@ -66,11 +66,11 @@ def queue_all_deprovision_tasks_for_operation(operation_id: int, correlation_id:
             correlation_id=correlation_id,
         )
         .then(
-            cloudfront.delete_distribution, operation_id, correlation_id=correlation_id,
+            cloudfront.delete_distribution, operation_id, correlation_id=correlation_id
         )
         .then(
             iam.delete_server_certificate, operation_id, correlation_id=correlation_id
         )
-        .then(finalize.deprovision, operation_id, correlation_id=correlation_id,)
+        .then(finalize.deprovision, operation_id, correlation_id=correlation_id)
     )
     huey.enqueue(task_pipeline)

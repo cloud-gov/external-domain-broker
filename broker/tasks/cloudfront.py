@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 @huey.retriable_task
 @inject_db
 def create_distribution(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     domains = service_instance.domain_names
@@ -34,10 +34,7 @@ def create_distribution(operation_id: int, **kwargs):
                             "HTTPPort": 80,
                             "HTTPSPort": 443,
                             "OriginProtocolPolicy": "https-only",
-                            "OriginSslProtocols": {
-                                "Quantity": 1,
-                                "Items": ["TLSv1.2"],
-                            },
+                            "OriginSslProtocols": {"Quantity": 1, "Items": ["TLSv1.2"]},
                             "OriginReadTimeout": 30,
                             "OriginKeepaliveTimeout": 5,
                         },
@@ -108,7 +105,7 @@ def create_distribution(operation_id: int, **kwargs):
 @huey.retriable_task
 @inject_db
 def disable_distribution(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -120,6 +117,7 @@ def disable_distribution(operation_id: int, **kwargs):
         cloudfront.update_distribution(
             DistributionConfig=distribution_config["DistributionConfig"],
             Id=service_instance.cloudfront_distribution_id,
+            IfMatch=distribution_config["ETag"],
         )
     except cloudfront.exceptions.NoSuchDistribution:
         return
@@ -128,7 +126,7 @@ def disable_distribution(operation_id: int, **kwargs):
 @huey.retriable_task
 @inject_db
 def wait_for_distribution_disabled(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -158,7 +156,7 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
 @huey.retriable_task
 @inject_db
 def delete_distribution(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     try:
@@ -170,7 +168,7 @@ def delete_distribution(operation_id: int, **kwargs):
 @huey.retriable_task
 @inject_db
 def wait_for_distribution(operation_id: str, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     waiter = cloudfront.get_waiter("distribution_deployed")

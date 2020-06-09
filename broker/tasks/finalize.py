@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 @huey.retriable_task
 @inject_db
 def provision(operation_id: str, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     operation.state = Operation.States.SUCCEEDED.value
     db.session.add(operation)
@@ -21,7 +21,7 @@ def provision(operation_id: str, **kwargs):
 @huey.retriable_task
 @inject_db
 def deprovision(operation_id: str, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     operation.state = Operation.States.SUCCEEDED.value
     db.session.add(operation)

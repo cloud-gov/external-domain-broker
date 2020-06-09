@@ -53,7 +53,7 @@ def dns_challenge(order, domain):
 @huey.retriable_task
 @inject_db
 def create_user(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     acme_user = ACMEUser()
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
@@ -91,7 +91,7 @@ def create_user(operation_id: int, **kwargs):
 @huey.nonretriable_task
 @inject_db
 def generate_private_key(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -121,7 +121,7 @@ def generate_private_key(operation_id: int, **kwargs):
 @huey.retriable_task
 @inject_db
 def initiate_challenges(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
@@ -165,7 +165,7 @@ def initiate_challenges(operation_id: int, **kwargs):
 @huey.retriable_task
 @inject_db
 def answer_challenges(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
 
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
@@ -202,7 +202,8 @@ def answer_challenges(operation_id: int, **kwargs):
 @huey.retriable_task
 @inject_db
 def retrieve_certificate(operation_id: int, **kwargs):
-    db = kwargs['db']
+    db = kwargs["db"]
+
     def cert_from_fullchain(fullchain_pem: str) -> str:
         """extract cert_pem from fullchain_pem
 
@@ -256,6 +257,8 @@ def retrieve_certificate(operation_id: int, **kwargs):
     deadline = datetime.now() + timedelta(seconds=config.ACME_POLL_TIMEOUT_IN_SECONDS)
     finalized_order = client_acme.poll_and_finalize(orderr=order, deadline=deadline)
 
-    service_instance.cert_pem, service_instance.fullchain_pem = cert_from_fullchain(finalized_order.fullchain_pem)
+    service_instance.cert_pem, service_instance.fullchain_pem = cert_from_fullchain(
+        finalized_order.fullchain_pem
+    )
     db.session.add(service_instance)
     db.session.commit()

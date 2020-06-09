@@ -49,6 +49,7 @@ class FakeCloudFront(FakeAWS):
         origin_path: str,
         distribution_id: str,
     ):
+        self.etag = str(datetime.now().timestamp())
         self.stubber.add_response(
             "get_distribution_config",
             {
@@ -58,13 +59,14 @@ class FakeCloudFront(FakeAWS):
                     certificate_id,
                     origin_hostname,
                     origin_path,
-                )
+                ),
+                "ETag": self.etag,
             },
             {"Id": distribution_id},
         )
 
     def expect_get_distribution_config_returning_no_such_distribution(
-        self, distribution_id: str,
+        self, distribution_id: str
     ):
         self.stubber.add_client_error(
             "get_distribution_config",
@@ -105,18 +107,15 @@ class FakeCloudFront(FakeAWS):
                     enabled=False,
                 ),
                 "Id": distribution_id,
+                "IfMatch": self.etag,
             },
         )
 
-    def expect_delete_distribution(
-        self, distribution_id: str,
-    ):
-        self.stubber.add_response(
-            "delete_distribution", {}, {"Id": distribution_id},
-        )
+    def expect_delete_distribution(self, distribution_id: str):
+        self.stubber.add_response("delete_distribution", {}, {"Id": distribution_id})
 
     def expect_delete_distribution_returning_no_such_distribution(
-        self, distribution_id: str,
+        self, distribution_id: str
     ):
         self.stubber.add_client_error(
             "delete_distribution",
@@ -154,7 +153,7 @@ class FakeCloudFront(FakeAWS):
         )
 
     def expect_get_distribution_returning_no_such_distribution(
-        self, distribution_id: str,
+        self, distribution_id: str
     ):
         self.stubber.add_client_error(
             "get_distribution",
@@ -188,10 +187,7 @@ class FakeCloudFront(FakeAWS):
                             "HTTPPort": 80,
                             "HTTPSPort": 443,
                             "OriginProtocolPolicy": "https-only",
-                            "OriginSslProtocols": {
-                                "Quantity": 1,
-                                "Items": ["TLSv1.2"],
-                            },
+                            "OriginSslProtocols": {"Quantity": 1, "Items": ["TLSv1.2"]},
                             "OriginReadTimeout": 30,
                             "OriginKeepaliveTimeout": 5,
                         },

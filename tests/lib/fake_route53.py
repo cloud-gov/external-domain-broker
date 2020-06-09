@@ -23,8 +23,8 @@ class FakeRoute53(FakeAWS):
                                 "TTL": 60,
                                 "Type": "TXT",
                             },
-                        },
-                    ],
+                        }
+                    ]
                 },
                 "HostedZoneId": "TestZoneID",
             },
@@ -47,8 +47,8 @@ class FakeRoute53(FakeAWS):
                                 "TTL": 60,
                                 "Type": "TXT",
                             },
-                        },
-                    ],
+                        }
+                    ]
                 },
                 "HostedZoneId": "TestZoneID",
             },
@@ -73,8 +73,8 @@ class FakeRoute53(FakeAWS):
                                     "EvaluateTargetHealth": False,
                                 },
                             },
-                        },
-                    ],
+                        }
+                    ]
                 },
                 "HostedZoneId": "TestZoneID",
             },
@@ -99,8 +99,8 @@ class FakeRoute53(FakeAWS):
                                     "EvaluateTargetHealth": False,
                                 },
                             },
-                        },
-                    ],
+                        }
+                    ]
                 },
                 "HostedZoneId": "TestZoneID",
             },
@@ -108,10 +108,10 @@ class FakeRoute53(FakeAWS):
 
     def expect_wait_for_change_insync(self, change_id: str):
         self.stubber.add_response(
-            "get_change", self._change_info(change_id, "PENDING"), {"Id": change_id},
+            "get_change", self._change_info(change_id, "PENDING"), {"Id": change_id}
         )
         self.stubber.add_response(
-            "get_change", self._change_info(change_id, "INSYNC"), {"Id": change_id},
+            "get_change", self._change_info(change_id, "INSYNC"), {"Id": change_id}
         )
 
     def _change_info(self, change_id: str, status: str = "PENDING"):
