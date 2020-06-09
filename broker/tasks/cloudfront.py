@@ -162,7 +162,9 @@ def delete_distribution(etag: str, operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     try:
-        cloudfront.delete_distribution(Id=service_instance.cloudfront_distribution_id, IfMatch=etag)
+        cloudfront.delete_distribution(
+            Id=service_instance.cloudfront_distribution_id, IfMatch=etag
+        )
     except cloudfront.exceptions.NoSuchDistribution:
         return
 

@@ -66,7 +66,9 @@ def queue_all_deprovision_tasks_for_operation(operation_id: int, correlation_id:
             correlation_id=correlation_id,
         )
         .then(
-            cloudfront.delete_distribution, operation_id=operation_id, correlation_id=correlation_id
+            cloudfront.delete_distribution,
+            operation_id=operation_id,
+            correlation_id=correlation_id,
         )
         .then(
             iam.delete_server_certificate, operation_id, correlation_id=correlation_id

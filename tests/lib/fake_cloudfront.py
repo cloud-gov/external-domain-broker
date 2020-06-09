@@ -112,7 +112,9 @@ class FakeCloudFront(FakeAWS):
         )
 
     def expect_delete_distribution(self, distribution_id: str):
-        self.stubber.add_response("delete_distribution", {}, {"Id": distribution_id, 'IfMatch': self.etag})
+        self.stubber.add_response(
+            "delete_distribution", {}, {"Id": distribution_id, "IfMatch": self.etag}
+        )
 
     def expect_delete_distribution_returning_no_such_distribution(
         self, distribution_id: str
@@ -138,21 +140,19 @@ class FakeCloudFront(FakeAWS):
     ):
         self.etag = str(datetime.now().timestamp())
         distribution = self._distribution_response(
-                caller_reference,
-                domains,
-                certificate_id,
-                origin_hostname,
-                origin_path,
-                distribution_id,
-                "ignored",
-                status,
-                enabled,
-            )
-        distribution['ETag'] = self.etag
+            caller_reference,
+            domains,
+            certificate_id,
+            origin_hostname,
+            origin_path,
+            distribution_id,
+            "ignored",
+            status,
+            enabled,
+        )
+        distribution["ETag"] = self.etag
         self.stubber.add_response(
-            "get_distribution",
-            distribution,
-            {"Id": distribution_id},
+            "get_distribution", distribution, {"Id": distribution_id}
         )
 
     def expect_get_distribution_returning_no_such_distribution(
