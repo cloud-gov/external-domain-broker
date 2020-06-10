@@ -9,7 +9,7 @@
 #
 # ($DNS_ROOT_DOMAIN is the value the broker is configured with)
 
-INSTANCE="external-domain-broker-test"
+INSTANCE="external-domain-broker-test-${RANDOM}"
 
 required_vars=(
   CF_API_URL
@@ -17,8 +17,9 @@ required_vars=(
   CF_PASSWORD
   CF_SPACE
   CF_USERNAME
-  DOMAIN_0
-  DOMAIN_1
+  DNS_ROOT_DOMAIN
+  HOSTED_ZONE_ID
+  TEST_DOMAIN
   PLAN_NAME
   SERVICE_NAME
 )
@@ -43,6 +44,7 @@ trap cleanup EXIT
 main() {
   login
   cleanup
+  prep_domains
   tests
   echo "Congratulations!  The tests pass!"
 }
@@ -51,6 +53,70 @@ login() {
   cf api "$CF_API_URL"
   (set +x; cf auth "$CF_USERNAME" "$CF_PASSWORD")
   cf target -o "$CF_ORGANIZATION" -s "$CF_SPACE"
+}
+
+prep_domains() {
+  DOMAIN_0="test-${RANDOM}.${TEST_DOMAIN}"
+  DOMAIN_1="test-${RANDOM}.${TEST_DOMAIN}"
+  cat << EOF > ./create-cname.json
+{
+  "Changes": [
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "${DOMAIN_0}.",
+        "Type": "CNAME",
+        "TTL": ${TTL},
+        "ResourceRecords": [
+          {"Value": "${DOMAIN_0}.${DNS_ROOT_DOMAIN}."}
+        ]
+      }
+    },
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "_acme-challenge.${DOMAIN_0}.",
+        "Type": "CNAME",
+        "TTL": ${TTL},
+        "ResourceRecords": [
+          {"Value": "_acme-challenge.${DOMAIN_0}.${DNS_ROOT_DOMAIN}."}
+        ]
+      }
+    },
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "${DOMAIN_1}.",
+        "Type": "CNAME",
+        "TTL": ${TTL},
+        "ResourceRecords": [
+          {"Value": "${DOMAIN_1}.${DNS_ROOT_DOMAIN}."}
+        ]
+      }
+    },
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "_acme-challenge.${DOMAIN_1}.",
+        "Type": "CNAME",
+        "TTL": ${TTL},
+        "ResourceRecords": [
+          {"Value": "_acme-challenge.${DOMAIN_1}.${DNS_ROOT_DOMAIN}."}
+        ]
+      }
+    }
+  ]
+}
+EOF
+  aws route53 change-resource-record-sets \
+    --hosted-zone-id "${HOSTED_ZONE_ID}" \
+    --change-batch file://./create-cname.json > changeinfo.json
+  change_id=$(cat changeinfo.json | jq -r '.ChangeInfo.Id')
+  change=$(cat changeinfo.json | jq -r '.ChangeInfo.Status')
+  while [[ $change =~ PENDING]]; do 
+    sleep 60
+    change=$(aws route53 | jq -r '.ChangeInfo.Status')
+  done
 }
 
 tests() {
@@ -124,6 +190,59 @@ cleanup() {
     sleep 60
   done
   echo "Service instance deleted."
+  cat << EOF > ./delete-cname.json
+{
+  "Changes": [
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "${DOMAIN_0}.",
+        "Type": "CNAME",
+        "TTL": ${TTL},
+        "ResourceRecords": [
+          {"Value": "${DOMAIN_0}.${DNS_ROOT_DOMAIN}."}
+        ]
+      }
+    },
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "_acme-challenge.${DOMAIN_0}.",
+        "Type": "CNAME",
+        "TTL": ${TTL},
+        "ResourceRecords": [
+          {"Value": "_acme-challenge.${DOMAIN_0}.${DNS_ROOT_DOMAIN}."}
+        ]
+      }
+    },
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "${DOMAIN_1}.",
+        "Type": "CNAME",
+        "TTL": ${TTL},
+        "ResourceRecords": [
+          {"Value": "${DOMAIN_1}.${DNS_ROOT_DOMAIN}."}
+        ]
+      }
+    },
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "_acme-challenge.${DOMAIN_1}.",
+        "Type": "CNAME",
+        "TTL": ${TTL},
+        "ResourceRecords": [
+          {"Value": "_acme-challenge.${DOMAIN_1}.${DNS_ROOT_DOMAIN}."}
+        ]
+      }
+    }
+  ]
+}
+EOF
+  aws route53 change-resource-record-sets \
+    --hosted-zone-id "${HOSTED_ZONE_ID}" \
+    --change-batch file://./delete-cname.json
 }
 
 main
