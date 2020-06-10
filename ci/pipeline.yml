@@ -255,6 +255,9 @@ jobs:
       params: {depth: 1}
     - get: cf-staging
       trigger: true
+      passed: [staging]
+    - get: dev-docker-image
+      passed: [staging]
   - task: acceptance
     image: dev-docker-image
     timeout: 6h
