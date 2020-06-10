@@ -51,12 +51,12 @@ class CFAPIClient(FlaskClient):
 
         return self.response
 
-    def provision_instance(
+    def provision_cdn_instance(
         self, id: str, accepts_incomplete: str = "true", params: dict = None
     ):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
-            "plan_id": "6f60835c-8964-4f1f-a19a-579fb27ce694",
+            "plan_id": "1cc78b0c-c296-48f5-9182-0b38404f79ef",
             "organization_guid": "abc",
             "space_guid": "123",
         }
@@ -70,12 +70,12 @@ class CFAPIClient(FlaskClient):
             query_string={"accepts_incomplete": accepts_incomplete},
         )
 
-    def deprovision_instance(self, id: str, accepts_incomplete: str = "true"):
+    def deprovision_cdn_instance(self, id: str, accepts_incomplete: str = "true"):
         self.delete(
             f"/v2/service_instances/{id}",
             query_string={
                 "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
-                "plan_id": "6f60835c-8964-4f1f-a19a-579fb27ce694",
+                "plan_id": "1cc78b0c-c296-48f5-9182-0b38404f79ef",
                 "accepts_incomplete": accepts_incomplete,
             },
         )

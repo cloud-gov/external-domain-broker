@@ -1,13 +1,13 @@
 import pytest  # noqa F401
 
 from broker.extensions import db
-from broker.models import Operation, ServiceInstance
+from broker.models import Operation, CdnServiceInstance
 from tests.lib import factories
 
 
 @pytest.fixture
 def service_instance():
-    service_instance = factories.ServiceInstanceFactory.create(
+    service_instance = factories.CdnServiceInstanceFactory.create(
         id="1234",
         domain_names=["example.com", "foo.com"],
         iam_server_certificate_id="certificate_id",
@@ -33,14 +33,14 @@ def service_instance():
 
 
 def test_refuses_to_deprovision_synchronously(client, service_instance):
-    client.deprovision_instance(service_instance.id, accepts_incomplete="false")
+    client.deprovision_cdn_instance(service_instance.id, accepts_incomplete="false")
 
     assert "AsyncRequired" in client.response.body
     assert client.response.status_code == 422
 
 
 def test_refuses_to_deprovision_synchronously_by_default(client, service_instance):
-    client.deprovision_instance(service_instance.id, accepts_incomplete="")
+    client.deprovision_cdn_instance(service_instance.id, accepts_incomplete="")
 
     assert "AsyncRequired" in client.response.body
     assert client.response.status_code == 422
@@ -87,7 +87,7 @@ def test_deprovision_happy_path(
 
 
 def subtest_deprovision_creates_deprovision_operation(client, service_instance):
-    client.deprovision_instance(service_instance.id, accepts_incomplete="true")
+    client.deprovision_cdn_instance(service_instance.id, accepts_incomplete="true")
 
     assert client.response.status_code == 202, client.response.body
     assert "operation" in client.response.json
@@ -234,13 +234,13 @@ def subtest_deprovision_removes_certificate_from_iam_when_missing(
 
 def subtest_deprovision_marks_operation_as_succeeded(tasks):
     db.session.expunge_all()
-    service_instance = ServiceInstance.query.get("1234")
+    service_instance = CdnServiceInstance.query.get("1234")
     assert not service_instance.deactivated_at
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = ServiceInstance.query.get("1234")
+    service_instance = CdnServiceInstance.query.get("1234")
     assert service_instance.deactivated_at
     assert not service_instance.private_key_pem
 
