@@ -248,6 +248,13 @@ jobs:
       <<: *cf-creds-staging
       <<: *broker-register-params
 
+- name: staging-acceptance-tests
+  plan:
+  - in_parallel:
+    - get: src
+      params: {depth: 1}
+    - get: cf-staging
+      trigger: true
   - task: acceptance
     image: dev-docker-image
     timeout: 6h
