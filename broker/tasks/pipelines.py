@@ -6,7 +6,7 @@ from broker.tasks.huey import huey
 logger = logging.getLogger(__name__)
 
 
-def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: str):
+def queue_all_cdn_provision_tasks_for_operation(operation_id: int, correlation_id: str):
     if correlation_id is None:
         raise RuntimeError("correlation_id must be set")
     if operation_id is None:
@@ -49,7 +49,9 @@ def queue_all_provision_tasks_for_operation(operation_id: int, correlation_id: s
     huey.enqueue(task_pipeline)
 
 
-def queue_all_deprovision_tasks_for_operation(operation_id: int, correlation_id: str):
+def queue_all_cdn_deprovision_tasks_for_operation(
+    operation_id: int, correlation_id: str
+):
     if correlation_id is None:
         raise RuntimeError("correlation_id must be set")
     if operation_id is None:

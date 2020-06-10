@@ -22,11 +22,14 @@ from sap import cf_logging
 
 from broker import validators
 from broker.extensions import config, db
-from broker.models import Operation, ServiceInstance
+from broker.models import Operation, CdnServiceInstance, ServiceInstance
 from broker.tasks.pipelines import (
-    queue_all_deprovision_tasks_for_operation,
-    queue_all_provision_tasks_for_operation,
+    queue_all_cdn_deprovision_tasks_for_operation,
+    queue_all_cdn_provision_tasks_for_operation,
 )
+
+ALB_PLAN_ID = "6f60835c-8964-4f1f-a19a-579fb27ce694"
+CDN_PLAN_ID = "1cc78b0c-c296-48f5-9182-0b38404f79ef"
 
 
 class API(ServiceBroker):
@@ -49,12 +52,12 @@ class API(ServiceBroker):
             ),
             plans=[
                 ServicePlan(
-                    id="6f60835c-8964-4f1f-a19a-579fb27ce694",
+                    id=ALB_PLAN_ID,
                     name="domain",
                     description="Basic custom domain with TLS.",
                 ),
                 ServicePlan(
-                    id="1cc78b0c-c296-48f5-9182-0b38404f79ef",
+                    id=CDN_PLAN_ID,
                     name="domain-with-cdn",
                     description="Custom domain with TLS and CloudFront.",
                 ),
@@ -111,7 +114,11 @@ class API(ServiceBroker):
         self.logger.info("validating unique domains")
         validators.UniqueDomains(domain_names).validate()
 
-        instance = ServiceInstance(id=instance_id, domain_names=domain_names)
+        if details.plan_id == CDN_PLAN_ID:
+            instance = CdnServiceInstance(id=instance_id, domain_names=domain_names)
+            queue = queue_all_cdn_provision_tasks_for_operation
+        else:
+            raise NotImplementedError()
 
         self.logger.info("setting origin hostname")
         instance.cloudfront_origin_hostname = params.get(
@@ -131,9 +138,7 @@ class API(ServiceBroker):
         self.logger.info("committing db session")
         db.session.commit()
         self.logger.info("queueing tasks")
-        queue_all_provision_tasks_for_operation(
-            operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
-        )
+        queue(operation.id, cf_logging.FRAMEWORK.context.get_correlation_id())
         self.logger.info("all done. Returning provisioned service spec")
 
         return ProvisionedServiceSpec(
@@ -161,9 +166,12 @@ class API(ServiceBroker):
 
         db.session.add(operation)
         db.session.commit()
-        queue_all_deprovision_tasks_for_operation(
-            operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
-        )
+        if details.plan_id == CDN_PLAN_ID:
+            queue_all_cdn_deprovision_tasks_for_operation(
+                operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
+            )
+        else:
+            raise NotImplementedError()
 
         return DeprovisionServiceSpec(is_async=True, operation=str(operation.id))
 

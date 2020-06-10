@@ -39,12 +39,14 @@ class ACMEUser(Base):
 
 
 class ServiceInstance(Base):
+    __tablename__ = "service_instance"
     id = db.Column(db.String(36), primary_key=True)
     operations = db.relation("Operation", backref="service_instance", lazy="dynamic")
     challenges = db.relation("Challenge", backref="service_instance", lazy="dynamic")
     acme_user_id = db.Column(db.Integer, db.ForeignKey("acme_user.id"))
     domain_names = db.Column(postgresql.JSONB, default=[])
     order_json = db.Column(db.Text)
+    instance_type = db.Column(db.Text)
 
     csr_pem = db.Column(db.Text)
     cert_pem = db.Column(db.Text)
@@ -56,15 +58,27 @@ class ServiceInstance(Base):
     iam_server_certificate_id = db.Column(db.String)
     iam_server_certificate_name = db.Column(db.String)
     iam_server_certificate_arn = db.Column(db.String)
+    route53_change_ids = db.Column(postgresql.JSONB, default=[])
+
+    deactivated_at = db.Column(db.TIMESTAMP(timezone=True))
+
+    __mapper_args__ = {
+        "polymorphic_identity": "service_instance",
+        "polymorphic_on": instance_type,
+    }
+
+    def __repr__(self):
+        return f"<ServiceInstance {self.id} {self.domain_names}>"
+
+
+class CdnServiceInstance(ServiceInstance):
     cloudfront_distribution_arn = db.Column(db.String)
     cloudfront_distribution_id = db.Column(db.String)
     cloudfront_distribution_url = db.Column(db.String)
     cloudfront_origin_hostname = db.Column(db.String)
     cloudfront_origin_path = db.Column(db.String)
 
-    route53_change_ids = db.Column(postgresql.JSONB, default=[])
-
-    deactivated_at = db.Column(db.TIMESTAMP(timezone=True))
+    __mapper_args__ = {"polymorphic_identity": "cdn_service_instance"}
 
     def __repr__(self):
         return f"<ServiceInstance {self.id} {self.domain_names}>"

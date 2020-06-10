@@ -2,7 +2,7 @@ from factory import LazyAttribute, Sequence, SubFactory
 from factory.alchemy import SQLAlchemyModelFactory
 
 from broker.extensions import db
-from broker.models import ACMEUser, Challenge, Operation, ServiceInstance
+from broker.models import ACMEUser, Challenge, Operation, CdnServiceInstance
 
 
 class BaseFactory(SQLAlchemyModelFactory):
@@ -11,9 +11,9 @@ class BaseFactory(SQLAlchemyModelFactory):
         sqlalchemy_session_persistence = "flush"
 
 
-class ServiceInstanceFactory(BaseFactory):
+class CdnServiceInstanceFactory(BaseFactory):
     class Meta(object):
-        model = ServiceInstance
+        model = CdnServiceInstance
 
     id = Sequence(lambda n: "UUID {}".format(n))
 
@@ -34,7 +34,7 @@ class OperationFactory(BaseFactory):
 
     state = Operation.States.IN_PROGRESS.value
     action = Operation.Actions.PROVISION.value
-    service_instance = SubFactory(ServiceInstanceFactory)
+    service_instance = SubFactory(CdnServiceInstanceFactory)
 
 
 class ChallengeFactory(BaseFactory):
