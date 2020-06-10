@@ -94,12 +94,20 @@ acceptance-tests-params: &acceptance-tests-params
   SERVICE_NAME: "external-domain"
 
 acceptance-tests-params-staging: &acceptance-tests-params-staging
-  DOMAIN_0: ((staging-test-domain-0))
-  DOMAIN_1: ((staging-test-domain-1))
+  DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
+  HOSTED_ZONE_ID: ((staging-test-hosted-zone-id))
+  TEST_DOMAIN: ((staging-test-domain))
+  AWS_ACCESS_KEY_ID: ((staging-test-user-aws-access-key-id))
+  AWS_SECRET_ACCESS_KEY: ((staging-test-user-aws-secret-access-key))
+  AWS_REGION: ((staging-aws-region))
 
 acceptance-tests-params-prod: &acceptance-tests-params-prod
-  DOMAIN_0: ((prod-test-domain-0))
-  DOMAIN_1: ((prod-test-domain-1))
+  DNS_ROOT_DOMAIN: ((prod-dns-root-domain))
+  HOSTED_ZONE_ID: ((prod-test-hosted-zone-id))
+  TEST_DOMAIN: ((prod-test-domain))
+  AWS_ACCESS_KEY_ID: ((prod-test-user-aws-access-key-id))
+  AWS_SECRET_ACCESS_KEY: ((prod-test-user-aws-secret-access-key))
+  AWS_REGION: ((prod-aws-region))
 
 ############################
 #  JOBS
