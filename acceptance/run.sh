@@ -115,7 +115,7 @@ EOF
   change=$(cat /tmp/changeinfo.json | jq -r '.ChangeInfo.Status')
   while [[ "$change" =~ PENDING ]]; do
     sleep 60
-    change=$(aws route53 | jq -r '.ChangeInfo.Status')
+    change=$(aws route53 get-change --id ${change_id} | jq -r '.ChangeInfo.Status')
   done
 }
 
