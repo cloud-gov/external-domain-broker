@@ -78,6 +78,7 @@ def mocked_env(monkeypatch, vcap_application, vcap_services):
     monkeypatch.setenv("VCAP_APPLICATION", vcap_application)
     monkeypatch.setenv("VCAP_SERVICES", vcap_services)
     monkeypatch.setenv("DEFAULT_CLOUDFRONT_ORIGIN", "None")
+    monkeypatch.setenv("ALB_ARNS", "arn:aws:elasticloadbalancing:us-east-2:123456789012:loadbalancer/app/my-load-balancer/1234567890123456,arn:aws:elasticloadbalancing:us-east-2:123456789012:loadbalancer/app/my-load-balancer/1234567890123456")
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
@@ -131,6 +132,16 @@ def test_config_uses_right_iam_prefix(env, monkeypatch, mocked_env):
     assert (
         config.IAM_SERVER_CERTIFICATE_PREFIX == f"/cloudfront/external-domains-{env}/"
     )
+
+
+@pytest.mark.parametrize("env", ["production", "staging", "development"])
+def test_config_provides_alb_arns(env, monkeypatch, mocked_env):
+    monkeypatch.setenv("FLASK_ENV", env)
+    
+    config = config_from_env()
+
+    assert type(config.ALB_ARNS) == list
+    assert config.ALB_ARNS == ['arn:aws:elasticloadbalancing:us-east-2:123456789012:loadbalancer/app/my-load-balancer/1234567890123456']
 
 
 @pytest.mark.parametrize("env", env_mappings().keys())

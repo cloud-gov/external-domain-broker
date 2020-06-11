@@ -54,6 +54,8 @@ class AppConfig(Config):
         self.BROKER_USERNAME = self.env("BROKER_USERNAME")
         self.BROKER_PASSWORD = self.env("BROKER_PASSWORD")
         self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
+        self.ALB_ARNS = self.env.list("ALB_ARNS")
+        self.ALB_ARNS = list(set(self.ALB_ARNS))
 
         redis = self.cfenv.get_service(label=re.compile("redis.*"))
 
