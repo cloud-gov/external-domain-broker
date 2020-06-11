@@ -345,7 +345,7 @@ resources:
   type: time
   source:
     start: 11:00 AM
-    end: 5:00 PM
+    stop: 5:00 PM
     timezone: America/New_York
     days:
       - Monday
