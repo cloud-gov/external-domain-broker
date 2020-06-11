@@ -58,7 +58,7 @@ login() {
 prep_domains() {
   DOMAIN_0="test-${RANDOM}.${TEST_DOMAIN}"
   DOMAIN_1="test-${RANDOM}.${TEST_DOMAIN}"
-  cat << EOF > ./create-cname.json
+  cat << EOF > /tmp/create-cname.json
 {
   "Changes": [
     {
@@ -110,7 +110,7 @@ prep_domains() {
 EOF
   aws route53 change-resource-record-sets \
     --hosted-zone-id "${HOSTED_ZONE_ID}" \
-    --change-batch file://./create-cname.json > changeinfo.json
+    --change-batch file:///tmp/create-cname.json > changeinfo.json
   change_id=$(cat changeinfo.json | jq -r '.ChangeInfo.Id')
   change=$(cat changeinfo.json | jq -r '.ChangeInfo.Status')
   while [[ "$change" =~ PENDING ]]; do
@@ -190,7 +190,7 @@ cleanup() {
     sleep 60
   done
   echo "Service instance deleted."
-  cat << EOF > ./delete-cname.json
+  cat << EOF > /tmp/delete-cname.json
 {
   "Changes": [
     {
@@ -242,7 +242,7 @@ cleanup() {
 EOF
   aws route53 change-resource-record-sets \
     --hosted-zone-id "${HOSTED_ZONE_ID}" \
-    --change-batch file://./delete-cname.json
+    --change-batch file:///tmp/delete-cname.json
 }
 
 main
