@@ -262,9 +262,10 @@ jobs:
     - get: src
       params: {depth: 1}
     - get: cf-staging
-      trigger: true
+      #trigger: true
       #passed: [staging]
     - get: dev-docker-image
+      trigger: true
       #passed: [staging]
   - task: acceptance
     image: dev-docker-image
