@@ -110,9 +110,9 @@ prep_domains() {
 EOF
   aws route53 change-resource-record-sets \
     --hosted-zone-id "${HOSTED_ZONE_ID}" \
-    --change-batch file:///tmp/create-cname.json > changeinfo.json
-  change_id=$(cat changeinfo.json | jq -r '.ChangeInfo.Id')
-  change=$(cat changeinfo.json | jq -r '.ChangeInfo.Status')
+    --change-batch file:///tmp/create-cname.json > /tmp/changeinfo.json
+  change_id=$(cat /tmp/changeinfo.json | jq -r '.ChangeInfo.Id')
+  change=$(cat /tmp/changeinfo.json | jq -r '.ChangeInfo.Status')
   while [[ "$change" =~ PENDING ]]; do
     sleep 60
     change=$(aws route53 | jq -r '.ChangeInfo.Status')
