@@ -341,8 +341,8 @@ resources:
 - name: test-timer
   type: time
   source:
-    start: 11:00 AM
-    stop: 5:00 PM
+    start: 8:00 AM
+    stop: 8:00 PM
     timezone: America/New_York
     days:
       - Monday
