@@ -206,6 +206,7 @@ jobs:
       <<: *broker-register-params
 
 - name: staging
+  serial_groups: [staging]
   plan:
   - in_parallel:
     - get: src
@@ -257,16 +258,18 @@ jobs:
       <<: *broker-register-params
 
 - name: staging-acceptance-tests
+  serial_groups: [staging]
   plan:
   - in_parallel:
     - get: src
       params: {depth: 1}
+      passed: [staging]
     - get: cf-staging
-      #trigger: true
-      #passed: [staging]
+      trigger: true
+      passed: [staging]
     - get: dev-docker-image
       trigger: true
-      #passed: [staging]
+      passed: [staging]
   - task: acceptance
     image: dev-docker-image
     timeout: 6h
