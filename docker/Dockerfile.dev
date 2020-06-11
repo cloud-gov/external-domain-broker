@@ -67,7 +67,7 @@ RUN mkdir -p "$PGDATA" \
 
 ENV POSTGRES_HOST_AUTH_METHOD=trust
 
-RUN apt install -y --no-install-recommends awscli
+RUN apt install -y --no-install-recommends awscli jq
 
 # Install local python packages
 RUN pip install --upgrade pip
