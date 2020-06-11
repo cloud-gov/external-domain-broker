@@ -43,7 +43,6 @@ trap cleanup EXIT
 
 main() {
   login
-  cleanup
   prep_domains
   tests
   echo "Congratulations!  The tests pass!"
@@ -113,7 +112,7 @@ EOF
     --change-batch file://./create-cname.json > changeinfo.json
   change_id=$(cat changeinfo.json | jq -r '.ChangeInfo.Id')
   change=$(cat changeinfo.json | jq -r '.ChangeInfo.Status')
-  while [[ $change =~ PENDING ]]; do 
+  while [[ "$change" =~ PENDING ]]; do
     sleep 60
     change=$(aws route53 | jq -r '.ChangeInfo.Status')
   done
