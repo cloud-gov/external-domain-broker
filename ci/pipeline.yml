@@ -214,7 +214,6 @@ jobs:
       trigger: true
       passed: [dev]
     - get: pipeline-tasks
-    - get: dev-docker-image
   - in_parallel:
     - task: create-postgres
       file: pipeline-tasks/ensure-misbehaved-service.yml
@@ -268,8 +267,6 @@ jobs:
       trigger: true
       passed: [staging]
     - get: dev-docker-image
-      trigger: true
-      passed: [staging]
     - get: test-timer
       trigger: true
   - task: acceptance
