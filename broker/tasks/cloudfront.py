@@ -95,9 +95,7 @@ def create_distribution(operation_id: int, **kwargs):
 
     service_instance.cloudfront_distribution_arn = response["Distribution"]["ARN"]
     service_instance.cloudfront_distribution_id = response["Distribution"]["Id"]
-    service_instance.cloudfront_distribution_url = response["Distribution"][
-        "DomainName"
-    ]
+    service_instance.domain_internal = response["Distribution"]["DomainName"]
     db.session.add(service_instance)
     db.session.commit()
 
