@@ -54,6 +54,7 @@ class ServiceInstance(Base):
         StringEncryptedType(db.Text, db_encryption_key, AesGcmEngine, "pkcs5")
     )
     fullchain_pem = db.Column(db.Text)
+    domain_internal = db.Column(db.String)
 
     iam_server_certificate_id = db.Column(db.String)
     iam_server_certificate_name = db.Column(db.String)
@@ -71,17 +72,25 @@ class ServiceInstance(Base):
         return f"<ServiceInstance {self.id} {self.domain_names}>"
 
 
-class CdnServiceInstance(ServiceInstance):
+class CDNServiceInstance(ServiceInstance):
     cloudfront_distribution_arn = db.Column(db.String)
     cloudfront_distribution_id = db.Column(db.String)
-    cloudfront_distribution_url = db.Column(db.String)
     cloudfront_origin_hostname = db.Column(db.String)
     cloudfront_origin_path = db.Column(db.String)
 
     __mapper_args__ = {"polymorphic_identity": "cdn_service_instance"}
 
     def __repr__(self):
-        return f"<ServiceInstance {self.id} {self.domain_names}>"
+        return f"<CDNServiceInstance {self.id} {self.domain_names}>"
+
+
+class ALBServiceInstance(ServiceInstance):
+    alb_arn = db.Column(db.String)
+
+    __mapper_args__ = {"polymorphic_identity": "alb_service_instance"}
+
+    def __repr__(self):
+        return f"<ALBServiceInstance {self.id} {self.domain_names}>"
 
 
 class Operation(Base):

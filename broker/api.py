@@ -22,8 +22,14 @@ from sap import cf_logging
 
 from broker import validators
 from broker.extensions import config, db
-from broker.models import Operation, CdnServiceInstance, ServiceInstance
+from broker.models import (
+    Operation,
+    ALBServiceInstance,
+    CDNServiceInstance,
+    ServiceInstance,
+)
 from broker.tasks.pipelines import (
+    queue_all_alb_provision_tasks_for_operation,
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
 )
@@ -115,8 +121,11 @@ class API(ServiceBroker):
         validators.UniqueDomains(domain_names).validate()
 
         if details.plan_id == CDN_PLAN_ID:
-            instance = CdnServiceInstance(id=instance_id, domain_names=domain_names)
+            instance = CDNServiceInstance(id=instance_id, domain_names=domain_names)
             queue = queue_all_cdn_provision_tasks_for_operation
+        elif details.plan_id == ALB_PLAN_ID:
+            instance = ALBServiceInstance(id=instance_id, domain_names=domain_names)
+            queue = queue_all_alb_provision_tasks_for_operation
         else:
             raise NotImplementedError()
 

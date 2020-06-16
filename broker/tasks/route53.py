@@ -114,7 +114,7 @@ def create_ALIAS_records(operation_id: str, **kwargs):
 
     for domain in service_instance.domain_names:
         alias_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
-        target = service_instance.cloudfront_distribution_url
+        target = service_instance.domain_internal
         logger.info(f'Creating ALIAS record {alias_record} pointing to "{target}"')
         route53_response = route53.change_resource_record_sets(
             ChangeBatch={
@@ -153,7 +153,7 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
 
     for domain in service_instance.domain_names:
         alias_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
-        target = service_instance.cloudfront_distribution_url
+        target = service_instance.domain_internal
         logger.info(f'Removing ALIAS record {alias_record} pointing to "{target}"')
         route53_response = route53.change_resource_record_sets(
             ChangeBatch={

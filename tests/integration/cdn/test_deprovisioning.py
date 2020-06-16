@@ -1,18 +1,18 @@
 import pytest  # noqa F401
 
 from broker.extensions import db
-from broker.models import Operation, CdnServiceInstance
+from broker.models import Operation, CDNServiceInstance
 from tests.lib import factories
 
 
 @pytest.fixture
 def service_instance():
-    service_instance = factories.CdnServiceInstanceFactory.create(
+    service_instance = factories.CDNServiceInstanceFactory.create(
         id="1234",
         domain_names=["example.com", "foo.com"],
         iam_server_certificate_id="certificate_id",
         iam_server_certificate_name="certificate_name",
-        cloudfront_distribution_url="fake1234.cloudfront.net",
+        domain_internal="fake1234.cloudfront.net",
         cloudfront_distribution_id="FakeDistributionId",
         cloudfront_origin_hostname="origin_hostname",
         cloudfront_origin_path="origin_path",
@@ -141,7 +141,7 @@ def subtest_deprovision_disables_cloudfront_distribution(
         origin_hostname=service_instance.cloudfront_origin_hostname,
         origin_path=service_instance.cloudfront_origin_path,
         distribution_id=service_instance.cloudfront_distribution_id,
-        distribution_hostname=service_instance.cloudfront_distribution_url,
+        distribution_hostname=service_instance.domain_internal,
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
     cloudfront.assert_no_pending_responses()
@@ -234,13 +234,13 @@ def subtest_deprovision_removes_certificate_from_iam_when_missing(
 
 def subtest_deprovision_marks_operation_as_succeeded(tasks):
     db.session.expunge_all()
-    service_instance = CdnServiceInstance.query.get("1234")
+    service_instance = CDNServiceInstance.query.get("1234")
     assert not service_instance.deactivated_at
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CdnServiceInstance.query.get("1234")
+    service_instance = CDNServiceInstance.query.get("1234")
     assert service_instance.deactivated_at
     assert not service_instance.private_key_pem
 
