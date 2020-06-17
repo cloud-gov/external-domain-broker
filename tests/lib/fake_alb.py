@@ -75,6 +75,21 @@ class FakeALB(FakeAWS):
             },
         )
 
+    def expect_happy_path_remove_certificate_to_listener(self, alb_arn, iam_cert_arn):
+        self.expect_happy_path_get_listeners_for_alb(alb_arn)
+        self.stubber.add_response(
+            "remove_listener_certificates",
+            {
+                "Certificates": [
+                    {"CertificateArn": "arn:2", "IsDefault": True},
+                ]
+            },
+            {
+                "ListenerArn": "httpslistenerarn",
+                "Certificates": [{"CertificateArn": iam_cert_arn, "IsDefault": False}],
+            },
+        )
+
     def expect_describe_alb(
         self, alb_arn, returned_domain: str = "somedomain.cloud.test"
     ):

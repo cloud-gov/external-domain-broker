@@ -46,6 +46,25 @@ def queue_all_alb_provision_tasks_for_operation(operation_id: int, correlation_i
     huey.enqueue(task_pipeline)
 
 
+def queue_all_alb_deprovision_tasks_for_operation(
+    operation_id: int, correlation_id: str
+):
+    if correlation_id is None:
+        raise RuntimeError("correlation_id must be set")
+    if operation_id is None:
+        raise RuntimeError("operation_id must be set")
+    task_pipeline = (
+        route53.remove_ALIAS_records.s(operation_id, correlation_id=correlation_id)
+        .then(route53.remove_TXT_records, operation_id, correlation_id=correlation_id)
+        .then(alb.remove_server_certificate, operation_id, correlation_id=correlation_id)
+        .then(
+            iam.delete_server_certificate, operation_id, correlation_id=correlation_id
+        )
+        .then(finalize.deprovision, operation_id, correlation_id=correlation_id)
+    )
+    huey.enqueue(task_pipeline)
+
+
 def queue_all_cdn_provision_tasks_for_operation(operation_id: int, correlation_id: str):
     if correlation_id is None:
         raise RuntimeError("correlation_id must be set")
