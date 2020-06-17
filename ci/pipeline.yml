@@ -7,7 +7,6 @@ broker-register-params: &broker-register-params
   BROKER_NAME: ((name))
   AUTH_USER: ((broker-auth-username))
   AUTH_PASS: ((broker-auth-password))
-  SERVICES: ((service-name))
 
 cf-creds-dev: &cf-creds-dev
   CF_API_URL: ((dev-cf-api-url))
@@ -216,6 +215,7 @@ jobs:
     params:
       <<: *cf-creds-dev
       <<: *broker-register-params
+      SERVICES: ((service-name))
 
 - name: staging
   serial_groups: [staging]
@@ -267,6 +267,7 @@ jobs:
     params:
       <<: *cf-creds-staging
       <<: *broker-register-params
+      SERVICES: ((service-name))
 
 - name: staging-acceptance-tests
   serial_groups: [staging]
