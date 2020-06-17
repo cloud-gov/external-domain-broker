@@ -34,11 +34,8 @@ def queue_all_alb_provision_tasks_for_operation(operation_id: int, correlation_i
         .then(
             iam.upload_server_certificate, operation_id, correlation_id=correlation_id
         )
-        .then(
-            alb.select_alb_and_upload_certificate,
-            operation_id,
-            correlation_id=correlation_id,
-        )
+        .then(alb.select_alb, operation_id, correlation_id=correlation_id)
+        .then(alb.add_certificate_to_alb, operation_id, correlation_id=correlation_id)
         .then(route53.create_ALIAS_records, operation_id, correlation_id=correlation_id)
         .then(route53.wait_for_changes, operation_id, correlation_id=correlation_id)
         .then(finalize.provision, operation_id, correlation_id=correlation_id)
