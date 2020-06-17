@@ -46,13 +46,13 @@ def test_refuses_to_deprovision_synchronously_by_default(client, service_instanc
 
 
 def test_deprovision_happy_path(
-    client, service_instance, dns, tasks, route53, iam, simple_regex, alb
+    client, service_instance, dns, tasks, route53, iam_govcloud, simple_regex, alb
 ):
     subtest_deprovision_creates_deprovision_operation(client, service_instance)
     subtest_deprovision_removes_ALIAS_records(tasks, route53)
     subtest_deprovision_removes_TXT_records(tasks, route53)
     subtest_deprovision_removes_cert_from_alb(tasks, service_instance, alb)
-    subtest_deprovision_removes_certificate_from_iam(tasks, service_instance, iam)
+    subtest_deprovision_removes_certificate_from_iam(tasks, service_instance, iam_govcloud)
     subtest_deprovision_marks_operation_as_succeeded(tasks)
 
 
@@ -99,20 +99,20 @@ def subtest_deprovision_removes_cert_from_alb(tasks, service_instance, alb):
     alb.assert_no_pending_responses()
 
 
-def subtest_deprovision_removes_certificate_from_iam(tasks, service_instance, iam):
-    iam.expects_delete_server_certificate(service_instance.iam_server_certificate_name)
+def subtest_deprovision_removes_certificate_from_iam(tasks, service_instance, iam_govcloud):
+    iam_govcloud.expects_delete_server_certificate(service_instance.iam_server_certificate_name)
     tasks.run_queued_tasks_and_enqueue_dependents()
-    iam.assert_no_pending_responses()
+    iam_govcloud.assert_no_pending_responses()
 
 
 def subtest_deprovision_removes_certificate_from_iam_when_missing(
-    tasks, service_instance, iam
+    tasks, service_instance, iam_govcloud
 ):
-    iam.expects_delete_server_certificate_returning_no_such_entity(
+    iam_govcloud.expects_delete_server_certificate_returning_no_such_entity(
         name=service_instance.iam_server_certificate_name
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
-    iam.assert_no_pending_responses()
+    iam_govcloud.assert_no_pending_responses()
 
 
 def subtest_deprovision_marks_operation_as_succeeded(tasks):

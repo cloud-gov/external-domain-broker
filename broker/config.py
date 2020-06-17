@@ -76,8 +76,11 @@ class AppConfig(Config):
         self.ROUTE53_ZONE_ID = self.env("ROUTE53_ZONE_ID")
         self.DNS_ROOT_DOMAIN = self.env("DNS_ROOT_DOMAIN")
         self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
-        self.IAM_SERVER_CERTIFICATE_PREFIX = (
+        self.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX = (
             f"/cloudfront/external-domains-{self.FLASK_ENV}/"
+        )
+        self.ALB_IAM_SERVER_CERTIFICATE_PREFIX = (
+            f"/alb/external-domains-{self.FLASK_ENV}/"
         )
         self.DATABASE_ENCRYPTION_KEY = self.env("DATABASE_ENCRYPTION_KEY")
         self.DEFAULT_CLOUDFRONT_ORIGIN = self.env("DEFAULT_CLOUDFRONT_ORIGIN")
@@ -148,7 +151,8 @@ class DockerConfig(Config):
         self.DNS_ROOT_DOMAIN = "domains.cloud.test"
         self.DATABASE_ENCRYPTION_KEY = "Local Dev Encrytpion Key"
         self.DEFAULT_CLOUDFRONT_ORIGIN = "cloud.local"
-        self.IAM_SERVER_CERTIFICATE_PREFIX = "/cloudfront/external-domains-test/"
+        self.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX = "/cloudfront/external-domains-test/"
+        self.ALB_IAM_SERVER_CERTIFICATE_PREFIX = "/alb/external-domains-test/"
         self.REDIS_SSL = False
         self.ALB_ARNS = ["alb-arn-0", "alb-arn-1"]
         self.AWS_COMMERCIAL_REGION = "us-west-1"
