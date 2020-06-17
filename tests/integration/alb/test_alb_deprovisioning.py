@@ -12,6 +12,7 @@ def service_instance():
         domain_names=["example.com", "foo.com"],
         iam_server_certificate_id="certificate_id",
         iam_server_certificate_name="certificate_name",
+        iam_server_certificate_arn="certificate_arn",
         domain_internal="fake1234.cloud.test",
         alb_arn="alb-arn-0",
         private_key_pem="SOMEPRIVATEKEY",
@@ -44,34 +45,13 @@ def test_refuses_to_deprovision_synchronously_by_default(client, service_instanc
     assert client.response.status_code == 422
 
 
-#def test_deprovision_continues_when_resources_dont_exist(
-#    client, service_instance, dns, tasks, route53, iam, simple_regex, cloudfront
-#):
-#    subtest_deprovision_creates_deprovision_operation(client, service_instance)
-#    subtest_deprovision_removes_ALIAS_records(tasks, route53)
-#    subtest_deprovision_removes_TXT_records(tasks, route53)
-#
-#    subtest_deprovision_disables_cloudfront_distribution_when_missing(
-#        tasks, service_instance, cloudfront
-#    )
-#    subtest_deprovision_waits_for_cloudfront_distribution_disabled_when_missing(
-#        tasks, service_instance, cloudfront
-#    )
-#    subtest_deprovision_removes_cloudfront_distribution_when_missing(
-#        tasks, service_instance, cloudfront
-#    )
-#    subtest_deprovision_removes_certificate_from_iam_when_missing(
-#        tasks, service_instance, iam
-#    )
-
-
 def test_deprovision_happy_path(
     client, service_instance, dns, tasks, route53, iam, simple_regex, alb
 ):
     subtest_deprovision_creates_deprovision_operation(client, service_instance)
     subtest_deprovision_removes_ALIAS_records(tasks, route53)
     subtest_deprovision_removes_TXT_records(tasks, route53)
-    subtest_deprovision_removes_cert_from_alb(tasks, alb)
+    subtest_deprovision_removes_cert_from_alb(tasks, service_instance, alb)
     subtest_deprovision_removes_certificate_from_iam(tasks, service_instance, iam)
     subtest_deprovision_marks_operation_as_succeeded(tasks)
 
@@ -92,9 +72,7 @@ def subtest_deprovision_creates_deprovision_operation(client, service_instance):
 
 
 def subtest_deprovision_removes_ALIAS_records(tasks, route53):
-    route53.expect_remove_ALIAS(
-        "example.com.domains.cloud.test", "fake1234.cloud.test"
-    )
+    route53.expect_remove_ALIAS("example.com.domains.cloud.test", "fake1234.cloud.test")
     route53.expect_remove_ALIAS("foo.com.domains.cloud.test", "fake1234.cloud.test")
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -111,6 +89,14 @@ def subtest_deprovision_removes_TXT_records(tasks, route53):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     route53.assert_no_pending_responses()
+
+
+def subtest_deprovision_removes_cert_from_alb(tasks, service_instance, alb):
+    alb.expect_happy_path_remove_certificate_from_listener(
+        service_instance.alb_arn, service_instance.iam_server_certificate_arn
+    )
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    alb.assert_no_pending_responses()
 
 
 def subtest_deprovision_removes_certificate_from_iam(tasks, service_instance, iam):

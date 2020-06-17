@@ -56,7 +56,9 @@ def queue_all_alb_deprovision_tasks_for_operation(
     task_pipeline = (
         route53.remove_ALIAS_records.s(operation_id, correlation_id=correlation_id)
         .then(route53.remove_TXT_records, operation_id, correlation_id=correlation_id)
-        .then(alb.remove_server_certificate, operation_id, correlation_id=correlation_id)
+        .then(
+            alb.remove_certificate_from_alb, operation_id, correlation_id=correlation_id
+        )
         .then(
             iam.delete_server_certificate, operation_id, correlation_id=correlation_id
         )

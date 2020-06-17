@@ -58,7 +58,9 @@ class AppConfig(Config):
         self.ALB_ARNS = list(set(self.ALB_ARNS))
         self.AWS_COMMERCIAL_REGION = self.env("AWS_COMMERCIAL_REGION")
         self.AWS_COMMERCIAL_ACCESS_KEY_ID = self.env("AWS_COMMERCIAL_ACCESS_KEY_ID")
-        self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = self.env("AWS_COMMERCIAL_SECRET_ACCESS_KEY")
+        self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = self.env(
+            "AWS_COMMERCIAL_SECRET_ACCESS_KEY"
+        )
         self.AWS_GOVCLOUD_REGION = self.env("AWS_GOVCLOUD_REGION")
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = self.env("AWS_GOVCLOUD_ACCESS_KEY_ID")
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = self.env("AWS_GOVCLOUD_SECRET_ACCESS_KEY")
