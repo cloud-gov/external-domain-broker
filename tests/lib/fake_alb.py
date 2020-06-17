@@ -6,7 +6,12 @@ from tests.lib.fake_aws import FakeAWS
 
 
 class FakeALB(FakeAWS):
-    def expect_happy_path_get_listeners_for_alb(self, alb_arn):
+    def expect_get_listeners_for_alb(self, alb_arn, num_certificates: int = 1):
+        certificates = [{"CertificateArn": "certificate-arn", "IsDefault": True}]
+        for i in range(num_certificates - 1):
+            certificates.append(
+                {"CertificateArn": f"certificate-arn-{i}", "IsDefault": False}
+            )
         self.stubber.add_response(
             "describe_listeners",
             {
@@ -35,9 +40,7 @@ class FakeALB(FakeAWS):
                         "LoadBalancerArn": "string",
                         "Port": 123,
                         "Protocol": "HTTPS",
-                        "Certificates": [
-                            {"CertificateArn": "string", "IsDefault": True}
-                        ],
+                        "Certificates": certificates,
                         "SslPolicy": "string",
                         "DefaultActions": [
                             {
@@ -59,8 +62,7 @@ class FakeALB(FakeAWS):
             {"LoadBalancerArn": alb_arn},
         )
 
-    def expect_happy_path_add_certificate_to_listener(self, alb_arn, iam_cert_arn):
-        self.expect_happy_path_get_listeners_for_alb(alb_arn)
+    def expect_add_certificate_to_listener(self, alb_arn, iam_cert_arn):
         self.stubber.add_response(
             "add_listener_certificates",
             {
@@ -75,8 +77,7 @@ class FakeALB(FakeAWS):
             },
         )
 
-    def expect_happy_path_remove_certificate_from_listener(self, alb_arn, iam_cert_arn):
-        self.expect_happy_path_get_listeners_for_alb(alb_arn)
+    def expect_remove_certificate_from_listener(self, alb_arn, iam_cert_arn):
         self.stubber.add_response(
             "remove_listener_certificates",
             {},

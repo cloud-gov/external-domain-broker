@@ -52,7 +52,9 @@ def test_deprovision_happy_path(
     subtest_deprovision_removes_ALIAS_records(tasks, route53)
     subtest_deprovision_removes_TXT_records(tasks, route53)
     subtest_deprovision_removes_cert_from_alb(tasks, service_instance, alb)
-    subtest_deprovision_removes_certificate_from_iam(tasks, service_instance, iam_govcloud)
+    subtest_deprovision_removes_certificate_from_iam(
+        tasks, service_instance, iam_govcloud
+    )
     subtest_deprovision_marks_operation_as_succeeded(tasks)
 
 
@@ -92,15 +94,20 @@ def subtest_deprovision_removes_TXT_records(tasks, route53):
 
 
 def subtest_deprovision_removes_cert_from_alb(tasks, service_instance, alb):
-    alb.expect_happy_path_remove_certificate_from_listener(
+    alb.expect_get_listeners_for_alb(service_instance.alb_arn)
+    alb.expect_remove_certificate_from_listener(
         service_instance.alb_arn, service_instance.iam_server_certificate_arn
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
 
 
-def subtest_deprovision_removes_certificate_from_iam(tasks, service_instance, iam_govcloud):
-    iam_govcloud.expects_delete_server_certificate(service_instance.iam_server_certificate_name)
+def subtest_deprovision_removes_certificate_from_iam(
+    tasks, service_instance, iam_govcloud
+):
+    iam_govcloud.expects_delete_server_certificate(
+        service_instance.iam_server_certificate_name
+    )
     tasks.run_queued_tasks_and_enqueue_dependents()
     iam_govcloud.assert_no_pending_responses()
 

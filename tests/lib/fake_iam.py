@@ -53,6 +53,7 @@ def iam_commercial():
     with FakeIAM.stubbing(real_iam_c) as iam_stubber:
         yield iam_stubber
 
+
 @pytest.fixture(autouse=True)
 def iam_govcloud():
     with FakeIAM.stubbing(real_iam_g) as iam_stubber:
