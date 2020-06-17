@@ -63,6 +63,7 @@ cf-manifest-env-dev: &cf-manifest-env-dev
     AWS_COMMERCIAL_DEFAULT_REGION: ((dev-aws-commercial-region))
     AWS_COMMERCIAL_SECRET_ACCESS_KEY: ((dev-aws-commercial-secret-access-key))
     AWS_COMMERCIAL_ACCESS_KEY_ID: ((dev-aws-commercial-access-key-id))
+    ALB_ARNS: ((dev-alb-arns))
 
 cf-manifest-env-staging: &cf-manifest-env-staging
   environment_variables:
@@ -80,6 +81,7 @@ cf-manifest-env-staging: &cf-manifest-env-staging
     AWS_COMMERCIAL_DEFAULT_REGION: ((staging-aws-commercial-region))
     AWS_COMMERCIAL_SECRET_ACCESS_KEY: ((staging-aws-commercial-secret-access-key))
     AWS_COMMERCIAL_ACCESS_KEY_ID: ((staging-aws-commercial-access-key-id))
+    ALB_ARNS: ((staging-alb-arns))
 
 cf-manifest-env-prod: &cf-manifest-env-prod
   environment_variables:
@@ -97,6 +99,7 @@ cf-manifest-env-prod: &cf-manifest-env-prod
     AWS_COMMERCIAL_DEFAULT_REGION: ((prod-aws-commercial-region))
     AWS_COMMERCIAL_SECRET_ACCESS_KEY: ((prod-aws-commercial-secret-access-key))
     AWS_COMMERCIAL_ACCESS_KEY_ID: ((prod-aws-commercial-access-key-id))
+    ALB_ARNS: ((prod-alb-arns))
 
 acceptance-tests-params: &acceptance-tests-params
   PLAN_NAME: "domain-with-cdn"
