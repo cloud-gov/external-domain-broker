@@ -37,3 +37,28 @@ def select_alb_and_upload_certificate(operation_id, **kwargs):
     service_instance.domain_internal = alb_config["LoadBalancers"][0]["DNSName"]
     db.session.add(service_instance)
     db.session.commit()
+
+
+@huey.retriable_task
+@inject_db
+def remove_certificate_from_alb(operation_id, **kwargs):
+    db = kwargs["db"]
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    listeners = alb.describe_listeners(LoadBalancerArn=service_instance.alb_arn)
+    https_listener = [
+        listener
+        for listener in listeners["Listeners"]
+        if listener["Protocol"] == "HTTPS"
+    ][0]
+    alb.remove_listener_certificates(
+        ListenerArn=https_listener["ListenerArn"],
+        Certificates=[
+            {
+                "CertificateArn": service_instance.iam_server_certificate_arn,
+                "IsDefault": False,
+            }
+        ],
+    )
+    db.session.add(service_instance)
+    db.session.commit()
