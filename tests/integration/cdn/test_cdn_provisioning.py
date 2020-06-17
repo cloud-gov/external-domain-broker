@@ -279,7 +279,7 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam_commercial, simple_r
         cert=service_instance.cert_pem,
         private_key=service_instance.private_key_pem,
         chain=service_instance.fullchain_pem,
-        path = "/cloudfront/external-domains-test/"
+        path="/cloudfront/external-domains-test/",
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

@@ -47,7 +47,14 @@ def test_refuses_to_deprovision_synchronously_by_default(client, service_instanc
 
 
 def test_deprovision_continues_when_resources_dont_exist(
-    client, service_instance, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+    client,
+    service_instance,
+    dns,
+    tasks,
+    route53,
+    iam_commercial,
+    simple_regex,
+    cloudfront,
 ):
     subtest_deprovision_creates_deprovision_operation(client, service_instance)
     subtest_deprovision_removes_ALIAS_records(tasks, route53)
@@ -68,7 +75,14 @@ def test_deprovision_continues_when_resources_dont_exist(
 
 
 def test_deprovision_happy_path(
-    client, service_instance, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+    client,
+    service_instance,
+    dns,
+    tasks,
+    route53,
+    iam_commercial,
+    simple_regex,
+    cloudfront,
 ):
     subtest_deprovision_creates_deprovision_operation(client, service_instance)
     subtest_deprovision_removes_ALIAS_records(tasks, route53)
@@ -82,7 +96,9 @@ def test_deprovision_happy_path(
     subtest_deprovision_removes_cloudfront_distribution(
         tasks, service_instance, cloudfront
     )
-    subtest_deprovision_removes_certificate_from_iam(tasks, service_instance, iam_commercial)
+    subtest_deprovision_removes_certificate_from_iam(
+        tasks, service_instance, iam_commercial
+    )
     subtest_deprovision_marks_operation_as_succeeded(tasks)
 
 
@@ -216,8 +232,12 @@ def subtest_deprovision_removes_cloudfront_distribution_when_missing(
     cloudfront.assert_no_pending_responses()
 
 
-def subtest_deprovision_removes_certificate_from_iam(tasks, service_instance, iam_commercial):
-    iam_commercial.expects_delete_server_certificate(service_instance.iam_server_certificate_name)
+def subtest_deprovision_removes_certificate_from_iam(
+    tasks, service_instance, iam_commercial
+):
+    iam_commercial.expects_delete_server_certificate(
+        service_instance.iam_server_certificate_name
+    )
     tasks.run_queued_tasks_and_enqueue_dependents()
     iam_commercial.assert_no_pending_responses()
 

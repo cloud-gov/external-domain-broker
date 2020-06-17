@@ -139,11 +139,10 @@ def test_config_uses_right_iam_prefix(env, monkeypatch, mocked_env):
     config = config_from_env()
 
     assert (
-        config.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX == f"/cloudfront/external-domains-{env}/"
+        config.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX
+        == f"/cloudfront/external-domains-{env}/"
     )
-    assert (
-        config.ALB_IAM_SERVER_CERTIFICATE_PREFIX == f"/alb/external-domains-{env}/"
-    )
+    assert config.ALB_IAM_SERVER_CERTIFICATE_PREFIX == f"/alb/external-domains-{env}/"
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])

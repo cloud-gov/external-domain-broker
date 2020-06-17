@@ -100,7 +100,9 @@ def test_refuses_to_provision_with_incorrect_acme_challenge_CNAME(client, dns):
     assert client.response.status_code == 400
 
 
-def test_provision_happy_path(client, dns, tasks, route53, iam_govcloud, simple_regex, alb):
+def test_provision_happy_path(
+    client, dns, tasks, route53, iam_govcloud, simple_regex, alb
+):
     subtest_provision_creates_provision_operation(client, dns)
     subtest_provision_creates_LE_user(tasks)
     subtest_provision_creates_private_key_and_csr(tasks)
@@ -254,7 +256,7 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_reg
         cert=service_instance.cert_pem,
         private_key=service_instance.private_key_pem,
         chain=service_instance.fullchain_pem,
-        path = "/alb/external-domains-test/"
+        path="/alb/external-domains-test/",
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -272,7 +274,8 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_reg
 def subtest_provision_adds_certificate_to_alb(tasks, alb):
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")
-    alb.expect_happy_path_add_certificate_to_listener(
+    alb.expect_get_listeners_for_alb("alb-arn-0")
+    alb.expect_add_certificate_to_listener(
         "alb-arn-0", service_instance.iam_server_certificate_arn
     )
     alb.expect_describe_alb("alb-arn-0", "alb.cloud.test")
