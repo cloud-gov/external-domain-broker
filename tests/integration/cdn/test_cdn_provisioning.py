@@ -114,7 +114,7 @@ def test_provision_sets_default_origin_and_path_if_none_provided(client, dns):
 
 
 def test_provision_happy_path(
-    client, dns, tasks, route53, iam, simple_regex, cloudfront
+    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
 ):
     subtest_provision_creates_provision_operation(client, dns)
     subtest_provision_creates_LE_user(tasks)
@@ -124,7 +124,7 @@ def test_provision_happy_path(
     subtest_provision_waits_for_route53_changes(tasks, route53)
     subtest_provision_ansers_challenges(tasks, dns)
     subtest_provision_retrieves_certificate(tasks)
-    subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex)
+    subtest_provision_uploads_certificate_to_iam(tasks, iam_commercial, simple_regex)
     subtest_provision_creates_cloudfront_distribution(tasks, cloudfront)
     subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront)
     subtest_provision_provisions_ALIAS_records(tasks, route53)
@@ -268,17 +268,18 @@ def subtest_provision_retrieves_certificate(tasks):
     assert 1 == service_instance.cert_pem.count("BEGIN CERTIFICATE")
 
 
-def subtest_provision_uploads_certificate_to_iam(tasks, iam, simple_regex):
+def subtest_provision_uploads_certificate_to_iam(tasks, iam_commercial, simple_regex):
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("4321")
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
 
-    iam.expect_upload_server_certificate(
+    iam_commercial.expect_upload_server_certificate(
         name=f"{service_instance.id}-{today}",
         cert=service_instance.cert_pem,
         private_key=service_instance.private_key_pem,
         chain=service_instance.fullchain_pem,
+        path = "/cloudfront/external-domains-test/"
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

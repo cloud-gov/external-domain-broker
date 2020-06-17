@@ -2,17 +2,17 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from broker.aws import iam as real_iam
+from broker.aws import iam_commercial as real_iam_c
+from broker.aws import iam_govcloud as real_iam_g
 from tests.lib.fake_aws import FakeAWS
 
 
 class FakeIAM(FakeAWS):
     def expect_upload_server_certificate(
-        self, name: str, cert: str, private_key: str, chain: str
+        self, name: str, cert: str, private_key: str, chain: str, path: str
     ):
         now = datetime.now(timezone.utc)
         three_months_from_now = now + timedelta(90)
-        path = "/cloudfront/external-domains-test/"
         method = "upload_server_certificate"
         request = {
             "Path": path,
@@ -49,6 +49,11 @@ class FakeIAM(FakeAWS):
 
 
 @pytest.fixture(autouse=True)
-def iam():
-    with FakeIAM.stubbing(real_iam) as iam_stubber:
+def iam_commercial():
+    with FakeIAM.stubbing(real_iam_c) as iam_stubber:
+        yield iam_stubber
+
+@pytest.fixture(autouse=True)
+def iam_govcloud():
+    with FakeIAM.stubbing(real_iam_g) as iam_stubber:
         yield iam_stubber
