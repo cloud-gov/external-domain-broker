@@ -9,13 +9,37 @@ from broker.tasks.db_injection import inject_db
 logger = logging.getLogger(__name__)
 
 
+def get_lowest_used_alb(alb_arns):
+    https_listeners = []
+    for alb_arn in alb_arns:
+        listeners = alb.describe_listeners(LoadBalancerArn=alb_arn)
+        https_listener = [
+            listener
+            for listener in listeners["Listeners"]
+            if listener["Protocol"] == "HTTPS"
+        ][0]
+        https_listeners.append(https_listener)
+    https_listeners.sort(key=lambda x: len(x["Certificates"]))
+    return https_listeners[0]["LoadBalancerArn"]
+
+
 @huey.retriable_task
 @inject_db
-def select_alb_and_upload_certificate(operation_id, **kwargs):
+def select_alb(operation_id, **kwargs):
     db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
-    service_instance.alb_arn = config.ALB_ARNS[0]
+    service_instance.alb_arn = get_lowest_used_alb(config.ALB_ARNS)
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+@huey.retriable_task
+@inject_db
+def add_certificate_to_alb(operation_id, **kwargs):
+    db = kwargs["db"]
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
     listeners = alb.describe_listeners(LoadBalancerArn=service_instance.alb_arn)
     https_listener = [
         listener

@@ -37,7 +37,7 @@ class FakeALB(FakeAWS):
                     },
                     {
                         "ListenerArn": "httpslistenerarn",
-                        "LoadBalancerArn": "string",
+                        "LoadBalancerArn": alb_arn,
                         "Port": 123,
                         "Protocol": "HTTPS",
                         "Certificates": certificates,

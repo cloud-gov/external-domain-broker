@@ -5,6 +5,7 @@ import pytest  # noqa F401
 
 from broker.extensions import config, db
 from broker.models import Challenge, Operation, ALBServiceInstance
+from broker.tasks.alb import get_lowest_used_alb
 from tests.lib.factories import ALBServiceInstanceFactory
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we
@@ -14,6 +15,21 @@ from tests.lib.factories import ALBServiceInstanceFactory
 # methods.  This still makes it clear which stage in the task pipeline is
 # failing (look for the subtask_foo in the traceback), and allows us to re-use
 # these subtasks when testing failure scenarios.
+
+
+def test_gets_lowest_used_alb(alb):
+    alb.expect_get_listeners_for_alb("alb-arn-0", 1)
+    assert get_lowest_used_alb(["alb-arn-0"]) == "alb-arn-0"
+    alb.expect_get_listeners_for_alb("alb-arn-0", 2)
+    alb.expect_get_listeners_for_alb("alb-arn-1", 1)
+    assert get_lowest_used_alb(["alb-arn-0", "alb-arn-1"]) == "alb-arn-1"
+    alb.expect_get_listeners_for_alb("alb-arn-1", 1)
+    alb.expect_get_listeners_for_alb("alb-arn-0", 2)
+    assert get_lowest_used_alb(["alb-arn-1", "alb-arn-0"]) == "alb-arn-1"
+    alb.expect_get_listeners_for_alb("alb-arn-1", 1)
+    alb.expect_get_listeners_for_alb("alb-arn-2", 2)
+    alb.expect_get_listeners_for_alb("alb-arn-0", 2)
+    assert get_lowest_used_alb(["alb-arn-1", "alb-arn-2", "alb-arn-0"]) == "alb-arn-1"
 
 
 def test_refuses_to_provision_synchronously(client):
@@ -112,6 +128,7 @@ def test_provision_happy_path(
     subtest_provision_answers_challenges(tasks, dns)
     subtest_provision_retrieves_certificate(tasks)
     subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_regex)
+    subtest_provision_selects_alb(tasks, alb)
     subtest_provision_adds_certificate_to_alb(tasks, alb)
     subtest_provision_provisions_ALIAS_records(tasks, route53, alb)
     subtest_provision_waits_for_route53_changes(tasks, route53)
@@ -271,18 +288,26 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_reg
     assert service_instance.iam_server_certificate_arn.startswith("arn:aws:iam")
 
 
+def subtest_provision_selects_alb(tasks, alb):
+    db.session.expunge_all()
+    alb.expect_get_listeners_for_alb("alb-arn-0", 1)
+    alb.expect_get_listeners_for_alb("alb-arn-1", 5)
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    alb.assert_no_pending_responses()
+    service_instance = ALBServiceInstance.query.get("4321")
+    assert service_instance.alb_arn.startswith("alb-arn-")
+
+
 def subtest_provision_adds_certificate_to_alb(tasks, alb):
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")
-    alb.expect_get_listeners_for_alb("alb-arn-0")
+    alb.expect_get_listeners_for_alb("alb-arn-0", 1)
     alb.expect_add_certificate_to_listener(
         "alb-arn-0", service_instance.iam_server_certificate_arn
     )
     alb.expect_describe_alb("alb-arn-0", "alb.cloud.test")
     tasks.run_queued_tasks_and_enqueue_dependents()
-    service_instance = ALBServiceInstance.query.get("4321")
     alb.assert_no_pending_responses()
-    assert service_instance.alb_arn.startswith("alb-arn-")
 
 
 def subtest_provision_provisions_ALIAS_records(tasks, route53, alb):
