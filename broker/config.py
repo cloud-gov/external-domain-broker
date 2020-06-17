@@ -56,7 +56,12 @@ class AppConfig(Config):
         self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
         self.ALB_ARNS = self.env.list("ALB_ARNS")
         self.ALB_ARNS = list(set(self.ALB_ARNS))
-        self.AWS_REGION = self.env("AWS_REGION")
+        self.AWS_COMMERCIAL_REGION = self.env("AWS_COMMERCIAL_REGION")
+        self.AWS_COMMERCIAL_ACCESS_KEY_ID = self.env("AWS_COMMERCIAL_ACCESS_KEY_ID")
+        self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = self.env("AWS_COMMERCIAL_SECRET_ACCESS_KEY")
+        self.AWS_GOVCLOUD_REGION = self.env("AWS_GOVCLOUD_REGION")
+        self.AWS_GOVCLOUD_ACCESS_KEY_ID = self.env("AWS_GOVCLOUD_ACCESS_KEY_ID")
+        self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = self.env("AWS_GOVCLOUD_SECRET_ACCESS_KEY")
 
         redis = self.cfenv.get_service(label=re.compile("redis.*"))
 
@@ -137,8 +142,13 @@ class DockerConfig(Config):
         self.DEFAULT_CLOUDFRONT_ORIGIN = "cloud.local"
         self.IAM_SERVER_CERTIFICATE_PREFIX = "/cloudfront/external-domains-test/"
         self.REDIS_SSL = False
-        self.AWS_REGION = "us-west-1"
         self.ALB_ARNS = ["alb-arn-0", "alb-arn-1"]
+        self.AWS_COMMERCIAL_REGION = "us-west-1"
+        self.AWS_COMMERCIAL_ACCESS_KEY_ID = "COMMERCIAL_FAKE_KEY_ID"
+        self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = "COMMERCIAL_FAKE_ACCESS_KEY"
+        self.AWS_GOVCLOUD_REGION = "us-gov-west-1"
+        self.AWS_GOVCLOUD_ACCESS_KEY_ID = "GOVCLOUD_FAKE_KEY_ID"
+        self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "GOVCLOUD_FAKE_ACCESS_KEY"
 
 
 class LocalDevelopmentConfig(DockerConfig):
