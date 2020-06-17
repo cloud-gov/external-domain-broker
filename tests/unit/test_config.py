@@ -82,7 +82,12 @@ def mocked_env(monkeypatch, vcap_application, vcap_services):
         "ALB_ARNS",
         "arn:aws:elasticloadbalancing:us-east-2:123456789012:loadbalancer/app/my-load-balancer/1234567890123456,arn:aws:elasticloadbalancing:us-east-2:123456789012:loadbalancer/app/my-load-balancer/1234567890123456",
     )
-    monkeypatch.setenv("AWS_REGION", "us-west-1")
+    monkeypatch.setenv("AWS_COMMERCIAL_REGION", "us-west-1")
+    monkeypatch.setenv("AWS_COMMERCIAL_ACCESS_KEY_ID", "ASIAFAKEKEY")
+    monkeypatch.setenv("AWS_COMMERCIAL_SECRET_ACCESS_KEY", "THIS_IS_A_FAKE_ACCESS_KEY")
+    monkeypatch.setenv("AWS_GOVCLOUD_REGION", "us-west-1")
+    monkeypatch.setenv("AWS_GOVCLOUD_ACCESS_KEY_ID", "ASIAFAKEKEY")
+    monkeypatch.setenv("AWS_GOVCLOUD_SECRET_ACCESS_KEY", "THIS_IS_A_FAKE_ACCESS_KEY")
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
