@@ -22,6 +22,13 @@ cf-creds-staging: &cf-creds-staging
   CF_ORGANIZATION: ((broker-organization))
   CF_SPACE: ((broker-space))
 
+cf-creds-production: &cf-creds-production
+  CF_API_URL: ((production-cf-api-url))
+  CF_USERNAME: ((production-cf-username))
+  CF_PASSWORD: ((production-cf-password))
+  CF_ORGANIZATION: ((broker-organization))
+  CF_SPACE: ((broker-space))
+
 create-postgres-service-params: &create-postgres-service-params
   APP_NAME: ((name))
   SVC_SERVICE: ((db_service))
@@ -82,7 +89,7 @@ cf-manifest-env-staging: &cf-manifest-env-staging
     AWS_COMMERCIAL_ACCESS_KEY_ID: ((staging-aws-commercial-access-key-id))
     ALB_ARNS: ((staging-alb-arns))
 
-cf-manifest-env-prod: &cf-manifest-env-prod
+cf-manifest-env-production: &cf-manifest-env-production
   environment_variables:
     FLASK_ENV: production
     BROKER_USERNAME: ((broker-auth-username))
@@ -294,6 +301,82 @@ jobs:
       run:
         path: /app/acceptance/run.sh
 
+- name: production
+  serial_groups: [production]
+  plan:
+  - in_parallel:
+    - get: src
+      params: {depth: 1}
+      trigger: true
+      passed: [staging-acceptance-tests]
+    - get: pipeline-tasks
+  - in_parallel:
+    - task: create-postgres
+      file: pipeline-tasks/ensure-misbehaved-service.yml
+      params:
+        <<: *cf-creds-production
+        <<: *create-postgres-service-params
+    - task: create-redis
+      file: pipeline-tasks/ensure-misbehaved-service.yml
+      params:
+        <<: *cf-creds-production
+        <<: *create-redis-service-params
+  - task: stop-apps
+    file: src/ci/stop-apps.yml
+    params:
+      <<: *cf-creds-production
+      APPLICATIONS: "((name)) ((name))-workers"
+  - task: upgrade-schema
+    file: src/ci/upgrade-schema.yml
+    params:
+      <<: *cf-creds-production
+      <<: *upgrade-schema-vars
+  - in_parallel:
+    - put: cf-production
+      params:
+        path: src
+        manifest: src/manifests/app.yml
+        show_app_log: true
+        <<: *cf-manifest-vars
+        <<: *cf-manifest-env-production
+    - put: cf-production
+      params:
+        path: src
+        manifest: src/manifests/workers.yml
+        show_app_log: true
+        <<: *cf-manifest-vars
+        <<: *cf-manifest-env-production
+  - task: register-broker
+    file: pipeline-tasks/register-service-broker.yml
+    params:
+      <<: *cf-creds-production
+      <<: *broker-register-params
+      SERVICES: ((service-name)):domain-with-cdn
+
+- name: production-acceptance-tests
+  serial_groups: [production]
+  plan:
+  - in_parallel:
+    - get: src
+      params: {depth: 1}
+      passed: [production]
+    - get: cf-production
+      trigger: true
+      passed: [production]
+    - get: dev-docker-image
+    - get: test-timer
+      trigger: true
+  - task: acceptance
+    image: dev-docker-image
+    timeout: 6h
+    config:
+      platform: linux
+      params:
+        <<: *cf-creds-production
+        <<: *acceptance-tests-params
+        <<: *acceptance-tests-params-production
+      run:
+        path: /app/acceptance/run.sh
 ############################
 #  RESOURCES
 
@@ -341,6 +424,16 @@ resources:
     api: ((staging-cf-api-url))
     username: ((staging-cf-username))
     password: ((staging-cf-password))
+    organization: ((broker-organization))
+    space: ((broker-space))
+
+- name: cf-production
+  type: cf
+  icon: cloud-upload
+  source:
+    api: ((production-cf-api-url))
+    username: ((production-cf-username))
+    password: ((production-cf-password))
     organization: ((broker-organization))
     space: ((broker-space))
 
