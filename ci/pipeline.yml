@@ -7,6 +7,7 @@ broker-register-params: &broker-register-params
   BROKER_NAME: ((name))
   AUTH_USER: ((broker-auth-username))
   AUTH_PASS: ((broker-auth-password))
+  SERVICES: ((service-name))
 
 cf-creds-dev: &cf-creds-dev
   CF_API_URL: ((dev-cf-api-url))
@@ -226,7 +227,6 @@ jobs:
     params:
       <<: *cf-creds-dev
       <<: *broker-register-params
-      SERVICES: ((service-name))
 
 - name: staging
   serial_groups: [staging]
@@ -278,7 +278,6 @@ jobs:
     params:
       <<: *cf-creds-staging
       <<: *broker-register-params
-      SERVICES: ((service-name))
 
 - name: staging-acceptance-tests
   serial_groups: [staging]
@@ -367,7 +366,6 @@ jobs:
     params:
       <<: *cf-creds-production
       <<: *broker-register-params
-      SERVICES: ((service-name)):domain-with-cdn
 
 - name: production-acceptance-tests
   serial_groups: [production]
@@ -382,17 +380,29 @@ jobs:
     - get: dev-docker-image
     - get: test-timer
       trigger: true
-  - task: acceptance
-    image: dev-docker-image
-    timeout: 6h
-    config:
-      platform: linux
-      params:
-        <<: *cf-creds-production
-        <<: *acceptance-tests-params-cdn
-        <<: *acceptance-tests-params-production
-      run:
-        path: /app/acceptance/run.sh
+  - in_parallel:
+    - task: acceptance-cdn
+      image: dev-docker-image
+      timeout: 6h
+      config:
+        platform: linux
+        params:
+          <<: *cf-creds-production
+          <<: *acceptance-tests-params-cdn
+          <<: *acceptance-tests-params-production
+        run:
+          path: /app/acceptance/run.sh
+    - task: acceptance-alb
+      image: dev-docker-image
+      timeout: 6h
+      config:
+        platform: linux
+        params:
+          <<: *cf-creds-production
+          <<: *acceptance-tests-params-alb
+          <<: *acceptance-tests-params-production
+        run:
+          path: /app/acceptance/run.sh
 ############################
 #  RESOURCES
 
