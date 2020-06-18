@@ -157,6 +157,7 @@ tests() {
       --var "domain_1=$DOMAIN_1" \
       --var "name=$INSTANCE"
   )
+  sleep 30
 
   echo "Testing the test application through the domains via HTTPS."
   curl -sSL "https://$DOMAIN_0" | grep "ALIVE"
