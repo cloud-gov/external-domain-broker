@@ -119,7 +119,7 @@ acceptance-tests-params-staging: &acceptance-tests-params-staging
   AWS_SECRET_ACCESS_KEY: ((staging-test-user-aws-secret-access-key))
   AWS_REGION: ((staging-aws-commercial-region))
 
-acceptance-tests-params-prod: &acceptance-tests-params-prod
+acceptance-tests-params-production: &acceptance-tests-params-production
   DNS_ROOT_DOMAIN: ((prod-dns-root-domain))
   HOSTED_ZONE_ID: ((prod-test-hosted-zone-id))
   TEST_DOMAIN: ((prod-test-domain))
