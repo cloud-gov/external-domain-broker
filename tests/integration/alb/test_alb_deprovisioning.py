@@ -15,6 +15,7 @@ def service_instance():
         iam_server_certificate_arn="certificate_arn",
         domain_internal="fake1234.cloud.test",
         alb_arn="alb-arn-0",
+        alb_listener_arn="listener-arn-0",
         private_key_pem="SOMEPRIVATEKEY",
     )
     factories.ChallengeFactory.create(
@@ -94,9 +95,8 @@ def subtest_deprovision_removes_TXT_records(tasks, route53):
 
 
 def subtest_deprovision_removes_cert_from_alb(tasks, service_instance, alb):
-    alb.expect_get_listeners_for_alb(service_instance.alb_arn)
     alb.expect_remove_certificate_from_listener(
-        service_instance.alb_arn, service_instance.iam_server_certificate_arn
+        service_instance.alb_listener_arn, service_instance.iam_server_certificate_arn
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()

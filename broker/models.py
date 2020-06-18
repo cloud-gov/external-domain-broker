@@ -86,6 +86,7 @@ class CDNServiceInstance(ServiceInstance):
 
 class ALBServiceInstance(ServiceInstance):
     alb_arn = db.Column(db.String)
+    alb_listener_arn = db.Column(db.String)
 
     __mapper_args__ = {"polymorphic_identity": "alb_service_instance"}
 

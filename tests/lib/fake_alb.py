@@ -36,7 +36,7 @@ class FakeALB(FakeAWS):
                                 },
                             }
                         ],
-                    },
+                    }
                 ],
                 "NextMarker": "string",
             },
@@ -99,7 +99,7 @@ class FakeALB(FakeAWS):
             {"LoadBalancerArn": alb_arn},
         )
 
-    def expect_add_certificate_to_listener(self, alb_arn, iam_cert_arn):
+    def expect_add_certificate_to_listener(self, listener_arn, iam_cert_arn):
         self.stubber.add_response(
             "add_listener_certificates",
             {
@@ -109,17 +109,17 @@ class FakeALB(FakeAWS):
                 ]
             },
             {
-                "ListenerArn": "httpslistenerarn",
+                "ListenerArn": listener_arn,
                 "Certificates": [{"CertificateArn": iam_cert_arn, "IsDefault": False}],
             },
         )
 
-    def expect_remove_certificate_from_listener(self, alb_arn, iam_cert_arn):
+    def expect_remove_certificate_from_listener(self, listener_arn, iam_cert_arn):
         self.stubber.add_response(
             "remove_listener_certificates",
             {},
             {
-                "ListenerArn": "httpslistenerarn",
+                "ListenerArn": listener_arn,
                 "Certificates": [{"CertificateArn": iam_cert_arn, "IsDefault": False}],
             },
         )
