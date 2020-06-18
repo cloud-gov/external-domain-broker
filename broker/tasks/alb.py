@@ -9,16 +9,11 @@ from broker.tasks.db_injection import inject_db
 logger = logging.getLogger(__name__)
 
 
-def get_lowest_used_alb(alb_arns):
+def get_lowest_used_alb(listener_arns):
     https_listeners = []
-    for alb_arn in alb_arns:
-        listeners = alb.describe_listeners(LoadBalancerArn=alb_arn)
-        https_listener = [
-            listener
-            for listener in listeners["Listeners"]
-            if listener["Protocol"] == "HTTPS"
-        ][0]
-        https_listeners.append(https_listener)
+    for listener_arn in listener_arns:
+        listeners = alb.describe_listeners(ListenerArns=[listener_arn])
+        https_listeners.extend(listeners["Listeners"])
     https_listeners.sort(key=lambda x: len(x["Certificates"]))
     return https_listeners[0]["LoadBalancerArn"]
 
@@ -29,7 +24,7 @@ def select_alb(operation_id, **kwargs):
     db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
-    service_instance.alb_arn = get_lowest_used_alb(config.ALB_ARNS)
+    service_instance.alb_arn = get_lowest_used_alb(config.ALB_LISTENER_ARNS)
     db.session.add(service_instance)
     db.session.commit()
 
