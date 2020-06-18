@@ -39,12 +39,7 @@ def add_certificate_to_alb(operation_id, **kwargs):
     service_instance = operation.service_instance
     alb.add_listener_certificates(
         ListenerArn=service_instance.alb_listener_arn,
-        Certificates=[
-            {
-                "CertificateArn": service_instance.iam_server_certificate_arn,
-                "IsDefault": False,
-            }
-        ],
+        Certificates=[{"CertificateArn": service_instance.iam_server_certificate_arn}],
     )
     alb_config = alb.describe_load_balancers(
         LoadBalancerArns=[service_instance.alb_arn]
@@ -62,12 +57,7 @@ def remove_certificate_from_alb(operation_id, **kwargs):
     service_instance = operation.service_instance
     alb.remove_listener_certificates(
         ListenerArn=service_instance.alb_listener_arn,
-        Certificates=[
-            {
-                "CertificateArn": service_instance.iam_server_certificate_arn,
-                "IsDefault": False,
-            }
-        ],
+        Certificates=[{"CertificateArn": service_instance.iam_server_certificate_arn}],
     )
     db.session.add(service_instance)
     db.session.commit()
