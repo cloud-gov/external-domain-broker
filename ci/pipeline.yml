@@ -69,7 +69,7 @@ cf-manifest-env-dev: &cf-manifest-env-dev
     AWS_COMMERCIAL_REGION: ((dev-aws-commercial-region))
     AWS_COMMERCIAL_SECRET_ACCESS_KEY: ((dev-aws-commercial-secret-access-key))
     AWS_COMMERCIAL_ACCESS_KEY_ID: ((dev-aws-commercial-access-key-id))
-    ALB_ARNS: ((dev-alb-arns))
+    ALB_LISTENER_ARNS: ((dev-alb-listener-arns))
 
 cf-manifest-env-staging: &cf-manifest-env-staging
   environment_variables:
@@ -87,7 +87,7 @@ cf-manifest-env-staging: &cf-manifest-env-staging
     AWS_COMMERCIAL_REGION: ((staging-aws-commercial-region))
     AWS_COMMERCIAL_SECRET_ACCESS_KEY: ((staging-aws-commercial-secret-access-key))
     AWS_COMMERCIAL_ACCESS_KEY_ID: ((staging-aws-commercial-access-key-id))
-    ALB_ARNS: ((staging-alb-arns))
+    ALB_LISTENER_ARNS: ((staging-alb-listener-arns))
 
 cf-manifest-env-production: &cf-manifest-env-production
   environment_variables:
@@ -105,10 +105,14 @@ cf-manifest-env-production: &cf-manifest-env-production
     AWS_COMMERCIAL_REGION: ((production-aws-commercial-region))
     AWS_COMMERCIAL_SECRET_ACCESS_KEY: ((production-aws-commercial-secret-access-key))
     AWS_COMMERCIAL_ACCESS_KEY_ID: ((production-aws-commercial-access-key-id))
-    ALB_ARNS: ((production-alb-arns))
+    ALB_LISTENER_ARNS: ((production-alb-listener-arns))
 
-acceptance-tests-params: &acceptance-tests-params
+acceptance-tests-params-cdn: &acceptance-tests-params
   PLAN_NAME: "domain-with-cdn"
+  SERVICE_NAME: "external-domain"
+
+acceptance-tests-params-alb: &acceptance-tests-params
+  PLAN_NAME: "domain"
   SERVICE_NAME: "external-domain"
 
 acceptance-tests-params-staging: &acceptance-tests-params-staging
@@ -289,17 +293,29 @@ jobs:
     - get: dev-docker-image
     - get: test-timer
       trigger: true
-  - task: acceptance
-    image: dev-docker-image
-    timeout: 6h
-    config:
-      platform: linux
-      params:
-        <<: *cf-creds-staging
-        <<: *acceptance-tests-params
-        <<: *acceptance-tests-params-staging
-      run:
-        path: /app/acceptance/run.sh
+  - in_parallel:
+    - task: acceptance-cdn
+      image: dev-docker-image
+      timeout: 6h
+      config:
+        platform: linux
+        params:
+          <<: *cf-creds-staging
+          <<: *acceptance-tests-params-cdn
+          <<: *acceptance-tests-params-staging
+        run:
+          path: /app/acceptance/run.sh
+    - task: acceptance-alb
+      image: dev-docker-image
+      timeout: 6h
+      config:
+        platform: linux
+        params:
+          <<: *cf-creds-staging
+          <<: *acceptance-tests-params-alb
+          <<: *acceptance-tests-params-staging
+        run:
+          path: /app/acceptance/run.sh
 
 - name: production
   serial_groups: [production]
@@ -373,7 +389,7 @@ jobs:
       platform: linux
       params:
         <<: *cf-creds-production
-        <<: *acceptance-tests-params
+        <<: *acceptance-tests-params-cdn
         <<: *acceptance-tests-params-production
       run:
         path: /app/acceptance/run.sh
