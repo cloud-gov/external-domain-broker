@@ -45,6 +45,9 @@ def add_certificate_to_alb(operation_id, **kwargs):
         LoadBalancerArns=[service_instance.alb_arn]
     )
     service_instance.domain_internal = alb_config["LoadBalancers"][0]["DNSName"]
+    service_instance.route53_alias_hosted_zone = alb_config["LoadBalancers"][0][
+        "CanonicalHostedZoneId"
+    ]
     db.session.add(service_instance)
     db.session.commit()
 

@@ -59,6 +59,7 @@ class ServiceInstance(Base):
     iam_server_certificate_id = db.Column(db.String)
     iam_server_certificate_name = db.Column(db.String)
     iam_server_certificate_arn = db.Column(db.String)
+    route53_alias_hosted_zone = db.Column(db.String)
     route53_change_ids = db.Column(postgresql.JSONB, default=[])
 
     deactivated_at = db.Column(db.TIMESTAMP(timezone=True))

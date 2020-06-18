@@ -134,7 +134,7 @@ class FakeALB(FakeAWS):
                     {
                         "LoadBalancerArn": "alb_arn",
                         "DNSName": returned_domain,
-                        "CanonicalHostedZoneId": "string",
+                        "CanonicalHostedZoneId": "ALBHOSTEDZONEID",
                         "CreatedTime": datetime(2015, 1, 1),
                         "LoadBalancerName": "string",
                         "Scheme": "internet-facing",

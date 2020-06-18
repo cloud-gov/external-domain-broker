@@ -14,6 +14,7 @@ def service_instance():
         iam_server_certificate_name="certificate_name",
         iam_server_certificate_arn="certificate_arn",
         domain_internal="fake1234.cloud.test",
+        route53_alias_hosted_zone="ALBHOSTEDZONEID",
         alb_arn="alb-arn-0",
         alb_listener_arn="listener-arn-0",
         private_key_pem="SOMEPRIVATEKEY",
@@ -75,8 +76,12 @@ def subtest_deprovision_creates_deprovision_operation(client, service_instance):
 
 
 def subtest_deprovision_removes_ALIAS_records(tasks, route53):
-    route53.expect_remove_ALIAS("example.com.domains.cloud.test", "fake1234.cloud.test")
-    route53.expect_remove_ALIAS("foo.com.domains.cloud.test", "fake1234.cloud.test")
+    route53.expect_remove_ALIAS(
+        "example.com.domains.cloud.test", "fake1234.cloud.test", "ALBHOSTEDZONEID"
+    )
+    route53.expect_remove_ALIAS(
+        "foo.com.domains.cloud.test", "fake1234.cloud.test", "ALBHOSTEDZONEID"
+    )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 

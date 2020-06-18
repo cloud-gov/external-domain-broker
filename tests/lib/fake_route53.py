@@ -54,7 +54,9 @@ class FakeRoute53(FakeAWS):
             },
         )
 
-    def expect_create_ALIAS_and_return_change_id(self, domain, target) -> str:
+    def expect_create_ALIAS_and_return_change_id(
+        self, domain, target, target_hosted_zone_id="Z2FDTNDATAQYW2"
+    ) -> str:
         change_id = f"{domain} ID"
         self.stubber.add_response(
             "change_resource_record_sets",
@@ -69,7 +71,7 @@ class FakeRoute53(FakeAWS):
                                 "Type": "A",
                                 "AliasTarget": {
                                     "DNSName": target,
-                                    "HostedZoneId": "Z2FDTNDATAQYW2",
+                                    "HostedZoneId": target_hosted_zone_id,
                                     "EvaluateTargetHealth": False,
                                 },
                             },
@@ -81,7 +83,9 @@ class FakeRoute53(FakeAWS):
         )
         return change_id
 
-    def expect_remove_ALIAS(self, domain, target):
+    def expect_remove_ALIAS(
+        self, domain, target, target_hosted_zone_id="Z2FDTNDATAQYW2"
+    ):
         self.stubber.add_response(
             "change_resource_record_sets",
             self._change_info("ignored", "PENDING"),
@@ -95,7 +99,7 @@ class FakeRoute53(FakeAWS):
                                 "Type": "A",
                                 "AliasTarget": {
                                     "DNSName": target,
-                                    "HostedZoneId": "Z2FDTNDATAQYW2",
+                                    "HostedZoneId": target_hosted_zone_id,
                                     "EvaluateTargetHealth": False,
                                 },
                             },

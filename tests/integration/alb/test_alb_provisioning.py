@@ -324,10 +324,10 @@ def subtest_provision_provisions_ALIAS_records(tasks, route53, alb):
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")
     example_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
-        "example.com.domains.cloud.test", "alb.cloud.test"
+        "example.com.domains.cloud.test", "alb.cloud.test", "ALBHOSTEDZONEID"
     )
     foo_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
-        "foo.com.domains.cloud.test", "alb.cloud.test"
+        "foo.com.domains.cloud.test", "alb.cloud.test", "ALBHOSTEDZONEID"
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
 

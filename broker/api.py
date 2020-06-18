@@ -124,6 +124,11 @@ class API(ServiceBroker):
         if details.plan_id == CDN_PLAN_ID:
             instance = CDNServiceInstance(id=instance_id, domain_names=domain_names)
             queue = queue_all_cdn_provision_tasks_for_operation
+            instance.cloudfront_origin_hostname = params.get(
+                "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
+            )
+            instance.cloudfront_origin_path = params.get("path", "")
+            instance.route53_alias_hosted_zone = config.CLOUDFRONT_HOSTED_ZONE_ID
         elif details.plan_id == ALB_PLAN_ID:
             instance = ALBServiceInstance(id=instance_id, domain_names=domain_names)
             queue = queue_all_alb_provision_tasks_for_operation
@@ -131,10 +136,6 @@ class API(ServiceBroker):
             raise NotImplementedError()
 
         self.logger.info("setting origin hostname")
-        instance.cloudfront_origin_hostname = params.get(
-            "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
-        )
-        instance.cloudfront_origin_path = params.get("path", "")
         self.logger.info("creating operation")
 
         operation = Operation(

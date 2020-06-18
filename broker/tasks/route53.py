@@ -126,7 +126,7 @@ def create_ALIAS_records(operation_id: str, **kwargs):
                             "Name": alias_record,
                             "AliasTarget": {
                                 "DNSName": target,
-                                "HostedZoneId": "Z2FDTNDATAQYW2",
+                                "HostedZoneId": service_instance.route53_alias_hosted_zone,
                                 "EvaluateTargetHealth": False,
                             },
                         },
@@ -165,7 +165,7 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
                             "Name": alias_record,
                             "AliasTarget": {
                                 "DNSName": target,
-                                "HostedZoneId": "Z2FDTNDATAQYW2",
+                                "HostedZoneId": service_instance.route53_alias_hosted_zone,
                                 "EvaluateTargetHealth": False,
                             },
                         },
