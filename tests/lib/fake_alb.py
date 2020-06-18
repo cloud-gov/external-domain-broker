@@ -110,7 +110,7 @@ class FakeALB(FakeAWS):
             },
             {
                 "ListenerArn": listener_arn,
-                "Certificates": [{"CertificateArn": iam_cert_arn, "IsDefault": False}],
+                "Certificates": [{"CertificateArn": iam_cert_arn}],
             },
         )
 
@@ -120,7 +120,7 @@ class FakeALB(FakeAWS):
             {},
             {
                 "ListenerArn": listener_arn,
-                "Certificates": [{"CertificateArn": iam_cert_arn, "IsDefault": False}],
+                "Certificates": [{"CertificateArn": iam_cert_arn}],
             },
         )
 
