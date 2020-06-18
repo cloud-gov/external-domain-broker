@@ -54,8 +54,8 @@ class AppConfig(Config):
         self.BROKER_USERNAME = self.env("BROKER_USERNAME")
         self.BROKER_PASSWORD = self.env("BROKER_PASSWORD")
         self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
-        self.ALB_ARNS = self.env.list("ALB_ARNS")
-        self.ALB_ARNS = list(set(self.ALB_ARNS))
+        self.ALB_LISTENER_ARNS = self.env.list("ALB_LISTENER_ARNS")
+        self.ALB_LISTENER_ARNS = list(set(self.ALB_LISTENER_ARNS))
         self.AWS_COMMERCIAL_REGION = self.env("AWS_COMMERCIAL_REGION")
         self.AWS_COMMERCIAL_ACCESS_KEY_ID = self.env("AWS_COMMERCIAL_ACCESS_KEY_ID")
         self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = self.env(
@@ -156,7 +156,7 @@ class DockerConfig(Config):
         )
         self.ALB_IAM_SERVER_CERTIFICATE_PREFIX = "/alb/external-domains-test/"
         self.REDIS_SSL = False
-        self.ALB_ARNS = ["alb-arn-0", "alb-arn-1"]
+        self.ALB_LISTENER_ARNS = ["listener-arn-0", "listener-arn-1"]
         self.AWS_COMMERCIAL_REGION = "us-west-1"
         self.AWS_COMMERCIAL_ACCESS_KEY_ID = "COMMERCIAL_FAKE_KEY_ID"
         self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = "COMMERCIAL_FAKE_ACCESS_KEY"

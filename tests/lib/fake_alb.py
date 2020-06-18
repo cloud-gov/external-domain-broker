@@ -6,6 +6,43 @@ from tests.lib.fake_aws import FakeAWS
 
 
 class FakeALB(FakeAWS):
+    def expect_get_listeners(self, listener_arn, num_certificates: int = 1):
+        certificates = [{"CertificateArn": "certificate-arn", "IsDefault": True}]
+        for i in range(num_certificates - 1):
+            certificates.append(
+                {"CertificateArn": f"certificate-arn-{i}", "IsDefault": False}
+            )
+        self.stubber.add_response(
+            "describe_listeners",
+            {
+                "Listeners": [
+                    {
+                        "ListenerArn": listener_arn,
+                        "LoadBalancerArn": f"alb-{listener_arn}",
+                        "Port": 123,
+                        "Protocol": "HTTPS",
+                        "Certificates": certificates,
+                        "SslPolicy": "string",
+                        "DefaultActions": [
+                            {
+                                "Type": "forward",
+                                "TargetGroupArn": "string",
+                                "Order": 1,
+                                "ForwardConfig": {
+                                    "TargetGroups": [
+                                        {"TargetGroupArn": "string", "Weight": 1}
+                                    ],
+                                    "TargetGroupStickinessConfig": {"Enabled": False},
+                                },
+                            }
+                        ],
+                    },
+                ],
+                "NextMarker": "string",
+            },
+            {"ListenerArns": [listener_arn]},
+        )
+
     def expect_get_listeners_for_alb(self, alb_arn, num_certificates: int = 1):
         certificates = [{"CertificateArn": "certificate-arn", "IsDefault": True}]
         for i in range(num_certificates - 1):
