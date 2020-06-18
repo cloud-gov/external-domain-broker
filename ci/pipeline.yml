@@ -95,17 +95,17 @@ cf-manifest-env-production: &cf-manifest-env-production
     BROKER_USERNAME: ((broker-auth-username))
     BROKER_PASSWORD: ((broker-auth-password))
     SECRET_KEY: ((flask-secret-key))
-    DATABASE_ENCRYPTION_KEY: ((prod-db-encryption-key))
-    ROUTE53_ZONE_ID: ((prod-route53-zone-id))
-    DNS_ROOT_DOMAIN: ((prod-dns-root-domain))
-    DEFAULT_CLOUDFRONT_ORIGIN: ((prod-default-cloudfront-origin-domain-name))
-    AWS_GOVCLOUD_REGION: ((prod-aws-govcloud-region))
-    AWS_GOVCLOUD_SECRET_ACCESS_KEY: ((prod-aws-govcloud-secret-access-key))
-    AWS_GOVCLOUD_ACCESS_KEY_ID: ((prod-aws-govcloud-access-key-id))
-    AWS_COMMERCIAL_REGION: ((prod-aws-commercial-region))
-    AWS_COMMERCIAL_SECRET_ACCESS_KEY: ((prod-aws-commercial-secret-access-key))
-    AWS_COMMERCIAL_ACCESS_KEY_ID: ((prod-aws-commercial-access-key-id))
-    ALB_ARNS: ((prod-alb-arns))
+    DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
+    ROUTE53_ZONE_ID: ((production-route53-zone-id))
+    DNS_ROOT_DOMAIN: ((production-dns-root-domain))
+    DEFAULT_CLOUDFRONT_ORIGIN: ((production-default-cloudfront-origin-domain-name))
+    AWS_GOVCLOUD_REGION: ((production-aws-govcloud-region))
+    AWS_GOVCLOUD_SECRET_ACCESS_KEY: ((production-aws-govcloud-secret-access-key))
+    AWS_GOVCLOUD_ACCESS_KEY_ID: ((production-aws-govcloud-access-key-id))
+    AWS_COMMERCIAL_REGION: ((production-aws-commercial-region))
+    AWS_COMMERCIAL_SECRET_ACCESS_KEY: ((production-aws-commercial-secret-access-key))
+    AWS_COMMERCIAL_ACCESS_KEY_ID: ((production-aws-commercial-access-key-id))
+    ALB_ARNS: ((production-alb-arns))
 
 acceptance-tests-params: &acceptance-tests-params
   PLAN_NAME: "domain-with-cdn"
@@ -120,12 +120,12 @@ acceptance-tests-params-staging: &acceptance-tests-params-staging
   AWS_REGION: ((staging-aws-commercial-region))
 
 acceptance-tests-params-production: &acceptance-tests-params-production
-  DNS_ROOT_DOMAIN: ((prod-dns-root-domain))
-  HOSTED_ZONE_ID: ((prod-test-hosted-zone-id))
-  TEST_DOMAIN: ((prod-test-domain))
-  AWS_ACCESS_KEY_ID: ((prod-test-user-aws-access-key-id))
-  AWS_SECRET_ACCESS_KEY: ((prod-test-user-aws-secret-access-key))
-  AWS_REGION: ((prod-aws-commercial-region))
+  DNS_ROOT_DOMAIN: ((production-dns-root-domain))
+  HOSTED_ZONE_ID: ((production-test-hosted-zone-id))
+  TEST_DOMAIN: ((production-test-domain))
+  AWS_ACCESS_KEY_ID: ((production-test-user-aws-access-key-id))
+  AWS_SECRET_ACCESS_KEY: ((production-test-user-aws-secret-access-key))
+  AWS_REGION: ((production-aws-commercial-region))
 
 ############################
 #  JOBS
