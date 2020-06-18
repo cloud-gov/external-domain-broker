@@ -15,7 +15,7 @@ def get_lowest_used_alb(listener_arns):
         listeners = alb.describe_listeners(ListenerArns=[listener_arn])
         https_listeners.extend(listeners["Listeners"])
     https_listeners.sort(key=lambda x: len(x["Certificates"]))
-    return https_listeners[0]["LoadBalancerArn"]
+    return https_listeners[0]["LoadBalancerArn"], https_listeners[0]["ListenerArn"]
 
 
 @huey.retriable_task
@@ -24,7 +24,9 @@ def select_alb(operation_id, **kwargs):
     db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
-    service_instance.alb_arn = get_lowest_used_alb(config.ALB_LISTENER_ARNS)
+    service_instance.alb_arn, service_instance.alb_listener_arn = get_lowest_used_alb(
+        config.ALB_LISTENER_ARNS
+    )
     db.session.add(service_instance)
     db.session.commit()
 
@@ -35,14 +37,8 @@ def add_certificate_to_alb(operation_id, **kwargs):
     db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
-    listeners = alb.describe_listeners(LoadBalancerArn=service_instance.alb_arn)
-    https_listener = [
-        listener
-        for listener in listeners["Listeners"]
-        if listener["Protocol"] == "HTTPS"
-    ][0]
     alb.add_listener_certificates(
-        ListenerArn=https_listener["ListenerArn"],
+        ListenerArn=service_instance.alb_listener_arn,
         Certificates=[
             {
                 "CertificateArn": service_instance.iam_server_certificate_arn,
@@ -64,14 +60,8 @@ def remove_certificate_from_alb(operation_id, **kwargs):
     db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
-    listeners = alb.describe_listeners(LoadBalancerArn=service_instance.alb_arn)
-    https_listener = [
-        listener
-        for listener in listeners["Listeners"]
-        if listener["Protocol"] == "HTTPS"
-    ][0]
     alb.remove_listener_certificates(
-        ListenerArn=https_listener["ListenerArn"],
+        ListenerArn=service_instance.alb_listener_arn,
         Certificates=[
             {
                 "CertificateArn": service_instance.iam_server_certificate_arn,

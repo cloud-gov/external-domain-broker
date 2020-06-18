@@ -19,17 +19,28 @@ from tests.lib.factories import ALBServiceInstanceFactory
 
 def test_gets_lowest_used_alb(alb):
     alb.expect_get_listeners("listener-arn-0", 1)
-    assert get_lowest_used_alb(["listener-arn-0"]) == "alb-listener-arn-0"
+    assert get_lowest_used_alb(["listener-arn-0"]) == (
+        "alb-listener-arn-0",
+        "listener-arn-0",
+    )
     alb.expect_get_listeners("listener-arn-0", 2)
     alb.expect_get_listeners("listener-arn-1", 1)
-    assert get_lowest_used_alb(["listener-arn-0", "listener-arn-1"]) == "alb-listener-arn-1"
+    assert get_lowest_used_alb(["listener-arn-0", "listener-arn-1"]) == (
+        "alb-listener-arn-1",
+        "listener-arn-1",
+    )
     alb.expect_get_listeners("listener-arn-1", 1)
     alb.expect_get_listeners("listener-arn-0", 2)
-    assert get_lowest_used_alb(["listener-arn-1", "listener-arn-0"]) == "alb-listener-arn-1"
+    assert get_lowest_used_alb(["listener-arn-1", "listener-arn-0"]) == (
+        "alb-listener-arn-1",
+        "listener-arn-1",
+    )
     alb.expect_get_listeners("listener-arn-1", 1)
     alb.expect_get_listeners("listener-arn-2", 2)
     alb.expect_get_listeners("listener-arn-0", 2)
-    assert get_lowest_used_alb(["listener-arn-1", "listener-arn-2", "listener-arn-0"]) == "alb-listener-arn-1"
+    assert get_lowest_used_alb(
+        ["listener-arn-1", "listener-arn-2", "listener-arn-0"]
+    ) == ("alb-listener-arn-1", "listener-arn-1")
 
 
 def test_refuses_to_provision_synchronously(client):
@@ -301,9 +312,8 @@ def subtest_provision_selects_alb(tasks, alb):
 def subtest_provision_adds_certificate_to_alb(tasks, alb):
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")
-    alb.expect_get_listeners_for_alb("alb-listener-arn-0", 1)
     alb.expect_add_certificate_to_listener(
-        "alb-listener-arn-0", service_instance.iam_server_certificate_arn
+        "listener-arn-0", service_instance.iam_server_certificate_arn
     )
     alb.expect_describe_alb("alb-listener-arn-0", "alb.cloud.test")
     tasks.run_queued_tasks_and_enqueue_dependents()
