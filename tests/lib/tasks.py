@@ -2,7 +2,7 @@ import pytest
 from huey import Huey
 from huey import signals as S
 
-from broker.tasks.huey import huey
+from broker.tasks.huey import huey, create_app
 
 
 @huey.signal(S.SIGNAL_ERROR)
@@ -34,6 +34,7 @@ class Tasks:
         Will fail the test if there's not at least a single Task to be run.
         """
         # __tracebackhide__ = True
+        create_app()
 
         currently_queued_tasks = []
 

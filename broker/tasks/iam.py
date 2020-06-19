@@ -2,18 +2,15 @@ import logging
 from datetime import date
 
 from broker.aws import iam_commercial, iam_govcloud
-from broker.extensions import config
+from broker.extensions import config, db
 from broker.models import Operation
 from broker.tasks import huey
-from broker.tasks.db_injection import inject_db
 
 logger = logging.getLogger(__name__)
 
 
 @huey.retriable_task
-@inject_db
 def upload_server_certificate(operation_id: int, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -44,9 +41,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
-@inject_db
 def delete_server_certificate(operation_id: str, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     if service_instance.instance_type == "cdn_service_instance":
