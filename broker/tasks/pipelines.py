@@ -1,6 +1,6 @@
 import logging
 
-from broker.tasks import alb, cloudfront, finalize, iam, letsencrypt, route53
+from broker.tasks import alb, cloudfront, update_operations, iam, letsencrypt, route53
 from broker.tasks.huey import huey
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def queue_all_alb_provision_tasks_for_operation(operation_id: int, correlation_i
         .then(alb.add_certificate_to_alb, operation_id, correlation_id=correlation_id)
         .then(route53.create_ALIAS_records, operation_id, correlation_id=correlation_id)
         .then(route53.wait_for_changes, operation_id, correlation_id=correlation_id)
-        .then(finalize.provision, operation_id, correlation_id=correlation_id)
+        .then(update_operations.provision, operation_id, correlation_id=correlation_id)
     )
     huey.enqueue(task_pipeline)
 
@@ -51,7 +51,10 @@ def queue_all_alb_deprovision_tasks_for_operation(
     if operation_id is None:
         raise RuntimeError("operation_id must be set")
     task_pipeline = (
-        route53.remove_ALIAS_records.s(operation_id, correlation_id=correlation_id)
+        update_operations.cancel_pending_provisioning.s(
+            operation_id, correlation_id=correlation_id
+        )
+        .then(route53.remove_ALIAS_records, operation_id, correlation_id=correlation_id)
         .then(route53.remove_TXT_records, operation_id, correlation_id=correlation_id)
         .then(
             alb.remove_certificate_from_alb, operation_id, correlation_id=correlation_id
@@ -59,7 +62,9 @@ def queue_all_alb_deprovision_tasks_for_operation(
         .then(
             iam.delete_server_certificate, operation_id, correlation_id=correlation_id
         )
-        .then(finalize.deprovision, operation_id, correlation_id=correlation_id)
+        .then(
+            update_operations.deprovision, operation_id, correlation_id=correlation_id
+        )
     )
     huey.enqueue(task_pipeline)
 
@@ -102,7 +107,7 @@ def queue_all_cdn_provision_tasks_for_operation(operation_id: int, correlation_i
         )
         .then(route53.create_ALIAS_records, operation_id, correlation_id=correlation_id)
         .then(route53.wait_for_changes, operation_id, correlation_id=correlation_id)
-        .then(finalize.provision, operation_id, correlation_id=correlation_id)
+        .then(update_operations.provision, operation_id, correlation_id=correlation_id)
     )
     huey.enqueue(task_pipeline)
 
@@ -115,7 +120,10 @@ def queue_all_cdn_deprovision_tasks_for_operation(
     if operation_id is None:
         raise RuntimeError("operation_id must be set")
     task_pipeline = (
-        route53.remove_ALIAS_records.s(operation_id, correlation_id=correlation_id)
+        update_operations.cancel_pending_provisioning.s(
+            operation_id, correlation_id=correlation_id
+        )
+        .then(route53.remove_ALIAS_records, operation_id, correlation_id=correlation_id)
         .then(route53.remove_TXT_records, operation_id, correlation_id=correlation_id)
         .then(
             cloudfront.disable_distribution, operation_id, correlation_id=correlation_id
@@ -133,6 +141,8 @@ def queue_all_cdn_deprovision_tasks_for_operation(
         .then(
             iam.delete_server_certificate, operation_id, correlation_id=correlation_id
         )
-        .then(finalize.deprovision, operation_id, correlation_id=correlation_id)
+        .then(
+            update_operations.deprovision, operation_id, correlation_id=correlation_id
+        )
     )
     huey.enqueue(task_pipeline)

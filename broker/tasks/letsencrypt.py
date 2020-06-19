@@ -192,7 +192,6 @@ def answer_challenges(operation_id: int, **kwargs):
 
 @huey.retriable_task
 def retrieve_certificate(operation_id: int, **kwargs):
-
     def cert_from_fullchain(fullchain_pem: str) -> str:
         """extract cert_pem from fullchain_pem
 

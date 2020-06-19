@@ -34,14 +34,14 @@ def service_instance():
 
 
 def test_refuses_to_deprovision_synchronously(client, service_instance):
-    client.deprovision_cdn_instance(service_instance.id, accepts_incomplete="false")
+    client.deprovision_alb_instance(service_instance.id, accepts_incomplete="false")
 
     assert "AsyncRequired" in client.response.body
     assert client.response.status_code == 422
 
 
 def test_refuses_to_deprovision_synchronously_by_default(client, service_instance):
-    client.deprovision_cdn_instance(service_instance.id, accepts_incomplete="")
+    client.deprovision_alb_instance(service_instance.id, accepts_incomplete="")
 
     assert "AsyncRequired" in client.response.body
     assert client.response.status_code == 422
@@ -83,6 +83,8 @@ def subtest_deprovision_removes_ALIAS_records(tasks, route53):
         "foo.com.domains.cloud.test", "fake1234.cloud.test", "ALBHOSTEDZONEID"
     )
 
+    # one for marking provisioning tasks canceled, which is tested elsewhere
+    tasks.run_queued_tasks_and_enqueue_dependents()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     route53.assert_no_pending_responses()

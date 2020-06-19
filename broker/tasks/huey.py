@@ -3,9 +3,11 @@ import logging
 from flask import Flask
 from redis import ConnectionPool, SSLConnection
 from huey import RedisHuey
+from huey.exceptions import CancelExecution
 
 from sap import cf_logging
 from broker.extensions import config, db
+from broker.models import Operation
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +35,9 @@ db.init_app(huey.flask_app)
 nonretriable_task = huey.context_task(huey.flask_app.app_context())
 
 # These tasks retry every 10 minutes for a day.
-retriable_task = huey.context_task(huey.flask_app.app_context(), retries=(6 * 24), retry_delay=(60 * 10))
+retriable_task = huey.context_task(
+    huey.flask_app.app_context(), retries=(6 * 24), retry_delay=(60 * 10)
+)
 
 
 @huey.on_startup()
@@ -43,11 +47,27 @@ def create_app():
     huey.flask_app = app
     db.init_app(app)
 
+
 @huey.pre_execute(name="Set Correlation ID")
 def register_correlation_id(task):
     args, kwargs = task.data
     correlation_id = kwargs.pop("correlation_id", "Rogue Task")
     cf_logging.FRAMEWORK.context.set_correlation_id(correlation_id)
+
+
+@huey.pre_execute(name="Cancel tasks for canceled operations")
+def cancel_canceled_operations(task):
+    args, kwargs = task.data
+    op = None
+    try:
+        # big assumption here: the first arg will always be the operation id.
+        op = Operation.query.get(args[0])
+    except:
+        return
+    finally:
+        db.session.close()
+    if op.canceled_at is not None:
+        raise CancelExecution
 
 
 @huey.signal()
