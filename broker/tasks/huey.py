@@ -1,10 +1,11 @@
 import logging
 
+from flask import Flask
 from redis import ConnectionPool, SSLConnection
 from huey import RedisHuey
 
 from sap import cf_logging
-from broker.extensions import config
+from broker.extensions import config, db
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +22,26 @@ connection_pool = ConnectionPool(
 )
 huey = RedisHuey(connection_pool=connection_pool)
 
+# these two lines need to be here so we can define [non]retriable_task
+huey.flask_app = Flask(__name__)
+huey.flask_app.config.from_object(config)
+
+# this line is so this all works the same in tests
+db.init_app(huey.flask_app)
+
 # Normal task, no retries
-nonretriable_task = huey.task()
+nonretriable_task = huey.context_task(huey.flask_app.app_context())
 
 # These tasks retry every 10 minutes for a day.
-retriable_task = huey.task(retries=(6 * 24), retry_delay=(60 * 10))
+retriable_task = huey.context_task(huey.flask_app.app_context(), retries=(6 * 24), retry_delay=(60 * 10))
 
+
+@huey.on_startup()
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(config)
+    huey.flask_app = app
+    db.init_app(app)
 
 @huey.pre_execute(name="Set Correlation ID")
 def register_correlation_id(task):

@@ -1,10 +1,9 @@
 import logging
 
 from broker.aws import alb
-from broker.extensions import config
+from broker.extensions import config, db
 from broker.models import ALBServiceInstance, Operation
 from broker.tasks import huey
-from broker.tasks.db_injection import inject_db
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +18,7 @@ def get_lowest_used_alb(listener_arns):
 
 
 @huey.retriable_task
-@inject_db
 def select_alb(operation_id, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     service_instance.alb_arn, service_instance.alb_listener_arn = get_lowest_used_alb(
@@ -32,9 +29,7 @@ def select_alb(operation_id, **kwargs):
 
 
 @huey.retriable_task
-@inject_db
 def add_certificate_to_alb(operation_id, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     alb.add_listener_certificates(
@@ -53,9 +48,7 @@ def add_certificate_to_alb(operation_id, **kwargs):
 
 
 @huey.retriable_task
-@inject_db
 def remove_certificate_from_alb(operation_id, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     alb.remove_listener_certificates(

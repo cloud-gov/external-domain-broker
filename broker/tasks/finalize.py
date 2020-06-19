@@ -1,17 +1,15 @@
 import logging
 from datetime import datetime
 
+from broker.extensions import db
 from broker.models import Operation
 from broker.tasks import huey
-from broker.tasks.db_injection import inject_db
 
 logger = logging.getLogger(__name__)
 
 
 @huey.retriable_task
-@inject_db
 def provision(operation_id: str, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     operation.state = Operation.States.SUCCEEDED.value
     db.session.add(operation)
@@ -19,9 +17,7 @@ def provision(operation_id: str, **kwargs):
 
 
 @huey.retriable_task
-@inject_db
 def deprovision(operation_id: str, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     operation.state = Operation.States.SUCCEEDED.value
     db.session.add(operation)

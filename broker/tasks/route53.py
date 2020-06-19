@@ -3,18 +3,15 @@ import logging
 from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import route53
-from broker.extensions import config
+from broker.extensions import config, db
 from broker.models import Operation
 from broker.tasks import huey
-from broker.tasks.db_injection import inject_db
 
 logger = logging.getLogger(__name__)
 
 
 @huey.retriable_task
-@inject_db
 def create_TXT_records(operation_id: int, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -48,9 +45,7 @@ def create_TXT_records(operation_id: int, **kwargs):
 
 
 @huey.nonretriable_task
-@inject_db
 def remove_TXT_records(operation_id: int, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -80,9 +75,7 @@ def remove_TXT_records(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
-@inject_db
 def wait_for_changes(operation_id: int, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -105,9 +98,7 @@ def wait_for_changes(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
-@inject_db
 def create_ALIAS_records(operation_id: str, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     logger.info(f"Creating ALIAS records for {service_instance.domain_names}")
@@ -144,9 +135,7 @@ def create_ALIAS_records(operation_id: str, **kwargs):
 
 
 @huey.nonretriable_task
-@inject_db
 def remove_ALIAS_records(operation_id: str, **kwargs):
-    db = kwargs["db"]
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     logger.info(f"Removing ALIAS records for {service_instance.domain_names}")
