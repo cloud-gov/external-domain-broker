@@ -124,6 +124,8 @@ def subtest_deprovision_removes_ALIAS_records(tasks, route53):
     )
     route53.expect_remove_ALIAS("foo.com.domains.cloud.test", "fake1234.cloudfront.net")
 
+    # one for marking provisioning tasks canceled, which is tested elsewhere
+    tasks.run_queued_tasks_and_enqueue_dependents()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     route53.assert_no_pending_responses()
