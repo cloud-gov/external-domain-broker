@@ -3,7 +3,6 @@ import logging
 from flask import Flask
 from redis import ConnectionPool, SSLConnection
 from huey import RedisHuey
-from huey.exceptions import CancelExecution
 
 from sap import cf_logging
 from broker.extensions import config, db
@@ -54,20 +53,6 @@ def register_correlation_id(task):
     correlation_id = kwargs.pop("correlation_id", "Rogue Task")
     cf_logging.FRAMEWORK.context.set_correlation_id(correlation_id)
 
-
-@huey.pre_execute(name="Cancel tasks for canceled operations")
-def cancel_canceled_operations(task):
-    args, kwargs = task.data
-    op = None
-    try:
-        # big assumption here: the first arg will always be the operation id.
-        op = Operation.query.get(args[0])
-    except:
-        return
-    finally:
-        db.session.close()
-    if op.canceled_at is not None:
-        raise CancelExecution
 
 
 @huey.signal()
