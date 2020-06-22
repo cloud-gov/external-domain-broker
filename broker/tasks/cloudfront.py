@@ -15,6 +15,10 @@ def create_distribution(operation_id: int, **kwargs):
     service_instance = operation.service_instance
     domains = service_instance.domain_names
 
+    operation.step_description = "Creating CloudFront distribution"
+    db.session.add(operation)
+    db.session.commit()
+
     response = cloudfront.create_distribution(
         DistributionConfig={
             "CallerReference": service_instance.id,
@@ -102,6 +106,10 @@ def disable_distribution(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
+    operation.step_description = "Disabling CloudFront distribution"
+    db.session.add(operation)
+    db.session.commit()
+
     try:
         distribution_config = cloudfront.get_distribution_config(
             Id=service_instance.cloudfront_distribution_id
@@ -150,6 +158,11 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
 def delete_distribution(etag: str, operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
+    operation.step_description = "Deleting CloudFront distribution"
+    db.session.add(operation)
+    db.session.commit()
+
     try:
         cloudfront.delete_distribution(
             Id=service_instance.cloudfront_distribution_id, IfMatch=etag
@@ -162,6 +175,11 @@ def delete_distribution(etag: str, operation_id: int, **kwargs):
 def wait_for_distribution(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
+    operation.step_description = "Waiting for CloudFront distribution"
+    db.session.add(operation)
+    db.session.commit()
+
     waiter = cloudfront.get_waiter("distribution_deployed")
     waiter.wait(
         Id=service_instance.cloudfront_distribution_id,

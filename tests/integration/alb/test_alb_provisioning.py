@@ -7,6 +7,7 @@ from broker.extensions import config, db
 from broker.models import Challenge, Operation, ALBServiceInstance
 from broker.tasks.alb import get_lowest_used_alb
 from tests.lib.factories import ALBServiceInstanceFactory
+from tests.lib.client import check_last_operation_description
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we
 # had separate tests for each stage in the task pipeline.  But each test would
@@ -130,20 +131,58 @@ def test_refuses_to_provision_with_incorrect_acme_challenge_CNAME(client, dns):
 def test_provision_happy_path(
     client, dns, tasks, route53, iam_govcloud, simple_regex, alb
 ):
-    subtest_provision_creates_provision_operation(client, dns)
+    operation_id = subtest_provision_creates_provision_operation(client, dns)
+    check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_provision_creates_LE_user(tasks)
+    check_last_operation_description(
+        client, "4321", operation_id, "Registering user for Lets Encrypt"
+    )
     subtest_provision_creates_private_key_and_csr(tasks)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating credentials for Lets Encrypt"
+    )
     subtest_provision_initiates_LE_challenge(tasks)
+    check_last_operation_description(
+        client, "4321", operation_id, "Initiating Lets Encrypt challenges"
+    )
     subtest_provision_updates_TXT_records(tasks, route53)
+    check_last_operation_description(
+        client, "4321", operation_id, "Updating DNS TXT records"
+    )
     subtest_provision_waits_for_route53_changes(tasks, route53)
+    check_last_operation_description(
+        client, "4321", operation_id, "Updating DNS TXT records"
+    )
     subtest_provision_answers_challenges(tasks, dns)
+    check_last_operation_description(
+        client, "4321", operation_id, "Answering Lets Encrypt challenges"
+    )
     subtest_provision_retrieves_certificate(tasks)
+    check_last_operation_description(
+        client, "4321", operation_id, "Retrieving SSL certificate from Lets Encrypt"
+    )
     subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_regex)
+    check_last_operation_description(
+        client, "4321", operation_id, "Uploading SSL certificate to AWS"
+    )
     subtest_provision_selects_alb(tasks, alb)
+    check_last_operation_description(
+        client, "4321", operation_id, "Selecting load balancer"
+    )
     subtest_provision_adds_certificate_to_alb(tasks, alb)
+    check_last_operation_description(
+        client, "4321", operation_id, "Adding SSL certificate to load balancer"
+    )
     subtest_provision_provisions_ALIAS_records(tasks, route53, alb)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating DNS ALIAS records"
+    )
     subtest_provision_waits_for_route53_changes(tasks, route53)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating DNS ALIAS records"
+    )
     subtest_provision_marks_operation_as_succeeded(tasks)
+    check_last_operation_description(client, "4321", operation_id, "Complete!")
 
 
 def subtest_provision_creates_provision_operation(client, dns):
@@ -166,6 +205,8 @@ def subtest_provision_creates_provision_operation(client, dns):
     instance = ALBServiceInstance.query.get(operation.service_instance_id)
     assert instance is not None
     assert instance.domain_names == ["example.com", "foo.com"]
+
+    return operation_id
 
 
 def subtest_provision_creates_LE_user(tasks):

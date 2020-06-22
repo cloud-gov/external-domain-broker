@@ -23,6 +23,14 @@ class CFAPIResponse(Response):
         return self.get_json(silent=True)
 
 
+def check_last_operation_description(
+    client, instance_id, operation_id, expected_message
+):
+    client.get_last_operation(instance_id, operation_id)
+    assert "description" in client.response.json
+    assert client.response.json.get("description") == expected_message
+
+
 class CFAPIClient(FlaskClient):
     """
     This test client is tailored to act like the CF API.  It:

@@ -21,6 +21,11 @@ def get_lowest_used_alb(listener_arns):
 def select_alb(operation_id, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
+    operation.step_description = "Selecting load balancer"
+    db.session.add(operation)
+    db.session.commit()
+
     service_instance.alb_arn, service_instance.alb_listener_arn = get_lowest_used_alb(
         config.ALB_LISTENER_ARNS
     )
@@ -32,6 +37,11 @@ def select_alb(operation_id, **kwargs):
 def add_certificate_to_alb(operation_id, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
+    operation.step_description = "Adding SSL certificate to load balancer"
+    db.session.add(operation)
+    db.session.commit()
+
     alb.add_listener_certificates(
         ListenerArn=service_instance.alb_listener_arn,
         Certificates=[{"CertificateArn": service_instance.iam_server_certificate_arn}],
@@ -51,6 +61,11 @@ def add_certificate_to_alb(operation_id, **kwargs):
 def remove_certificate_from_alb(operation_id, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
+    operation.step_description = "Removing SSL certificate from load balancer"
+    db.session.add(operation)
+    db.session.commit()
+
     alb.remove_listener_certificates(
         ListenerArn=service_instance.alb_listener_arn,
         Certificates=[{"CertificateArn": service_instance.iam_server_certificate_arn}],

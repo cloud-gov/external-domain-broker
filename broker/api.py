@@ -100,7 +100,10 @@ class API(ServiceBroker):
                 msg=f"Invalid operation id {operation_data} for service {instance_id}"
             )
 
-        return LastOperation(state=Operation.States(operation.state))
+        return LastOperation(
+            state=Operation.States(operation.state),
+            description=operation.step_description,
+        )
 
     def provision(
         self, instance_id: str, details: ProvisionDetails, async_allowed: bool, **kwargs
@@ -142,6 +145,7 @@ class API(ServiceBroker):
             state=Operation.States.IN_PROGRESS.value,
             service_instance=instance,
             action=Operation.Actions.PROVISION.value,
+            step_description="Queuing tasks",
         )
 
         db.session.add(instance)
@@ -173,6 +177,7 @@ class API(ServiceBroker):
             state=Operation.States.IN_PROGRESS.value,
             service_instance=instance,
             action=Operation.Actions.DEPROVISION.value,
+            step_description="Queuing tasks",
         )
 
         db.session.add(operation)

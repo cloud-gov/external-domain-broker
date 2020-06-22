@@ -14,6 +14,10 @@ def upload_server_certificate(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
+    operation.step_description = "Uploading SSL certificate to AWS"
+    db.session.add(operation)
+    db.session.commit()
+
     today = date.today().isoformat()
     if service_instance.instance_type == "cdn_service_instance":
         iam = iam_commercial
@@ -44,6 +48,11 @@ def upload_server_certificate(operation_id: int, **kwargs):
 def delete_server_certificate(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
+    operation.step_description = "Removing SSL certificate from AWS"
+    db.session.add(operation)
+    db.session.commit()
+
     if service_instance.instance_type == "cdn_service_instance":
         iam = iam_commercial
     else:

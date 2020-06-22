@@ -6,6 +6,7 @@ import pytest  # noqa F401
 from broker.extensions import config, db
 from broker.models import Challenge, Operation, CDNServiceInstance
 from tests.lib.factories import CDNServiceInstanceFactory
+from tests.lib.client import check_last_operation_description
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we
 # had separate tests for each stage in the task pipeline.  But each test would
@@ -116,20 +117,58 @@ def test_provision_sets_default_origin_and_path_if_none_provided(client, dns):
 def test_provision_happy_path(
     client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
 ):
-    subtest_provision_creates_provision_operation(client, dns)
+    operation_id = subtest_provision_creates_provision_operation(client, dns)
+    check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_provision_creates_LE_user(tasks)
+    check_last_operation_description(
+        client, "4321", operation_id, "Registering user for Lets Encrypt"
+    )
     subtest_provision_creates_private_key_and_csr(tasks)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating credentials for Lets Encrypt"
+    )
     subtest_provision_initiates_LE_challenge(tasks)
+    check_last_operation_description(
+        client, "4321", operation_id, "Initiating Lets Encrypt challenges"
+    )
     subtest_provision_updates_TXT_records(tasks, route53)
+    check_last_operation_description(
+        client, "4321", operation_id, "Updating DNS TXT records"
+    )
     subtest_provision_waits_for_route53_changes(tasks, route53)
-    subtest_provision_ansers_challenges(tasks, dns)
+    check_last_operation_description(
+        client, "4321", operation_id, "Updating DNS TXT records"
+    )
+    subtest_provision_answers_challenges(tasks, dns)
+    check_last_operation_description(
+        client, "4321", operation_id, "Answering Lets Encrypt challenges"
+    )
     subtest_provision_retrieves_certificate(tasks)
+    check_last_operation_description(
+        client, "4321", operation_id, "Retrieving SSL certificate from Lets Encrypt"
+    )
     subtest_provision_uploads_certificate_to_iam(tasks, iam_commercial, simple_regex)
+    check_last_operation_description(
+        client, "4321", operation_id, "Uploading SSL certificate to AWS"
+    )
     subtest_provision_creates_cloudfront_distribution(tasks, cloudfront)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating CloudFront distribution"
+    )
     subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront)
+    check_last_operation_description(
+        client, "4321", operation_id, "Waiting for CloudFront distribution"
+    )
     subtest_provision_provisions_ALIAS_records(tasks, route53)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating DNS ALIAS records"
+    )
     subtest_provision_waits_for_route53_changes(tasks, route53)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating DNS ALIAS records"
+    )
     subtest_provision_marks_operation_as_succeeded(tasks)
+    check_last_operation_description(client, "4321", operation_id, "Complete!")
 
 
 def subtest_provision_creates_provision_operation(client, dns):
@@ -161,6 +200,11 @@ def subtest_provision_creates_provision_operation(client, dns):
     assert instance.domain_names == ["example.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "origin.com"
     assert instance.cloudfront_origin_path == "/somewhere"
+
+    client.get_last_operation("4321", operation_id)
+    assert "description" in client.response.json
+    assert client.response.json.get("description") == "Queuing tasks"
+    return operation_id
 
 
 def subtest_provision_creates_LE_user(tasks):
@@ -228,7 +272,7 @@ def subtest_provision_waits_for_route53_changes(tasks, route53):
     route53.assert_no_pending_responses()
 
 
-def subtest_provision_ansers_challenges(tasks, dns):
+def subtest_provision_answers_challenges(tasks, dns):
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("4321")
 

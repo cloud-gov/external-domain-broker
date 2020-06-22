@@ -15,6 +15,10 @@ def create_TXT_records(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
+    operation.step_description = "Updating DNS TXT records"
+    db.session.add(operation)
+    db.session.commit()
+
     for challenge in service_instance.challenges:
         domain = challenge.validation_domain
         txt_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
@@ -48,6 +52,10 @@ def create_TXT_records(operation_id: int, **kwargs):
 def remove_TXT_records(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
+    operation.step_description = "Removing DNS TXT records"
+    db.session.add(operation)
+    db.session.commit()
 
     for challenge in service_instance.challenges:
         domain = challenge.validation_domain
@@ -101,6 +109,11 @@ def wait_for_changes(operation_id: int, **kwargs):
 def create_ALIAS_records(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
+    operation.step_description = "Creating DNS ALIAS records"
+    db.session.add(operation)
+    db.session.commit()
+
     logger.info(f"Creating ALIAS records for {service_instance.domain_names}")
 
     for domain in service_instance.domain_names:
@@ -138,6 +151,11 @@ def create_ALIAS_records(operation_id: str, **kwargs):
 def remove_ALIAS_records(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
+    operation.step_description = "Removing DNS ALIAS records"
+    db.session.add(operation)
+    db.session.commit()
+
     logger.info(f"Removing ALIAS records for {service_instance.domain_names}")
 
     for domain in service_instance.domain_names:
