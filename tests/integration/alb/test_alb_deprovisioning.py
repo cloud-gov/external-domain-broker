@@ -3,6 +3,7 @@ import pytest  # noqa F401
 from broker.extensions import db
 from broker.models import Operation, ALBServiceInstance
 from tests.lib import factories
+from tests.lib.client import check_last_operation_description
 
 
 @pytest.fixture
@@ -50,14 +51,30 @@ def test_refuses_to_deprovision_synchronously_by_default(client, service_instanc
 def test_deprovision_happy_path(
     client, service_instance, dns, tasks, route53, iam_govcloud, simple_regex, alb
 ):
-    subtest_deprovision_creates_deprovision_operation(client, service_instance)
+    operation_id = subtest_deprovision_creates_deprovision_operation(
+        client, service_instance
+    )
+    check_last_operation_description(client, "1234", operation_id, "Queuing tasks")
     subtest_deprovision_removes_ALIAS_records(tasks, route53)
+    check_last_operation_description(
+        client, "1234", operation_id, "Removing DNS ALIAS records"
+    )
     subtest_deprovision_removes_TXT_records(tasks, route53)
+    check_last_operation_description(
+        client, "1234", operation_id, "Removing DNS TXT records"
+    )
     subtest_deprovision_removes_cert_from_alb(tasks, service_instance, alb)
+    check_last_operation_description(
+        client, "1234", operation_id, "Removing SSL certificate from load balancer"
+    )
     subtest_deprovision_removes_certificate_from_iam(
         tasks, service_instance, iam_govcloud
     )
+    check_last_operation_description(
+        client, "1234", operation_id, "Removing SSL certificate from AWS"
+    )
     subtest_deprovision_marks_operation_as_succeeded(tasks)
+    check_last_operation_description(client, "1234", operation_id, "Complete!")
 
 
 def subtest_deprovision_creates_deprovision_operation(client, service_instance):
@@ -73,6 +90,8 @@ def subtest_deprovision_creates_deprovision_operation(client, service_instance):
     assert operation.state == Operation.States.IN_PROGRESS.value
     assert operation.action == Operation.Actions.DEPROVISION.value
     assert operation.service_instance_id == service_instance.id
+
+    return operation_id
 
 
 def subtest_deprovision_removes_ALIAS_records(tasks, route53):

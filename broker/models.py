@@ -116,6 +116,7 @@ class Operation(Base):
     )
     action = db.Column(db.String, nullable=False)
     canceled_at = db.Column(db.TIMESTAMP(timezone=True))
+    step_description = db.Column(db.String)
 
     def __repr__(self):
         return f"<Operation {self.id} {self.state}>"

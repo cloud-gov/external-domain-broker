@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 def provision(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     operation.state = Operation.States.SUCCEEDED.value
+    operation.step_description = "Complete!"
     db.session.add(operation)
     db.session.commit()
 
@@ -20,6 +21,7 @@ def provision(operation_id: str, **kwargs):
 def deprovision(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     operation.state = Operation.States.SUCCEEDED.value
+    operation.step_description = "Complete!"
     db.session.add(operation)
 
     service_instance = operation.service_instance

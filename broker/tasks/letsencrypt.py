@@ -53,6 +53,11 @@ def dns_challenge(order, domain):
 def create_user(operation_id: int, **kwargs):
     acme_user = ACMEUser()
     operation = Operation.query.get(operation_id)
+
+    operation.step_description = "Registering user for Lets Encrypt"
+    db.session.add(operation)
+    db.session.commit()
+
     service_instance = operation.service_instance
     service_instance.acme_user = acme_user
     key = josepy.JWKRSA(
@@ -90,6 +95,10 @@ def generate_private_key(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
+    operation.step_description = "Creating credentials for Lets Encrypt"
+    db.session.add(operation)
+    db.session.commit()
+
     # Create private key.
     private_key = OpenSSL.crypto.PKey()
     private_key.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
@@ -118,6 +127,10 @@ def initiate_challenges(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
+
+    operation.step_description = "Initiating Lets Encrypt challenges"
+    db.session.add(operation)
+    db.session.commit()
 
     account_key = serialization.load_pem_private_key(
         acme_user.private_key_pem.encode(), password=None, backend=default_backend()
@@ -161,6 +174,10 @@ def answer_challenges(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
+
+    operation.step_description = "Answering Lets Encrypt challenges"
+    db.session.add(operation)
+    db.session.commit()
 
     time.sleep(int(config.DNS_PROPAGATION_SLEEP_TIME))
 
@@ -221,6 +238,10 @@ def retrieve_certificate(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
+
+    operation.step_description = "Retrieving SSL certificate from Lets Encrypt"
+    db.session.add(operation)
+    db.session.commit()
 
     account_key = serialization.load_pem_private_key(
         acme_user.private_key_pem.encode(), password=None, backend=default_backend()
