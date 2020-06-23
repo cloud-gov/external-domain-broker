@@ -12,17 +12,18 @@ logger = logging.getLogger(__name__)
 
 @huey.huey.pre_execute(name="Cancel tasks for canceled operations")
 def cancel_canceled_operations(task):
-    args, kwargs = task.data
-    op = None
-    try:
-        # big assumption here: the first arg will always be the operation id.
-        op = Operation.query.get(args[0])
-    except:
-        return
-    finally:
-        db.session.close()
-    if op.canceled_at is not None:
-        raise CancelExecution
+    with huey.huey.flask_app.app_context():
+        args, kwargs = task.data
+        op = None
+        try:
+            # big assumption here: the first arg will always be the operation id.
+            op = Operation.query.get(args[0])
+        except:
+            return
+        finally:
+            db.session.close()
+        if op.canceled_at is not None:
+            raise CancelExecution
 
 
 @huey.retriable_task
