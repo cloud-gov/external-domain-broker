@@ -59,8 +59,8 @@ def test_deprovision_continues_when_resources_dont_exist(
     cloudfront,
 ):
     subtest_deprovision_creates_deprovision_operation(client, service_instance)
-    subtest_deprovision_removes_ALIAS_records(tasks, route53)
-    subtest_deprovision_removes_TXT_records(tasks, route53)
+    subtest_deprovision_removes_ALIAS_records_when_missing(tasks, route53)
+    subtest_deprovision_removes_TXT_records_when_missing(tasks, route53)
 
     subtest_deprovision_disables_cloudfront_distribution_when_missing(
         tasks, service_instance, cloudfront
@@ -141,6 +141,34 @@ def subtest_deprovision_creates_deprovision_operation(client, service_instance):
     assert operation.service_instance_id == service_instance.id
 
     return operation_id
+
+
+def subtest_deprovision_removes_TXT_records_when_missing(tasks, route53):
+    route53.expect_remove_missing_TXT(
+        "example.com.domains.cloud.test", "fake1234.cloudfront.net"
+    )
+    route53.expect_remove_missing_TXT(
+        "foo.com.domains.cloud.test", "fake1234.cloudfront.net"
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    route53.assert_no_pending_responses()
+
+
+def subtest_deprovision_removes_ALIAS_records_when_missing(tasks, route53):
+    route53.expect_remove_missing_ALIAS(
+        "_acme-challenge.example.com.domains.cloud.test", "example txt"
+    )
+    route53.expect_remove_missing_ALIAS(
+        "_acme-challenge.foo.com.domains.cloud.test", "foo txt"
+    )
+
+    # one for marking provisioning tasks canceled, which is tested elsewhere
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    route53.assert_no_pending_responses()
 
 
 def subtest_deprovision_removes_ALIAS_records(tasks, route53):

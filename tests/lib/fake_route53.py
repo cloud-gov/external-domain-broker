@@ -31,6 +31,30 @@ class FakeRoute53(FakeAWS):
         )
         return change_id
 
+    def expect_remove_missing_TXT(self, domain, challenge_text):
+        change_id = f"{domain} ID"
+        self.stubber.add_client_error(
+            "change_resource_record_sets",
+            "InvalidChangeBatch",
+            f"Tried to delete resource record set [name='{domain}', type='A'] but it was not found",
+            {
+                "ChangeBatch": {
+                    "Changes": [
+                        {
+                            "Action": "DELETE",
+                            "ResourceRecordSet": {
+                                "Name": domain,
+                                "ResourceRecords": [{"Value": f'"{challenge_text}"'}],
+                                "TTL": 60,
+                                "Type": "TXT",
+                            },
+                        }
+                    ]
+                },
+                "HostedZoneId": "TestZoneID",
+            },
+        )
+
     def expect_remove_TXT(self, domain, challenge_text):
         change_id = f"{domain} ID"
         self.stubber.add_response(
@@ -89,6 +113,34 @@ class FakeRoute53(FakeAWS):
         self.stubber.add_response(
             "change_resource_record_sets",
             self._change_info("ignored", "PENDING"),
+            {
+                "ChangeBatch": {
+                    "Changes": [
+                        {
+                            "Action": "DELETE",
+                            "ResourceRecordSet": {
+                                "Name": domain,
+                                "Type": "A",
+                                "AliasTarget": {
+                                    "DNSName": target,
+                                    "HostedZoneId": target_hosted_zone_id,
+                                    "EvaluateTargetHealth": False,
+                                },
+                            },
+                        }
+                    ]
+                },
+                "HostedZoneId": "TestZoneID",
+            },
+        )
+
+    def expect_remove_missing_ALIAS(
+        self, domain, target, target_hosted_zone_id="Z2FDTNDATAQYW2"
+    ):
+        self.stubber.add_client_error(
+            "change_resource_record_sets",
+            "InvalidChangeBatch",
+            f"Tried to delete resource record set [name='{domain}', type='A'] but it was not found",
             {
                 "ChangeBatch": {
                     "Changes": [

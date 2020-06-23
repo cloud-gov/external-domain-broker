@@ -54,7 +54,6 @@ def register_correlation_id(task):
     cf_logging.FRAMEWORK.context.set_correlation_id(correlation_id)
 
 
-
 @huey.signal()
 def log_task_transition(signal, task, exc=None):
     args, kwargs = task.data
