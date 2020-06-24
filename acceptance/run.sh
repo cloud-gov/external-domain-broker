@@ -20,7 +20,8 @@ required_vars=(
   CF_USERNAME
   DNS_ROOT_DOMAIN
   HOSTED_ZONE_ID
-  TEST_DOMAIN
+  TEST_DOMAIN_0
+  TEST_DOMAIN_1
   PLAN_NAME
   SERVICE_NAME
 )
@@ -56,8 +57,8 @@ login() {
 }
 
 prep_domains() {
-  DOMAIN_0="test-${RANDOM}.${TEST_DOMAIN}"
-  DOMAIN_1="test-${RANDOM}.${TEST_DOMAIN}"
+  DOMAIN_0="${INSTANCE}.${TEST_DOMAIN_0}"
+  DOMAIN_1="${INSTANCE}.${TEST_DOMAIN_1}"
   cat << EOF > /tmp/create-cname.json
 {
   "Changes": [
