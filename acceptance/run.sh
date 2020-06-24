@@ -19,7 +19,8 @@ required_vars=(
   CF_SPACE
   CF_USERNAME
   DNS_ROOT_DOMAIN
-  HOSTED_ZONE_ID
+  HOSTED_ZONE_ID_0
+  HOSTED_ZONE_ID_1
   TEST_DOMAIN_0
   TEST_DOMAIN_1
   PLAN_NAME
@@ -59,7 +60,7 @@ login() {
 prep_domains() {
   DOMAIN_0="${INSTANCE}.${TEST_DOMAIN_0}"
   DOMAIN_1="${INSTANCE}.${TEST_DOMAIN_1}"
-  cat << EOF > /tmp/create-cname.json
+  cat << EOF > /tmp/create-cname-0.json
 {
   "Changes": [
     {
@@ -83,7 +84,13 @@ prep_domains() {
           {"Value": "_acme-challenge.${DOMAIN_0}.${DNS_ROOT_DOMAIN}."}
         ]
       }
-    },
+    }
+  ]
+}
+EOF
+  cat << EOF > /tmp/create-cname-1.json
+{
+  "Changes": [
     {
       "Action": "CREATE",
       "ResourceRecordSet": {
@@ -110,13 +117,22 @@ prep_domains() {
 }
 EOF
   aws route53 change-resource-record-sets \
-    --hosted-zone-id "${HOSTED_ZONE_ID}" \
-    --change-batch file:///tmp/create-cname.json > /tmp/changeinfo.json
-  change_id=$(cat /tmp/changeinfo.json | jq -r '.ChangeInfo.Id')
-  change=$(cat /tmp/changeinfo.json | jq -r '.ChangeInfo.Status')
+    --hosted-zone-id "${HOSTED_ZONE_ID_0}" \
+    --change-batch file:///tmp/create-cname-0.json > /tmp/changeinfo0json
+  aws route53 change-resource-record-sets \
+    --hosted-zone-id "${HOSTED_ZONE_ID_1}" \
+    --change-batch file:///tmp/create-cname-1.json > /tmp/changeinfo1json
+  change_id_0=$(cat /tmp/changeinfo0.json | jq -r '.ChangeInfo.Id')
+  change=$(cat /tmp/changeinfo0.json | jq -r '.ChangeInfo.Status')
   while [[ "$change" =~ PENDING ]]; do
     sleep 60
-    change=$(aws route53 get-change --id ${change_id} | jq -r '.ChangeInfo.Status')
+    change=$(aws route53 get-change --id ${change_id_0} | jq -r '.ChangeInfo.Status')
+  done
+  change_id_1=$(cat /tmp/changeinfo1.json | jq -r '.ChangeInfo.Id')
+  change=$(cat /tmp/changeinfo1.json | jq -r '.ChangeInfo.Status')
+  while [[ "$change" =~ PENDING ]]; do
+    sleep 60
+    change=$(aws route53 get-change --id ${change_id_1} | jq -r '.ChangeInfo.Status')
   done
 }
 
@@ -191,7 +207,7 @@ cleanup() {
     sleep 60
   done
   echo "Service instance deleted."
-  cat << EOF > /tmp/delete-cname.json
+  cat << EOF > /tmp/delete-cname-0.json
 {
   "Changes": [
     {
@@ -215,7 +231,13 @@ cleanup() {
           {"Value": "_acme-challenge.${DOMAIN_0}.${DNS_ROOT_DOMAIN}."}
         ]
       }
-    },
+    }
+  ]
+}
+EOF
+cat << EOF > /tmp/delete-cname-1.json
+{
+  "Changes": [
     {
       "Action": "DELETE",
       "ResourceRecordSet": {
@@ -242,8 +264,11 @@ cleanup() {
 }
 EOF
   aws route53 change-resource-record-sets \
-    --hosted-zone-id "${HOSTED_ZONE_ID}" \
-    --change-batch file:///tmp/delete-cname.json
+    --hosted-zone-id "${HOSTED_ZONE_ID_0}" \
+    --change-batch file:///tmp/delete-cname-0.json
+  aws route53 change-resource-record-sets \
+    --hosted-zone-id "${HOSTED_ZONE_ID_1}" \
+    --change-batch file:///tmp/delete-cname-1.json
 }
 
 main
