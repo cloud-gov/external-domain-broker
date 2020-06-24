@@ -108,29 +108,49 @@ cf-manifest-env-production: &cf-manifest-env-production
     AWS_COMMERCIAL_ACCESS_KEY_ID: ((production-aws-commercial-access-key-id))
     ALB_LISTENER_ARNS: ((production-alb-listener-arns))
 
-acceptance-tests-params-cdn: &acceptance-tests-params-cdn
-  PLAN_NAME: "domain-with-cdn"
-  SERVICE_NAME: "external-domain"
-
-acceptance-tests-params-alb: &acceptance-tests-params-alb
+acceptance-tests-params-staging-alb: &acceptance-tests-params-staging-alb
   PLAN_NAME: "domain"
   SERVICE_NAME: "external-domain"
-
-acceptance-tests-params-staging: &acceptance-tests-params-staging
   DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
   HOSTED_ZONE_ID: ((staging-test-hosted-zone-id))
-  TEST_DOMAIN: ((staging-test-domain))
+  TEST_DOMAIN_0: ((staging-test-domain-2))
+  TEST_DOMAIN_1: ((staging-test-domain-3))
   AWS_ACCESS_KEY_ID: ((staging-test-user-aws-access-key-id))
   AWS_SECRET_ACCESS_KEY: ((staging-test-user-aws-secret-access-key))
   AWS_REGION: ((staging-aws-commercial-region))
 
-acceptance-tests-params-production: &acceptance-tests-params-production
+acceptance-tests-params-staging-cdn: &acceptance-tests-params-staging-cdn
+  PLAN_NAME: "domain-with-cdn"
+  SERVICE_NAME: "external-domain"
+  DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
+  HOSTED_ZONE_ID: ((staging-test-hosted-zone-id))
+  TEST_DOMAIN_0: ((staging-test-domain-0))
+  TEST_DOMAIN_1: ((staging-test-domain-1))
+  AWS_ACCESS_KEY_ID: ((staging-test-user-aws-access-key-id))
+  AWS_SECRET_ACCESS_KEY: ((staging-test-user-aws-secret-access-key))
+  AWS_REGION: ((staging-aws-commercial-region))
+
+acceptance-tests-params-production-cdn: &acceptance-tests-params-production-cdn
+  PLAN_NAME: "domain-with-cdn"
+  SERVICE_NAME: "external-domain"
   DNS_ROOT_DOMAIN: ((production-dns-root-domain))
   HOSTED_ZONE_ID: ((production-test-hosted-zone-id))
-  TEST_DOMAIN: ((production-test-domain))
   AWS_ACCESS_KEY_ID: ((production-test-user-aws-access-key-id))
   AWS_SECRET_ACCESS_KEY: ((production-test-user-aws-secret-access-key))
   AWS_REGION: ((production-aws-commercial-region))
+  TEST_DOMAIN_0: ((production-test-domain-0))
+  TEST_DOMAIN_1: ((production-test-domain-1))
+
+acceptance-tests-params-production-alb: &acceptance-tests-params-production-alb
+  PLAN_NAME: "domain"
+  SERVICE_NAME: "external-domain"
+  DNS_ROOT_DOMAIN: ((production-dns-root-domain))
+  HOSTED_ZONE_ID: ((production-test-hosted-zone-id))
+  AWS_ACCESS_KEY_ID: ((production-test-user-aws-access-key-id))
+  AWS_SECRET_ACCESS_KEY: ((production-test-user-aws-secret-access-key))
+  AWS_REGION: ((production-aws-commercial-region))
+  TEST_DOMAIN_0: ((production-test-domain-2))
+  TEST_DOMAIN_1: ((production-test-domain-3))
 
 ############################
 #  JOBS
@@ -300,8 +320,7 @@ jobs:
         platform: linux
         params:
           <<: *cf-creds-staging
-          <<: *acceptance-tests-params-cdn
-          <<: *acceptance-tests-params-staging
+          <<: *acceptance-tests-params-staging-cdn
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
@@ -311,8 +330,7 @@ jobs:
         platform: linux
         params:
           <<: *cf-creds-staging
-          <<: *acceptance-tests-params-alb
-          <<: *acceptance-tests-params-staging
+          <<: *acceptance-tests-params-staging-alb
         run:
           path: /app/acceptance/run.sh
 
@@ -388,8 +406,7 @@ jobs:
         platform: linux
         params:
           <<: *cf-creds-production
-          <<: *acceptance-tests-params-cdn
-          <<: *acceptance-tests-params-production
+          <<: *acceptance-tests-params-production-cdn
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
@@ -399,8 +416,7 @@ jobs:
         platform: linux
         params:
           <<: *cf-creds-production
-          <<: *acceptance-tests-params-alb
-          <<: *acceptance-tests-params-production
+          <<: *acceptance-tests-params-production-alb
         run:
           path: /app/acceptance/run.sh
 ############################
