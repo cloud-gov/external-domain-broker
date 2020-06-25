@@ -184,29 +184,21 @@ cleanup() {
   set -euxo pipefail
   echo "Deleting the service instance"
   if cf service "$INSTANCE" > /dev/null; then
-    cf delete-service -f "$INSTANCE"
+    cf delete-service -f "$INSTANCE" &
   fi
 
   echo "Deleting the cf domain objects"
   for domain in "$DOMAIN_0" "$DOMAIN_1"; do
     if cf domains | grep -q "$domain"; then
-      cf delete-domain -f "$domain"
+      cf delete-domain -f "$domain" &
     fi
   done
 
   echo "Deleting the application"
   if cf app "$INSTANCE" > /dev/null; then
-    cf delete -f "$INSTANCE"
+    cf delete -f "$INSTANCE" &
   fi
 
-  # We do this in the end to save some time by deleting the rest of the
-  # resources in parllel.
-  echo "Waiting for the service instance to finish deleting."
-  while true; do
-    cf service "$INSTANCE" > /dev/null || break
-    sleep 60
-  done
-  echo "Service instance deleted."
   cat << EOF > /tmp/delete-cname-0.json
 {
   "Changes": [
@@ -265,10 +257,17 @@ cat << EOF > /tmp/delete-cname-1.json
 EOF
   aws route53 change-resource-record-sets \
     --hosted-zone-id "${HOSTED_ZONE_ID_0}" \
-    --change-batch file:///tmp/delete-cname-0.json
+    --change-batch file:///tmp/delete-cname-0.json &
   aws route53 change-resource-record-sets \
     --hosted-zone-id "${HOSTED_ZONE_ID_1}" \
-    --change-batch file:///tmp/delete-cname-1.json
+    --change-batch file:///tmp/delete-cname-1.json &
+
+  echo "Waiting for the service instance to finish deleting."
+  while true; do
+    cf service "$INSTANCE" > /dev/null || break
+    sleep 60
+  done
+  echo "Service instance deleted."
 }
 
 main
