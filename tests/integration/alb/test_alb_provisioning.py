@@ -312,6 +312,7 @@ def subtest_provision_retrieves_certificate(tasks):
 
     assert 1 == service_instance.fullchain_pem.count("BEGIN CERTIFICATE")
     assert 1 == service_instance.cert_pem.count("BEGIN CERTIFICATE")
+    assert service_instance.cert_expires_at is not None
 
 
 def subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_regex):
