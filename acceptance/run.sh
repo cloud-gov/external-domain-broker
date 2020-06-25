@@ -9,7 +9,7 @@
 #
 # ($DNS_ROOT_DOMAIN is the value the broker is configured with)
 
-INSTANCE="external-domain-broker-test-${RANDOM}"
+INSTANCE="edb-test-${RANDOM}"
 TTL=120
 
 required_vars=(
