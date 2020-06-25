@@ -66,9 +66,12 @@ def remove_certificate_from_alb(operation_id, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    alb.remove_listener_certificates(
-        ListenerArn=service_instance.alb_listener_arn,
-        Certificates=[{"CertificateArn": service_instance.iam_server_certificate_arn}],
-    )
+    if service_instance.alb_listener_arn is not None:
+        alb.remove_listener_certificates(
+            ListenerArn=service_instance.alb_listener_arn,
+            Certificates=[
+                {"CertificateArn": service_instance.iam_server_certificate_arn}
+            ],
+        )
     db.session.add(service_instance)
     db.session.commit()
