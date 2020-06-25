@@ -269,5 +269,11 @@ def retrieve_certificate(operation_id: int, **kwargs):
     service_instance.cert_pem, service_instance.fullchain_pem = cert_from_fullchain(
         finalized_order.fullchain_pem
     )
+    x509 = OpenSSL.crypto.load_certificate(
+        OpenSSL.crypto.FILETYPE_PEM, service_instance.cert_pem
+    )
+    not_after = x509.get_notAfter().decode("utf-8")
+
+    service_instance.cert_expires_at = datetime.strptime(not_after, "%Y%m%d%H%M%Sz")
     db.session.add(service_instance)
     db.session.commit()

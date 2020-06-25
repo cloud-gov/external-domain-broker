@@ -50,6 +50,7 @@ class ServiceInstance(Base):
 
     csr_pem = db.Column(db.Text)
     cert_pem = db.Column(db.Text)
+    cert_expires_at = db.Column(db.TIMESTAMP(timezone=True))
     private_key_pem = db.Column(
         StringEncryptedType(db.Text, db_encryption_key, AesGcmEngine, "pkcs5")
     )
@@ -103,6 +104,7 @@ class Operation(Base):
     class Actions(Enum):
         PROVISION = "Provision"
         DEPROVISION = "Deprovision"
+        RENEW = "Renew"
 
     id = db.Column(db.Integer, primary_key=True)
     service_instance_id = db.Column(
