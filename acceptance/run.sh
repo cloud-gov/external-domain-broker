@@ -118,10 +118,10 @@ EOF
 EOF
   aws route53 change-resource-record-sets \
     --hosted-zone-id "${HOSTED_ZONE_ID_0}" \
-    --change-batch file:///tmp/create-cname-0.json > /tmp/changeinfo0json
+    --change-batch file:///tmp/create-cname-0.json > /tmp/changeinfo0.json
   aws route53 change-resource-record-sets \
     --hosted-zone-id "${HOSTED_ZONE_ID_1}" \
-    --change-batch file:///tmp/create-cname-1.json > /tmp/changeinfo1json
+    --change-batch file:///tmp/create-cname-1.json > /tmp/changeinfo1.json
   change_id_0=$(cat /tmp/changeinfo0.json | jq -r '.ChangeInfo.Id')
   change=$(cat /tmp/changeinfo0.json | jq -r '.ChangeInfo.Status')
   while [[ "$change" =~ PENDING ]]; do
