@@ -19,7 +19,7 @@ from tests.integration.alb.test_alb_provisioning import (
     subtest_provision_selects_alb,
     subtest_provision_adds_certificate_to_alb,
     subtest_provision_provisions_ALIAS_records,
-    subtest_provision_marks_operation_as_succeeded
+    subtest_provision_marks_operation_as_succeeded,
 )
 from tests.lib.factories import ALBServiceInstanceFactory, OperationFactory
 from tests.lib.fake_cloudfront import FakeCloudFront
@@ -103,7 +103,6 @@ def test_scan_for_expiring_certs_alb_happy_path(
     subtest_provision_marks_operation_as_succeeded(tasks)
 
 
-
 def subtest_queues_tasks():
     assert scan_for_expiring_certs.call_local() == ["4321"]
     service_instance = ALBServiceInstance.query.get("4321")
@@ -112,4 +111,3 @@ def subtest_queues_tasks():
     operation = service_instance.operations[0]
     assert operation.action == Operation.Actions.RENEW.value
     assert len(huey.pending()) == 1
-

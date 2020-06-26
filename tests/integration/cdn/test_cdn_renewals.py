@@ -16,7 +16,7 @@ from tests.integration.cdn.test_cdn_provisioning import (
     subtest_provision_waits_for_route53_changes,
     subtest_provision_creates_private_key_and_csr,
     subtest_provision_uploads_certificate_to_iam,
-    subtest_provision_marks_operation_as_succeeded
+    subtest_provision_marks_operation_as_succeeded,
 )
 from tests.lib.factories import CDNServiceInstanceFactory, OperationFactory
 from tests.lib.fake_cloudfront import FakeCloudFront
