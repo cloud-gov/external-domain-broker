@@ -149,20 +149,33 @@ def queue_all_cdn_deprovision_tasks_for_operation(
 
 
 def queue_all_alb_renewal_tasks_for_service_instance(operation_id, **kwargs):
-    pass
+    correlation = {"correlation_id": "Renewal"}
+    task_pipeline = (
+        letsencrypt.initiate_challenges.s(operation_id, **correlation)
+        .then(route53.create_TXT_records, operation_id, **correlation)
+        .then(route53.wait_for_changes, operation_id, **correlation)
+        .then(letsencrypt.answer_challenges, operation_id, **correlation)
+        .then(letsencrypt.retrieve_certificate, operation_id, **correlation)
+        .then(iam.upload_server_certificate, operation_id, **correlation)
+        .then(alb.select_alb, operation_id, **correlation)
+        .then(alb.add_certificate_to_alb, operation_id, **correlation)
+        .then(route53.create_ALIAS_records, operation_id, **correlation)
+        .then(update_operations.provision, operation_id, **correlation)
+    )
+    huey.enqueue(task_pipeline)
 
 
 def queue_all_cdn_renewal_tasks_for_service_instance(operation_id, **kwargs):
     correlation = {"correlation_id": "Renewal"}
     task_pipeline = (
-        letsencrypt.generate_private_key.s(operation_id, **correlation)
-        .then(letsencrypt.initiate_challenges, operation_id, **correlation)
+        letsencrypt.initiate_challenges.s(operation_id, **correlation)
         .then(route53.create_TXT_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
         .then(letsencrypt.answer_challenges, operation_id, **correlation)
         .then(letsencrypt.retrieve_certificate, operation_id, **correlation)
         .then(iam.upload_server_certificate, operation_id, **correlation)
         .then(cloudfront.update_certificate, operation_id, **correlation)
+        .then(update_operations.provision, operation_id, **correlation)
     )
     huey.enqueue(task_pipeline)
     # possible workflow:
