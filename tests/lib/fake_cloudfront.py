@@ -166,6 +166,40 @@ class FakeCloudFront(FakeAWS):
             expected_params={"Id": distribution_id},
         )
 
+    def expect_update_distribution(
+        self,
+        caller_reference: str,
+        domains: List[str],
+        certificate_id: str,
+        origin_hostname: str,
+        origin_path: str,
+        distribution_id: str,
+        distribution_hostname: str,
+    ):
+        self.stubber.add_response(
+            "update_distribution",
+            self._distribution_response(
+                caller_reference,
+                domains,
+                certificate_id,
+                origin_hostname,
+                origin_path,
+                distribution_id,
+                distribution_hostname,
+            ),
+            {
+                "DistributionConfig": self._distribution_config(
+                    caller_reference,
+                    domains,
+                    certificate_id,
+                    origin_hostname,
+                    origin_path,
+                ),
+                "Id": distribution_id,
+                "IfMatch": self.etag,
+            },
+        )
+
     def _distribution_config(
         self,
         caller_reference: str,
