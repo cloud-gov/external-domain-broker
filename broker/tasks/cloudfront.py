@@ -188,3 +188,21 @@ def wait_for_distribution(operation_id: str, **kwargs):
             "MaxAttempts": config.AWS_POLL_MAX_ATTEMPTS,
         },
     )
+
+
+@huey.retriable_task
+def update_certificate(operation_id: str, **kwargs):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    config = cloudfront.get_distribution_config(
+        Id=service_instance.cloudfront_distribution_id
+    )
+    config["DistributionConfig"]["ViewerCertificate"][
+        "IAMCertificateId"
+    ] = service_instance.iam_server_certificate_id
+    cloudfront.update_distribution(
+        DistributionConfig=config["DistributionConfig"],
+        Id=service_instance.cloudfront_distribution_id,
+        IfMatch=config["ETag"],
+    )
