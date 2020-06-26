@@ -40,13 +40,16 @@ def upgrade():
     session = orm.Session(bind=bind)
 
     for service_instance in session.query(ServiceInstance):
-        x509 = OpenSSL.crypto.load_certificate(
-            OpenSSL.crypto.FILETYPE_PEM, service_instance.cert_pem
-        )
-        not_after = x509.get_notAfter().decode("utf-8")
+        if service_instance.cert_pem is not None:
+            x509 = OpenSSL.crypto.load_certificate(
+                OpenSSL.crypto.FILETYPE_PEM, service_instance.cert_pem
+            )
+            not_after = x509.get_notAfter().decode("utf-8")
 
-        service_instance.cert_expires_at = datetime.strptime(not_after, "%Y%m%d%H%M%Sz")
-        session.add(service_instance)
+            service_instance.cert_expires_at = datetime.strptime(
+                not_after, "%Y%m%d%H%M%Sz"
+            )
+            session.add(service_instance)
     session.commit()
 
 
