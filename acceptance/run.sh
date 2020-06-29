@@ -149,7 +149,7 @@ tests() {
       "$SERVICE_NAME" \
       "$PLAN_NAME" \
       "$INSTANCE" \
-      -c "{\"domains\": \"$DOMAIN_0, $DOMAIN_1\", \"forwarded_cookies\": \"cookieone, cookietwo\"}"
+      -c "{\"domains\": \"$DOMAIN_0, $DOMAIN_1\", \"forward_cookies\": \"cookieone, cookietwo\", \"forward_headers\": \"x-one-header,x-two-header\"}"
   else
     echo "Creating the service instance"
     cf create-service \

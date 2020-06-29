@@ -19,7 +19,10 @@ class FakeCloudFront(FakeAWS):
         distribution_hostname: str,
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
+        forwarded_headers: list = None,
     ):
+        if forwarded_headers is None:
+            forwarded_headers = ['HOST']
         self.stubber.add_response(
             "create_distribution",
             self._distribution_response(
@@ -32,6 +35,7 @@ class FakeCloudFront(FakeAWS):
                 distribution_hostname,
                 forward_cookie_policy=forward_cookie_policy,
                 forwarded_cookies=forwarded_cookies,
+                forwarded_headers=forwarded_headers
             ),
             {
                 "DistributionConfig": self._distribution_config(
@@ -42,6 +46,7 @@ class FakeCloudFront(FakeAWS):
                     origin_path,
                     forward_cookie_policy=forward_cookie_policy,
                     forwarded_cookies=forwarded_cookies,
+                    forwarded_headers=forwarded_headers
                 )
             },
         )
@@ -56,7 +61,10 @@ class FakeCloudFront(FakeAWS):
         distribution_id: str,
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
+        forwarded_headers: list = None
     ):
+        if forwarded_headers is None:
+            forwarded_headers = ['HOST']
         self.etag = str(datetime.now().timestamp())
         self.stubber.add_response(
             "get_distribution_config",
@@ -69,6 +77,7 @@ class FakeCloudFront(FakeAWS):
                     origin_path,
                     forward_cookie_policy=forward_cookie_policy,
                     forwarded_cookies=forwarded_cookies,
+                    forwarded_headers=forwarded_headers
                 ),
                 "ETag": self.etag,
             },
@@ -149,7 +158,10 @@ class FakeCloudFront(FakeAWS):
         enabled: bool = True,
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
+        forwarded_headers: list = None
     ):
+        if forwarded_headers is None:
+            forwarded_headers = ['HOST']
         self.etag = str(datetime.now().timestamp())
         distribution = self._distribution_response(
             caller_reference,
@@ -161,6 +173,9 @@ class FakeCloudFront(FakeAWS):
             "ignored",
             status,
             enabled,
+            forward_cookie_policy,
+            forwarded_cookies,
+            forwarded_headers
         )
         distribution["ETag"] = self.etag
         self.stubber.add_response(
@@ -189,7 +204,10 @@ class FakeCloudFront(FakeAWS):
         distribution_hostname: str,
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
+        forwarded_headers: list = None
     ):
+        if forwarded_headers is None:
+            forwarded_headers = ['HOST']
         self.stubber.add_response(
             "update_distribution",
             self._distribution_response(
@@ -200,6 +218,9 @@ class FakeCloudFront(FakeAWS):
                 origin_path,
                 distribution_id,
                 distribution_hostname,
+                forward_cookie_policy=forward_cookie_policy,
+                forwarded_cookies=forwarded_cookies,
+                forwarded_headers=forwarded_headers
             ),
             {
                 "DistributionConfig": self._distribution_config(
@@ -208,6 +229,9 @@ class FakeCloudFront(FakeAWS):
                     certificate_id,
                     origin_hostname,
                     origin_path,
+                    forward_cookie_policy=forward_cookie_policy,
+                    forwarded_cookies=forwarded_cookies,
+                    forwarded_headers=forwarded_headers
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,
@@ -224,7 +248,10 @@ class FakeCloudFront(FakeAWS):
         enabled: bool = True,
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
+        forwarded_headers: list = None
     ) -> Dict[str, Any]:
+        if forwarded_headers is None:
+            forwarded_headers = ['HOST']
         cookies = {"Forward": forward_cookie_policy}
         if forward_cookie_policy == "whitelist":
             cookies["WhitelistedNames"] = {
@@ -259,7 +286,7 @@ class FakeCloudFront(FakeAWS):
                 "ForwardedValues": {
                     "QueryString": True,
                     "Cookies": cookies,
-                    "Headers": {"Quantity": 1, "Items": ["HOST"]},
+                    "Headers": {"Quantity": len(forwarded_headers), "Items": forwarded_headers},
                     "QueryStringCacheKeys": {"Quantity": 0},
                 },
                 "TrustedSigners": {"Enabled": False, "Quantity": 0},
@@ -317,7 +344,10 @@ class FakeCloudFront(FakeAWS):
         enabled: bool = True,
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
+        forwarded_headers: list = None,
     ) -> Dict[str, Any]:
+        if forwarded_headers is None:
+            forwarded_headers = ["HOST"]
         cookies = {"Forward": forward_cookie_policy}
         if forward_cookie_policy == "whitelist":
             cookies["WhitelistedNames"] = {
@@ -340,6 +370,9 @@ class FakeCloudFront(FakeAWS):
                     origin_hostname,
                     origin_path,
                     enabled,
+                    forward_cookie_policy,
+                    forwarded_cookies,
+                    forwarded_headers
                 ),
             }
         }
