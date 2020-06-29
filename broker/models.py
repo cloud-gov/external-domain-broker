@@ -75,10 +75,17 @@ class ServiceInstance(Base):
 
 
 class CDNServiceInstance(ServiceInstance):
+    class ForwardCookiePolicy(Enum):
+        ALL = "all"
+        NONE = "none"
+        WHITELIST = "whitelist"
+
     cloudfront_distribution_arn = db.Column(db.String)
     cloudfront_distribution_id = db.Column(db.String)
     cloudfront_origin_hostname = db.Column(db.String)
     cloudfront_origin_path = db.Column(db.String)
+    forward_cookie_policy = db.Column(db.String, default=ForwardCookiePolicy.ALL.value)
+    forwarded_cookies = db.Column(postgresql.JSONB, default=[])
 
     __mapper_args__ = {"polymorphic_identity": "cdn_service_instance"}
 

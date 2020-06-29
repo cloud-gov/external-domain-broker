@@ -143,12 +143,21 @@ tests() {
   echo "Sleeping to allow domains to converge"
   sleep 5
 
-  echo "Creating the service instance"
-  cf create-service \
-    "$SERVICE_NAME" \
-    "$PLAN_NAME" \
-    "$INSTANCE" \
-    -c "{\"domains\": \"$DOMAIN_0, $DOMAIN_1\"}"
+  if [[ "${PLAN_NAME}" == "domain-with-cdn" ]]; then
+    echo "Creating the service instance"
+    cf create-service \
+      "$SERVICE_NAME" \
+      "$PLAN_NAME" \
+      "$INSTANCE" \
+      -c "{\"domains\": \"$DOMAIN_0, $DOMAIN_1\", \"forwarded_cookies\": \"cookieone, cookietwo\"}"
+  else
+    echo "Creating the service instance"
+    cf create-service \
+      "$SERVICE_NAME" \
+      "$PLAN_NAME" \
+      "$INSTANCE" \
+      -c "{\"domains\": \"$DOMAIN_0, $DOMAIN_1\"}"
+  fi
 
   echo "Waiting for the service instance"
   while true; do

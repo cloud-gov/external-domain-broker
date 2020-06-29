@@ -17,6 +17,8 @@ class FakeCloudFront(FakeAWS):
         origin_path: str,
         distribution_id: str,
         distribution_hostname: str,
+        forward_cookie_policy: str = "all",
+        forwarded_cookies: list = None,
     ):
         self.stubber.add_response(
             "create_distribution",
@@ -28,6 +30,8 @@ class FakeCloudFront(FakeAWS):
                 origin_path,
                 distribution_id,
                 distribution_hostname,
+                forward_cookie_policy=forward_cookie_policy,
+                forwarded_cookies=forwarded_cookies,
             ),
             {
                 "DistributionConfig": self._distribution_config(
@@ -36,6 +40,8 @@ class FakeCloudFront(FakeAWS):
                     certificate_id,
                     origin_hostname,
                     origin_path,
+                    forward_cookie_policy=forward_cookie_policy,
+                    forwarded_cookies=forwarded_cookies,
                 )
             },
         )
@@ -48,6 +54,8 @@ class FakeCloudFront(FakeAWS):
         origin_hostname: str,
         origin_path: str,
         distribution_id: str,
+        forward_cookie_policy: str = "all",
+        forwarded_cookies: list = None,
     ):
         self.etag = str(datetime.now().timestamp())
         self.stubber.add_response(
@@ -59,6 +67,8 @@ class FakeCloudFront(FakeAWS):
                     certificate_id,
                     origin_hostname,
                     origin_path,
+                    forward_cookie_policy=forward_cookie_policy,
+                    forwarded_cookies=forwarded_cookies,
                 ),
                 "ETag": self.etag,
             },
@@ -137,6 +147,8 @@ class FakeCloudFront(FakeAWS):
         distribution_id: str,
         status: str,
         enabled: bool = True,
+        forward_cookie_policy: str = "all",
+        forwarded_cookies: list = None,
     ):
         self.etag = str(datetime.now().timestamp())
         distribution = self._distribution_response(
@@ -175,6 +187,8 @@ class FakeCloudFront(FakeAWS):
         origin_path: str,
         distribution_id: str,
         distribution_hostname: str,
+        forward_cookie_policy: str = "all",
+        forwarded_cookies: list = None,
     ):
         self.stubber.add_response(
             "update_distribution",
@@ -208,7 +222,15 @@ class FakeCloudFront(FakeAWS):
         origin_hostname: str,
         origin_path: str,
         enabled: bool = True,
+        forward_cookie_policy: str = "all",
+        forwarded_cookies: list = None,
     ) -> Dict[str, Any]:
+        cookies = {"Forward": forward_cookie_policy}
+        if forward_cookie_policy == "whitelist":
+            cookies["WhitelistedNames"] = {
+                "Quantity": len(forwarded_cookies),
+                "Items": forwarded_cookies,
+            }
         return {
             "CallerReference": caller_reference,
             "Aliases": {"Quantity": len(domains), "Items": domains},
@@ -236,7 +258,7 @@ class FakeCloudFront(FakeAWS):
                 "TargetOriginId": "default-origin",
                 "ForwardedValues": {
                     "QueryString": True,
-                    "Cookies": {"Forward": "all"},
+                    "Cookies": cookies,
                     "Headers": {"Quantity": 1, "Items": ["HOST"]},
                     "QueryStringCacheKeys": {"Quantity": 0},
                 },
@@ -293,7 +315,15 @@ class FakeCloudFront(FakeAWS):
         distribution_hostname: str,
         status: str = "InProgress",
         enabled: bool = True,
+        forward_cookie_policy: str = "all",
+        forwarded_cookies: list = None,
     ) -> Dict[str, Any]:
+        cookies = {"Forward": forward_cookie_policy}
+        if forward_cookie_policy == "whitelist":
+            cookies["WhitelistedNames"] = {
+                "Quantity": len(forwarded_cookies),
+                "Items": forwarded_cookies,
+            }
         return {
             "Distribution": {
                 "Id": distribution_id,

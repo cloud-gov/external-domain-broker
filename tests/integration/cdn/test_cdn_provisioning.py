@@ -114,6 +114,48 @@ def test_provision_sets_default_origin_and_path_if_none_provided(client, dns):
     assert instance.cloudfront_origin_path == ""
 
 
+def test_provision_sets_default_cookie_policy_if_none_provided(client, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    client.provision_cdn_instance("4321", params={"domains": "example.com"})
+    instance = CDNServiceInstance.query.get("4321")
+    assert instance.forward_cookie_policy == "all"
+    assert instance.forwarded_cookies == []
+
+
+def test_provision_sets_none_cookie_policy(client, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    client.provision_cdn_instance(
+        "4321", params={"domains": "example.com", "forward_cookies": ""}
+    )
+    instance = CDNServiceInstance.query.get("4321")
+    assert instance.forward_cookie_policy == "none"
+    assert instance.forwarded_cookies == []
+
+
+def test_provision_sets_forward_cookie_policy_with_cookies(client, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    client.provision_cdn_instance(
+        "4321",
+        params={
+            "domains": "example.com",
+            "forward_cookies": "my_cookie , my_other_cookie",
+        },
+    )
+    instance = CDNServiceInstance.query.get("4321")
+    assert instance.forward_cookie_policy == "whitelist"
+    assert instance.forwarded_cookies == ["my_cookie", "my_other_cookie"]
+
+
+def test_provision_sets_forward_cookie_policy_with_star(client, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    client.provision_cdn_instance(
+        "4321", params={"domains": "example.com", "forward_cookies": "*"}
+    )
+    instance = CDNServiceInstance.query.get("4321")
+    assert instance.forward_cookie_policy == "all"
+    assert instance.forwarded_cookies == []
+
+
 def test_provision_happy_path(
     client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
 ):
@@ -180,6 +222,7 @@ def subtest_provision_creates_provision_operation(client, dns):
             "domains": "example.com, Foo.com",
             "origin": "origin.com",
             "path": "/somewhere",
+            "forward_cookies": "mycookie,myothercookie",
         },
     )
     db.session.expunge_all()
@@ -351,6 +394,8 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
         origin_path=service_instance.cloudfront_origin_path,
         distribution_id="FakeDistributionId",
         distribution_hostname="fake1234.cloudfront.net",
+        forward_cookie_policy="whitelist",
+        forwarded_cookies=["mycookie", "myothercookie"],
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

@@ -3,7 +3,7 @@ import time
 
 from broker.aws import cloudfront
 from broker.extensions import config, db
-from broker.models import Operation
+from broker.models import Operation, CDNServiceInstance
 from broker.tasks import huey
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,20 @@ def create_distribution(operation_id: int, **kwargs):
     operation.step_description = "Creating CloudFront distribution"
     db.session.add(operation)
     db.session.commit()
+
+    if (
+        service_instance.forward_cookie_policy
+        == CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
+    ):
+        cookies = {
+            "Forward": "whitelist",
+            "WhitelistedNames": {
+                "Quantity": len(service_instance.forwarded_cookies),
+                "Items": service_instance.forwarded_cookies,
+            },
+        }
+    else:
+        cookies = {"Forward": service_instance.forward_cookie_policy}
 
     response = cloudfront.create_distribution(
         DistributionConfig={
@@ -47,7 +61,7 @@ def create_distribution(operation_id: int, **kwargs):
                 "TargetOriginId": "default-origin",
                 "ForwardedValues": {
                     "QueryString": True,
-                    "Cookies": {"Forward": "all"},
+                    "Cookies": cookies,
                     "Headers": {"Quantity": 1, "Items": ["HOST"]},
                     "QueryStringCacheKeys": {"Quantity": 0},
                 },

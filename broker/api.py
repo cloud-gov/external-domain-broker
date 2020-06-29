@@ -132,6 +132,22 @@ class API(ServiceBroker):
             )
             instance.cloudfront_origin_path = params.get("path", "")
             instance.route53_alias_hosted_zone = config.CLOUDFRONT_HOSTED_ZONE_ID
+            forward_cookies = params.get("forward_cookies", None)
+            if forward_cookies is not None:
+                forward_cookies = forward_cookies.replace(" ", "")
+                if forward_cookies == "":
+                    instance.forward_cookie_policy = (
+                        CDNServiceInstance.ForwardCookiePolicy.NONE.value
+                    )
+                elif forward_cookies == "*":
+                    instance.forward_cookie_policy = (
+                        CDNServiceInstance.ForwardCookiePolicy.ALL.value
+                    )
+                else:
+                    instance.forward_cookie_policy = (
+                        CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
+                    )
+                    instance.forwarded_cookies = forward_cookies.split(",")
         elif details.plan_id == ALB_PLAN_ID:
             instance = ALBServiceInstance(id=instance_id, domain_names=domain_names)
             queue = queue_all_alb_provision_tasks_for_operation
