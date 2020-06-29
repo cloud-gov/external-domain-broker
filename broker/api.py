@@ -148,6 +148,15 @@ class API(ServiceBroker):
                         CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
                     )
                     instance.forwarded_cookies = forward_cookies.split(",")
+            forwarded_headers = params.get("forward_headers", None)
+            if forwarded_headers is None:
+                forwarded_headers = []
+            else:
+                forwarded_headers = forwarded_headers.replace(" ", "")
+                forwarded_headers = forwarded_headers.split(",")
+            if params.get("origin") is None:
+                forwarded_headers.append('HOST')
+            instance.forwarded_headers = forwarded_headers
         elif details.plan_id == ALB_PLAN_ID:
             instance = ALBServiceInstance(id=instance_id, domain_names=domain_names)
             queue = queue_all_alb_provision_tasks_for_operation

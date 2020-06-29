@@ -86,6 +86,7 @@ class CDNServiceInstance(ServiceInstance):
     cloudfront_origin_path = db.Column(db.String)
     forward_cookie_policy = db.Column(db.String, default=ForwardCookiePolicy.ALL.value)
     forwarded_cookies = db.Column(postgresql.JSONB, default=[])
+    forwarded_headers = db.Column(postgresql.JSONB, default=[])
 
     __mapper_args__ = {"polymorphic_identity": "cdn_service_instance"}
 

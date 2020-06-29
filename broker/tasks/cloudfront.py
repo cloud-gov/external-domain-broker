@@ -62,7 +62,7 @@ def create_distribution(operation_id: int, **kwargs):
                 "ForwardedValues": {
                     "QueryString": True,
                     "Cookies": cookies,
-                    "Headers": {"Quantity": 1, "Items": ["HOST"]},
+                    "Headers": {"Quantity": len(service_instance.forwarded_headers), "Items": service_instance.forwarded_headers},
                     "QueryStringCacheKeys": {"Quantity": 0},
                 },
                 "TrustedSigners": {"Enabled": False, "Quantity": 0},
