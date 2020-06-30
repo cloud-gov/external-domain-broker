@@ -46,6 +46,9 @@ def create_app():
     huey.flask_app = app
     db.init_app(app)
 
+@huey.on_startup()
+def initialize_logging():
+    cf_logging.init()
 
 @huey.pre_execute(name="Set Correlation ID")
 def register_correlation_id(task):
