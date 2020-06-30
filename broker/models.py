@@ -79,6 +79,10 @@ class CDNServiceInstance(ServiceInstance):
         ALL = "all"
         NONE = "none"
         WHITELIST = "whitelist"
+    
+    class ProtocolPolicy(Enum):
+        HTTPS = 'https-only'
+        HTTP = 'http-only'
 
     cloudfront_distribution_arn = db.Column(db.String)
     cloudfront_distribution_id = db.Column(db.String)
@@ -87,6 +91,7 @@ class CDNServiceInstance(ServiceInstance):
     forward_cookie_policy = db.Column(db.String, default=ForwardCookiePolicy.ALL.value)
     forwarded_cookies = db.Column(postgresql.JSONB, default=[])
     forwarded_headers = db.Column(postgresql.JSONB, default=[])
+    origin_protocol_policy = db.Column(db.String)
 
     __mapper_args__ = {"polymorphic_identity": "cdn_service_instance"}
 

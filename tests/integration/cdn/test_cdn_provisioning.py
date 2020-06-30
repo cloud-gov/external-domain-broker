@@ -165,16 +165,48 @@ def test_provision_sets_forward_headers_to_host_when_none_specified(client, dns)
 
 def test_provision_sets_forward_headers_plus_host_when_some_specified(client, dns):
     dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_instance("4321", params={"domains": "example.com", "forward_headers": "x-my-header,x-your-header"})
+    client.provision_cdn_instance(
+        "4321",
+        params={
+            "domains": "example.com",
+            "forward_headers": "x-my-header,x-your-header",
+        },
+    )
     instance = CDNServiceInstance.query.get("4321")
-    assert sorted(instance.forwarded_headers) == sorted(["HOST", "x-my-header", "x-your-header"])
+    assert sorted(instance.forwarded_headers) == sorted(
+        ["HOST", "x-my-header", "x-your-header"]
+    )
 
 
 def test_provision_does_not_set_host_header_when_using_custom_origin(client, dns):
     dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_instance("4321", params={"domains": "example.com", "origin": "my-origin.example.gov"})
+    client.provision_cdn_instance(
+        "4321", params={"domains": "example.com", "origin": "my-origin.example.gov"}
+    )
     instance = CDNServiceInstance.query.get("4321")
     assert instance.forwarded_headers == []
+
+
+def test_provision_sets_https_only_by_default(client, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    client.provision_cdn_instance("4321", params={"domains": "example.com"})
+    instance = CDNServiceInstance.query.get("4321")
+    assert instance.origin_protocol_policy == 'https-only'
+
+
+def test_provision_sets_http_when_set(client, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    client.provision_cdn_instance("4321", params={"domains": "example.com", "origin": "origin.gov", "insecure_origin": True})
+    instance = CDNServiceInstance.query.get("4321")
+    assert instance.origin_protocol_policy == 'http-only'
+
+
+def test_provision_refuses_insecure_origin_for_default_origin(client, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    client.provision_cdn_instance("4321", params={"domains": "example.com", "insecure_origin": True})
+    desc = client.response.json.get("description")
+    assert "insecure_origin" in desc
+    assert client.response.status_code == 400
 
 
 def test_provision_happy_path(
@@ -244,7 +276,8 @@ def subtest_provision_creates_provision_operation(client, dns):
             "origin": "origin.com",
             "path": "/somewhere",
             "forward_cookies": "mycookie,myothercookie",
-            "forward_headers": "x-my-header, x-your-header   "
+            "forward_headers": "x-my-header, x-your-header   ",
+            "insecure_origin": True
         },
     )
     db.session.expunge_all()
@@ -418,7 +451,8 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
         distribution_hostname="fake1234.cloudfront.net",
         forward_cookie_policy="whitelist",
         forwarded_cookies=["mycookie", "myothercookie"],
-        forwarded_headers=["x-my-header", "x-your-header"]
+        forwarded_headers=["x-my-header", "x-your-header"],
+        origin_protocol_policy="http-only"
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

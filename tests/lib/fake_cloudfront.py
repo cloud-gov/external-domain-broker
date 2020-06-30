@@ -20,9 +20,10 @@ class FakeCloudFront(FakeAWS):
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
         forwarded_headers: list = None,
+        origin_protocol_policy: str = "https-only",
     ):
         if forwarded_headers is None:
-            forwarded_headers = ['HOST']
+            forwarded_headers = ["HOST"]
         self.stubber.add_response(
             "create_distribution",
             self._distribution_response(
@@ -35,7 +36,8 @@ class FakeCloudFront(FakeAWS):
                 distribution_hostname,
                 forward_cookie_policy=forward_cookie_policy,
                 forwarded_cookies=forwarded_cookies,
-                forwarded_headers=forwarded_headers
+                forwarded_headers=forwarded_headers,
+                origin_protocol_policy=origin_protocol_policy,
             ),
             {
                 "DistributionConfig": self._distribution_config(
@@ -46,7 +48,8 @@ class FakeCloudFront(FakeAWS):
                     origin_path,
                     forward_cookie_policy=forward_cookie_policy,
                     forwarded_cookies=forwarded_cookies,
-                    forwarded_headers=forwarded_headers
+                    forwarded_headers=forwarded_headers,
+                    origin_protocol_policy=origin_protocol_policy,
                 )
             },
         )
@@ -61,10 +64,11 @@ class FakeCloudFront(FakeAWS):
         distribution_id: str,
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
-        forwarded_headers: list = None
+        forwarded_headers: list = None,
+        origin_protocol_policy: str = "https-only",
     ):
         if forwarded_headers is None:
-            forwarded_headers = ['HOST']
+            forwarded_headers = ["HOST"]
         self.etag = str(datetime.now().timestamp())
         self.stubber.add_response(
             "get_distribution_config",
@@ -77,7 +81,8 @@ class FakeCloudFront(FakeAWS):
                     origin_path,
                     forward_cookie_policy=forward_cookie_policy,
                     forwarded_cookies=forwarded_cookies,
-                    forwarded_headers=forwarded_headers
+                    forwarded_headers=forwarded_headers,
+                    origin_protocol_policy=origin_protocol_policy,
                 ),
                 "ETag": self.etag,
             },
@@ -158,10 +163,11 @@ class FakeCloudFront(FakeAWS):
         enabled: bool = True,
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
-        forwarded_headers: list = None
+        forwarded_headers: list = None,
+        origin_protocol_policy: str = "https-only",
     ):
         if forwarded_headers is None:
-            forwarded_headers = ['HOST']
+            forwarded_headers = ["HOST"]
         self.etag = str(datetime.now().timestamp())
         distribution = self._distribution_response(
             caller_reference,
@@ -173,9 +179,10 @@ class FakeCloudFront(FakeAWS):
             "ignored",
             status,
             enabled,
-            forward_cookie_policy,
-            forwarded_cookies,
-            forwarded_headers
+            forward_cookie_policy=forward_cookie_policy,
+            forwarded_cookies=forwarded_cookies,
+            forwarded_headers=forwarded_headers,
+            origin_protocol_policy=origin_protocol_policy,
         )
         distribution["ETag"] = self.etag
         self.stubber.add_response(
@@ -204,10 +211,11 @@ class FakeCloudFront(FakeAWS):
         distribution_hostname: str,
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
-        forwarded_headers: list = None
+        forwarded_headers: list = None,
+        origin_protocol_policy: str = "https-only",
     ):
         if forwarded_headers is None:
-            forwarded_headers = ['HOST']
+            forwarded_headers = ["HOST"]
         self.stubber.add_response(
             "update_distribution",
             self._distribution_response(
@@ -220,7 +228,8 @@ class FakeCloudFront(FakeAWS):
                 distribution_hostname,
                 forward_cookie_policy=forward_cookie_policy,
                 forwarded_cookies=forwarded_cookies,
-                forwarded_headers=forwarded_headers
+                forwarded_headers=forwarded_headers,
+                origin_protocol_policy=origin_protocol_policy,
             ),
             {
                 "DistributionConfig": self._distribution_config(
@@ -231,7 +240,8 @@ class FakeCloudFront(FakeAWS):
                     origin_path,
                     forward_cookie_policy=forward_cookie_policy,
                     forwarded_cookies=forwarded_cookies,
-                    forwarded_headers=forwarded_headers
+                    forwarded_headers=forwarded_headers,
+                    origin_protocol_policy=origin_protocol_policy,
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,
@@ -248,10 +258,11 @@ class FakeCloudFront(FakeAWS):
         enabled: bool = True,
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
-        forwarded_headers: list = None
+        forwarded_headers: list = None,
+        origin_protocol_policy: str = "https-only",
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
-            forwarded_headers = ['HOST']
+            forwarded_headers = ["HOST"]
         cookies = {"Forward": forward_cookie_policy}
         if forward_cookie_policy == "whitelist":
             cookies["WhitelistedNames"] = {
@@ -272,7 +283,7 @@ class FakeCloudFront(FakeAWS):
                         "CustomOriginConfig": {
                             "HTTPPort": 80,
                             "HTTPSPort": 443,
-                            "OriginProtocolPolicy": "https-only",
+                            "OriginProtocolPolicy": origin_protocol_policy,
                             "OriginSslProtocols": {"Quantity": 1, "Items": ["TLSv1.2"]},
                             "OriginReadTimeout": 30,
                             "OriginKeepaliveTimeout": 5,
@@ -286,7 +297,10 @@ class FakeCloudFront(FakeAWS):
                 "ForwardedValues": {
                     "QueryString": True,
                     "Cookies": cookies,
-                    "Headers": {"Quantity": len(forwarded_headers), "Items": forwarded_headers},
+                    "Headers": {
+                        "Quantity": len(forwarded_headers),
+                        "Items": forwarded_headers,
+                    },
                     "QueryStringCacheKeys": {"Quantity": 0},
                 },
                 "TrustedSigners": {"Enabled": False, "Quantity": 0},
@@ -331,6 +345,7 @@ class FakeCloudFront(FakeAWS):
             "IsIPV6Enabled": True,
         }
 
+
     def _distribution_response(
         self,
         caller_reference: str,
@@ -345,6 +360,7 @@ class FakeCloudFront(FakeAWS):
         forward_cookie_policy: str = "all",
         forwarded_cookies: list = None,
         forwarded_headers: list = None,
+        origin_protocol_policy: str = "https-only",
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -372,7 +388,8 @@ class FakeCloudFront(FakeAWS):
                     enabled,
                     forward_cookie_policy,
                     forwarded_cookies,
-                    forwarded_headers
+                    forwarded_headers,
+                    origin_protocol_policy,
                 ),
             }
         }
