@@ -48,7 +48,7 @@ def create_distribution(operation_id: int, **kwargs):
                         "CustomOriginConfig": {
                             "HTTPPort": 80,
                             "HTTPSPort": 443,
-                            "OriginProtocolPolicy": "https-only",
+                            "OriginProtocolPolicy": service_instance.origin_protocol_policy,
                             "OriginSslProtocols": {"Quantity": 1, "Items": ["TLSv1.2"]},
                             "OriginReadTimeout": 30,
                             "OriginKeepaliveTimeout": 5,
@@ -62,7 +62,10 @@ def create_distribution(operation_id: int, **kwargs):
                 "ForwardedValues": {
                     "QueryString": True,
                     "Cookies": cookies,
-                    "Headers": {"Quantity": len(service_instance.forwarded_headers), "Items": service_instance.forwarded_headers},
+                    "Headers": {
+                        "Quantity": len(service_instance.forwarded_headers),
+                        "Items": service_instance.forwarded_headers,
+                    },
                     "QueryStringCacheKeys": {"Quantity": 0},
                 },
                 "TrustedSigners": {"Enabled": False, "Quantity": 0},
