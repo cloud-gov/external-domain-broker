@@ -10,6 +10,7 @@ import sqlalchemy as sa
 import sqlalchemy_utils
 from sqlalchemy import orm
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.declarative import declarative_base
 
 
 # revision identifiers, used by Alembic.
@@ -17,6 +18,9 @@ revision = "e1793cdca02f"
 down_revision = "d2e8578fe341"
 branch_labels = None
 depends_on = None
+
+Base = declarative_base()
+
 
 class ServiceInstance(Base):
     __tablename__ = "service_instance"
