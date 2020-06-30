@@ -191,19 +191,28 @@ def test_provision_sets_https_only_by_default(client, dns):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_cdn_instance("4321", params={"domains": "example.com"})
     instance = CDNServiceInstance.query.get("4321")
-    assert instance.origin_protocol_policy == 'https-only'
+    assert instance.origin_protocol_policy == "https-only"
 
 
 def test_provision_sets_http_when_set(client, dns):
     dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_instance("4321", params={"domains": "example.com", "origin": "origin.gov", "insecure_origin": True})
+    client.provision_cdn_instance(
+        "4321",
+        params={
+            "domains": "example.com",
+            "origin": "origin.gov",
+            "insecure_origin": True,
+        },
+    )
     instance = CDNServiceInstance.query.get("4321")
-    assert instance.origin_protocol_policy == 'http-only'
+    assert instance.origin_protocol_policy == "http-only"
 
 
 def test_provision_refuses_insecure_origin_for_default_origin(client, dns):
     dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_instance("4321", params={"domains": "example.com", "insecure_origin": True})
+    client.provision_cdn_instance(
+        "4321", params={"domains": "example.com", "insecure_origin": True}
+    )
     desc = client.response.json.get("description")
     assert "insecure_origin" in desc
     assert client.response.status_code == 400
@@ -277,7 +286,7 @@ def subtest_provision_creates_provision_operation(client, dns):
             "path": "/somewhere",
             "forward_cookies": "mycookie,myothercookie",
             "forward_headers": "x-my-header, x-your-header   ",
-            "insecure_origin": True
+            "insecure_origin": True,
         },
     )
     db.session.expunge_all()
@@ -452,7 +461,7 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
         forward_cookie_policy="whitelist",
         forwarded_cookies=["mycookie", "myothercookie"],
         forwarded_headers=["x-my-header", "x-your-header"],
-        origin_protocol_policy="http-only"
+        origin_protocol_policy="http-only",
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

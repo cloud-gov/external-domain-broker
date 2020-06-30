@@ -79,10 +79,10 @@ class CDNServiceInstance(ServiceInstance):
         ALL = "all"
         NONE = "none"
         WHITELIST = "whitelist"
-    
+
     class ProtocolPolicy(Enum):
-        HTTPS = 'https-only'
-        HTTP = 'http-only'
+        HTTPS = "https-only"
+        HTTP = "http-only"
 
     cloudfront_distribution_arn = db.Column(db.String)
     cloudfront_distribution_id = db.Column(db.String)
