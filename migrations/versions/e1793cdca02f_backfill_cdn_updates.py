@@ -38,9 +38,12 @@ def upgrade():
     for service_instance in session.query(ServiceInstance):
         if service_instance.instance_type == "cdn_service_instance":
             if service_instance.origin_protocol_policy is None:
-                service_instance.origin_protocol_policy = 'https-only'
-            if service_instance.forwarded_headers == [] or service_instance.forwarded_headers is None:
-                service_instance.forwarded_headers = ['HOST']
+                service_instance.origin_protocol_policy = "https-only"
+            if (
+                service_instance.forwarded_headers == []
+                or service_instance.forwarded_headers is None
+            ):
+                service_instance.forwarded_headers = ["HOST"]
             session.add(service_instance)
     session.commit()
 

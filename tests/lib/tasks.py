@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 import pytest
 from huey import Huey
 from huey import signals as S
@@ -16,11 +18,34 @@ def stop_task_from_retrying(signal, task):
     raise AssertionError(f"{task.name} attempted to rety.")
 
 
+@contextmanager
+def immediate_huey():
+    try:
+        huey.immediate = True
+        yield huey
+    finally:
+        huey.immediate = False
+
+
 def _emit_without_exception_catching(self, signal, task, *args, **kwargs):
     self._signal.send(signal, task, *args, **kwargs)
 
 
+default_emit = Huey._emit
 Huey._emit = _emit_without_exception_catching
+
+
+@contextmanager
+def fallible_huey():
+    try:
+        huey.disconnect_signal(re_raise_exceptions)
+        huey.disconnect_signal(stop_task_from_retrying)
+        Huey._emit = default_emit
+        yield huey
+    finally:
+        huey._signal.connect(re_raise_exceptions, S.SIGNAL_ERROR)
+        huey._signal.connect(stop_task_from_retrying, S.SIGNAL_RETRYING)
+        Huey._emit = _emit_without_exception_catching
 
 
 class Tasks:

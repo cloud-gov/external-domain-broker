@@ -345,7 +345,6 @@ class FakeCloudFront(FakeAWS):
             "IsIPV6Enabled": True,
         }
 
-
     def _distribution_response(
         self,
         caller_reference: str,

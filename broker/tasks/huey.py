@@ -2,7 +2,7 @@ import logging
 
 from flask import Flask
 from redis import ConnectionPool, SSLConnection
-from huey import RedisHuey
+from huey import RedisHuey, signals
 
 from sap import cf_logging
 from broker.extensions import config, db
@@ -35,7 +35,7 @@ nonretriable_task = huey.context_task(huey.flask_app.app_context())
 
 # These tasks retry every 10 minutes for a day.
 retriable_task = huey.context_task(
-    huey.flask_app.app_context(), retries=(6 * 24), retry_delay=(60 * 10)
+    huey.flask_app.app_context(), retries=6 * 24, retry_delay=10 * 60
 )
 
 
@@ -46,9 +46,11 @@ def create_app():
     huey.flask_app = app
     db.init_app(app)
 
+
 @huey.on_startup()
 def initialize_logging():
     cf_logging.init()
+
 
 @huey.pre_execute(name="Set Correlation ID")
 def register_correlation_id(task):
@@ -64,3 +66,21 @@ def log_task_transition(signal, task, exc=None):
     logger.info("task signal received", extra=extra)
     if exc is not None:
         logger.exception(msg="task raised exception", extra=extra, exc_info=exc)
+
+
+@huey.signal(signals.SIGNAL_ERROR)
+def mark_operation_failed(signal, task, exc=None):
+    args, kwargs = task.data
+    if task.retries:
+        return
+    try:
+        operation = Operation.query.get(args[0])
+    except:
+        # assume this task doesn't follow our pattern of operation_id as the first param
+        # in which case this task is not a part of a provisioning/upgrade/deprovisioning pipeline
+        return
+    operation.state = Operation.States.FAILED.value
+    db.session.add(operation)
+    db.session.commit()
+
+    # TODO: alert on failed pipelines

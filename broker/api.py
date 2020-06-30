@@ -159,10 +159,16 @@ class API(ServiceBroker):
             instance.forwarded_headers = forwarded_headers
             if params.get("insecure_origin", False):
                 if params.get("origin") is None:
-                    raise errors.ErrBadRequest("'insecure_origin' cannot be set when using the default origin.")
-                instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTP.value
+                    raise errors.ErrBadRequest(
+                        "'insecure_origin' cannot be set when using the default origin."
+                    )
+                instance.origin_protocol_policy = (
+                    CDNServiceInstance.ProtocolPolicy.HTTP.value
+                )
             else:
-                instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTPS.value
+                instance.origin_protocol_policy = (
+                    CDNServiceInstance.ProtocolPolicy.HTTPS.value
+                )
         elif details.plan_id == ALB_PLAN_ID:
             instance = ALBServiceInstance(id=instance_id, domain_names=domain_names)
             queue = queue_all_alb_provision_tasks_for_operation
