@@ -39,3 +39,13 @@ def scan_for_expiring_certs():
 
     # n.b. this return is only for testing - huey ignores it.
     return [instance.id for instance in instances]
+
+
+def scan_for_stalled_pipelines():
+    two_hours_ago = datetime.datetime.now() - datetime.timedelta(hours=2)
+    operations = Operation.query.filter(
+        Operation.state == Operation.States.IN_PROGRESS.value,
+        Operation.updated_at <= two_hours_ago,
+        Operation.canceled_at.is_(None),
+    )
+    return [operation.id for operation in operations]
