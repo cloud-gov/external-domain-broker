@@ -13,11 +13,20 @@ logger = logging.getLogger(__name__)
 def create_distribution(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
     domains = service_instance.domain_names
 
     operation.step_description = "Creating CloudFront distribution"
     db.session.add(operation)
     db.session.commit()
+
+    if service_instance.cloudfront_distribution_id:
+        try:
+            cloudfront.get_distribution(Id=service_instance.cloudfront_distribution_id)
+        except cloudfront.exceptions.NoSuchDistribution:
+            pass
+        else:
+            return
 
     if (
         service_instance.forward_cookie_policy
