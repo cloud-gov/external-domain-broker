@@ -2,7 +2,7 @@ import json
 import logging
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import josepy
 import OpenSSL
@@ -51,7 +51,6 @@ def dns_challenge(order, domain):
 
 @huey.retriable_task
 def create_user(operation_id: int, **kwargs):
-    acme_user = ACMEUser()
     operation = Operation.query.get(operation_id)
 
     operation.step_description = "Registering user for Lets Encrypt"
@@ -59,6 +58,10 @@ def create_user(operation_id: int, **kwargs):
     db.session.commit()
 
     service_instance = operation.service_instance
+    if service_instance.acme_user_id is not None:
+        return
+
+    acme_user = ACMEUser()
     service_instance.acme_user = acme_user
     key = josepy.JWKRSA(
         key=rsa.generate_private_key(
@@ -99,6 +102,8 @@ def generate_private_key(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
+    if service_instance.csr_pem is not None:
+        return
     # Create private key.
     private_key = OpenSSL.crypto.PKey()
     private_key.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
@@ -131,6 +136,13 @@ def initiate_challenges(operation_id: int, **kwargs):
     operation.step_description = "Initiating Lets Encrypt challenges"
     db.session.add(operation)
     db.session.commit()
+
+    if service_instance.order_json is not None:
+        now = datetime.now()
+        order = json.loads(service_instance.order_json)["body"]
+        expiration = datetime.fromisoformat(order["expires"].replace("Z", ""))
+        if expiration > now and order["status"] == "pending":
+            return
 
     account_key = serialization.load_pem_private_key(
         acme_user.private_key_pem.encode(), password=None, backend=default_backend()
@@ -178,6 +190,11 @@ def answer_challenges(operation_id: int, **kwargs):
     operation.step_description = "Answering Lets Encrypt challenges"
     db.session.add(operation)
     db.session.commit()
+
+    challenges = service_instance.challenges.all()
+    unanswered = [challenge for challenge in challenges if not challenge.answered]
+    if not unanswered:
+        return
 
     time.sleep(int(config.DNS_PROPAGATION_SLEEP_TIME))
 
@@ -264,7 +281,20 @@ def retrieve_certificate(operation_id: int, **kwargs):
     order = messages.OrderResource.from_json(order_json)
 
     deadline = datetime.now() + timedelta(seconds=config.ACME_POLL_TIMEOUT_IN_SECONDS)
-    finalized_order = client_acme.poll_and_finalize(orderr=order, deadline=deadline)
+    try:
+        finalized_order = client_acme.poll_and_finalize(orderr=order, deadline=deadline)
+    except messages.Error as e:
+        # this means we're trying to fulfill an order that's already fulfilled
+        if """Order's status ("valid")""" in e.detail:
+            # Check if we got a certificate already. Do we have a cert, and does its expiration look good?
+            next_month = datetime.now() + timedelta(days=31)
+            next_month = next_month.replace(tzinfo=timezone.utc)
+            if (
+                service_instance.cert_expires_at is not None
+                and service_instance.cert_expires_at > next_month
+            ):
+                return
+        raise e
 
     service_instance.cert_pem, service_instance.fullchain_pem = cert_from_fullchain(
         finalized_order.fullchain_pem
