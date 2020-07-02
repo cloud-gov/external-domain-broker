@@ -49,7 +49,6 @@ def provision_operation(service_instance):
     return operation
 
 
-@pytest.mark.focus
 def test_reupload_certificate_ok(
     clean_db, iam_commercial, service_instance, provision_operation, simple_regex
 ):
