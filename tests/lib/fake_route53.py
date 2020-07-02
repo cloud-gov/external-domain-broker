@@ -16,7 +16,7 @@ class FakeRoute53(FakeAWS):
                 "ChangeBatch": {
                     "Changes": [
                         {
-                            "Action": "CREATE",
+                            "Action": "UPSERT",
                             "ResourceRecordSet": {
                                 "Name": domain,
                                 "ResourceRecords": [{"Value": self.ANY}],
@@ -89,7 +89,7 @@ class FakeRoute53(FakeAWS):
                 "ChangeBatch": {
                     "Changes": [
                         {
-                            "Action": "CREATE",
+                            "Action": "UPSERT",
                             "ResourceRecordSet": {
                                 "Name": domain,
                                 "Type": "A",
