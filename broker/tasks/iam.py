@@ -37,7 +37,6 @@ def upload_server_certificate(operation_id: int, **kwargs):
             CertificateChain=service_instance.fullchain_pem,
         )
     except ClientError as e:
-        print(e.__dict__)
         if (
             e.response["Error"]["Code"] == "EntityAlreadyExistsException"
             and service_instance.iam_server_certificate_id is not None
