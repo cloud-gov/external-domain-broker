@@ -1,6 +1,8 @@
 import logging
 from datetime import date
 
+from botocore.exceptions import ClientError
+
 from broker.aws import iam_commercial, iam_govcloud
 from broker.extensions import config, db
 from broker.models import Operation
@@ -26,13 +28,23 @@ def upload_server_certificate(operation_id: int, **kwargs):
         iam = iam_govcloud
         iam_server_certificate_prefix = config.ALB_IAM_SERVER_CERTIFICATE_PREFIX
     service_instance.iam_server_certificate_name = f"{service_instance.id}-{today}"
-    response = iam.upload_server_certificate(
-        Path=iam_server_certificate_prefix,
-        ServerCertificateName=service_instance.iam_server_certificate_name,
-        CertificateBody=service_instance.cert_pem,
-        PrivateKey=service_instance.private_key_pem,
-        CertificateChain=service_instance.fullchain_pem,
-    )
+    try:
+        response = iam.upload_server_certificate(
+            Path=iam_server_certificate_prefix,
+            ServerCertificateName=service_instance.iam_server_certificate_name,
+            CertificateBody=service_instance.cert_pem,
+            PrivateKey=service_instance.private_key_pem,
+            CertificateChain=service_instance.fullchain_pem,
+        )
+    except ClientError as e:
+        print(e.__dict__)
+        if (
+            e.response["Error"]["Code"] == "EntityAlreadyExistsException"
+            and service_instance.iam_server_certificate_id is not None
+        ):
+            return
+        else:
+            raise e
 
     service_instance.iam_server_certificate_id = response["ServerCertificateMetadata"][
         "ServerCertificateId"

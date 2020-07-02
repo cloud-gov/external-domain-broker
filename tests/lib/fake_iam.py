@@ -33,6 +33,22 @@ class FakeIAM(FakeAWS):
         }
         self.stubber.add_response(method, response, request)
 
+    def expect_upload_server_certificate_raising_duplicate(
+        self, name: str, cert: str, private_key: str, chain: str, path: str
+    ):
+        self.stubber.add_client_error(
+            "upload_server_certificate",
+            service_error_code="EntityAlreadyExistsException",
+            service_message="already got one",
+            expected_params={
+                "Path": path,
+                "ServerCertificateName": name,
+                "CertificateBody": cert,
+                "PrivateKey": private_key,
+                "CertificateChain": chain,
+            },
+        )
+
     def expects_delete_server_certificate(self, name: str):
         self.stubber.add_response(
             "delete_server_certificate", {}, {"ServerCertificateName": name}
