@@ -28,7 +28,7 @@ def create_TXT_records(operation_id: int, **kwargs):
             ChangeBatch={
                 "Changes": [
                     {
-                        "Action": "CREATE",
+                        "Action": "UPSERT",
                         "ResourceRecordSet": {
                             "Type": "TXT",
                             "Name": txt_record,
@@ -128,7 +128,7 @@ def create_ALIAS_records(operation_id: str, **kwargs):
             ChangeBatch={
                 "Changes": [
                     {
-                        "Action": "CREATE",
+                        "Action": "UPSERT",
                         "ResourceRecordSet": {
                             "Type": "A",
                             "Name": alias_record,
