@@ -26,7 +26,10 @@ def select_alb(operation_id, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    if service_instance.alb_arn and operation.action == Operation.Actions.PROVISION.value:
+    if (
+        service_instance.alb_arn
+        and operation.action == Operation.Actions.PROVISION.value
+    ):
         return
 
     service_instance.alb_arn, service_instance.alb_listener_arn = get_lowest_used_alb(

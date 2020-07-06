@@ -16,7 +16,7 @@ def service_instance():
         route53_alias_hosted_zone="Z2FDTNDATAQYW2",
         private_key_pem="SOMEPRIVATEKEY",
         alb_listener_arn="arn:aws:elasticloadbalancingv2:us-west-1:1234:listener/app/foo/1234/4567",
-        alb_arn="arn:aws:elasticloadbalancingv2:us-west-1:1234:loadbalancer/app/foo/1234"
+        alb_arn="arn:aws:elasticloadbalancingv2:us-west-1:1234:loadbalancer/app/foo/1234",
     )
     factories.ChallengeFactory.create(
         domain="example.com",
@@ -40,7 +40,9 @@ def provision_operation(service_instance):
     return operation
 
 
-def test_select_alb_idempotent_when_provisioning(clean_db, alb, provision_operation, service_instance):
+def test_select_alb_idempotent_when_provisioning(
+    clean_db, alb, provision_operation, service_instance
+):
     # the idea here is that the service_instance has alb_listener_arn set and is a provision operation
     # so we should not be calling out to the stubbed ALB.
     # no raised UnStubbedResponseException == idempotent operation
