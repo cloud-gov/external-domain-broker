@@ -139,6 +139,7 @@ def app():
         print("Running migrations")
         db.drop_all()
         flask_migrate.upgrade()
+        db.create_all()
         db.session.commit()  # Cargo Cult
         yield current_app
 
