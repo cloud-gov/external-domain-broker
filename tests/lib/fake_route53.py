@@ -99,7 +99,19 @@ class FakeRoute53(FakeAWS):
                                     "EvaluateTargetHealth": False,
                                 },
                             },
-                        }
+                        },
+                        {
+                            "Action": "UPSERT",
+                            "ResourceRecordSet": {
+                                "Name": domain,
+                                "Type": "AAAA",
+                                "AliasTarget": {
+                                    "DNSName": target,
+                                    "HostedZoneId": target_hosted_zone_id,
+                                    "EvaluateTargetHealth": False,
+                                },
+                            },
+                        },
                     ]
                 },
                 "HostedZoneId": "TestZoneID",
@@ -127,7 +139,19 @@ class FakeRoute53(FakeAWS):
                                     "EvaluateTargetHealth": False,
                                 },
                             },
-                        }
+                        },
+                        {
+                            "Action": "DELETE",
+                            "ResourceRecordSet": {
+                                "Name": domain,
+                                "Type": "AAAA",
+                                "AliasTarget": {
+                                    "DNSName": target,
+                                    "HostedZoneId": target_hosted_zone_id,
+                                    "EvaluateTargetHealth": False,
+                                },
+                            },
+                        },
                     ]
                 },
                 "HostedZoneId": "TestZoneID",
@@ -155,7 +179,19 @@ class FakeRoute53(FakeAWS):
                                     "EvaluateTargetHealth": False,
                                 },
                             },
-                        }
+                        },
+                        {
+                            "Action": "DELETE",
+                            "ResourceRecordSet": {
+                                "Name": domain,
+                                "Type": "AAAA",
+                                "AliasTarget": {
+                                    "DNSName": target,
+                                    "HostedZoneId": target_hosted_zone_id,
+                                    "EvaluateTargetHealth": False,
+                                },
+                            },
+                        },
                     ]
                 },
                 "HostedZoneId": "TestZoneID",

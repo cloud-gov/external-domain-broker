@@ -64,15 +64,27 @@ def reschedule_operation(operation):
     service_instance = operation.service_instance
     if service_instance.instance_type == "cdn_service_instance":
         if operation.action == Operation.Actions.PROVISION.value:
-            pipelines.queue_all_cdn_provision_tasks_for_operation(operation.id, "recovered pipeline")
+            pipelines.queue_all_cdn_provision_tasks_for_operation(
+                operation.id, "recovered pipeline"
+            )
         elif operation.action == Operation.Actions.DEPROVISION.value:
-            pipelines.queue_all_cdn_deprovision_tasks_for_operation(operation.id, "recovered pipeline")
+            pipelines.queue_all_cdn_deprovision_tasks_for_operation(
+                operation.id, "recovered pipeline"
+            )
         elif operation.action == Operation.Actions.RENEW.value:
-            pipelines.queue_all_cdn_renewal_tasks_for_service_instance(operation.id, "recovered pipeline")
+            pipelines.queue_all_cdn_renewal_tasks_for_service_instance(
+                operation.id, "recovered pipeline"
+            )
     elif service_instance.instance_type == "alb_service_instance":
         if operation.action == Operation.Actions.PROVISION.value:
-            pipelines.queue_all_alb_provision_tasks_for_operation(operation.id, "recovered pipeline")
+            pipelines.queue_all_alb_provision_tasks_for_operation(
+                operation.id, "recovered pipeline"
+            )
         elif operation.action == Operation.Actions.DEPROVISION.value:
-            pipelines.queue_all_alb_deprovision_tasks_for_operation(operation.id, "recovered pipeline")
+            pipelines.queue_all_alb_deprovision_tasks_for_operation(
+                operation.id, "recovered pipeline"
+            )
         elif operation.action == Operation.Actions.RENEW.value:
-            pipelines.queue_all_alb_renewal_tasks_for_service_instance(operation.id, "recovered pipeline")
+            pipelines.queue_all_alb_renewal_tasks_for_service_instance(
+                operation.id, "recovered pipeline"
+            )

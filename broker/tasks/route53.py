@@ -138,7 +138,19 @@ def create_ALIAS_records(operation_id: str, **kwargs):
                                 "EvaluateTargetHealth": False,
                             },
                         },
-                    }
+                    },
+                    {
+                        "Action": "UPSERT",
+                        "ResourceRecordSet": {
+                            "Type": "AAAA",
+                            "Name": alias_record,
+                            "AliasTarget": {
+                                "DNSName": target,
+                                "HostedZoneId": service_instance.route53_alias_hosted_zone,
+                                "EvaluateTargetHealth": False,
+                            },
+                        },
+                    },
                 ]
             },
             HostedZoneId=config.ROUTE53_ZONE_ID,
@@ -181,7 +193,19 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
                                     "EvaluateTargetHealth": False,
                                 },
                             },
-                        }
+                        },
+                        {
+                            "Action": "DELETE",
+                            "ResourceRecordSet": {
+                                "Type": "AAAA",
+                                "Name": alias_record,
+                                "AliasTarget": {
+                                    "DNSName": target,
+                                    "HostedZoneId": service_instance.route53_alias_hosted_zone,
+                                    "EvaluateTargetHealth": False,
+                                },
+                            },
+                        },
                     ]
                 },
                 HostedZoneId=config.ROUTE53_ZONE_ID,
