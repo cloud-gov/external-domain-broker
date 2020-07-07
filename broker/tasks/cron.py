@@ -10,49 +10,45 @@ from broker.tasks import huey, pipelines
 logger = logging.getLogger(__name__)
 
 
-@huey.huey.periodic_task(
-    crontab(month="*", hour="*", day="*", minute="13"),
-    context=huey.huey.flask_app.app_context(),
-)
+@huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="13"))
 def scan_for_expiring_certs():
-    logger.info("Scanning for expired certificates")
-    # TODO: skip SIs with active operations
-    instances = ServiceInstance.query.filter(
-        ServiceInstance.cert_expires_at - datetime.timedelta(days=10)
-        < datetime.datetime.now()
-    ).all()
-    cdn_renewals = []
-    alb_renewals = []
-    for instance in instances:
-        logger.info("Instance %s needs renewal", instance.id)
-        renewal = Operation(
-            state=Operation.States.IN_PROGRESS.value,
-            service_instance=instance,
-            action=Operation.Actions.RENEW.value,
-            step_description="Queuing tasks",
-        )
-        db.session.add(renewal)
-        if instance.instance_type == "cdn_service_instance":
-            cdn_renewals.append(renewal)
-        else:
-            alb_renewals.append(renewal)
-    db.session.commit()
-    for renewal in cdn_renewals:
-        pipelines.queue_all_cdn_renewal_tasks_for_service_instance(renewal.id)
-    for renewal in alb_renewals:
-        pipelines.queue_all_alb_renewal_tasks_for_service_instance(renewal.id)
+    with huey.huey.flask_app.app_context():
+        logger.info("Scanning for expired certificates")
+        # TODO: skip SIs with active operations
+        instances = ServiceInstance.query.filter(
+            ServiceInstance.cert_expires_at - datetime.timedelta(days=10)
+            < datetime.datetime.now()
+        ).all()
+        cdn_renewals = []
+        alb_renewals = []
+        for instance in instances:
+            logger.info("Instance %s needs renewal", instance.id)
+            renewal = Operation(
+                state=Operation.States.IN_PROGRESS.value,
+                service_instance=instance,
+                action=Operation.Actions.RENEW.value,
+                step_description="Queuing tasks",
+            )
+            db.session.add(renewal)
+            if instance.instance_type == "cdn_service_instance":
+                cdn_renewals.append(renewal)
+            else:
+                alb_renewals.append(renewal)
+        db.session.commit()
+        for renewal in cdn_renewals:
+            pipelines.queue_all_cdn_renewal_tasks_for_service_instance(renewal.id)
+        for renewal in alb_renewals:
+            pipelines.queue_all_alb_renewal_tasks_for_service_instance(renewal.id)
 
-    # n.b. this return is only for testing - huey ignores it.
-    return [instance.id for instance in instances]
+        # n.b. this return is only for testing - huey ignores it.
+        return [instance.id for instance in instances]
 
 
-@huey.huey.periodic_task(
-    crontab(month="*", hour="*", day="*", minute="*/5"),
-    context=huey.huey.flask_app.app_context(),
-)
+@huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="*/5"))
 def restart_stalled_pipelines():
-    for operation in scan_for_stalled_pipelines():
-        reschedule_operation(operation)
+    with huey.huey.flask_app.app_context():
+        for operation in scan_for_stalled_pipelines():
+            reschedule_operation(operation)
 
 
 def scan_for_stalled_pipelines():
@@ -67,7 +63,7 @@ def scan_for_stalled_pipelines():
 
 
 def reschedule_operation(operation_id):
-    operation =  Operation.query.get(operation_id)
+    operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     logger.info(
         f"Restarting {operation.action} operation {operation.id} for service instance {service_instance.id}"
