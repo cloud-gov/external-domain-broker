@@ -88,6 +88,13 @@ def mocked_env(monkeypatch, vcap_application, vcap_services):
     monkeypatch.setenv("AWS_GOVCLOUD_REGION", "us-west-1")
     monkeypatch.setenv("AWS_GOVCLOUD_ACCESS_KEY_ID", "ASIAFAKEKEY")
     monkeypatch.setenv("AWS_GOVCLOUD_SECRET_ACCESS_KEY", "THIS_IS_A_FAKE_ACCESS_KEY")
+    monkeypatch.setenv("SMTP_HOST", "127.0.0.1")
+    monkeypatch.setenv("SMTP_PORT", "1025")
+    monkeypatch.setenv("SMTP_USER", "my-user@example.com")
+    monkeypatch.setenv("SMTP_PASS", "this-password-is-invalid")
+    monkeypatch.setenv("SMTP_FROM", "no-reply@example.com")
+    monkeypatch.setenv("SMTP_TO", "alerts@example.com")
+    monkeypatch.setenv("SMTP_CERT", "A_REAL_CERT_WOULD_BE_LONGER_THAN_THIS")
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
@@ -143,6 +150,21 @@ def test_config_uses_right_iam_prefix(env, monkeypatch, mocked_env):
         == f"/cloudfront/external-domains-{env}/"
     )
     assert config.ALB_IAM_SERVER_CERTIFICATE_PREFIX == f"/alb/external-domains-{env}/"
+
+
+@pytest.mark.parametrize("env", ["production", "staging", "development"])
+def test_config_sets_smtp_variables(env, monkeypatch, mocked_env):
+    monkeypatch.setenv("FLASK_ENV", env)
+
+    config = config_from_env()
+
+    assert config.SMTP_FROM == "no-reply@example.com"
+    assert config.SMTP_USER == "my-user@example.com"
+    assert config.SMTP_PASS == "this-password-is-invalid"
+    assert config.SMTP_HOST == "127.0.0.1"
+    assert config.SMTP_PORT == 1025
+    assert config.SMTP_CERT == "A_REAL_CERT_WOULD_BE_LONGER_THAN_THIS"
+    assert config.SMTP_TO == "alerts@example.com"
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])

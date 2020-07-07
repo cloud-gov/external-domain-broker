@@ -7,6 +7,7 @@ from huey import RedisHuey, signals
 from sap import cf_logging
 from broker.extensions import config, db
 from broker.models import Operation
+from broker.smtp import send_failed_operation_alert
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ def mark_operation_failed(signal, task, exc=None):
         # in which case this task is not a part of a provisioning/upgrade/deprovisioning pipeline
         return
     operation.state = Operation.States.FAILED.value
+    send_failed_operation_alert(operation)
     db.session.add(operation)
     db.session.commit()
 
-    # TODO: alert on failed pipelines

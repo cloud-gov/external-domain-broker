@@ -86,6 +86,15 @@ class AppConfig(Config):
         self.DEFAULT_CLOUDFRONT_ORIGIN = self.env("DEFAULT_CLOUDFRONT_ORIGIN")
         self.REDIS_SSL = True
 
+        self.SMTP_HOST = self.env("SMTP_HOST")
+        self.SMTP_FROM = self.env("SMTP_FROM")
+        self.SMTP_CERT = self.env("SMTP_CERT")
+        self.SMTP_USER = self.env("SMTP_USER")
+        self.SMTP_PASS = self.env("SMTP_PASS")
+        self.SMTP_PORT = self.env.int("SMTP_PORT")
+        self.SMTP_TO = self.env("SMTP_TO")
+        self.SMTP_TLS = True
+
 
 class ProductionConfig(AppConfig):
     def __init__(self):
@@ -163,6 +172,17 @@ class DockerConfig(Config):
         self.AWS_GOVCLOUD_REGION = "us-gov-west-1"
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = "GOVCLOUD_FAKE_KEY_ID"
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "GOVCLOUD_FAKE_ACCESS_KEY"
+
+        self.SMTP_HOST = "localhost"
+        self.SMTP_PORT = 1025
+
+        # when testing, this goes to a fake smtp server that only prints stuff, 
+        # so example.com is a safe host
+        self.SMTP_TO = "doesnt-matter@example.com"
+        self.SMTP_FROM = "no-reply@example.com"
+        self.SMTP_TLS = False
+        self.SMTP_USER = None
+        self.SMTP_PASS = None
 
 
 class LocalDevelopmentConfig(DockerConfig):
