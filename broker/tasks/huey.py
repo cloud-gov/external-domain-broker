@@ -63,7 +63,9 @@ def register_correlation_id(task):
 @huey.signal()
 def log_task_transition(signal, task, exc=None):
     args, kwargs = task.data
-    extra = dict(operation_id=args[0], task_id=task.id, signal=signal)
+    extra = dict(task_id=task.id, signal=signal)
+    if len(args):
+        extra["operation_id"] = args[0]
     logger.info("task signal received", extra=extra)
     if exc is not None:
         logger.exception(msg="task raised exception", extra=extra, exc_info=exc)
