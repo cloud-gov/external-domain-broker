@@ -125,7 +125,7 @@ cf-manifest-env-production: &cf-manifest-env-production
     SMTP_HOST: ((smtp-host))
     SMTP_USER: ((smtp-user))
     SMTP_FROM: ((smtp-from))
-    SMTP_FROM: ((smtp-from))
+    SMTP_PORT: ((smtp-port))
     SMTP_TO: ((smtp-to))
     SMTP_CERT: ((smtp-cert))
 
