@@ -47,7 +47,7 @@ def scan_for_expiring_certs():
 
 
 @huey.huey.periodic_task(
-    crontab(month="*", hour="*", day="*", minute="13"),
+    crontab(month="*", hour="*", day="*", minute="*/5"),
     context=huey.huey.flask_app.app_context(),
 )
 def restart_stalled_pipelines():
@@ -57,10 +57,10 @@ def restart_stalled_pipelines():
 
 def scan_for_stalled_pipelines():
     logger.info("Scanning for stalled pipelines")
-    two_hours_ago = datetime.datetime.now() - datetime.timedelta(hours=2)
+    fifteen_minutes_ago = datetime.datetime.now() - datetime.timedelta(minutes=15)
     operations = Operation.query.filter(
         Operation.state == Operation.States.IN_PROGRESS.value,
-        Operation.updated_at <= two_hours_ago,
+        Operation.updated_at <= fifteen_minutes_ago,
         Operation.canceled_at.is_(None),
     )
     return [operation.id for operation in operations]

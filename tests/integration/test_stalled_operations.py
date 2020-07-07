@@ -21,9 +21,9 @@ def test_finds_stalled_operations(clean_db):
     db.session.add(stalled_operation)
     db.session.commit()
 
-    ok = datetime.datetime.now() - datetime.timedelta(hours=1)
+    ok = datetime.datetime.now() - datetime.timedelta(minutes=13)
     ok = ok.replace(tzinfo=datetime.timezone.utc)
-    too_old = datetime.datetime.now() - datetime.timedelta(hours=2, minutes=1)
+    too_old = datetime.datetime.now() - datetime.timedelta(minutes=16)
     too_old = too_old.replace(tzinfo=datetime.timezone.utc)
 
     # have to do this manually to skip the onupdate on the model

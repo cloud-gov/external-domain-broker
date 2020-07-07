@@ -37,7 +37,7 @@ class Config:
         self.DEBUG = True
         self.ACME_POLL_TIMEOUT_IN_SECONDS = self.env("ACME_POLL_TIMEOUT_IN_SECONDS", 90)
         self.AWS_POLL_WAIT_TIME_IN_SECONDS = 60
-        self.AWS_POLL_MAX_ATTEMPTS = 120
+        self.AWS_POLL_MAX_ATTEMPTS = 10
 
         # https://docs.aws.amazon.com/Route53/latest/APIReference/API_AliasTarget.html
         self.CLOUDFRONT_HOSTED_ZONE_ID = "Z2FDTNDATAQYW2"
