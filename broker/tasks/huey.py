@@ -84,4 +84,3 @@ def mark_operation_failed(signal, task, exc=None):
     send_failed_operation_alert(operation)
     db.session.add(operation)
     db.session.commit()
-

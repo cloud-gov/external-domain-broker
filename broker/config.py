@@ -176,7 +176,7 @@ class DockerConfig(Config):
         self.SMTP_HOST = "localhost"
         self.SMTP_PORT = 1025
 
-        # when testing, this goes to a fake smtp server that only prints stuff, 
+        # when testing, this goes to a fake smtp server that only prints stuff,
         # so example.com is a safe host
         self.SMTP_TO = "doesnt-matter@example.com"
         self.SMTP_FROM = "no-reply@example.com"

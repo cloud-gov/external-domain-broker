@@ -4,6 +4,7 @@ import ssl
 
 from broker.extensions import config
 
+
 def send_email(email, subject, body):
     msg = MIMEText(body, "html")
     msg["Subject"] = subject

@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from huey import crontab
 
@@ -6,12 +7,15 @@ from broker.extensions import config, db
 from broker.models import ServiceInstance, Operation
 from broker.tasks import huey, pipelines
 
+logger = logging.getLogger(__name__)
+
 
 @huey.huey.periodic_task(
     crontab(month="*", hour="*", day="*", minute="13"),
     context=huey.huey.flask_app.app_context(),
 )
 def scan_for_expiring_certs():
+    logger.info("Scanning for expired certificates")
     # TODO: skip SIs with active operations
     instances = ServiceInstance.query.filter(
         ServiceInstance.cert_expires_at - datetime.timedelta(days=10)
@@ -20,6 +24,7 @@ def scan_for_expiring_certs():
     cdn_renewals = []
     alb_renewals = []
     for instance in instances:
+        logger.info("Instance %s needs renewal", instance.id)
         renewal = Operation(
             state=Operation.States.IN_PROGRESS.value,
             service_instance=instance,
@@ -51,6 +56,7 @@ def restart_stalled_pipelines():
 
 
 def scan_for_stalled_pipelines():
+    logger.info("Scanning for stalled pipelines")
     two_hours_ago = datetime.datetime.now() - datetime.timedelta(hours=2)
     operations = Operation.query.filter(
         Operation.state == Operation.States.IN_PROGRESS.value,
@@ -62,6 +68,9 @@ def scan_for_stalled_pipelines():
 
 def reschedule_operation(operation):
     service_instance = operation.service_instance
+    logger.info(
+        f"Restarting {operation.action} operation {operation.id} for service instance {service_instance.id}"
+    )
     if service_instance.instance_type == "cdn_service_instance":
         if operation.action == Operation.Actions.PROVISION.value:
             pipelines.queue_all_cdn_provision_tasks_for_operation(
