@@ -250,6 +250,16 @@ def subtest_deprovision_waits_for_cloudfront_distribution_disabled(
 def subtest_deprovision_removes_cloudfront_distribution(
     tasks, service_instance, cloudfront
 ):
+    cloudfront.expect_get_distribution(
+        caller_reference=service_instance.id,
+        domains=service_instance.domain_names,
+        certificate_id=service_instance.iam_server_certificate_id,
+        origin_hostname=service_instance.cloudfront_origin_hostname,
+        origin_path=service_instance.cloudfront_origin_path,
+        distribution_id=service_instance.cloudfront_distribution_id,
+        status="Deployed",
+        enabled=False,
+    )
     cloudfront.expect_delete_distribution(
         distribution_id=service_instance.cloudfront_distribution_id
     )
@@ -281,7 +291,7 @@ def subtest_deprovision_waits_for_cloudfront_distribution_disabled_when_missing(
 def subtest_deprovision_removes_cloudfront_distribution_when_missing(
     tasks, service_instance, cloudfront
 ):
-    cloudfront.expect_delete_distribution_returning_no_such_distribution(
+    cloudfront.expect_get_distribution_returning_no_such_distribution(
         distribution_id=service_instance.cloudfront_distribution_id
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
