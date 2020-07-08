@@ -174,9 +174,8 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
                 Id=service_instance.cloudfront_distribution_id
             )
         except cloudfront.exceptions.NoSuchDistribution:
-            return "No-ETag"
+            return
         enabled = status["Distribution"]["DistributionConfig"]["Enabled"]
-        etag = status["ETag"]
 
 
 @huey.retriable_task
