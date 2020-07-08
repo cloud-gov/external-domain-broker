@@ -22,6 +22,12 @@ commercial cloud.
 This also means the broker expects to use a different IAM user and configuration
 for ALBs and CloudFront distributions.
 
+There's nothing preventing using AWS commercial resources (IAM users, ALBs, etc) where
+govcloud resources are expected, so a commercial-only deployment should be possible
+without any modification. Similarly, if CloudFront and Route53 were to be brought
+into govcloud, nothing would prevent using govcloud resources where commercial resources
+are expected.
+
 ## Usage
 
 When users request a domain service instance, this broker will validate some
@@ -109,13 +115,15 @@ The Broker can be configured via the following environment variables:
 | SMTP_PASS                        | Password to use for SMTP server (for alerts)                |
 | SMTP_FROM                        | Email address to send emails from (for alerts)              |
 | SMTP_TO                          | Email address to send alert emails to                       |
+|                                  |                                                             |
 
 ## IAM Policies
 
 As this broker manages ELBs, IAM Certificates, CloudFront and other
 AWS resources, it requires an IAM policy that allows access to those APIs.
-We've [provided a sample policy](/doc/sample_iam_policy.json), but you're
-responsible for auditing your own security policies. No warranty, etc, etc.
+We've [provided a sample govcloud policy](/docs/sample_iam_policy_govcloud.json)
+and [a sample commercial policy](/docs/sample_iam_policy_commercial.json), but
+you're responsible for auditing your own security policies. No warranty, etc, etc.
 
 ## Pipeline Configuration
 
