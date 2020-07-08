@@ -2,44 +2,6 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Action": [
-        "elasticloadbalancing:CreateLoadBalancer",
-        "elasticloadbalancing:DeleteLoadBalancer"
-      ],
-      "Effect": "Deny",
-      "Resource": "*"
-    },
-    {
-      "Action": [
-        "elasticloadbalancing:AddListenerCertificates",
-        "elasticloadbalancing:CreateListener",
-        "elasticloadbalancing:CreateRule",
-        "elasticloadbalancing:CreateLoadBalancerListeners",
-        "elasticloadbalancing:CreateTargetGroup",
-        "elasticloadbalancing:DeleteListener",
-        "elasticloadbalancing:DeleteRule",
-        "elasticloadbalancing:DeleteTargetGroup",
-        "elasticloadbalancing:DeregisterTargets",
-        "elasticloadbalancing:Describe*",
-        "elasticloadbalancing:Modify*",
-        "elasticloadbalancing:RegisterTargets",
-        "elasticloadbalancing:RemoveListenerCertificates"
-      ],
-      "Effect": "Allow",
-      "Resource": "*"
-    },
-    {
-      "Action": [
-        "iam:DeleteServerCertificate",
-        "iam:GetServerCertificate",
-        "iam:ListServerCertificates",
-        "iam:UpdateServerCertificate",
-        "iam:UploadServerCertificate"
-      ],
-      "Effect": "Allow",
-      "Resource": "*"
-    },
-    {
       "Effect": "Allow",
       "Action": [
         "iam:DeleteServerCertificate",
@@ -48,7 +10,7 @@
         "iam:UpdateServerCertificate"
       ],
       "Resource": [
-        "arn:AWS_PARTITION:iam::ACCOUNT_ID:server-certificate/cloudfront/CLOUDFRONT_PREFIX"
+        "arn:aws:iam::${account_id}:server-certificate/cloudfront/external-domains-${stack}/*"
       ]
     },
     {
@@ -58,14 +20,8 @@
     },
     {
       "Effect": "Allow",
-      "Action": [
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:DeleteObject"
-      ],
-      "Resource": [
-        "arn:AWS_PARTITION:s3:::BUCKET/*"
-      ]
+      "Action": "route53:GetChange",
+      "Resource": "*"
     },
     {
       "Effect": "Allow",
@@ -73,7 +29,7 @@
         "route53:ChangeResourceRecordSets"
       ],
       "Resource": [
-        "arn:AWS_PARTITION:route53:::hostedzone/HOSTED_ZONE"
+        "arn:aws:route53:::hostedzone/${hosted_zone_id}"
       ]
     }
   ]
