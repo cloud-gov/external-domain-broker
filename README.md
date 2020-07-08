@@ -7,7 +7,8 @@ broker combines the features of the
 [cf-cdn-service-broker](https://github.com/18F/cf-cdn-service-broker) and
 the [cf-domain-broker-alb](https://github.com/18F/cf-domain-broker-alb). It
 provisions Let's Encrypt certificates for a given domain, and configures
-either AWS ABLs or an AWS CloudFront distribution to use that certificate.
+either AWS ALBs (created out-of-band) or an AWS CloudFront distribution
+(created by the broker) to use that certificate.
 
 ## AWS GovCloud
 
@@ -18,15 +19,14 @@ it's a global service, so while the domain broker can be deployed as a Cloud
 Foundry app in GovCloud, it still needs to cross the boundary into the AWS
 commercial cloud.
 
+This also means the broker expects to use a different IAM user and configuration
+for ALBs and CloudFront distributions.
+
 ## Usage
 
-When users request a domain service instance, this broker will provision a
-Let's Encrypt certificate, an ELB and a CloudFront CDN, and wire them all up
-together. It does _not_ attempt to manage DNS (as most users already have DNS
-solutions in place).
-
-This requires a manual step to be performed by the user after the instance is
-created, as described... here:
+When users request a domain service instance, this broker will validate some
+prerequisite DNS configuration then provision a Let's Encrypt certificate, 
+an ELB and a CloudFront CDN, and wire them all up together. 
 
 ### Let's Encrypt Challenge Challenges
 
@@ -65,55 +65,50 @@ Investigation pointers:
 We do not have access to or control over DNS for the application, so we cannot
 automate the `DNS01` challenge.
 
-#### Our Solution - Manual DNS Updates
+#### Our Solution - CNAMES of CNAMES
 
-Because of these limitations, we return instructions to the end user as to how
-to configure their DNS `TXT` record. We then monitor DNS for the record to be
-set and propagated globally before continuing with the `DNS01` challenge
-verification.
+Because of these limitations, we have users create CNAME (or ALIAS) records pointing
+to records within our control. This allows us to validate the user's input ahead of time,
+hopefully reducing the number of failures at provision time. It also allows us to manage
+renewals using TXT records, which eliminates the S3 config from the previous iterations
+of the broker. Finally, it should make creating a process to change between CDN and ALB
+instances possible without risk of downtime.
+
+Before creation, customers create a CNAME record for `_acme-challenge.<their-domain>`
+pointed to `_acme-challenge.<their-domain>.<our-configured-domain>`. This allows us to
+update TXT records on their behalf, which in turn allows us to solve DNS-01 challenges for
+them.
+Before, during, or after provisioning, they add a CNAME record for `<their-domain>` pointing
+to `<their-domain>.<our-configured-domain>`, which routes traffic to their site.
 
 ## Configuration
 
 The Broker can be configured via the following environment variables:
 
-| Variable                       | Meaning                                                                                                 |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `AWS_ACCESS_KEY_ID`            | AWS access key                                                                                          |
-| `AWS_SECRET_ACCESS_KEY`        | AWS secret access key                                                                                   |
-| `AWS_DEFAULT_REGION`           | AWS region to use                                                                                       |
-| `ACME_ROOT`                    | _todo (mxplusb):_ this needs to go in acceptance_tests                                                  |
-| `ACME_URL`                     | ACME server url, self-hosted, LE staging, or LE prod works.                                             |
-| `ALB_NAMES`                    | The resource names of the ELBs/ALBs you want to use for brokering custom domains. format: `alb-0,alb-1` |
-| `BROKER_NAME`                  | The name of the cf app which gets deployed.                                                             |
-| `BUCKET`                       | The S3 bucket which will be used for HTTP01 renewals.                                                   |
-| `DATABASE_URL`                 | The Postgres database URL.                                                                              |
-| `DELETE_TEST_SERVICE_INSTANCE` | _todo (mxplusb):_ this needs to go in acceptance-tests                                                  |
-| `EMAIL`                        | The registration email used to register new domain names.                                               |
-| `IAM_PATH_PREFIX`              | The IAM namespace to use.                                                                               |
-| `LOG_LEVEL`                    | _todo (mxplusb):_ make sure this actually does the thing                                                |
-| `PASS`                         | _todo (mxplusb):_ I think this is the broker password, need to document better                          |
-| `RESOLVERS`                    | DNS pre-check resolvers, see more below                                                                 |
-| `SERVICE_OFFERINGS`            | _todo (mxplusb):_ figure out what this means                                                            |
-| `URL`                          | _todo (mxplusb):_ this too                                                                              |
-| `USER`                         | _todo (mxplusb):_ I think this is the cf broker username                                                |
-
-> **Tip**: These map directly to the keys in [`RuntimeSettings`](/types/broker.go).
-
-### `RESOLVERS`
-
-The internal ACME client leverages a custom DNS resolver pre-check. This means
-the internal ACME client will try to resolve `TXT` records from DNS01 challenges
-before informing the upstream ACME server the record is ready to be resolved.
-
-As part of that, if no resolvers are set, no DNS01 records will be able to be
-created as nothing will resolve (and the broker will likely crash).
-
-The resolvers (can be more than one) must be in the following format per resolver:
-`{Name}={IP}:{Port}`. For example:
-
-```bash
-RESOLVERS="level3=4.2.2.2:53,google=8.8.8.8:53,internal=192.168.0.2:53"
-```
+| Variable                         |                                                             |
+| ---------------------------------|-------------------------------------------------------------|
+| FLASK_ENV                        | Environment name for Flask                                  |
+| SECRET_KEY                       | Flask secret key                                            |
+| BROKER_USERNAME                  | Username for the broker                                     |
+| BROKER_PASSWORD                  | Password for the broker                                     |
+| DATABASE_ENCRYPTION_KEY          | Key used to encrypt database storage                        |
+| ROUTE53_ZONE_ID                  | Zone ID of Route53 zone for hosted zone for DNS_ROOT_DOMAIN |
+| DNS_ROOT_DOMAIN                  | Intermediate domain users point their DNS to                |
+| DEFAULT_CLOUDFRONT_ORIGIN        | CloudFront origin used for instances that route to CF apps  |
+| AWS_GOVCLOUD_REGION              | Region to use for AWS govcloud services                     |
+| AWS_GOVCLOUD_SECRET_ACCESS_KEY   | Access key for AWS govcloud services                        |
+| AWS_GOVCLOUD_ACCESS_KEY_ID       | Access key ID for AWS govcloud services                     |
+| AWS_COMMERCIAL_REGION            | Region to use for commercial AWS services                   |
+| AWS_COMMERCIAL_SECRET_ACCESS_KEY | Access key for commercial AWS services                      |
+| AWS_COMMERCIAL_ACCESS_KEY_ID     | Access key ID for commercial AWS services                   |
+| ALB_LISTENER_ARNS                | comma-separated list of ARNs for AWS ALB Listeners to use   |
+| SMTP_HOST                        | Hostname of SMTP server (for alerts)                        |
+| SMTP_PORT                        | Port for SMTP server (for alerts)                           |
+| SMTP_CERT                        | Certificate chain to trust for SMTP server (for alerts)     |
+| SMTP_USER                        | Username for authentication with SMTP server (for alerts)   |
+| SMTP_PASS                        | Password to use for SMTP server (for alerts)                |
+| SMTP_FROM                        | Email address to send emails from (for alerts)              |
+| SMTP_TO                          | Email address to send alert emails to                       |
 
 ## IAM Policies
 
@@ -124,7 +119,7 @@ responsible for auditing your own security policies. No warranty, etc, etc.
 
 ## Pipeline Configuration
 
-This broker leverages [Concourse](https://concourse-ci.org) for it's deployment
+This broker leverages [Concourse](https://concourse-ci.org) for its deployment
 automation, but it's not dependent on it. You can find example and live
 concourse configuration files in [the `ci/` directory](/ci).
 
@@ -134,23 +129,3 @@ This broker supersedes the
 [cf-domain-broker](https://github.com/18F/cf-domain-broker), the
 [cf-cdn-service-broker](https://github.com/18F/cf-cdn-service-broker) and
 the [cf-domain-broker-alb](https://github.com/18F/cf-domain-broker-alb).
-The rationale for re-writing the
-[cf-domain-broker](https://github.com/18F/cf-domain-broker) is recorded
-[here](docs/rewrite.md).
-
-### Why rewrite the [cf-domain-broker](https://github.com/18F/cf-domain-broker)?
-
-The ACMEv1 deprecation deadline is currently looming, and the
-[cf-domain-broker](https://github.com/18F/cf-domain-broker) is half-completed.
-Our team is much stronger in Python than in Go, and this broker is not in a
-performance-sensitive path, nor does it benefit from Go's phenomenal static
-compilation feature. In addition, the Go [lego
-library](https://github.com/go-acme/lego) is ill-suited for the asynchronous
-and manual workflow this broker must provide.
-
-After some discussion, it was agreed that we could move faster and be in a
-better maintenance position by
-
-See [the google group
-thread](https://groups.google.com/a/gsa.gov/forum/#!msg/cloud-gov-operations/3bxd4Mw3h1I/SO0BWnjKAQAJ)
-for more context.
