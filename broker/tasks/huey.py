@@ -46,6 +46,9 @@ def create_app():
     app.config.from_object(config)
     huey.flask_app = app
     db.init_app(app)
+    # If we're the first index, import the cron jobs
+    if config.RUN_CRON:
+        from broker.tasks import cron
 
 
 @huey.on_startup()
