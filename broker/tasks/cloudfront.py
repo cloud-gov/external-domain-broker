@@ -177,11 +177,10 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
             return "No-ETag"
         enabled = status["Distribution"]["DistributionConfig"]["Enabled"]
         etag = status["ETag"]
-    return etag
 
 
 @huey.retriable_task
-def delete_distribution(str, operation_id: int, **kwargs):
+def delete_distribution(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
