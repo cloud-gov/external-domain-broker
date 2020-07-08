@@ -181,7 +181,7 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
-def delete_distribution(etag: str, operation_id: int, **kwargs):
+def delete_distribution(str, operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
@@ -190,8 +190,11 @@ def delete_distribution(etag: str, operation_id: int, **kwargs):
     db.session.commit()
 
     try:
+        status = cloudfront.get_distribution(
+            Id=service_instance.cloudfront_distribution_id
+        )
         cloudfront.delete_distribution(
-            Id=service_instance.cloudfront_distribution_id, IfMatch=etag
+            Id=service_instance.cloudfront_distribution_id, IfMatch=status["ETag"]
         )
     except cloudfront.exceptions.NoSuchDistribution:
         return
