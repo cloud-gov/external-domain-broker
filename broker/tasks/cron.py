@@ -22,6 +22,8 @@ def scan_for_expiring_certs():
         cdn_renewals = []
         alb_renewals = []
         for instance in instances:
+            if instance.has_active_operations():
+                continue
             logger.info("Instance %s needs renewal", instance.id)
             renewal = Operation(
                 state=Operation.States.IN_PROGRESS.value,
@@ -40,8 +42,9 @@ def scan_for_expiring_certs():
         for renewal in alb_renewals:
             pipelines.queue_all_alb_renewal_tasks_for_service_instance(renewal.id)
 
+        renew_instances = cdn_renewals + alb_renewals
         # n.b. this return is only for testing - huey ignores it.
-        return [instance.id for instance in instances]
+        return [instance.service_instance_id for instance in renew_instances]
 
 
 @huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="*/5"))

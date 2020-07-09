@@ -212,7 +212,7 @@ def answer_challenges(operation_id: int, **kwargs):
     directory = messages.Directory.from_json(net.get(config.ACME_DIRECTORY).json())
     client_acme = client.ClientV2(directory, net=net)
 
-    for challenge in service_instance.challenges:
+    for challenge in unanswered:
         challenge_body = messages.ChallengeBody.from_json(
             json.loads(challenge.body_json)
         )

@@ -70,6 +70,15 @@ class ServiceInstance(Base):
         "polymorphic_on": instance_type,
     }
 
+    def has_active_operations(self):
+        for operation in self.operations:
+            if (
+                operation.state == Operation.States.IN_PROGRESS.value
+                and operation.canceled_at is None
+            ):
+                return True
+        return False
+
     def __repr__(self):
         return f"<ServiceInstance {self.id} {self.domain_names}>"
 

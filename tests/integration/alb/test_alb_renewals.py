@@ -111,3 +111,66 @@ def subtest_queues_tasks():
     operation = service_instance.operations[0]
     assert operation.action == Operation.Actions.RENEW.value
     assert len(huey.pending()) == 1
+
+
+def test_does_queues_renewal_for_instance_with_canceled_operations(
+    clean_db, cdn_instance_needing_renewal
+):
+    # make a canceled operation
+    operation = OperationFactory.create(
+        service_instance=cdn_instance_needing_renewal,
+        state=Operation.States.IN_PROGRESS.value,
+        canceled_at=datetime.now(),
+    )
+    db.session.add(operation)
+    db.session.commit()
+    instance = ALBServiceInstance.query.get("4321")
+    assert not instance.has_active_operations()
+    # this will queue an operation
+    assert scan_for_expiring_certs.call_local() == ["4321"]
+    instance = ALBServiceInstance.query.get("4321")
+    assert instance.has_active_operations()
+    assert scan_for_expiring_certs.call_local() == []
+
+
+@pytest.mark.parametrize(
+    "state", [Operation.States.FAILED.value, Operation.States.SUCCEEDED.value]
+)
+def test_queues_renewal_operations_not_in_progress(
+    clean_db, state, cdn_instance_needing_renewal
+):
+    operation = OperationFactory.create(
+        service_instance=cdn_instance_needing_renewal, state=state
+    )
+    db.session.add(operation)
+    db.session.commit()
+    instance = ALBServiceInstance.query.get("4321")
+    assert not instance.has_active_operations()
+    # this will queue an operation
+    assert scan_for_expiring_certs.call_local() == ["4321"]
+    instance = ALBServiceInstance.query.get("4321")
+    assert instance.has_active_operations()
+    assert scan_for_expiring_certs.call_local() == []
+
+
+@pytest.mark.parametrize(
+    "action",
+    [
+        Operation.Actions.DEPROVISION.value,
+        Operation.Actions.PROVISION.value,
+        Operation.Actions.RENEW.value,
+    ],
+)
+def test_does_not_queue_for_in_progress_actions(
+    clean_db, action, cdn_instance_needing_renewal
+):
+    operation = OperationFactory.create(
+        service_instance=cdn_instance_needing_renewal,
+        state=Operation.States.IN_PROGRESS.value,
+        action=action,
+    )
+    db.session.add(operation)
+    db.session.commit()
+    instance = ALBServiceInstance.query.get("4321")
+    assert instance.has_active_operations()
+    assert scan_for_expiring_certs.call_local() == []
