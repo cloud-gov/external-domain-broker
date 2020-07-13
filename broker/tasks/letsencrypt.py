@@ -141,7 +141,7 @@ def initiate_challenges(operation_id: int, **kwargs):
         now = datetime.now()
         order = json.loads(service_instance.order_json)["body"]
         expiration = datetime.fromisoformat(order["expires"].replace("Z", ""))
-        if expiration > now and order["status"] == "pending":
+        if expiration > now or order["status"] != "pending":
             return
 
     account_key = serialization.load_pem_private_key(
@@ -305,5 +305,6 @@ def retrieve_certificate(operation_id: int, **kwargs):
     not_after = x509.get_notAfter().decode("utf-8")
 
     service_instance.cert_expires_at = datetime.strptime(not_after, "%Y%m%d%H%M%Sz")
+    service_instance.order_json = json.dumps(finalized_order.to_json())
     db.session.add(service_instance)
     db.session.commit()
