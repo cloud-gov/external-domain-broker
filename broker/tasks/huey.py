@@ -34,9 +34,9 @@ db.init_app(huey.flask_app)
 # Normal task, no retries
 nonretriable_task = huey.context_task(huey.flask_app.app_context())
 
-# These tasks retry every 10 minutes for a day.
+# These tasks retry every 10 minutes for four hours.
 retriable_task = huey.context_task(
-    huey.flask_app.app_context(), retries=6 * 24, retry_delay=10 * 60
+    huey.flask_app.app_context(), retries=6 * 4, retry_delay=10 * 60
 )
 
 
