@@ -76,14 +76,15 @@ def mark_operation_failed(signal, task, exc=None):
     args, kwargs = task.data
     if task.retries:
         return
-    try:
-        operation = Operation.query.get(args[0])
-    except BaseException as e:
-        logger.exception(msg=f"exception loading operation for args {args}", exc_info=e)
-        # assume this task doesn't follow our pattern of operation_id as the first param
-        # in which case this task is not a part of a provisioning/upgrade/deprovisioning pipeline
-        return
-    operation.state = Operation.States.FAILED.value
-    db.session.add(operation)
-    db.session.commit()
-    send_failed_operation_alert(operation)
+    with huey.flask_app.app_context():
+        try:
+            operation = Operation.query.get(args[0])
+        except BaseException as e:
+            logger.exception(msg=f"exception loading operation for args {args}", exc_info=e)
+            # assume this task doesn't follow our pattern of operation_id as the first param
+            # in which case this task is not a part of a provisioning/upgrade/deprovisioning pipeline
+            return
+        operation.state = Operation.States.FAILED.value
+        db.session.add(operation)
+        db.session.commit()
+        send_failed_operation_alert(operation)
