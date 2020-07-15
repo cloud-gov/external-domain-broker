@@ -146,6 +146,11 @@ def app():
 
 @pytest.fixture(scope="function")
 def clean_db(app):
+    """
+    get a db with schema and no contents. Remove contents and restore schema when done
+    Note that this pushes an app context, which can hide problems with missing contexts
+    
+    """
     print("Clearing Redis")
     huey.storage.conn.flushall()
 
@@ -162,3 +167,29 @@ def client(clean_db, app):
     app.response_class = CFAPIResponse
 
     yield app.test_client()
+
+
+@pytest.fixture(scope="function")
+def no_context_clean_db(no_context_app):
+
+    with no_context_app.app_context():
+        print("Running migrations")
+        db.drop_all()
+        flask_migrate.upgrade()
+        db.create_all()
+        db.session.commit()
+    yield db
+    with no_context_app.app_context():
+        db.session.remove()
+        db.drop_all()
+        db.create_all()
+
+
+@pytest.fixture(scope="session")
+def no_context_app():
+    cf_logging._SETUP_DONE = False
+    _app = create_app()
+
+    # The Exception errorhandler seems to be firing in testing mode.
+    del _app.error_handler_spec["open_broker"][None][Exception]
+    return _app

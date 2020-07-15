@@ -11,25 +11,27 @@ from tests.lib.factories import OperationFactory
 from tests.lib.tasks import fallible_huey, immediate_huey
 
 
-def test_operations_marked_failed_after_failing(tasks, clean_db):
+def test_operations_marked_failed_after_failing(tasks, no_context_clean_db, no_context_app):
     @huey.task()
     def no_retry_task(operation_id):
         raise Exception()
 
-    no_retries_left_operation = OperationFactory.create(
-        id="9876",
-        state="InProgress",
-        action="Provision",
-        service_instance_id="nonextistent",
-    )
-    db.session.commit()
+    with no_context_app.app_context():
+        no_retries_left_operation = OperationFactory.create(
+            id="9876",
+            state="InProgress",
+            action="Provision",
+            service_instance_id="nonextistent",
+        )
+        db.session.commit()
     with fallible_huey() as h:
         with immediate_huey() as h:
             # this task should fail because we have not created a user
             task = no_retry_task("9876")
             with pytest.raises(TaskException):
                 result = task()
-    no_retries_left_operation = Operation.query.get("9876")
+    with no_context_app.app_context():
+        no_retries_left_operation = Operation.query.get("9876")
     assert no_retries_left_operation.state == "failed"
 
 
