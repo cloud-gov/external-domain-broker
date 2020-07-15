@@ -11,7 +11,9 @@ from tests.lib.factories import OperationFactory
 from tests.lib.tasks import fallible_huey, immediate_huey
 
 
-def test_operations_marked_failed_after_failing(tasks, no_context_clean_db, no_context_app):
+def test_operations_marked_failed_after_failing(
+    tasks, no_context_clean_db, no_context_app
+):
     @huey.task()
     def no_retry_task(operation_id):
         raise Exception()

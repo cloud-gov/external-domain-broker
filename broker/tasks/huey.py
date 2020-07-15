@@ -80,7 +80,9 @@ def mark_operation_failed(signal, task, exc=None):
         try:
             operation = Operation.query.get(args[0])
         except BaseException as e:
-            logger.exception(msg=f"exception loading operation for args {args}", exc_info=e)
+            logger.exception(
+                msg=f"exception loading operation for args {args}", exc_info=e
+            )
             # assume this task doesn't follow our pattern of operation_id as the first param
             # in which case this task is not a part of a provisioning/upgrade/deprovisioning pipeline
             return
