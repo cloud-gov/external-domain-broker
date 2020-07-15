@@ -33,10 +33,10 @@ def send_failed_operation_alert(operation):
     body = f"""
 <h1>Pipeline failed unexpectedly!</h1>
 
-operation id: {operation.id}
-operation type: {operation.action}
-failed step: {operation.step_description}
-service instance id: {operation.service_instance_id}
-service instance type: {operation.service_instance.instance_type}
+operation id: {operation.id} <br/>
+operation type: {operation.action} <br/>
+failed step: {operation.step_description} <br/>
+service instance id: {operation.service_instance_id} <br/>
+service instance type: {operation.service_instance.instance_type} <br/>
     """
     send_email(config.SMTP_TO, subject, body)
