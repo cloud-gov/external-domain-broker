@@ -141,7 +141,7 @@ def initiate_challenges(operation_id: int, **kwargs):
         now = datetime.now()
         order = json.loads(service_instance.order_json)["body"]
         expiration = datetime.fromisoformat(order["expires"].replace("Z", ""))
-        if expiration > now or order["status"] != "pending":
+        if expiration > now and order["status"] == "pending":
             return
 
     account_key = serialization.load_pem_private_key(
