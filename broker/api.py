@@ -17,6 +17,8 @@ from openbrokerapi.service_broker import (
     ServicePlan,
     UnbindDetails,
     UnbindSpec,
+    UpdateDetails,
+    UpdateServiceSpec,
 )
 from sap import cf_logging
 
@@ -231,6 +233,121 @@ class API(ServiceBroker):
             raise NotImplementedError()
 
         return DeprovisionServiceSpec(is_async=True, operation=str(operation.id))
+
+    def update(
+        self, instance_id: str, details: UpdateDetails, async_allowed: bool, **kwargs
+    ) -> UpdateServiceSpec:
+        if not async_allowed:
+            raise errors.ErrAsyncRequired()
+
+        params = details.parameters or {}
+
+        instance = ServiceInstance.query.get(instance_id)
+
+        if not instance:
+            raise errors.ErrBadRequest("Service instance does not exist")
+
+        if instance.deactivated_at:
+            raise errors.ErrBadRequest(
+                "Cannot update instance because it was already canceled"
+            )
+
+        if instance.has_active_operations():
+            raise errors.ErrBadRequest("Instance has an active operation in progress")
+
+        domain_names = [
+            d.strip().lower() for d in params.get("domains", "").split(",") if len(d)
+        ]
+        if len(domain_names):
+            self.logger.info("validating CNAMEs")
+            validators.CNAME(domain_names).validate()
+
+            self.logger.info("validating unique domains")
+            validators.UniqueDomains(domain_names).validate(instance)
+            instance.domains = domain_names
+
+        if instance.instance_type == "cdn_service_instance":
+            # N.B. we're using "param" in params rather than
+            # params.get("param") because the OSBAPI spec
+            # requires we do not mess with params that were not
+            # specified, so unset and set to None have different meanings
+
+            if "origin" in params:
+                if params["origin"] is None:
+                    instance.cloudfront_origin_hostname = (
+                        config.DEFAULT_CLOUDFRONT_ORIGIN
+                    )
+                    # make sure HOST is in forwarded_headers. Do it by messing with params
+                    # to trick the logic below into updating it.
+                    params["forward_headers"] = params.get(
+                        "forward_headers", []
+                    ).append("HOST")
+                else:
+                    instance.cloudfront_origin_hostname = params["origin"]
+
+            if "path" in params:
+                if params["path"] is None:
+                    instance.cloudfront_origin_path = ""
+                else:
+                    instance.cloudfront_origin_path = params["path"]
+            if "forward_cookies" in params:
+                forward_cookies = params["forward_cookies"]
+                if forward_cookies is None:
+                    forward_cookies = "*"
+
+                forward_cookies = forward_cookies.replace(" ", "")
+                if forward_cookies == "":
+                    instance.forward_cookie_policy = (
+                        CDNServiceInstance.ForwardCookiePolicy.NONE.value
+                    )
+                    instance.forwarded_cookies = []
+                elif forward_cookies == "*":
+                    instance.forward_cookie_policy = (
+                        CDNServiceInstance.ForwardCookiePolicy.ALL.value
+                    )
+                    instance.forwarded_cookies = []
+                else:
+                    instance.forward_cookie_policy = (
+                        CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
+                    )
+                    instance.forwarded_cookies = forward_cookies.split(",")
+
+            if "forward_headers" in params:
+                forwarded_headers = params["forward_headers"]
+                if not forwarded_headers:
+                    forwarded_headers = []
+                else:
+                    forwarded_headers = forwarded_headers.replace(" ", "")
+                    forwarded_headers = forwarded_headers.split(",")
+                if (
+                    instance.cloudfront_origin_hostname
+                    == config.DEFAULT_CLOUDFRONT_ORIGIN
+                ):
+                    forwarded_headers.append("HOST")
+                instance.forwarded_headers = forwarded_headers
+            if "insecure_origin" in params:
+                if params["insecure_origin"]:
+                    if (
+                        instance.cloudfront_origin_hostname
+                        == config.DEFAULT_CLOUDFRONT_ORIGIN
+                    ):
+                        raise errors.ErrBadRequest(
+                            "Cannot use insecure_origin with default origin"
+                        )
+                    instance.origin_protocol_policy = "http-only"
+                else:
+                    instance.origin_protocol_policy = "https-only"
+        operation = Operation(
+            state=Operation.States.IN_PROGRESS.value,
+            service_instance=instance,
+            action=Operation.Actions.UPDATE.value,
+            step_description="Queuing tasks",
+        )
+        db.session.add(operation)
+        db.session.add(instance)
+        db.session.commit()
+
+        return UpdateServiceSpec(True, operation=operation.id)
 
     def bind(
         self,

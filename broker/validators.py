@@ -50,8 +50,8 @@ class UniqueDomains:
     def __init__(self, domains):
         self.domains = domains
 
-    def validate(self):
-        instructions = self._instructions(self.domains)
+    def validate(self, ignore_instance: ServiceInstance = None):
+        instructions = self._instructions(self.domains, ignore_instance)
 
         if instructions:
             msg = [
@@ -63,14 +63,29 @@ class UniqueDomains:
 
             raise errors.ErrBadRequest("\n".join(msg))
 
-    def _instructions(self, domains: List[str]) -> List[str]:
-        return [self._error_for_domain(d) for d in domains if self._error_for_domain(d)]
+    def _instructions(
+        self, domains: List[str], ignore_instance: ServiceInstance = None
+    ) -> List[str]:
+        return [
+            self._error_for_domain(d, ignore_instance)
+            for d in domains
+            if self._error_for_domain(d, ignore_instance)
+        ]
 
-    def _error_for_domain(self, domain: str) -> str:
-        count = ServiceInstance.query.filter(
-            ServiceInstance.deactivated_at == None,  # noqa: E711
-            ServiceInstance.domain_names.has_key(domain),
-        ).count()
+    def _error_for_domain(
+        self, domain: str, ignore_instance: ServiceInstance = None
+    ) -> str:
+        if ignore_instance:
+            count = ServiceInstance.query.filter(
+                ServiceInstance.deactivated_at == None,  # noqa: E711
+                ServiceInstance.domain_names.has_key(domain),
+                ServiceInstance.id != ignore_instance.id,
+            ).count()
+        else:
+            count = ServiceInstance.query.filter(
+                ServiceInstance.deactivated_at == None,  # noqa: E711
+                ServiceInstance.domain_names.has_key(domain),
+            ).count()
 
         if count:
             return domain
