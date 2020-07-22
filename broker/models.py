@@ -127,6 +127,7 @@ class Operation(Base):
         PROVISION = "Provision"
         DEPROVISION = "Deprovision"
         RENEW = "Renew"
+        UPDATE = "Update"
 
     id = db.Column(db.Integer, primary_key=True)
     service_instance_id = db.Column(
