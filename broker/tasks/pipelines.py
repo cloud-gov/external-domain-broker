@@ -193,3 +193,32 @@ def queue_all_cdn_renewal_tasks_for_service_instance(operation_id, **kwargs):
     # - put all certs in a separate table with key on SI table (this is really probably the right way to do it)
     # - create a table that is just a list of certs to prune/remove (this reduces the need for data migrations)
     # - add some logic to find and remove certs we think are bad without a table (scary)
+
+
+def queue_all_cdn_update_tasks_for_service_instance(operation_id, correlation_id):
+    task_pipeline = (
+        letsencrypt.initiate_challenges.s(operation_id, correlation_id=correlation_id)
+        .then(route53.create_TXT_records, operation_id, correlation_id=correlation_id)
+        .then(route53.wait_for_changes, operation_id, correlation_id=correlation_id)
+        .then(
+            letsencrypt.answer_challenges, operation_id, correlation_id=correlation_id
+        )
+        .then(
+            letsencrypt.retrieve_certificate,
+            operation_id,
+            correlation_id=correlation_id,
+        )
+        .then(
+            iam.upload_server_certificate, operation_id, correlation_id=correlation_id
+        )
+        .then(
+            cloudfront.update_distribution, operation_id, correlation_id=correlation_id
+        )
+        .then(
+            cloudfront.wait_for_distribution,
+            operation_id,
+            correlation_id=correlation_id,
+        )
+        .then(update_operations.provision, operation_id, correlation_id=correlation_id)
+    )
+    huey.enqueue(task_pipeline)

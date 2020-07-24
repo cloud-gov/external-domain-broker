@@ -312,3 +312,22 @@ def test_update_refuses_insecure_origin_for_default_origin(
     desc = client.response.json.get("description")
     assert client.response.status_code == 400
     assert "insecure_origin" in desc
+
+
+@pytest.mark.focus
+def test_update_happy_path(
+    client,
+    dns,
+    tasks,
+    route53,
+    iam_commercial,
+    simple_regex,
+    cloudfront,
+    service_instance,
+):
+    operation_id = subtest_update_creates_update_operation(client, dns)
+    check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
+
+
+def subtest_update_creates_update_operation(client, dns):
+    pass
