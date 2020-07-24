@@ -6,12 +6,8 @@ from tests.lib.fake_aws import FakeAWS
 
 
 class FakeALB(FakeAWS):
-    def expect_get_listeners(self, listener_arn, num_certificates: int = 1):
+    def expect_get_listeners(self, listener_arn):
         certificates = [{"CertificateArn": "certificate-arn", "IsDefault": True}]
-        for i in range(num_certificates - 1):
-            certificates.append(
-                {"CertificateArn": f"certificate-arn-{i}", "IsDefault": False}
-            )
         self.stubber.add_response(
             "describe_listeners",
             {
@@ -43,60 +39,16 @@ class FakeALB(FakeAWS):
             {"ListenerArns": [listener_arn]},
         )
 
-    def expect_get_listeners_for_alb(self, alb_arn, num_certificates: int = 1):
+    def expect_get_certificates_for_listener(self, listener_arn, num_certificates=0):
         certificates = [{"CertificateArn": "certificate-arn", "IsDefault": True}]
-        for i in range(num_certificates - 1):
+        for i in range(num_certificates):
             certificates.append(
                 {"CertificateArn": f"certificate-arn-{i}", "IsDefault": False}
             )
         self.stubber.add_response(
-            "describe_listeners",
-            {
-                "Listeners": [
-                    {
-                        "ListenerArn": "httplistenerarn",
-                        "LoadBalancerArn": alb_arn,
-                        "Port": 80,
-                        "Protocol": "HTTP",
-                        "DefaultActions": [
-                            {
-                                "Type": "forward",
-                                "TargetGroupArn": "arn",
-                                "Order": 1,
-                                "ForwardConfig": {
-                                    "TargetGroups": [
-                                        {"TargetGroupArn": "string", "Weight": 123}
-                                    ],
-                                    "TargetGroupStickinessConfig": {"Enabled": False},
-                                },
-                            }
-                        ],
-                    },
-                    {
-                        "ListenerArn": "httpslistenerarn",
-                        "LoadBalancerArn": alb_arn,
-                        "Port": 123,
-                        "Protocol": "HTTPS",
-                        "Certificates": certificates,
-                        "SslPolicy": "string",
-                        "DefaultActions": [
-                            {
-                                "Type": "forward",
-                                "TargetGroupArn": "string",
-                                "Order": 1,
-                                "ForwardConfig": {
-                                    "TargetGroups": [
-                                        {"TargetGroupArn": "string", "Weight": 1}
-                                    ],
-                                    "TargetGroupStickinessConfig": {"Enabled": False},
-                                },
-                            }
-                        ],
-                    },
-                ],
-                "NextMarker": "string",
-            },
-            {"LoadBalancerArn": alb_arn},
+            "describe_listener_certificates",
+            {"Certificates": certificates},
+            {"ListenerArn": listener_arn},
         )
 
     def expect_add_certificate_to_listener(self, listener_arn, iam_cert_arn):

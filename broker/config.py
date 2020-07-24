@@ -96,6 +96,7 @@ class AppConfig(Config):
         self.SMTP_TLS = True
         self.RUN_CRON = self.env.int("INSTANCE_INDEX", default=1) == 0
 
+
 class ProductionConfig(AppConfig):
     def __init__(self):
         self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"

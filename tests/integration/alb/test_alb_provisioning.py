@@ -19,28 +19,47 @@ from tests.lib.client import check_last_operation_description
 
 
 def test_gets_lowest_used_alb(alb):
-    alb.expect_get_listeners("listener-arn-0", 1)
+    alb.expect_get_certificates_for_listener("listener-arn-0", 1)
+    alb.expect_get_listeners("listener-arn-0")
     assert get_lowest_used_alb(["listener-arn-0"]) == (
         "alb-listener-arn-0",
         "listener-arn-0",
     )
-    alb.expect_get_listeners("listener-arn-0", 2)
-    alb.expect_get_listeners("listener-arn-1", 1)
+    alb.expect_get_certificates_for_listener("listener-arn-0", 2)
+    alb.expect_get_certificates_for_listener("listener-arn-1", 1)
+    alb.expect_get_listeners("listener-arn-1")
     assert get_lowest_used_alb(["listener-arn-0", "listener-arn-1"]) == (
         "alb-listener-arn-1",
         "listener-arn-1",
     )
-    alb.expect_get_listeners("listener-arn-1", 1)
-    alb.expect_get_listeners("listener-arn-0", 2)
+    alb.expect_get_certificates_for_listener("listener-arn-1", 1)
+    alb.expect_get_certificates_for_listener("listener-arn-0", 2)
+    alb.expect_get_listeners("listener-arn-1")
     assert get_lowest_used_alb(["listener-arn-1", "listener-arn-0"]) == (
         "alb-listener-arn-1",
         "listener-arn-1",
     )
-    alb.expect_get_listeners("listener-arn-1", 1)
-    alb.expect_get_listeners("listener-arn-2", 2)
-    alb.expect_get_listeners("listener-arn-0", 2)
+    alb.expect_get_certificates_for_listener("listener-arn-1", 1)
+    alb.expect_get_certificates_for_listener("listener-arn-2", 2)
+    alb.expect_get_certificates_for_listener("listener-arn-0", 2)
+    alb.expect_get_listeners("listener-arn-1")
     assert get_lowest_used_alb(
         ["listener-arn-1", "listener-arn-2", "listener-arn-0"]
+    ) == ("alb-listener-arn-1", "listener-arn-1")
+    alb.expect_get_certificates_for_listener("listener-arn-0", 19)
+    alb.expect_get_certificates_for_listener("listener-arn-1", 0)
+    alb.expect_get_certificates_for_listener("listener-arn-2", 25)
+    alb.expect_get_certificates_for_listener("listener-arn-3", 20)
+    alb.expect_get_certificates_for_listener("listener-arn-4", 17)
+    alb.expect_get_listeners("listener-arn-1")
+    assert get_lowest_used_alb(
+        [
+            "listener-arn-0",
+            "listener-arn-1",
+            "listener-arn-2",
+            "listener-arn-3",
+            "listener-arn-4",
+        ]
     ) == ("alb-listener-arn-1", "listener-arn-1")
 
 
@@ -343,12 +362,13 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_reg
 
 def subtest_provision_selects_alb(tasks, alb):
     db.session.expunge_all()
-    alb.expect_get_listeners("listener-arn-0", 1)
-    alb.expect_get_listeners("listener-arn-1", 5)
+    alb.expect_get_certificates_for_listener("listener-arn-0", 1)
+    alb.expect_get_certificates_for_listener("listener-arn-1", 5)
+    alb.expect_get_listeners("listener-arn-0")
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
     service_instance = ALBServiceInstance.query.get("4321")
-    assert service_instance.alb_arn.startswith("alb-listener-arn-")
+    assert service_instance.alb_arn.startswith("alb-listener-arn-0")
 
 
 def subtest_provision_adds_certificate_to_alb(tasks, alb):

@@ -11,10 +11,15 @@ logger = logging.getLogger(__name__)
 def get_lowest_used_alb(listener_arns):
     https_listeners = []
     for listener_arn in listener_arns:
-        listeners = alb.describe_listeners(ListenerArns=[listener_arn])
-        https_listeners.extend(listeners["Listeners"])
-    https_listeners.sort(key=lambda x: len(x["Certificates"]))
-    return https_listeners[0]["LoadBalancerArn"], https_listeners[0]["ListenerArn"]
+        certificates = alb.describe_listener_certificates(ListenerArn=listener_arn)
+        https_listeners.append(
+            dict(listener_arn=listener_arn, certificates=certificates["Certificates"])
+        )
+    https_listeners.sort(key=lambda x: len(x["certificates"]))
+    selected_arn = https_listeners[0]["listener_arn"]
+    listener_data = alb.describe_listeners(ListenerArns=[selected_arn])
+    listener_data = listener_data["Listeners"][0]
+    return listener_data["LoadBalancerArn"], listener_data["ListenerArn"]
 
 
 @huey.retriable_task
