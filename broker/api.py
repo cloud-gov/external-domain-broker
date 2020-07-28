@@ -355,7 +355,7 @@ class API(ServiceBroker):
 
         queue(operation.id, cf_logging.FRAMEWORK.context.get_correlation_id())
 
-        return UpdateServiceSpec(True, operation=operation.id)
+        return UpdateServiceSpec(True, operation=str(operation.id))
 
     def bind(
         self,
