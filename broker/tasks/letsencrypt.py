@@ -102,7 +102,11 @@ def generate_private_key(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    if service_instance.csr_pem is not None:
+    # TODO: validate CSR for updates
+    if (
+        service_instance.csr_pem is not None
+        and operation.action != Operation.Actions.UPDATE.value
+    ):
         return
     # Create private key.
     private_key = OpenSSL.crypto.PKey()

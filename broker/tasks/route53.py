@@ -19,7 +19,7 @@ def create_TXT_records(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    for challenge in service_instance.challenges:
+    for challenge in [c for c in service_instance.challenges if not c.answered]:
         domain = challenge.validation_domain
         txt_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
         contents = challenge.validation_contents
