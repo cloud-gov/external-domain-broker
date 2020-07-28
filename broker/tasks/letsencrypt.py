@@ -217,6 +217,15 @@ def answer_challenges(operation_id: int, **kwargs):
     client_acme = client.ClientV2(directory, net=net)
 
     for challenge in unanswered:
+        if json.loads(challenge.body_json)["status"] == "valid":
+            # this covers an edge case where we run an update
+            # shortly after initial provisioning or renewal
+            # it arguably makes more sense to do when we get the challenges
+            # but doing so makes testing worlds harder
+            challenge.answered = True
+            db.session.add(challenge)
+            db.session.commit()
+            continue
         challenge_body = messages.ChallengeBody.from_json(
             json.loads(challenge.body_json)
         )

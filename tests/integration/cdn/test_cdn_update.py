@@ -336,7 +336,7 @@ def test_update_refuses_insecure_origin_for_default_origin(
     assert "insecure_origin" in desc
 
 
-def test_update_happy_path(
+def subtest_update_happy_path(
     client,
     dns,
     tasks,
@@ -344,7 +344,6 @@ def test_update_happy_path(
     iam_commercial,
     simple_regex,
     cloudfront,
-    service_instance,
 ):
     operation_id = subtest_update_creates_update_operation(client, dns)
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
