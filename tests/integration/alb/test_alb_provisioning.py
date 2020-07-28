@@ -1,5 +1,6 @@
 import json
 from datetime import date, datetime
+import time
 
 import pytest  # noqa F401
 
@@ -8,6 +9,8 @@ from broker.models import Challenge, Operation, ALBServiceInstance
 from broker.tasks.alb import get_lowest_used_alb
 from tests.lib.factories import ALBServiceInstanceFactory
 from tests.lib.client import check_last_operation_description
+
+from tests.integration.alb.test_alb_update import subtest_update_happy_path
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we
 # had separate tests for each stage in the task pipeline.  But each test would
@@ -202,6 +205,9 @@ def test_provision_happy_path(
     )
     subtest_provision_marks_operation_as_succeeded(tasks)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
+    subtest_update_happy_path(
+        client, dns, tasks, route53, iam_govcloud, simple_regex, alb
+    )
 
 
 def subtest_provision_creates_provision_operation(client, dns):
@@ -332,6 +338,7 @@ def subtest_provision_retrieves_certificate(tasks):
     assert 1 == service_instance.fullchain_pem.count("BEGIN CERTIFICATE")
     assert 1 == service_instance.cert_pem.count("BEGIN CERTIFICATE")
     assert service_instance.cert_expires_at is not None
+    assert json.loads(service_instance.order_json)["body"]["status"] == "valid"
 
 
 def subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_regex):

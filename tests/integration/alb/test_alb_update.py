@@ -183,8 +183,8 @@ def test_refuses_update_for_instance_with_operation(client, dns, service_instanc
     assert client.response.status_code == 400
 
 
-def test_update_happy_path(
-    client, dns, tasks, route53, iam_govcloud, simple_regex, alb, service_instance,
+def subtest_update_happy_path(
+    client, dns, tasks, route53, iam_govcloud, simple_regex, alb
 ):
     operation_id = subtest_update_creates_update_operation(client, dns)
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")

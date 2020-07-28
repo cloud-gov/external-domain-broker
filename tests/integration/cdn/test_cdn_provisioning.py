@@ -8,6 +8,8 @@ from broker.models import Challenge, Operation, CDNServiceInstance
 from tests.lib.factories import CDNServiceInstanceFactory
 from tests.lib.client import check_last_operation_description
 
+from tests.integration.cdn.test_cdn_update import subtest_update_happy_path
+
 # The subtests below are "interesting".  Before test_provision_happy_path, we
 # had separate tests for each stage in the task pipeline.  But each test would
 # have to duplicate much of the previous test.  This was arduous and slow. Now
@@ -273,6 +275,7 @@ def test_provision_happy_path(
     )
     subtest_provision_marks_operation_as_succeeded(tasks)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
+    subtest_update_happy_path(client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront)
 
 
 def subtest_provision_creates_provision_operation(client, dns):
