@@ -9,6 +9,37 @@ from broker.tasks import huey
 logger = logging.getLogger(__name__)
 
 
+def get_cookie_policy(service_instance):
+    if (
+        service_instance.forward_cookie_policy
+        == CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
+    ):
+        cookies = {
+            "Forward": "whitelist",
+            "WhitelistedNames": {
+                "Quantity": len(service_instance.forwarded_cookies),
+                "Items": service_instance.forwarded_cookies,
+            },
+        }
+    else:
+        cookies = {"Forward": service_instance.forward_cookie_policy}
+    return cookies
+
+
+def get_header_policy(service_instance):
+    return {
+        "Quantity": len(service_instance.forwarded_headers),
+        "Items": service_instance.forwarded_headers,
+    }
+
+
+def get_aliases(service_instance):
+    return {
+        "Quantity": len(service_instance.domain_names),
+        "Items": service_instance.domain_names,
+    }
+
+
 @huey.retriable_task
 def create_distribution(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
@@ -27,25 +58,11 @@ def create_distribution(operation_id: int, **kwargs):
             pass
         else:
             return
-
-    if (
-        service_instance.forward_cookie_policy
-        == CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
-    ):
-        cookies = {
-            "Forward": "whitelist",
-            "WhitelistedNames": {
-                "Quantity": len(service_instance.forwarded_cookies),
-                "Items": service_instance.forwarded_cookies,
-            },
-        }
-    else:
-        cookies = {"Forward": service_instance.forward_cookie_policy}
-
+    cookies = get_cookie_policy(service_instance)
     response = cloudfront.create_distribution(
         DistributionConfig={
             "CallerReference": service_instance.id,
-            "Aliases": {"Quantity": len(domains), "Items": domains},
+            "Aliases": get_aliases(service_instance),
             "DefaultRootObject": "",
             "Origins": {
                 "Quantity": 1,
@@ -71,10 +88,7 @@ def create_distribution(operation_id: int, **kwargs):
                 "ForwardedValues": {
                     "QueryString": True,
                     "Cookies": cookies,
-                    "Headers": {
-                        "Quantity": len(service_instance.forwarded_headers),
-                        "Items": service_instance.forwarded_headers,
-                    },
+                    "Headers": get_header_policy(service_instance),
                     "QueryStringCacheKeys": {"Quantity": 0},
                 },
                 "TrustedSigners": {"Enabled": False, "Quantity": 0},
@@ -228,6 +242,41 @@ def update_certificate(operation_id: str, **kwargs):
     config["DistributionConfig"]["ViewerCertificate"][
         "IAMCertificateId"
     ] = service_instance.iam_server_certificate_id
+    cloudfront.update_distribution(
+        DistributionConfig=config["DistributionConfig"],
+        Id=service_instance.cloudfront_distribution_id,
+        IfMatch=config["ETag"],
+    )
+
+
+@huey.retriable_task
+def update_distribution(operation_id: str, **kwargs):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    config = cloudfront.get_distribution_config(
+        Id=service_instance.cloudfront_distribution_id
+    )
+    config["DistributionConfig"]["ViewerCertificate"][
+        "IAMCertificateId"
+    ] = service_instance.iam_server_certificate_id
+    config["DistributionConfig"]["Origins"]["Items"][0][
+        "DomainName"
+    ] = service_instance.cloudfront_origin_hostname
+    config["DistributionConfig"]["Origins"]["Items"][0][
+        "OriginPath"
+    ] = service_instance.cloudfront_origin_path
+    config["DistributionConfig"]["Origins"]["Items"][0]["CustomOriginConfig"][
+        "OriginProtocolPolicy"
+    ] = service_instance.origin_protocol_policy
+    config["DistributionConfig"]["DefaultCacheBehavior"]["ForwardedValues"][
+        "Cookies"
+    ] = get_cookie_policy(service_instance)
+    config["DistributionConfig"]["DefaultCacheBehavior"]["ForwardedValues"][
+        "Headers"
+    ] = get_header_policy(service_instance)
+    config["DistributionConfig"]["Aliases"] = get_aliases(service_instance)
+
     cloudfront.update_distribution(
         DistributionConfig=config["DistributionConfig"],
         Id=service_instance.cloudfront_distribution_id,

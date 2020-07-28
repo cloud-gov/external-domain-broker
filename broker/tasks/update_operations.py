@@ -36,6 +36,15 @@ def provision(operation_id: str, **kwargs):
 
 
 @huey.retriable_task
+def update_complete(operation_id: str, **kwargs):
+    operation = Operation.query.get(operation_id)
+    operation.state = Operation.States.SUCCEEDED.value
+    operation.step_description = "Complete!"
+    db.session.add(operation)
+    db.session.commit()
+
+
+@huey.retriable_task
 def deprovision(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     operation.state = Operation.States.SUCCEEDED.value

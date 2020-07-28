@@ -35,6 +35,7 @@ from broker.tasks.pipelines import (
     queue_all_alb_provision_tasks_for_operation,
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
+    queue_all_cdn_update_tasks_for_operation,
 )
 
 ALB_PLAN_ID = "6f60835c-8964-4f1f-a19a-579fb27ce694"
@@ -264,7 +265,7 @@ class API(ServiceBroker):
 
             self.logger.info("validating unique domains")
             validators.UniqueDomains(domain_names).validate(instance)
-            instance.domains = domain_names
+            instance.domain_names = domain_names
 
         if instance.instance_type == "cdn_service_instance":
             # N.B. we're using "param" in params rather than
@@ -346,6 +347,10 @@ class API(ServiceBroker):
         db.session.add(operation)
         db.session.add(instance)
         db.session.commit()
+
+        queue_all_cdn_update_tasks_for_operation(
+            operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
+        )
 
         return UpdateServiceSpec(True, operation=operation.id)
 

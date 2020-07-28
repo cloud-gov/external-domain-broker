@@ -107,8 +107,8 @@ def subtest_queues_tasks():
     assert len(huey.pending()) == 1
 
 
-def subtest_updates_certificate_in_cloudfront(tasks, cloundfront: FakeCloudFront):
-    cloundfront.expect_get_distribution_config(
+def subtest_updates_certificate_in_cloudfront(tasks, cloudfront: FakeCloudFront):
+    cloudfront.expect_get_distribution_config(
         caller_reference="4321",
         domains=["example.com", "foo.com"],
         certificate_id="certificate_id",
@@ -116,7 +116,7 @@ def subtest_updates_certificate_in_cloudfront(tasks, cloundfront: FakeCloudFront
         origin_path="origin_path",
         distribution_id="FakeDistributionId",
     )
-    cloundfront.expect_update_distribution(
+    cloudfront.expect_update_distribution(
         caller_reference="4321",
         domains=["example.com", "foo.com"],
         certificate_id="FAKE_CERT_ID_XXXXXXXX",
@@ -127,4 +127,4 @@ def subtest_updates_certificate_in_cloudfront(tasks, cloundfront: FakeCloudFront
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
-    cloundfront.assert_no_pending_responses()
+    cloudfront.assert_no_pending_responses()
