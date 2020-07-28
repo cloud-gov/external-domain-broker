@@ -33,6 +33,7 @@ from broker.models import (
 from broker.tasks.pipelines import (
     queue_all_alb_deprovision_tasks_for_operation,
     queue_all_alb_provision_tasks_for_operation,
+    queue_all_alb_update_tasks_for_operation,
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
@@ -338,6 +339,10 @@ class API(ServiceBroker):
                     instance.origin_protocol_policy = "http-only"
                 else:
                     instance.origin_protocol_policy = "https-only"
+
+            queue = queue_all_cdn_update_tasks_for_operation
+        else:
+            queue = queue_all_alb_update_tasks_for_operation
         operation = Operation(
             state=Operation.States.IN_PROGRESS.value,
             service_instance=instance,
@@ -348,9 +353,7 @@ class API(ServiceBroker):
         db.session.add(instance)
         db.session.commit()
 
-        queue_all_cdn_update_tasks_for_operation(
-            operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
-        )
+        queue(operation.id, cf_logging.FRAMEWORK.context.get_correlation_id())
 
         return UpdateServiceSpec(True, operation=operation.id)
 
