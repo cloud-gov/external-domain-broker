@@ -44,6 +44,7 @@ def get_aliases(service_instance):
 def create_distribution(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+    certificate = service_instance.new_certificate
 
     domains = service_instance.domain_names
 
@@ -126,7 +127,7 @@ def create_distribution(operation_id: int, **kwargs):
             "Enabled": True,
             "ViewerCertificate": {
                 "CloudFrontDefaultCertificate": False,
-                "IAMCertificateId": service_instance.iam_server_certificate_id,
+                "IAMCertificateId": certificate.iam_server_certificate_id,
                 "SSLSupportMethod": "sni-only",
                 "MinimumProtocolVersion": "TLSv1.2_2018",
             },
@@ -137,6 +138,8 @@ def create_distribution(operation_id: int, **kwargs):
     service_instance.cloudfront_distribution_arn = response["Distribution"]["ARN"]
     service_instance.cloudfront_distribution_id = response["Distribution"]["Id"]
     service_instance.domain_internal = response["Distribution"]["DomainName"]
+    service_instance.current_certificate = certificate
+    service_instance.new_certificate = None
     db.session.add(service_instance)
     db.session.commit()
 
@@ -253,13 +256,14 @@ def update_certificate(operation_id: str, **kwargs):
 def update_distribution(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+    certificate = service_instance.new_certificate
 
     config = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id
     )
     config["DistributionConfig"]["ViewerCertificate"][
         "IAMCertificateId"
-    ] = service_instance.iam_server_certificate_id
+    ] = certificate.iam_server_certificate_id
     config["DistributionConfig"]["Origins"]["Items"][0][
         "DomainName"
     ] = service_instance.cloudfront_origin_hostname
@@ -282,3 +286,8 @@ def update_distribution(operation_id: str, **kwargs):
         Id=service_instance.cloudfront_distribution_id,
         IfMatch=config["ETag"],
     )
+
+    service_instance.current_certificate = certificate
+    service_instance.new_certificate = None
+    db.session.add(service_instance)
+    db.session.commit()

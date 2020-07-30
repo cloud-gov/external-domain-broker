@@ -11,10 +11,7 @@ def service_instance():
     service_instance = factories.ALBServiceInstanceFactory.create(
         id="1234",
         domain_names=["example.com", "foo.com"],
-        iam_server_certificate_id="certificate_id",
-        iam_server_certificate_name="certificate_name",
         route53_alias_hosted_zone="Z2FDTNDATAQYW2",
-        private_key_pem="SOMEPRIVATEKEY",
         alb_listener_arn="arn:aws:elasticloadbalancingv2:us-west-1:1234:listener/app/foo/1234/4567",
         alb_arn="arn:aws:elasticloadbalancingv2:us-west-1:1234:loadbalancer/app/foo/1234",
     )
@@ -28,7 +25,28 @@ def service_instance():
         validation_contents="foo txt",
         service_instance=service_instance,
     )
-    db.session.refresh(service_instance)
+    new_cert=factories.CertificateFactory.create(
+        service_instance=service_instance,
+        private_key_pem="SOMEPRIVATEKEY",
+        leaf_pem="SOMECERTPEM",
+        fullchain_pem="FULLCHAINOFSOMECERTPEM",
+        id=1002
+    )
+    current_cert=factories.CertificateFactory.create(
+        service_instance=service_instance,
+        private_key_pem="SOMEPRIVATEKEY",
+        iam_server_certificate_id="certificate_id",
+        leaf_pem="SOMECERTPEM",
+        fullchain_pem="FULLCHAINOFSOMECERTPEM",
+        id=1001
+    )
+    service_instance.current_certificate = current_cert
+    service_instance.new_certificate = new_cert
+    db.session.add(service_instance)
+    db.session.add(current_cert)
+    db.session.add(new_cert)
+    db.session.commit()
+    db.session.expunge_all()
     return service_instance
 
 

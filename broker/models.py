@@ -38,6 +38,25 @@ class ACMEUser(Base):
     )
 
 
+class Certificate(Base):
+    id = db.Column(db.Integer, primary_key=True)
+    service_instance_id = db.Column(
+        db.String, db.ForeignKey("service_instance.id"), nullable=False
+    )
+    subject_alternative_names = db.Column(postgresql.JSONB, default=[])
+    leaf_pem = db.Column(db.Text)
+    expires_at = db.Column(db.TIMESTAMP(timezone=True))
+    private_key_pem = db.Column(
+        StringEncryptedType(db.Text, db_encryption_key, AesGcmEngine, "pkcs5")
+    )
+    csr_pem = db.Column(db.Text)
+    fullchain_pem = db.Column(db.Text)
+    iam_server_certificate_id = db.Column(db.String)
+    iam_server_certificate_name = db.Column(db.String)
+    iam_server_certificate_arn = db.Column(db.String)
+
+
+
 class ServiceInstance(Base):
     __tablename__ = "service_instance"
     id = db.Column(db.String(36), primary_key=True)
@@ -48,22 +67,25 @@ class ServiceInstance(Base):
     order_json = db.Column(db.Text)
     instance_type = db.Column(db.Text)
 
-    csr_pem = db.Column(db.Text)
-    cert_pem = db.Column(db.Text)
-    cert_expires_at = db.Column(db.TIMESTAMP(timezone=True))
-    private_key_pem = db.Column(
-        StringEncryptedType(db.Text, db_encryption_key, AesGcmEngine, "pkcs5")
-    )
-    fullchain_pem = db.Column(db.Text)
     domain_internal = db.Column(db.String)
 
-    iam_server_certificate_id = db.Column(db.String)
-    iam_server_certificate_name = db.Column(db.String)
-    iam_server_certificate_arn = db.Column(db.String)
     route53_alias_hosted_zone = db.Column(db.String)
     route53_change_ids = db.Column(postgresql.JSONB, default=[])
 
     deactivated_at = db.Column(db.TIMESTAMP(timezone=True))
+    certificates = db.relation("Certificate", backref="service_instance", foreign_keys=Certificate.service_instance_id)
+    current_certificate_id = db.Column(
+        db.Integer, db.ForeignKey("certificate.id", name="fk__service_instance__certificate__current_certificate_id")
+    )
+    current_certificate = db.relation(
+        Certificate, primaryjoin=current_certificate_id == Certificate.id, foreign_keys=current_certificate_id, post_update = True
+    )
+    new_certificate_id = db.Column(
+        db.Integer, db.ForeignKey("certificate.id", name="fk__service_instance__certificate__new_certificate_id")
+    )
+    new_certificate = db.relation(
+        Certificate, primaryjoin=new_certificate_id == Certificate.id, foreign_keys=new_certificate_id , post_update = True
+    )
 
     __mapper_args__ = {
         "polymorphic_identity": "service_instance",

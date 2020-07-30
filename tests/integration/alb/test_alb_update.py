@@ -206,8 +206,9 @@ def subtest_update_creates_private_key_and_csr(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     service_instance = ALBServiceInstance.query.get("4321")
-    assert "BEGIN PRIVATE KEY" in service_instance.private_key_pem
-    assert "BEGIN CERTIFICATE REQUEST" in service_instance.csr_pem
+    certificate = service_instance.new_certificate
+    assert "BEGIN PRIVATE KEY" in certificate.private_key_pem
+    assert "BEGIN CERTIFICATE REQUEST" in certificate.csr_pem
 
 
 def subtest_update_creates_update_operation(client, dns):
@@ -314,23 +315,25 @@ def subtest_update_retrieves_new_cert(tasks):
 
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
 
-    assert 1 == service_instance.fullchain_pem.count("BEGIN CERTIFICATE")
-    assert 1 == service_instance.cert_pem.count("BEGIN CERTIFICATE")
-    assert service_instance.cert_expires_at is not None
+    assert certificate.fullchain_pem.count("BEGIN CERTIFICATE") == 1
+    assert certificate.leaf_pem.count("BEGIN CERTIFICATE") == 1
+    assert certificate.expires_at is not None
 
 
 def subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex):
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
 
     iam_commercial.expect_upload_server_certificate(
-        name=f"{service_instance.id}-{today}",
-        cert=service_instance.cert_pem,
-        private_key=service_instance.private_key_pem,
-        chain=service_instance.fullchain_pem,
+        name=f"{service_instance.id}-{today}-{certificate.id}",
+        cert=certificate.leaf_pem,
+        private_key=certificate.private_key_pem,
+        chain=certificate.fullchain_pem,
         path="/alb/external-domains-test/",
     )
 
@@ -338,12 +341,13 @@ def subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex):
 
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")
-    assert service_instance.iam_server_certificate_name
-    assert service_instance.iam_server_certificate_name.startswith("4321")
-    assert service_instance.iam_server_certificate_id
-    assert service_instance.iam_server_certificate_id.startswith("FAKE_CERT_ID")
-    assert service_instance.iam_server_certificate_arn
-    assert service_instance.iam_server_certificate_arn.startswith("arn:aws:iam")
+    certificate = service_instance.new_certificate
+    assert certificate.iam_server_certificate_name
+    assert certificate.iam_server_certificate_name.startswith("4321")
+    assert certificate.iam_server_certificate_id
+    assert certificate.iam_server_certificate_id.startswith("FAKE_CERT_ID")
+    assert certificate.iam_server_certificate_arn
+    assert certificate.iam_server_certificate_arn.startswith("arn:aws:iam")
 
 
 def subtest_update_selects_alb(tasks, alb):
@@ -360,12 +364,20 @@ def subtest_update_selects_alb(tasks, alb):
 def subtest_update_adds_certificate_to_alb(tasks, alb):
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
+    id_ = certificate.id
     alb.expect_add_certificate_to_listener(
-        "listener-arn-0", service_instance.iam_server_certificate_arn
+        "listener-arn-0", certificate.iam_server_certificate_arn
     )
     alb.expect_describe_alb("alb-listener-arn-0", "alb.cloud.test")
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
+    db.session.expunge_all()
+    service_instance = ALBServiceInstance.query.get("4321")
+    
+    assert service_instance.new_certificate is None
+    assert service_instance.current_certificate is not None
+    assert service_instance.current_certificate.id == id_
 
 
 def subtest_update_provisions_ALIAS_records(tasks, route53, alb):

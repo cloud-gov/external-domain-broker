@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 def upload_server_certificate(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+    certificate = service_instance.new_certificate
 
     operation.step_description = "Uploading SSL certificate to AWS"
     db.session.add(operation)
@@ -27,31 +28,32 @@ def upload_server_certificate(operation_id: int, **kwargs):
     else:
         iam = iam_govcloud
         iam_server_certificate_prefix = config.ALB_IAM_SERVER_CERTIFICATE_PREFIX
-    service_instance.iam_server_certificate_name = f"{service_instance.id}-{today}"
+    certificate.iam_server_certificate_name = f"{service_instance.id}-{today}-{certificate.id}"
     try:
         response = iam.upload_server_certificate(
             Path=iam_server_certificate_prefix,
-            ServerCertificateName=service_instance.iam_server_certificate_name,
-            CertificateBody=service_instance.cert_pem,
-            PrivateKey=service_instance.private_key_pem,
-            CertificateChain=service_instance.fullchain_pem,
+            ServerCertificateName=certificate.iam_server_certificate_name,
+            CertificateBody=certificate.leaf_pem,
+            PrivateKey=certificate.private_key_pem,
+            CertificateChain=certificate.fullchain_pem,
         )
     except ClientError as e:
         if (
             e.response["Error"]["Code"] == "EntityAlreadyExistsException"
-            and service_instance.iam_server_certificate_id is not None
+            and certificate.iam_server_certificate_id is not None
         ):
             return
         else:
             raise e
 
-    service_instance.iam_server_certificate_id = response["ServerCertificateMetadata"][
+    certificate.iam_server_certificate_id = response["ServerCertificateMetadata"][
         "ServerCertificateId"
     ]
-    service_instance.iam_server_certificate_arn = response["ServerCertificateMetadata"][
+    certificate.iam_server_certificate_arn = response["ServerCertificateMetadata"][
         "Arn"
     ]
     db.session.add(service_instance)
+    db.session.add(certificate)
     db.session.commit()
 
 
@@ -71,7 +73,7 @@ def delete_server_certificate(operation_id: str, **kwargs):
 
     try:
         iam.delete_server_certificate(
-            ServerCertificateName=service_instance.iam_server_certificate_name
+            ServerCertificateName=service_instance.current_certificate.iam_server_certificate_name
         )
     except iam_commercial.exceptions.NoSuchEntityException:
         return

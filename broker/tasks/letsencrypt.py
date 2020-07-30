@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from broker.extensions import config, db
-from broker.models import ACMEUser, Challenge, Operation
+from broker.models import ACMEUser, Certificate, Challenge, Operation
 from broker.tasks import huey
 
 logger = logging.getLogger(__name__)
@@ -102,12 +102,13 @@ def generate_private_key(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    # TODO: validate CSR for updates
-    if (
-        service_instance.csr_pem is not None
-        and operation.action != Operation.Actions.UPDATE.value
-    ):
+    if service_instance.new_certificate is not None:
         return
+
+    certificate = Certificate()
+    certificate.service_instance = service_instance
+    service_instance.new_certificate = certificate
+
     # Create private key.
     private_key = OpenSSL.crypto.PKey()
     private_key.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
@@ -123,11 +124,12 @@ def generate_private_key(operation_id: int, **kwargs):
     )
 
     # Store them as text for later
-    service_instance.private_key_pem = private_key_pem_in_binary.decode("utf-8")
-    service_instance.csr_pem = csr_pem_in_binary.decode("utf-8")
+    certificate.private_key_pem = private_key_pem_in_binary.decode("utf-8")
+    certificate.csr_pem = csr_pem_in_binary.decode("utf-8")
 
     db.session.add(service_instance)
     db.session.add(operation)
+    db.session.add(certificate)
     db.session.commit()
 
 
@@ -136,6 +138,7 @@ def initiate_challenges(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
+    certificate = service_instance.new_certificate
 
     operation.step_description = "Initiating Lets Encrypt challenges"
     db.session.add(operation)
@@ -162,7 +165,7 @@ def initiate_challenges(operation_id: int, **kwargs):
     directory = messages.Directory.from_json(net.get(config.ACME_DIRECTORY).json())
     client_acme = client.ClientV2(directory, net=net)
 
-    order = client_acme.new_order(service_instance.csr_pem.encode())
+    order = client_acme.new_order(certificate.csr_pem.encode())
     service_instance.order_json = json.dumps(order.to_json())
 
     for domain in service_instance.domain_names:
@@ -268,6 +271,7 @@ def retrieve_certificate(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
+    certificate = service_instance.new_certificate
 
     operation.step_description = "Retrieving SSL certificate from Lets Encrypt"
     db.session.add(operation)
@@ -290,7 +294,7 @@ def retrieve_certificate(operation_id: int, **kwargs):
     order_json = json.loads(service_instance.order_json)
     # The csr_pem in the JSON is a binary string, but finalize_order() expects
     # utf-8?  So we set it here from our saved copy.
-    order_json["csr_pem"] = service_instance.csr_pem
+    order_json["csr_pem"] = certificate.csr_pem
     order = messages.OrderResource.from_json(order_json)
 
     deadline = datetime.now() + timedelta(seconds=config.ACME_POLL_TIMEOUT_IN_SECONDS)
@@ -303,21 +307,22 @@ def retrieve_certificate(operation_id: int, **kwargs):
             next_month = datetime.now() + timedelta(days=31)
             next_month = next_month.replace(tzinfo=timezone.utc)
             if (
-                service_instance.cert_expires_at is not None
-                and service_instance.cert_expires_at > next_month
+                certificate.expires_at is not None
+                and certificate.expires_at > next_month
             ):
                 return
         raise e
 
-    service_instance.cert_pem, service_instance.fullchain_pem = cert_from_fullchain(
+    certificate.leaf_pem, certificate.fullchain_pem = cert_from_fullchain(
         finalized_order.fullchain_pem
     )
     x509 = OpenSSL.crypto.load_certificate(
-        OpenSSL.crypto.FILETYPE_PEM, service_instance.cert_pem
+        OpenSSL.crypto.FILETYPE_PEM, certificate.leaf_pem
     )
     not_after = x509.get_notAfter().decode("utf-8")
 
-    service_instance.cert_expires_at = datetime.strptime(not_after, "%Y%m%d%H%M%Sz")
+    certificate.expires_at = datetime.strptime(not_after, "%Y%m%d%H%M%Sz")
     service_instance.order_json = json.dumps(finalized_order.to_json())
     db.session.add(service_instance)
+    db.session.add(certificate)
     db.session.commit()

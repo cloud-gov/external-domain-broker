@@ -48,6 +48,7 @@ def select_alb(operation_id, **kwargs):
 def add_certificate_to_alb(operation_id, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+    certificate = service_instance.new_certificate
 
     operation.step_description = "Adding SSL certificate to load balancer"
     db.session.add(operation)
@@ -55,7 +56,7 @@ def add_certificate_to_alb(operation_id, **kwargs):
 
     alb.add_listener_certificates(
         ListenerArn=service_instance.alb_listener_arn,
-        Certificates=[{"CertificateArn": service_instance.iam_server_certificate_arn}],
+        Certificates=[{"CertificateArn": certificate.iam_server_certificate_arn}],
     )
     alb_config = alb.describe_load_balancers(
         LoadBalancerArns=[service_instance.alb_arn]
@@ -64,8 +65,11 @@ def add_certificate_to_alb(operation_id, **kwargs):
     service_instance.route53_alias_hosted_zone = alb_config["LoadBalancers"][0][
         "CanonicalHostedZoneId"
     ]
+    service_instance.current_certificate = certificate
+    service_instance.new_certificate = None
     db.session.add(service_instance)
     db.session.commit()
+
 
 
 @huey.retriable_task
@@ -81,7 +85,7 @@ def remove_certificate_from_alb(operation_id, **kwargs):
         alb.remove_listener_certificates(
             ListenerArn=service_instance.alb_listener_arn,
             Certificates=[
-                {"CertificateArn": service_instance.iam_server_certificate_arn}
+                {"CertificateArn": service_instance.current_certificate.iam_server_certificate_arn}
             ],
         )
     db.session.add(service_instance)

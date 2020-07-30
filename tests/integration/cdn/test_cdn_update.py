@@ -337,13 +337,7 @@ def test_update_refuses_insecure_origin_for_default_origin(
 
 
 def subtest_update_happy_path(
-    client,
-    dns,
-    tasks,
-    route53,
-    iam_commercial,
-    simple_regex,
-    cloudfront,
+    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront,
 ):
     operation_id = subtest_update_creates_update_operation(client, dns)
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
@@ -364,8 +358,13 @@ def subtest_update_creates_private_key_and_csr(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     service_instance = CDNServiceInstance.query.get("4321")
-    assert "BEGIN PRIVATE KEY" in service_instance.private_key_pem
-    assert "BEGIN CERTIFICATE REQUEST" in service_instance.csr_pem
+    certificate = service_instance.new_certificate
+    assert "BEGIN PRIVATE KEY" in certificate.private_key_pem
+    assert "BEGIN CERTIFICATE REQUEST" in certificate.csr_pem
+    assert len(service_instance.certificates) == 2
+    assert service_instance.current_certificate is not None
+    assert service_instance.new_certificate is not None
+    assert service_instance.current_certificate.id != service_instance.new_certificate.id
 
 
 def subtest_update_creates_update_operation(client, dns):
@@ -482,23 +481,25 @@ def subtest_update_retrieves_new_cert(tasks):
 
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
 
-    assert 1 == service_instance.fullchain_pem.count("BEGIN CERTIFICATE")
-    assert 1 == service_instance.cert_pem.count("BEGIN CERTIFICATE")
-    assert service_instance.cert_expires_at is not None
+    assert certificate.fullchain_pem.count("BEGIN CERTIFICATE") == 1
+    assert certificate.leaf_pem.count("BEGIN CERTIFICATE") == 1
+    assert certificate.expires_at is not None
 
 
 def subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex):
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
 
     iam_commercial.expect_upload_server_certificate(
-        name=f"{service_instance.id}-{today}",
-        cert=service_instance.cert_pem,
-        private_key=service_instance.private_key_pem,
-        chain=service_instance.fullchain_pem,
+        name=f"{service_instance.id}-{today}-{certificate.id}",
+        cert=certificate.leaf_pem,
+        private_key=certificate.private_key_pem,
+        chain=certificate.fullchain_pem,
         path="/cloudfront/external-domains-test/",
     )
 
@@ -506,19 +507,24 @@ def subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex):
 
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("4321")
-    assert service_instance.iam_server_certificate_name
-    assert service_instance.iam_server_certificate_name.startswith("4321")
-    assert service_instance.iam_server_certificate_id
-    assert service_instance.iam_server_certificate_id.startswith("FAKE_CERT_ID")
-    assert service_instance.iam_server_certificate_arn
-    assert service_instance.iam_server_certificate_arn.startswith("arn:aws:iam")
+    certificate = service_instance.new_certificate
+    assert certificate.iam_server_certificate_name
+    assert certificate.iam_server_certificate_name.startswith("4321")
+    assert certificate.iam_server_certificate_id
+    assert certificate.iam_server_certificate_id.startswith("FAKE_CERT_ID")
+    assert certificate.iam_server_certificate_arn
+    assert certificate.iam_server_certificate_arn.startswith("arn:aws:iam")
 
 
 def subtest_updates_cloudfront(tasks, cloudfront):
+    db.session.expunge_all()
+    service_instance = CDNServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
+    id_ = certificate.id
     cloudfront.expect_get_distribution_config(
         caller_reference="4321",
         domains=["example.com", "foo.com"],
-        certificate_id="certificate_id",
+        certificate_id=service_instance.current_certificate.iam_server_certificate_id,
         origin_hostname="origin_hostname",
         origin_path="origin_path",
         distribution_id="FakeDistributionId",
@@ -526,7 +532,7 @@ def subtest_updates_cloudfront(tasks, cloudfront):
     cloudfront.expect_update_distribution(
         caller_reference="4321",
         domains=["bar.com", "foo.com"],
-        certificate_id="FAKE_CERT_ID_XXXXXXXX",
+        certificate_id=certificate.iam_server_certificate_id,
         origin_hostname="new-origin.com",
         origin_path="/somewhere-else",
         distribution_id="FakeDistributionId",
@@ -538,17 +544,24 @@ def subtest_updates_cloudfront(tasks, cloudfront):
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
+    db.session.expunge_all()
+
+    service_instance = CDNServiceInstance.query.get("4321")
     cloudfront.assert_no_pending_responses()
+    assert service_instance.new_certificate is None
+    assert service_instance.current_certificate.id == id_
+
 
 
 def subtest_update_waits_for_cloudfront_update(tasks, cloudfront):
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("4321")
+    certificate = service_instance.current_certificate
 
     cloudfront.expect_get_distribution(
         caller_reference=service_instance.id,
         domains=service_instance.domain_names,
-        certificate_id=service_instance.iam_server_certificate_id,
+        certificate_id=certificate.iam_server_certificate_id,
         origin_hostname=service_instance.cloudfront_origin_hostname,
         origin_path=service_instance.cloudfront_origin_path,
         distribution_id="FakeDistributionId",
@@ -557,7 +570,7 @@ def subtest_update_waits_for_cloudfront_update(tasks, cloudfront):
     cloudfront.expect_get_distribution(
         caller_reference=service_instance.id,
         domains=service_instance.domain_names,
-        certificate_id=service_instance.iam_server_certificate_id,
+        certificate_id=certificate.iam_server_certificate_id,
         origin_hostname=service_instance.cloudfront_origin_hostname,
         origin_path=service_instance.cloudfront_origin_path,
         distribution_id="FakeDistributionId",

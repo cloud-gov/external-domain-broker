@@ -4,6 +4,7 @@ from factory.alchemy import SQLAlchemyModelFactory
 from broker.extensions import db
 from broker.models import (
     ACMEUser,
+    Certificate,
     Challenge,
     Operation,
     CDNServiceInstance,
@@ -58,3 +59,10 @@ class ChallengeFactory(BaseFactory):
     domain = "some.domain.com"
     validation_domain = LazyAttribute(lambda obj: f"_acme-challenge.{obj.domain}")
     validation_contents = LazyAttribute(lambda obj: f"{obj.domain} response")
+
+
+class CertificateFactory(BaseFactory):
+    class Meta(object):
+        model = Certificate
+
+    id = Sequence(int)
