@@ -4,7 +4,7 @@ import logging
 from huey import crontab
 
 from broker.extensions import config, db
-from broker.models import ServiceInstance, Operation
+from broker.models import Certificate, ServiceInstance, Operation
 from broker.tasks import huey, pipelines
 
 logger = logging.getLogger(__name__)
@@ -17,10 +17,16 @@ def scan_for_expiring_certs():
     with huey.huey.flask_app.app_context():
         logger.info("Scanning for expired certificates")
         # TODO: skip SIs with active operations
-        instances = ServiceInstance.query.filter(
-            ServiceInstance.cert_expires_at - datetime.timedelta(days=10)
+        certificates = Certificate.query.filter(
+            Certificate.expires_at - datetime.timedelta(days=10)
             < datetime.datetime.now()
         ).all()
+        instances = [
+            c.service_instance
+            for c in certificates
+            if not c.service_instance.deactivated_at
+            and not c.service_instance.has_active_operations()
+        ]
         cdn_renewals = []
         alb_renewals = []
         for instance in instances:

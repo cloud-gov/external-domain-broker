@@ -21,8 +21,10 @@ from broker.config import config_from_env
 
 config = config_from_env()
 
+
 def db_encryption_key():
     return config.DATABASE_ENCRYPTION_KEY
+
 
 # revision identifiers, used by Alembic.
 revision = "18f343c889ec"
@@ -141,7 +143,9 @@ def upgrade():
     session.commit()
     session = orm.Session(bind=bind)
     for certificate in session.query(Certificate):
-        service_instance = session.query(ServiceInstance).get(certificate.service_instance_id)
+        service_instance = session.query(ServiceInstance).get(
+            certificate.service_instance_id
+        )
         service_instance.current_certificate_id = certificate.id
         session.add(service_instance)
     session.commit()

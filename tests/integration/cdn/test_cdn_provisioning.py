@@ -489,7 +489,7 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
     assert service_instance.cloudfront_distribution_arn.endswith("FakeDistributionId")
     assert service_instance.cloudfront_distribution_id == "FakeDistributionId"
     assert service_instance.domain_internal == "fake1234.cloudfront.net"
-    assert service_instance.new_certificate is None 
+    assert service_instance.new_certificate is None
     assert service_instance.current_certificate is not None
     assert service_instance.current_certificate.id == id_
 

@@ -56,7 +56,6 @@ class Certificate(Base):
     iam_server_certificate_arn = db.Column(db.String)
 
 
-
 class ServiceInstance(Base):
     __tablename__ = "service_instance"
     id = db.Column(db.String(36), primary_key=True)
@@ -73,18 +72,36 @@ class ServiceInstance(Base):
     route53_change_ids = db.Column(postgresql.JSONB, default=[])
 
     deactivated_at = db.Column(db.TIMESTAMP(timezone=True))
-    certificates = db.relation("Certificate", backref="service_instance", foreign_keys=Certificate.service_instance_id)
+    certificates = db.relation(
+        "Certificate",
+        backref="service_instance",
+        foreign_keys=Certificate.service_instance_id,
+    )
     current_certificate_id = db.Column(
-        db.Integer, db.ForeignKey("certificate.id", name="fk__service_instance__certificate__current_certificate_id")
+        db.Integer,
+        db.ForeignKey(
+            "certificate.id",
+            name="fk__service_instance__certificate__current_certificate_id",
+        ),
     )
     current_certificate = db.relation(
-        Certificate, primaryjoin=current_certificate_id == Certificate.id, foreign_keys=current_certificate_id, post_update = True
+        Certificate,
+        primaryjoin=current_certificate_id == Certificate.id,
+        foreign_keys=current_certificate_id,
+        post_update=True,
     )
     new_certificate_id = db.Column(
-        db.Integer, db.ForeignKey("certificate.id", name="fk__service_instance__certificate__new_certificate_id")
+        db.Integer,
+        db.ForeignKey(
+            "certificate.id",
+            name="fk__service_instance__certificate__new_certificate_id",
+        ),
     )
     new_certificate = db.relation(
-        Certificate, primaryjoin=new_certificate_id == Certificate.id, foreign_keys=new_certificate_id , post_update = True
+        Certificate,
+        primaryjoin=new_certificate_id == Certificate.id,
+        foreign_keys=new_certificate_id,
+        post_update=True,
     )
 
     __mapper_args__ = {

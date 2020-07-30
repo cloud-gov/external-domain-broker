@@ -21,12 +21,16 @@ from tests.integration.alb.test_alb_provisioning import (
     subtest_provision_provisions_ALIAS_records,
     subtest_provision_marks_operation_as_succeeded,
 )
-from tests.lib.factories import ALBServiceInstanceFactory, OperationFactory
+from tests.lib.factories import (
+    ALBServiceInstanceFactory,
+    OperationFactory,
+    CertificateFactory,
+)
 from tests.lib.fake_cloudfront import FakeCloudFront
 
 
 @pytest.fixture
-def cdn_instance_needing_renewal(clean_db, tasks):
+def alb_instance_needing_renewal(clean_db, tasks):
     """
     create a cdn service instance that needs renewal.
     This includes walking it through the first few ACME steps to create a user so we can reuse that user.
@@ -34,16 +38,26 @@ def cdn_instance_needing_renewal(clean_db, tasks):
     renew_service_instance = ALBServiceInstanceFactory.create(
         id="4321",
         domain_names=["example.com", "foo.com"],
-        iam_server_certificate_id="certificate_id",
-        iam_server_certificate_name="certificate_name",
-        iam_server_certificate_arn="certificate_arn",
         domain_internal="fake1234.cloud.test",
         route53_alias_hosted_zone="ALBHOSTEDZONEID",
         alb_arn="alb-arn-0",
         alb_listener_arn="listener-arn-0",
-        private_key_pem="SOMEPRIVATEKEY",
-        cert_expires_at=datetime.now() + timedelta(days=9),
     )
+    current_cert = CertificateFactory.create(
+        id=1001,
+        service_instance=renew_service_instance,
+        expires_at=datetime.now() + timedelta(days=9),
+        iam_server_certificate_id="certificate_id",
+        iam_server_certificate_name="certificate_name",
+        iam_server_certificate_arn="certificate_arn",
+        private_key_pem="SOMEPRIVATEKEY",
+    )
+    renew_service_instance.current_certificate = current_cert
+
+    db.session.add(renew_service_instance)
+    db.session.add(current_cert)
+    db.session.commit()
+    db.session.expunge_all()
 
     # create an operation, since that's what our task pipelines know to look for
     operation = OperationFactory.create(service_instance=renew_service_instance)
@@ -63,7 +77,7 @@ def cdn_instance_needing_renewal(clean_db, tasks):
 
 def test_scan_for_expiring_certs_alb_happy_path(
     clean_db,
-    cdn_instance_needing_renewal,
+    alb_instance_needing_renewal,
     tasks,
     route53,
     dns,
@@ -76,20 +90,29 @@ def test_scan_for_expiring_certs_alb_happy_path(
     no_renew_service_instance = ALBServiceInstanceFactory.create(
         id="1234",
         domain_names=["example.org", "foo.org"],
-        iam_server_certificate_id="certificate_id",
-        iam_server_certificate_name="certificate_name",
-        iam_server_certificate_arn="certificate_arn",
         domain_internal="fake1234.cloud.test",
         route53_alias_hosted_zone="ALBHOSTEDZONEID",
         alb_arn="alb-arn-0",
         alb_listener_arn="listener-arn-0",
-        private_key_pem="SOMEPRIVATEKEY",
-        cert_expires_at=datetime.now() + timedelta(days=11),
     )
+    no_renew_cert = CertificateFactory.create(
+        id=1002,
+        service_instance=no_renew_service_instance,
+        expires_at=datetime.now() + timedelta(days=11),
+        private_key_pem="SOMEPRIVATEKEY",
+        iam_server_certificate_id="certificate_id",
+        iam_server_certificate_name="certificate_name",
+        iam_server_certificate_arn="certificate_arn",
+    )
+    no_renew_service_instance.current_certificate = no_renew_cert
+
+    db.session.add(no_renew_service_instance)
+    db.session.add(no_renew_cert)
+    db.session.commit()
+    db.session.expunge_all()
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
-    db.session.refresh(no_renew_service_instance)
     subtest_queues_tasks()
     subtest_provision_initiates_LE_challenge(tasks)
     subtest_provision_updates_TXT_records(tasks, route53)
@@ -114,11 +137,11 @@ def subtest_queues_tasks():
 
 
 def test_does_queues_renewal_for_instance_with_canceled_operations(
-    clean_db, cdn_instance_needing_renewal
+    clean_db, alb_instance_needing_renewal
 ):
     # make a canceled operation
     operation = OperationFactory.create(
-        service_instance=cdn_instance_needing_renewal,
+        service_instance=alb_instance_needing_renewal,
         state=Operation.States.IN_PROGRESS.value,
         canceled_at=datetime.now(),
     )
@@ -137,10 +160,10 @@ def test_does_queues_renewal_for_instance_with_canceled_operations(
     "state", [Operation.States.FAILED.value, Operation.States.SUCCEEDED.value]
 )
 def test_queues_renewal_operations_not_in_progress(
-    clean_db, state, cdn_instance_needing_renewal
+    clean_db, state, alb_instance_needing_renewal
 ):
     operation = OperationFactory.create(
-        service_instance=cdn_instance_needing_renewal, state=state
+        service_instance=alb_instance_needing_renewal, state=state
     )
     db.session.add(operation)
     db.session.commit()
@@ -162,10 +185,10 @@ def test_queues_renewal_operations_not_in_progress(
     ],
 )
 def test_does_not_queue_for_in_progress_actions(
-    clean_db, action, cdn_instance_needing_renewal
+    clean_db, action, alb_instance_needing_renewal
 ):
     operation = OperationFactory.create(
-        service_instance=cdn_instance_needing_renewal,
+        service_instance=alb_instance_needing_renewal,
         state=Operation.States.IN_PROGRESS.value,
         action=action,
     )

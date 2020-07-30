@@ -400,7 +400,6 @@ def subtest_provision_adds_certificate_to_alb(tasks, alb):
     assert service_instance.current_certificate.id == id_
 
 
-
 def subtest_provision_provisions_ALIAS_records(tasks, route53, alb):
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")

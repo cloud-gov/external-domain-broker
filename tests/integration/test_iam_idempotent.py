@@ -32,20 +32,20 @@ def service_instance():
         validation_contents="foo txt",
         service_instance=service_instance,
     )
-    new_cert=factories.CertificateFactory.create(
+    new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
         private_key_pem="SOMEPRIVATEKEY",
         leaf_pem="SOMECERTPEM",
         fullchain_pem="FULLCHAINOFSOMECERTPEM",
-        id=1002
+        id=1002,
     )
-    current_cert=factories.CertificateFactory.create(
+    current_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
         private_key_pem="SOMEPRIVATEKEY",
         iam_server_certificate_id="certificate_id",
         leaf_pem="SOMECERTPEM",
         fullchain_pem="FULLCHAINOFSOMECERTPEM",
-        id=1001
+        id=1001,
     )
     service_instance.current_certificate = current_cert
     service_instance.new_certificate = new_cert
@@ -55,7 +55,6 @@ def service_instance():
     db.session.commit()
     db.session.expunge_all()
     return service_instance
-
 
 
 @pytest.fixture

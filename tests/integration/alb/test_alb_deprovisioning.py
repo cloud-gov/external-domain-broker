@@ -26,14 +26,14 @@ def service_instance():
         validation_contents="foo txt",
         service_instance=service_instance,
     )
-    new_cert=factories.CertificateFactory.create(
+    new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
         private_key_pem="SOMEPRIVATEKEY",
         leaf_pem="SOMECERTPEM",
         fullchain_pem="FULLCHAINOFSOMECERTPEM",
-        id=1002
+        id=1002,
     )
-    current_cert=factories.CertificateFactory.create(
+    current_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
         private_key_pem="SOMEPRIVATEKEY",
         iam_server_certificate_id="certificate_id",
@@ -41,7 +41,7 @@ def service_instance():
         iam_server_certificate_name="certificate_name",
         leaf_pem="SOMECERTPEM",
         fullchain_pem="FULLCHAINOFSOMECERTPEM",
-        id=1001
+        id=1001,
     )
     service_instance.current_certificate = current_cert
     service_instance.new_certificate = new_cert
@@ -145,7 +145,8 @@ def subtest_deprovision_removes_TXT_records(tasks, route53):
 def subtest_deprovision_removes_cert_from_alb(tasks, service_instance, alb):
     service_instance = ALBServiceInstance.query.get("1234")
     alb.expect_remove_certificate_from_listener(
-        service_instance.alb_listener_arn, service_instance.current_certificate.iam_server_certificate_arn
+        service_instance.alb_listener_arn,
+        service_instance.current_certificate.iam_server_certificate_arn,
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
