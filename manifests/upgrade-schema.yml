@@ -11,3 +11,4 @@ applications:
   - python_buildpack
   env:
     FLASK_ENV: ((FLASK_ENV))
+    DATABASE_ENCRYPTION_KEY: ((DATABASE_ENCRYPTION_KEY))
