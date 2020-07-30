@@ -14,16 +14,11 @@ def service_instance():
     service_instance = factories.CDNServiceInstanceFactory.create(
         id="1234",
         domain_names=["example.com", "foo.com"],
-        iam_server_certificate_id="certificate_id",
-        iam_server_certificate_name="certificate_name",
         domain_internal="fake1234.cloudfront.net",
         route53_alias_hosted_zone="Z2FDTNDATAQYW2",
         cloudfront_distribution_id="FakeDistributionId",
         cloudfront_origin_hostname="origin_hostname",
         cloudfront_origin_path="origin_path",
-        private_key_pem="SOMEPRIVATEKEY",
-        cert_pem="SOMECERTPEM",
-        fullchain_pem="FULLCHAINOFSOMECERTPEM",
         origin_protocol_policy="https-only",
         forwarded_headers=["HOST"],
     )
@@ -37,8 +32,30 @@ def service_instance():
         validation_contents="foo txt",
         service_instance=service_instance,
     )
-    db.session.refresh(service_instance)
+    new_cert=factories.CertificateFactory.create(
+        service_instance=service_instance,
+        private_key_pem="SOMEPRIVATEKEY",
+        leaf_pem="SOMECERTPEM",
+        fullchain_pem="FULLCHAINOFSOMECERTPEM",
+        id=1002
+    )
+    current_cert=factories.CertificateFactory.create(
+        service_instance=service_instance,
+        private_key_pem="SOMEPRIVATEKEY",
+        iam_server_certificate_id="certificate_id",
+        leaf_pem="SOMECERTPEM",
+        fullchain_pem="FULLCHAINOFSOMECERTPEM",
+        id=1001
+    )
+    service_instance.current_certificate = current_cert
+    service_instance.new_certificate = new_cert
+    db.session.add(service_instance)
+    db.session.add(current_cert)
+    db.session.add(new_cert)
+    db.session.commit()
+    db.session.expunge_all()
     return service_instance
+
 
 
 @pytest.fixture
@@ -54,14 +71,15 @@ def test_reupload_certificate_ok(
 ):
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("1234")
+    certificate = service_instance.new_certificate
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
 
     iam_commercial.expect_upload_server_certificate(
-        name=f"{service_instance.id}-{today}",
-        cert=service_instance.cert_pem,
-        private_key=service_instance.private_key_pem,
-        chain=service_instance.fullchain_pem,
+        name=f"{service_instance.id}-{today}-{certificate.id}",
+        cert=certificate.leaf_pem,
+        private_key=certificate.private_key_pem,
+        chain=certificate.fullchain_pem,
         path="/cloudfront/external-domains-test/",
     )
 
@@ -69,11 +87,12 @@ def test_reupload_certificate_ok(
 
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("1234")
+    certificate = service_instance.new_certificate
     iam_commercial.expect_upload_server_certificate_raising_duplicate(
-        name=f"{service_instance.id}-{today}",
-        cert=service_instance.cert_pem,
-        private_key=service_instance.private_key_pem,
-        chain=service_instance.fullchain_pem,
+        name=f"{service_instance.id}-{today}-{certificate.id}",
+        cert=certificate.leaf_pem,
+        private_key=certificate.private_key_pem,
+        chain=certificate.fullchain_pem,
         path="/cloudfront/external-domains-test/",
     )
     upload_server_certificate.call_local("4321")

@@ -19,14 +19,11 @@ def service_instance():
     service_instance = factories.CDNServiceInstanceFactory.create(
         id="1234",
         domain_names=["example.com"],
-        iam_server_certificate_id="certificate_id",
-        iam_server_certificate_name="certificate_name",
         domain_internal="fake1234.cloudfront.net",
         route53_alias_hosted_zone="Z2FDTNDATAQYW2",
         cloudfront_distribution_id="FakeDistributionId",
         cloudfront_origin_hostname="origin_hostname",
         cloudfront_origin_path="origin_path",
-        private_key_pem=None,
         origin_protocol_policy="https-only",
         forwarded_headers=["HOST"],
     )
@@ -70,18 +67,18 @@ def test_generate_private_key_is_idempotent(
 
     instance = CDNServiceInstance.query.get("1234")
     assert instance.acme_user is not None
-    assert instance.private_key_pem is None
+    assert instance.new_certificate is None
 
     generate_private_key.call_local(4321)
 
     instance = CDNServiceInstance.query.get("1234")
-    assert instance.private_key_pem is not None
-    stashed_key = instance.private_key_pem
+    assert instance.new_certificate.private_key_pem is not None
+    stashed_key = instance.new_certificate.private_key_pem
 
     generate_private_key.call_local(4321)
 
     instance = CDNServiceInstance.query.get("1234")
-    assert stashed_key == instance.private_key_pem
+    assert stashed_key == instance.new_certificate.private_key_pem
 
 
 def test_initiate_challenges_idempotent(

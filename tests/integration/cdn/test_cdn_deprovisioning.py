@@ -11,14 +11,14 @@ def service_instance():
     service_instance = factories.CDNServiceInstanceFactory.create(
         id="1234",
         domain_names=["example.com", "foo.com"],
-        iam_server_certificate_id="certificate_id",
-        iam_server_certificate_name="certificate_name",
         domain_internal="fake1234.cloudfront.net",
         route53_alias_hosted_zone="Z2FDTNDATAQYW2",
         cloudfront_distribution_id="FakeDistributionId",
         cloudfront_origin_hostname="origin_hostname",
         cloudfront_origin_path="origin_path",
         private_key_pem="SOMEPRIVATEKEY",
+        current_certificate_id=1001,
+        new_certificate_id=1002,
     )
     factories.ChallengeFactory.create(
         domain="example.com",
@@ -29,6 +29,14 @@ def service_instance():
         domain="foo.com",
         validation_contents="foo txt",
         service_instance=service_instance,
+    )
+    new_cert=factories.CertificateFactory.create(
+        service_instance=service_instance,
+        id=1002
+    )
+    current_cert=factories.CertificateFactory.create(
+        service_instance=service_instance,
+        id=1001
     )
     db.session.refresh(service_instance)
     return service_instance
