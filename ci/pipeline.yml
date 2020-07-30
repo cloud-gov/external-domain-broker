@@ -302,7 +302,7 @@ jobs:
   - task: upgrade-schema
     file: src/ci/upgrade-schema.yml
     params:
-      DATABASE_ENCRYPTION_KEY: ((dev-db-encryption-key))
+      DATABASE_ENCRYPTION_KEY: ((staging-db-encryption-key))
       <<: *cf-creds-staging
       <<: *upgrade-schema-vars
   - in_parallel:
@@ -389,7 +389,7 @@ jobs:
   - task: upgrade-schema
     file: src/ci/upgrade-schema.yml
     params:
-      DATABASE_ENCRYPTION_KEY: ((dev-db-encryption-key))
+      DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
       <<: *cf-creds-production
       <<: *upgrade-schema-vars
   - in_parallel:
