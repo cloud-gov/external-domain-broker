@@ -180,6 +180,7 @@ def initiate_challenges(operation_id: int, **kwargs):
 
         challenge.domain = domain
         challenge.service_instance = service_instance
+        challenge.certificate = service_instance.new_certificate
         challenge.validation_domain = challenge_body.validation_domain_name(domain)
         challenge.validation_contents = challenge_validation_contents
         db.session.add(challenge)

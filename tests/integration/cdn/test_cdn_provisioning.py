@@ -350,6 +350,7 @@ def subtest_provision_initiates_LE_challenge(tasks):
     service_instance = CDNServiceInstance.query.get("4321")
 
     assert service_instance.challenges.count() == 2
+    assert service_instance.new_certificate.challenges.count() == 2
 
 
 def subtest_provision_updates_TXT_records(tasks, route53):
