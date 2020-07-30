@@ -167,6 +167,7 @@ def initiate_challenges(operation_id: int, **kwargs):
 
     order = client_acme.new_order(certificate.csr_pem.encode())
     service_instance.order_json = json.dumps(order.to_json())
+    service_instance.new_certificate.order_json = json.dumps(order.to_json())
 
     for domain in service_instance.domain_names:
         challenge_body = dns_challenge(order, domain)

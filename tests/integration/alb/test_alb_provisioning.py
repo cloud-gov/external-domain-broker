@@ -265,6 +265,7 @@ def subtest_provision_initiates_LE_challenge(tasks):
 
     assert service_instance.challenges.count() == 2
     assert service_instance.new_certificate.challenges.count() == 2
+    assert service_instance.new_certificate.order_json is not None
 
 
 def subtest_provision_updates_TXT_records(tasks, route53):
