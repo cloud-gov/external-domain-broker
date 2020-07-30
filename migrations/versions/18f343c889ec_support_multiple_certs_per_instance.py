@@ -50,6 +50,7 @@ class ServiceInstance(Base):
     iam_server_certificate_arn = sa.Column(sa.String)
     current_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("certificate.id"))
     new_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("certificate.id"))
+    csr_pem = sa.Column(sa.Text)
 
 
 class Certificate(Base):
@@ -68,6 +69,7 @@ class Certificate(Base):
     iam_server_certificate_id = sa.Column(sa.String)
     iam_server_certificate_name = sa.Column(sa.String)
     iam_server_certificate_arn = sa.Column(sa.String)
+    csr_pem = sa.Column(sa.Text)
 
 
 def upgrade():
