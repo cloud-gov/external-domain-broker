@@ -71,7 +71,6 @@ def add_certificate_to_alb(operation_id, **kwargs):
     db.session.commit()
 
 
-
 @huey.retriable_task
 def remove_certificate_from_alb(operation_id, **kwargs):
     operation = Operation.query.get(operation_id)
@@ -85,7 +84,9 @@ def remove_certificate_from_alb(operation_id, **kwargs):
         alb.remove_listener_certificates(
             ListenerArn=service_instance.alb_listener_arn,
             Certificates=[
-                {"CertificateArn": service_instance.current_certificate.iam_server_certificate_arn}
+                {
+                    "CertificateArn": service_instance.current_certificate.iam_server_certificate_arn
+                }
             ],
         )
     db.session.add(service_instance)

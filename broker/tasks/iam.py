@@ -28,7 +28,9 @@ def upload_server_certificate(operation_id: int, **kwargs):
     else:
         iam = iam_govcloud
         iam_server_certificate_prefix = config.ALB_IAM_SERVER_CERTIFICATE_PREFIX
-    certificate.iam_server_certificate_name = f"{service_instance.id}-{today}-{certificate.id}"
+    certificate.iam_server_certificate_name = (
+        f"{service_instance.id}-{today}-{certificate.id}"
+    )
     try:
         response = iam.upload_server_certificate(
             Path=iam_server_certificate_prefix,

@@ -244,12 +244,16 @@ def update_certificate(operation_id: str, **kwargs):
     )
     config["DistributionConfig"]["ViewerCertificate"][
         "IAMCertificateId"
-    ] = service_instance.iam_server_certificate_id
+    ] = service_instance.new_certificate.iam_server_certificate_id
     cloudfront.update_distribution(
         DistributionConfig=config["DistributionConfig"],
         Id=service_instance.cloudfront_distribution_id,
         IfMatch=config["ETag"],
     )
+    service_instance.current_certificate = service_instance.new_certificate
+    service_instance.new_certificate = None
+    db.session.add(service_instance)
+    db.session.commit()
 
 
 @huey.retriable_task

@@ -12,13 +12,16 @@ from tests.integration.cdn.test_cdn_provisioning import (
     subtest_provision_initiates_LE_challenge,
     subtest_provision_updates_TXT_records,
     subtest_provision_answers_challenges,
-    subtest_provision_retrieves_certificate,
     subtest_provision_waits_for_route53_changes,
     subtest_provision_creates_private_key_and_csr,
     subtest_provision_uploads_certificate_to_iam,
     subtest_provision_marks_operation_as_succeeded,
 )
-from tests.lib.factories import CDNServiceInstanceFactory, OperationFactory
+from tests.lib.factories import (
+    CDNServiceInstanceFactory,
+    CertificateFactory,
+    OperationFactory,
+)
 from tests.lib.fake_cloudfront import FakeCloudFront
 
 
@@ -31,16 +34,27 @@ def cdn_instance_needing_renewal(clean_db, tasks):
     renew_service_instance = CDNServiceInstanceFactory.create(
         id="4321",
         domain_names=["example.com", "foo.com"],
-        iam_server_certificate_id="certificate_id",
-        iam_server_certificate_name="certificate_name",
         domain_internal="fake1234.cloudfront.net",
         route53_alias_hosted_zone="Z2FDTNDATAQYW2",
         cloudfront_distribution_id="FakeDistributionId",
         cloudfront_origin_hostname="origin_hostname",
-        cloudfront_origin_path="origin_path",
-        private_key_pem="SOMEPRIVATEKEY",
-        cert_expires_at=datetime.now() + timedelta(days=9),
     )
+
+    current_cert = CertificateFactory.create(
+        id=1001,
+        service_instance=renew_service_instance,
+        expires_at=datetime.now() + timedelta(days=9),
+        iam_server_certificate_id="certificate_id",
+        iam_server_certificate_name="certificate_name",
+        iam_server_certificate_arn="certificate_arn",
+        private_key_pem="SOMEPRIVATEKEY",
+    )
+    renew_service_instance.current_certificate = current_cert
+
+    db.session.add(renew_service_instance)
+    db.session.add(current_cert)
+    db.session.commit()
+    db.session.expunge_all()
 
     # create an operation, since that's what our task pipelines know to look for
     operation = OperationFactory.create(service_instance=renew_service_instance)
@@ -72,26 +86,36 @@ def test_scan_for_expiring_certs_cdn_happy_path(
     no_renew_service_instance = CDNServiceInstanceFactory.create(
         id="1234",
         domain_names=["example.org", "foo.org"],
-        iam_server_certificate_id="certificate_id",
-        iam_server_certificate_name="certificate_name",
         domain_internal="fake1234.cloudfront.net",
         route53_alias_hosted_zone="Z2FDTNDATAQYW2",
         cloudfront_distribution_id="FakeDistributionId",
         cloudfront_origin_hostname="origin_hostname",
         cloudfront_origin_path="origin_path",
-        private_key_pem="SOMEPRIVATEKEY",
-        cert_expires_at=datetime.now() + timedelta(days=11),
     )
+    no_renew_cert = CertificateFactory.create(
+        id=1002,
+        service_instance=no_renew_service_instance,
+        expires_at=datetime.now() + timedelta(days=11),
+        private_key_pem="SOMEPRIVATEKEY",
+        iam_server_certificate_id="certificate_id",
+        iam_server_certificate_name="certificate_name",
+        iam_server_certificate_arn="certificate_arn",
+    )
+    no_renew_service_instance.current_certificate = no_renew_cert
+
+    db.session.add(no_renew_service_instance)
+    db.session.add(no_renew_cert)
+    db.session.commit()
+    db.session.expunge_all()
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
-    db.session.refresh(no_renew_service_instance)
     subtest_queues_tasks()
     subtest_provision_initiates_LE_challenge(tasks)
     subtest_provision_updates_TXT_records(tasks, route53)
     subtest_provision_waits_for_route53_changes(tasks, route53)
     subtest_provision_answers_challenges(tasks, dns)
-    subtest_provision_retrieves_certificate(tasks)
+    subtest_renew_retrieves_certificate(tasks)
     subtest_provision_uploads_certificate_to_iam(tasks, iam_commercial, simple_regex)
     subtest_updates_certificate_in_cloudfront(tasks, cloudfront)
     subtest_provision_marks_operation_as_succeeded(tasks)
@@ -128,3 +152,17 @@ def subtest_updates_certificate_in_cloudfront(tasks, cloudfront: FakeCloudFront)
 
     tasks.run_queued_tasks_and_enqueue_dependents()
     cloudfront.assert_no_pending_responses()
+
+
+def subtest_renew_retrieves_certificate(tasks):
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = CDNServiceInstance.query.get("4321")
+
+    assert len(service_instance.certificates) == 2
+    certificate = service_instance.new_certificate
+
+    assert certificate.fullchain_pem.count("BEGIN CERTIFICATE") == 1
+    assert certificate.leaf_pem.count("BEGIN CERTIFICATE") == 1
+    assert certificate.expires_at is not None

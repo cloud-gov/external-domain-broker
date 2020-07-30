@@ -13,47 +13,49 @@ from tests.lib.client import check_last_operation_description
 
 
 @pytest.fixture
-def service_instance(tasks):
+def service_instance():
     service_instance = factories.ALBServiceInstanceFactory.create(
         id="4321",
         domain_names=["example.com", "foo.com"],
-        iam_server_certificate_id="certificate_id",
-        iam_server_certificate_name="certificate_name",
-        domain_internal="fake1234.cloudfront.net",
         route53_alias_hosted_zone="Z2FDTNDATAQYW2",
-        private_key_pem="SOMEPRIVATEKEY",
         alb_arn="alb-arn-1",
         alb_listener_arn="alb-listener-arn-1",
+        domain_internal="fake1234.cloud.test",
     )
     factories.ChallengeFactory.create(
         domain="example.com",
         validation_contents="example txt",
         service_instance=service_instance,
-        answered=True,
-        id=1001,
     )
     factories.ChallengeFactory.create(
         domain="foo.com",
         validation_contents="foo txt",
         service_instance=service_instance,
-        answered=True,
-        id=1000,
     )
-    db.session.refresh(service_instance)
-
-    # create an operation, since that's what our task pipelines know to look for
-    operation = factories.OperationFactory.create(service_instance=service_instance)
-    db.session.refresh(operation)
+    new_cert = factories.CertificateFactory.create(
+        service_instance=service_instance,
+        private_key_pem="SOMEPRIVATEKEY",
+        leaf_pem="SOMECERTPEM",
+        fullchain_pem="FULLCHAINOFSOMECERTPEM",
+        id=1002,
+    )
+    current_cert = factories.CertificateFactory.create(
+        service_instance=service_instance,
+        private_key_pem="SOMEPRIVATEKEY",
+        iam_server_certificate_id="certificate_id",
+        iam_server_certificate_arn="certificate_arn",
+        iam_server_certificate_name="certificate_name",
+        leaf_pem="SOMECERTPEM",
+        fullchain_pem="FULLCHAINOFSOMECERTPEM",
+        id=1001,
+    )
+    service_instance.current_certificate = current_cert
+    service_instance.new_certificate = new_cert
+    db.session.add(service_instance)
+    db.session.add(current_cert)
+    db.session.add(new_cert)
     db.session.commit()
-
-    huey.enqueue(create_user.s(operation.id))
-    tasks.run_queued_tasks_and_enqueue_dependents()
-    huey.enqueue(generate_private_key.s(operation.id))
-    tasks.run_queued_tasks_and_enqueue_dependents()
-
-    # delete the operation to simplify checks on operations later
-    db.session.delete(operation)
-    db.session.commit()
+    db.session.expunge_all()
 
     return service_instance
 
@@ -374,7 +376,7 @@ def subtest_update_adds_certificate_to_alb(tasks, alb):
     alb.assert_no_pending_responses()
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")
-    
+
     assert service_instance.new_certificate is None
     assert service_instance.current_certificate is not None
     assert service_instance.current_certificate.id == id_
