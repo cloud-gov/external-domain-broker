@@ -54,6 +54,7 @@ class Certificate(Base):
     iam_server_certificate_id = db.Column(db.String)
     iam_server_certificate_name = db.Column(db.String)
     iam_server_certificate_arn = db.Column(db.String)
+    challenges = db.relation("Challenge", backref="certificate", lazy="dynamic")
 
 
 class ServiceInstance(Base):
@@ -190,6 +191,9 @@ class Challenge(Base):
     id = db.Column(db.Integer, primary_key=True)
     service_instance_id = db.Column(
         db.String, db.ForeignKey("service_instance.id"), nullable=False
+    )
+    certificate_id = db.Column(
+        db.Integer, db.ForeignKey("certificate.id"), nullable=True
     )
     domain = db.Column(db.String, nullable=False)
     validation_domain = db.Column(db.String, nullable=False)
