@@ -62,10 +62,8 @@ class ServiceInstance(Base):
     __tablename__ = "service_instance"
     id = db.Column(db.String(36), primary_key=True)
     operations = db.relation("Operation", backref="service_instance", lazy="dynamic")
-    challenges = db.relation("Challenge", backref="service_instance", lazy="dynamic")
     acme_user_id = db.Column(db.Integer, db.ForeignKey("acme_user.id"))
     domain_names = db.Column(postgresql.JSONB, default=[])
-    order_json = db.Column(db.Text)
     instance_type = db.Column(db.Text)
 
     domain_internal = db.Column(db.String)
@@ -190,11 +188,8 @@ class Operation(Base):
 
 class Challenge(Base):
     id = db.Column(db.Integer, primary_key=True)
-    service_instance_id = db.Column(
-        db.String, db.ForeignKey("service_instance.id"), nullable=False
-    )
     certificate_id = db.Column(
-        db.Integer, db.ForeignKey("certificate.id"), nullable=True
+        db.Integer, db.ForeignKey("certificate.id"), nullable=False
     )
     domain = db.Column(db.String, nullable=False)
     validation_domain = db.Column(db.String, nullable=False)

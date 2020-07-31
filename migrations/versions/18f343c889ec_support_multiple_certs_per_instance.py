@@ -102,7 +102,7 @@ def upgrade():
         sa.Column("iam_server_certificate_id", sa.String(), nullable=True),
         sa.Column("iam_server_certificate_name", sa.String(), nullable=True),
         sa.Column("iam_server_certificate_arn", sa.String(), nullable=True),
-        sa.ForeignKeyConstraint(["service_instance_id"], ["service_instance.id"],),
+        sa.ForeignKeyConstraint(["service_instance_id"], ["service_instance.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.add_column(

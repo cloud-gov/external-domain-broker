@@ -16,16 +16,6 @@ def service_instance():
         alb_arn="arn:aws:elasticloadbalancingv2:us-west-1:1234:loadbalancer/app/foo/1234",
         domain_internal="fake1234.cloud.test",
     )
-    factories.ChallengeFactory.create(
-        domain="example.com",
-        validation_contents="example txt",
-        service_instance=service_instance,
-    )
-    factories.ChallengeFactory.create(
-        domain="foo.com",
-        validation_contents="foo txt",
-        service_instance=service_instance,
-    )
     new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
         private_key_pem="SOMEPRIVATEKEY",
@@ -43,6 +33,30 @@ def service_instance():
         fullchain_pem="FULLCHAINOFSOMECERTPEM",
         id=1001,
     )
+    factories.ChallengeFactory.create(
+        domain="example.com",
+        validation_contents="example txt",
+        certificate_id=1001,
+        answered=True,
+    )
+    factories.ChallengeFactory.create(
+        domain="foo.com",
+        validation_contents="foo txt",
+        certificate_id=1001,
+        answered=True,
+    )
+    factories.ChallengeFactory.create(
+        domain="example.com",
+        validation_contents="example txt",
+        certificate_id=1002,
+        answered=False,
+    )
+    factories.ChallengeFactory.create(
+        domain="foo.com",
+        validation_contents="foo txt",
+        certificate_id=1002,
+        answered=False,
+    )
     service_instance.current_certificate = current_cert
     service_instance.new_certificate = new_cert
     db.session.add(service_instance)
@@ -50,7 +64,6 @@ def service_instance():
     db.session.add(new_cert)
     db.session.commit()
     db.session.expunge_all()
-
     return service_instance
 
 

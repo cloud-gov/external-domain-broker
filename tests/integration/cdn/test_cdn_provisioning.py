@@ -349,7 +349,6 @@ def subtest_provision_initiates_LE_challenge(tasks):
 
     service_instance = CDNServiceInstance.query.get("4321")
 
-    assert service_instance.challenges.count() == 2
     assert service_instance.new_certificate.challenges.count() == 2
     assert service_instance.new_certificate.order_json is not None
 
@@ -391,12 +390,13 @@ def subtest_provision_waits_for_route53_changes(tasks, route53):
 def subtest_provision_answers_challenges(tasks, dns):
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
 
-    example_com_challenge = service_instance.challenges.filter(
+    example_com_challenge = certificate.challenges.filter(
         Challenge.domain.like("%example.com")
     ).first()
 
-    foo_com_challenge = service_instance.challenges.filter(
+    foo_com_challenge = certificate.challenges.filter(
         Challenge.domain.like("%foo.com")
     ).first()
 
@@ -414,7 +414,8 @@ def subtest_provision_answers_challenges(tasks, dns):
 
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("4321")
-    answered = [c.answered for c in service_instance.challenges]
+    certificate = service_instance.new_certificate
+    answered = [c.answered for c in certificate.challenges]
     assert answered == [True, True]
 
 

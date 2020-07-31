@@ -108,6 +108,7 @@ def generate_private_key(operation_id: int, **kwargs):
     certificate = Certificate()
     certificate.service_instance = service_instance
     service_instance.new_certificate = certificate
+    certificate.subject_alternative_names = service_instance.domain_names
 
     # Create private key.
     private_key = OpenSSL.crypto.PKey()
@@ -144,12 +145,8 @@ def initiate_challenges(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    if service_instance.order_json is not None:
-        now = datetime.now()
-        order = json.loads(service_instance.order_json)["body"]
-        expiration = datetime.fromisoformat(order["expires"].replace("Z", ""))
-        if expiration > now and order["status"] == "pending":
-            return
+    if certificate.order_json is not None:
+        return
 
     account_key = serialization.load_pem_private_key(
         acme_user.private_key_pem.encode(), password=None, backend=default_backend()
@@ -166,8 +163,8 @@ def initiate_challenges(operation_id: int, **kwargs):
     client_acme = client.ClientV2(directory, net=net)
 
     order = client_acme.new_order(certificate.csr_pem.encode())
-    service_instance.order_json = json.dumps(order.to_json())
-    service_instance.new_certificate.order_json = json.dumps(order.to_json())
+    order_json = json.dumps(order.to_json())
+    certificate.order_json = json.dumps(order.to_json())
 
     for domain in service_instance.domain_names:
         challenge_body = dns_challenge(order, domain)
@@ -180,8 +177,7 @@ def initiate_challenges(operation_id: int, **kwargs):
         challenge.body_json = challenge_body.json_dumps()
 
         challenge.domain = domain
-        challenge.service_instance = service_instance
-        challenge.certificate = service_instance.new_certificate
+        challenge.certificate = certificate
         challenge.validation_domain = challenge_body.validation_domain_name(domain)
         challenge.validation_contents = challenge_validation_contents
         db.session.add(challenge)
@@ -200,7 +196,7 @@ def answer_challenges(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    challenges = service_instance.challenges.all()
+    challenges = service_instance.new_certificate.challenges.all()
     unanswered = [challenge for challenge in challenges if not challenge.answered]
     if not unanswered:
         return
@@ -279,6 +275,9 @@ def retrieve_certificate(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
+    if certificate.leaf_pem is not None:
+        return
+
     account_key = serialization.load_pem_private_key(
         acme_user.private_key_pem.encode(), password=None, backend=default_backend()
     )
@@ -293,7 +292,7 @@ def retrieve_certificate(operation_id: int, **kwargs):
     directory = messages.Directory.from_json(net.get(config.ACME_DIRECTORY).json())
     client_acme = client.ClientV2(directory, net=net)
 
-    order_json = json.loads(service_instance.order_json)
+    order_json = json.loads(certificate.order_json)
     # The csr_pem in the JSON is a binary string, but finalize_order() expects
     # utf-8?  So we set it here from our saved copy.
     order_json["csr_pem"] = certificate.csr_pem
@@ -324,7 +323,7 @@ def retrieve_certificate(operation_id: int, **kwargs):
     not_after = x509.get_notAfter().decode("utf-8")
 
     certificate.expires_at = datetime.strptime(not_after, "%Y%m%d%H%M%Sz")
-    service_instance.order_json = json.dumps(finalized_order.to_json())
+    certificate.order_json = json.dumps(finalized_order.to_json())
     db.session.add(service_instance)
     db.session.add(certificate)
     db.session.commit()

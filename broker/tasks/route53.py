@@ -19,7 +19,9 @@ def create_TXT_records(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    for challenge in [c for c in service_instance.challenges if not c.answered]:
+    for challenge in [
+        c for c in service_instance.new_certificate.challenges if not c.answered
+    ]:
         domain = challenge.validation_domain
         txt_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
         contents = challenge.validation_contents
@@ -52,12 +54,13 @@ def create_TXT_records(operation_id: int, **kwargs):
 def remove_TXT_records(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+    certificate = service_instance.current_certificate
 
     operation.step_description = "Removing DNS TXT records"
     db.session.add(operation)
     db.session.commit()
 
-    for challenge in service_instance.challenges:
+    for challenge in certificate.challenges:
         domain = challenge.validation_domain
         txt_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
         contents = challenge.validation_contents

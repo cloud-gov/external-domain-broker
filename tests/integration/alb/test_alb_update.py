@@ -22,23 +22,6 @@ def service_instance():
         alb_listener_arn="alb-listener-arn-1",
         domain_internal="fake1234.cloud.test",
     )
-    factories.ChallengeFactory.create(
-        domain="example.com",
-        validation_contents="example txt",
-        service_instance=service_instance,
-    )
-    factories.ChallengeFactory.create(
-        domain="foo.com",
-        validation_contents="foo txt",
-        service_instance=service_instance,
-    )
-    new_cert = factories.CertificateFactory.create(
-        service_instance=service_instance,
-        private_key_pem="SOMEPRIVATEKEY",
-        leaf_pem="SOMECERTPEM",
-        fullchain_pem="FULLCHAINOFSOMECERTPEM",
-        id=1002,
-    )
     current_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
         private_key_pem="SOMEPRIVATEKEY",
@@ -49,14 +32,23 @@ def service_instance():
         fullchain_pem="FULLCHAINOFSOMECERTPEM",
         id=1001,
     )
+    factories.ChallengeFactory.create(
+        domain="example.com",
+        validation_contents="example txt",
+        certificate_id=1001,
+        answered=True,
+    )
+    factories.ChallengeFactory.create(
+        domain="foo.com",
+        validation_contents="foo txt",
+        certificate_id=1001,
+        answered=True,
+    )
     service_instance.current_certificate = current_cert
-    service_instance.new_certificate = new_cert
     db.session.add(service_instance)
     db.session.add(current_cert)
-    db.session.add(new_cert)
     db.session.commit()
     db.session.expunge_all()
-
     return service_instance
 
 
@@ -216,9 +208,7 @@ def subtest_update_creates_private_key_and_csr(tasks):
 def subtest_update_creates_update_operation(client, dns):
     dns.add_cname("_acme-challenge.foo.com")
     dns.add_cname("_acme-challenge.bar.com")
-    client.update_alb_instance(
-        "4321", params={"domains": "bar.com, Foo.com",},
-    )
+    client.update_alb_instance("4321", params={"domains": "bar.com, Foo.com"})
     db.session.expunge_all()
 
     assert client.response.status_code == 202, client.response.body
@@ -243,12 +233,12 @@ def subtest_gets_new_challenges(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     service_instance = ALBServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
 
-    assert service_instance.challenges.count() == 4
-    new_challenges = [c for c in service_instance.challenges if not c.answered]
-    assert len(new_challenges) == 2
-    new_challenge_domains = [c.domain for c in new_challenges]
-    assert sorted(new_challenge_domains) == sorted(["bar.com", "foo.com"])
+    assert certificate.challenges.count() == 2
+    assert sorted(certificate.subject_alternative_names) == sorted(
+        ["bar.com", "foo.com"]
+    )
 
 
 def subtest_update_updates_TXT_records(tasks, route53):
@@ -270,12 +260,13 @@ def subtest_update_updates_TXT_records(tasks, route53):
 def subtest_update_answers_challenges(tasks, dns):
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
 
-    bar_com_challenge = service_instance.challenges.filter(
+    bar_com_challenge = certificate.challenges.filter(
         Challenge.domain.like("%bar.com"), Challenge.answered.is_(False)
     ).first()
 
-    foo_com_challenge = service_instance.challenges.filter(
+    foo_com_challenge = certificate.challenges.filter(
         Challenge.domain.like("%foo.com"), Challenge.answered.is_(False)
     ).first()
 
@@ -293,8 +284,9 @@ def subtest_update_answers_challenges(tasks, dns):
 
     db.session.expunge_all()
     service_instance = ALBServiceInstance.query.get("4321")
-    answered = [c.answered for c in service_instance.challenges]
-    assert answered == [True, True, True, True]
+    certificate = service_instance.new_certificate
+    answered = [c.answered for c in certificate.challenges]
+    assert answered == [True, True]
 
 
 def subtest_waits_for_dns_changes(tasks, route53):

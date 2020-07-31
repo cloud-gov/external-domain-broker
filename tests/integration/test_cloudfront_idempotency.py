@@ -20,16 +20,6 @@ def service_instance():
         origin_protocol_policy="https-only",
         forwarded_headers=["HOST"],
     )
-    factories.ChallengeFactory.create(
-        domain="example.com",
-        validation_contents="example txt",
-        service_instance=service_instance,
-    )
-    factories.ChallengeFactory.create(
-        domain="foo.com",
-        validation_contents="foo txt",
-        service_instance=service_instance,
-    )
     new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
         private_key_pem="SOMEPRIVATEKEY",
@@ -41,6 +31,30 @@ def service_instance():
         private_key_pem="SOMEPRIVATEKEY",
         iam_server_certificate_id="certificate_id",
         id=1001,
+    )
+    factories.ChallengeFactory.create(
+        domain="example.com",
+        validation_contents="example txt",
+        certificate_id=1001,
+        answered=True,
+    )
+    factories.ChallengeFactory.create(
+        domain="foo.com",
+        validation_contents="foo txt",
+        certificate_id=1001,
+        answered=True,
+    )
+    factories.ChallengeFactory.create(
+        domain="example.com",
+        validation_contents="example txt",
+        certificate_id=1002,
+        answered=False,
+    )
+    factories.ChallengeFactory.create(
+        domain="foo.com",
+        validation_contents="foo txt",
+        certificate_id=1002,
+        answered=False,
     )
     service_instance.current_certificate = current_cert
     service_instance.new_certificate = new_cert
