@@ -273,6 +273,24 @@ jobs:
     params:
       <<: *cf-creds-dev
       <<: *broker-register-params
+  on_failure:
+    put: slack
+    params:
+      text: |
+        :x: FAILED to deploy external-domain-broker on development
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+  on_success:
+    put: slack
+    params:
+      text: |
+        :white_check_mark: Successfully deployed external-domain-broker on development
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
 
 - name: staging
   serial_groups: [staging]
@@ -325,6 +343,25 @@ jobs:
     params:
       <<: *cf-creds-staging
       <<: *broker-register-params
+  on_failure:
+    put: slack
+    params:
+      text: |
+        :x: FAILED to deploy external-domain-broker on staging
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+  on_success:
+    put: slack
+    params:
+      text: |
+        :white_check_mark: Successfully deployed external-domain-broker on staging
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+
 
 - name: staging-acceptance-tests
   serial_groups: [staging]
@@ -360,6 +397,25 @@ jobs:
           <<: *acceptance-tests-params-staging-alb
         run:
           path: /app/acceptance/run.sh
+  on_failure:
+    put: slack
+    params:
+      text: |
+        :x: Acceptance tests for external-domain-broker FAILED in staging
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+  on_success:
+    put: slack
+    params:
+      text: |
+        :white_check_mark: Acceptance tests for external-domain-broker PASSED in staging
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+
 
 - name: production
   serial_groups: [production]
@@ -412,6 +468,25 @@ jobs:
     params:
       <<: *cf-creds-production
       <<: *broker-register-params
+  on_failure:
+    put: slack
+    params:
+      text: |
+        :x: FAILED to deploy external-domain-broker on production
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+  on_success:
+    put: slack
+    params:
+      text: |
+        :white_check_mark: Successfully deployed external-domain-broker on production
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+
 
 - name: production-acceptance-tests
   serial_groups: [production]
@@ -447,6 +522,25 @@ jobs:
           <<: *acceptance-tests-params-production-alb
         run:
           path: /app/acceptance/run.sh
+  on_failure:
+    put: slack
+    params:
+      text: |
+        :x: Acceptance tests for external-domain-broker FAILED in production
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+  on_success:
+    put: slack
+    params:
+      text: |
+        :white_check_mark: Acceptance tests for external-domain-broker PASSED in production
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+
 ############################
 #  RESOURCES
 
@@ -527,6 +621,11 @@ resources:
       - Thursday
       - Friday
 
+- name: slack
+  type: slack-notification
+  source:
+    url: ((slack-webhook-url))
+
 ############################
 #  RESOURCE TYPES
 
@@ -536,3 +635,8 @@ resource_types:
   type: docker-image
   source:
     repository: 18fgsa/s3-resource
+
+- name: slack-notification
+  type: docker-image
+  source:
+    repository: cfcommunity/slack-notification-resource
