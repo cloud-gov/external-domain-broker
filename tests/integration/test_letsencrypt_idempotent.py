@@ -89,17 +89,20 @@ def test_initiate_challenges_idempotent(
     create_user.call_local(4321)
     generate_private_key.call_local(4321)
     instance = CDNServiceInstance.query.get("1234")
-    assert instance.challenges.all() == []
+    certificate = instance.new_certificate
+    assert certificate.challenges.all() == []
 
     initiate_challenges.call_local(4321)
     instance = CDNServiceInstance.query.get("1234")
-    challenges = instance.challenges.all()
+    certificate = instance.new_certificate
+    challenges = certificate.challenges.all()
     assert len(challenges) > 0
     db.session.expunge_all()
 
     initiate_challenges.call_local(4321)
     instance = CDNServiceInstance.query.get("1234")
-    challenges_after = instance.challenges.all()
+    certificate = instance.new_certificate
+    challenges_after = certificate.challenges.all()
     assert len(challenges_after) == len(challenges)
     for i in range(len(challenges)):
         before = challenges[i]
@@ -118,14 +121,16 @@ def test_answer_challenges_idempotent(
     initiate_challenges.call_local(4321)
 
     instance = CDNServiceInstance.query.get("1234")
-    challenges_before = instance.challenges.all()
+    certificate = instance.new_certificate
+    challenges_before = certificate.challenges.all()
     for challenge in challenges_before:
         assert not challenge.answered
     db.session.expunge_all()
 
     answer_challenges.call_local(4321)
     instance = CDNServiceInstance.query.get("1234")
-    example_com_challenge = instance.challenges.filter(
+    certificate = instance.new_certificate
+    example_com_challenge = certificate.challenges.filter(
         Challenge.domain.like("%example.com")
     ).first()
     dns.add_txt(
@@ -135,7 +140,7 @@ def test_answer_challenges_idempotent(
     db.session.expunge_all()
     answer_challenges.call_local(4321)
     answer_challenges.call_local(4321)
-    challenges_after = instance.challenges.all()
+    challenges_after = certificate.challenges.all()
     for i in range(len(challenges_after)):
         assert challenges_after[i].updated_at == challenges_before.updated_at
 
@@ -150,7 +155,8 @@ def test_retrieve_certificate_idempotent(
     generate_private_key.call_local(4321)
     initiate_challenges.call_local(4321)
     service_instance = CDNServiceInstance.query.get("1234")
-    example_com_challenge = service_instance.challenges.filter(
+    certificate = service_instance.new_certificate
+    example_com_challenge = certificate.challenges.filter(
         Challenge.domain.like("%example.com")
     ).first()
     dns.add_txt(

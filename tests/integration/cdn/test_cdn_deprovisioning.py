@@ -17,32 +17,46 @@ def service_instance():
         cloudfront_origin_hostname="origin_hostname",
         cloudfront_origin_path="origin_path",
     )
+    new_cert = factories.CertificateFactory.create(
+        service_instance=service_instance,
+        private_key_pem="SOMEPRIVATEKEY",
+        leaf_pem="SOMECERTPEM",
+        fullchain_pem="FULLCHAINOFSOMECERTPEM",
+        id=1002,
+    )
+    current_cert = factories.CertificateFactory.create(
+        service_instance=service_instance,
+        private_key_pem="SOMEPRIVATEKEY",
+        iam_server_certificate_id="certificate_id",
+        iam_server_certificate_arn="certificate_arn",
+        iam_server_certificate_name="certificate_name",
+        leaf_pem="SOMECERTPEM",
+        fullchain_pem="FULLCHAINOFSOMECERTPEM",
+        id=1001,
+    )
     factories.ChallengeFactory.create(
         domain="example.com",
         validation_contents="example txt",
-        service_instance=service_instance,
+        certificate_id=1001,
+        answered=True,
     )
     factories.ChallengeFactory.create(
         domain="foo.com",
         validation_contents="foo txt",
-        service_instance=service_instance,
+        certificate_id=1001,
+        answered=True,
     )
-    new_cert = factories.CertificateFactory.create(
-        service_instance=service_instance,
-        id=1002,
-        private_key_pem="SOMEPRIVATEKEY",
-        leaf_pem="SOMECERTPEM",
-        fullchain_pem="FULLCHAINOFSOMECERTPEM",
+    factories.ChallengeFactory.create(
+        domain="example.com",
+        validation_contents="example txt",
+        certificate_id=1002,
+        answered=False,
     )
-    current_cert = factories.CertificateFactory.create(
-        service_instance=service_instance,
-        id=1001,
-        private_key_pem="SOMEPRIVATEKEY",
-        leaf_pem="SOMECERTPEM",
-        fullchain_pem="FULLCHAINOFSOMECERTPEM",
-        iam_server_certificate_id="certificate_id",
-        iam_server_certificate_arn="certificate_arn",
-        iam_server_certificate_name="certificate_name",
+    factories.ChallengeFactory.create(
+        domain="foo.com",
+        validation_contents="foo txt",
+        certificate_id=1002,
+        answered=False,
     )
     service_instance.current_certificate = current_cert
     service_instance.new_certificate = new_cert
@@ -51,7 +65,6 @@ def service_instance():
     db.session.add(new_cert)
     db.session.commit()
     db.session.expunge_all()
-
     return service_instance
 
 

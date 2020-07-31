@@ -24,16 +24,6 @@ def service_instance():
         cloudfront_origin_path="origin_path",
         origin_protocol_policy="https-only",
     )
-    factories.ChallengeFactory.create(
-        domain="example.com",
-        validation_contents="example txt",
-        service_instance=service_instance,
-    )
-    factories.ChallengeFactory.create(
-        domain="foo.com",
-        validation_contents="foo txt",
-        service_instance=service_instance,
-    )
     new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
         private_key_pem="SOMEPRIVATEKEY",
@@ -51,6 +41,30 @@ def service_instance():
         fullchain_pem="FULLCHAINOFSOMECERTPEM",
         id=1001,
     )
+    factories.ChallengeFactory.create(
+        domain="example.com",
+        validation_contents="example txt",
+        certificate_id=1001,
+        answered=True,
+    )
+    factories.ChallengeFactory.create(
+        domain="foo.com",
+        validation_contents="foo txt",
+        certificate_id=1001,
+        answered=True,
+    )
+    factories.ChallengeFactory.create(
+        domain="example.com",
+        validation_contents="example txt",
+        certificate_id=1002,
+        answered=False,
+    )
+    factories.ChallengeFactory.create(
+        domain="foo.com",
+        validation_contents="foo txt",
+        certificate_id=1002,
+        answered=False,
+    )
     service_instance.current_certificate = current_cert
     service_instance.new_certificate = new_cert
     db.session.add(service_instance)
@@ -58,7 +72,6 @@ def service_instance():
     db.session.add(new_cert)
     db.session.commit()
     db.session.expunge_all()
-
     return service_instance
 
 
@@ -339,7 +352,7 @@ def test_update_refuses_insecure_origin_for_default_origin(
 
 
 def subtest_update_happy_path(
-    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront,
+    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
 ):
     operation_id = subtest_update_creates_update_operation(client, dns)
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
@@ -411,12 +424,12 @@ def subtest_gets_new_challenges(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     service_instance = CDNServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
 
-    assert service_instance.challenges.count() == 4
-    new_challenges = [c for c in service_instance.challenges if not c.answered]
-    assert len(new_challenges) == 2
-    new_challenge_domains = [c.domain for c in new_challenges]
-    assert sorted(new_challenge_domains) == sorted(["bar.com", "foo.com"])
+    assert len(certificate.challenges.all()) == 2
+    assert sorted(certificate.subject_alternative_names) == sorted(
+        ["bar.com", "foo.com"]
+    )
 
 
 def subtest_update_updates_TXT_records(tasks, route53):
@@ -438,12 +451,13 @@ def subtest_update_updates_TXT_records(tasks, route53):
 def subtest_update_answers_challenges(tasks, dns):
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
 
-    bar_com_challenge = service_instance.challenges.filter(
+    bar_com_challenge = certificate.challenges.filter(
         Challenge.domain.like("%bar.com"), Challenge.answered.is_(False)
     ).first()
 
-    foo_com_challenge = service_instance.challenges.filter(
+    foo_com_challenge = certificate.challenges.filter(
         Challenge.domain.like("%foo.com"), Challenge.answered.is_(False)
     ).first()
 
@@ -461,8 +475,9 @@ def subtest_update_answers_challenges(tasks, dns):
 
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("4321")
-    answered = [c.answered for c in service_instance.challenges]
-    assert answered == [True, True, True, True]
+    certificate = service_instance.new_certificate
+    answered = [c.answered for c in certificate.challenges]
+    assert answered == [True, True]
 
 
 def subtest_waits_for_dns_changes(tasks, route53):
