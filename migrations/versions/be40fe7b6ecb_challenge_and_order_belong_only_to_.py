@@ -28,6 +28,13 @@ depends_on = None
 Base = declarative_base()
 
 
+class Certificate(Base):
+    __tablename__ = "certificate"
+    id = sa.Column(sa.Integer, primary_key=True)
+    service_instance_id = sa.Column(
+        sa.String, sa.ForeignKey("service_instance.id"), nullable=False
+    )
+
 class ServiceInstance(Base):
     __tablename__ = "service_instance"
     id = sa.Column(sa.String(36), primary_key=True)
