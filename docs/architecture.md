@@ -31,15 +31,13 @@ to fit better into CloudFoundry.
 #### Scheduled tasks
 
 As mentioned above, we're doing something huey doesn't really expect and running N consumers. This creates
-a main issue that scheduled tasks get picked up by every consumer. Currently, we deal with 
-this by attempting to make every task idempotent, and by having only a small number of scheduled
-tasks. It would probably be good to make sure that only one of the consumers picked up scheduled
-tasks in the future. 
+a main issue that scheduled tasks get picked up by every consumer. We're dealing with this currently by 
+having the consumers exit cron tasks early if they're not instance 0.
 
 #### Consumer Shutdowns
 
 Huey wants to be shut down with a SIGINT, and CloudFoundry shuts apps down with SIGTERM. Because of 
-the way huey handles tasks (a pipeline is a linked list of tasks, and the whole list is popped
+the way huey handles tasks (a pipeline is a linked list of tasks, so the whole list is popped
 from Redis whenever a task is consumed), this means that if a task is running as part of a pipeline
 when an app container gets terminated, the pipeline gets completely lost. The current solution for
 this is to scan periodically for operations in-progress that have been idle for longer than expected
