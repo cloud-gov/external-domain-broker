@@ -365,6 +365,7 @@ def subtest_update_happy_path(
     subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex)
     subtest_updates_cloudfront(tasks, cloudfront)
     subtest_update_waits_for_cloudfront_update(tasks, cloudfront)
+    subtest_update_removes_certificate_from_iam(tasks, iam_commercial)
     subtest_update_marks_update_complete(tasks)
 
 
@@ -605,3 +606,14 @@ def subtest_update_marks_update_complete(tasks):
     operation = service_instance.operations.first()
     assert operation
     assert "succeeded" == operation.state
+
+
+
+def subtest_update_removes_certificate_from_iam(tasks, iam_commercial):
+    iam_commercial.expects_delete_server_certificate(f"4321-{date.today().isoformat()}-1")
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    iam_commercial.assert_no_pending_responses()
+    instance = CDNServiceInstance.query.get("4321")
+    assert len(instance.certificates) == 1

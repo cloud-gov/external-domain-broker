@@ -192,6 +192,9 @@ def subtest_update_happy_path(
     subtest_update_selects_alb(tasks, alb)
     subtest_update_adds_certificate_to_alb(tasks, alb)
     subtest_update_provisions_ALIAS_records(tasks, route53, alb)
+    subtest_waits_for_dns_changes(tasks, route53)
+    subtest_update_removes_certificate_from_alb(tasks, alb)
+    subtest_update_removes_certificate_from_iam(tasks, iam_govcloud)
     subtest_update_marks_update_complete(tasks)
 
 
@@ -393,3 +396,24 @@ def subtest_update_marks_update_complete(tasks):
     operation = service_instance.operations.first()
     assert operation
     assert "succeeded" == operation.state
+
+
+def subtest_update_removes_certificate_from_alb(tasks, alb):
+    alb.expect_remove_certificate_from_listener(
+        "listener-arn-0",
+        f"arn:aws:iam::000000000000:server-certificate/alb/external-domains-test/4321-{date.today().isoformat()}-1",
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    alb.assert_no_pending_responses()
+
+
+def subtest_update_removes_certificate_from_iam(tasks, iam_govcloud):
+    iam_govcloud.expects_delete_server_certificate(f"4321-{date.today().isoformat()}-1")
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    iam_govcloud.assert_no_pending_responses()
+    instance = ALBServiceInstance.query.get("4321")
+    assert len(instance.certificates) == 1

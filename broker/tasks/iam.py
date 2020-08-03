@@ -109,4 +109,5 @@ def delete_previous_server_certificate(operation_id: str, **kwargs):
         except iam_commercial.exceptions.NoSuchEntityException:
             pass
         db.session.delete(certificate)
+
     db.session.commit()

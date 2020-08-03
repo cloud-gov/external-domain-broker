@@ -241,6 +241,11 @@ def queue_all_cdn_update_tasks_for_operation(operation_id, correlation_id):
             correlation_id=correlation_id,
         )
         .then(
+            iam.delete_previous_server_certificate,
+            operation_id, 
+            correlation_id=correlation_id,
+        )
+        .then(
             update_operations.update_complete,
             operation_id,
             correlation_id=correlation_id,
@@ -271,6 +276,17 @@ def queue_all_alb_update_tasks_for_operation(operation_id, correlation_id):
         .then(alb.select_alb, operation_id, correlation_id=correlation_id)
         .then(alb.add_certificate_to_alb, operation_id, correlation_id=correlation_id)
         .then(route53.create_ALIAS_records, operation_id, correlation_id=correlation_id)
+        .then(route53.wait_for_changes, operation_id, correlation_id=correlation_id)
+        .then(
+            alb.remove_certificate_from_previous_alb,
+            operation_id,
+            correlation_id=correlation_id,
+        )
+        .then(
+            iam.delete_previous_server_certificate,
+            operation_id,
+            correlation_id=correlation_id,
+        )
         .then(update_operations.provision, operation_id, correlation_id=correlation_id)
     )
     huey.enqueue(task_pipeline)

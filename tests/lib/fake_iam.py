@@ -26,7 +26,7 @@ class FakeIAM(FakeAWS):
                 "ServerCertificateId": "FAKE_CERT_ID_XXXXXXXX",
                 "Path": path,
                 "ServerCertificateName": name,
-                "Arn": f"arn:aws:iam::000000000000:server-certificate{path}/{name}",
+                "Arn": f"arn:aws:iam::000000000000:server-certificate{path}{name}",
                 "UploadDate": now,
                 "Expiration": three_months_from_now,
             }
