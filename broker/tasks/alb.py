@@ -1,9 +1,11 @@
 import logging
 import time
 
+from sqlalchemy import and_
+
 from broker.aws import alb
 from broker.extensions import config, db
-from broker.models import ALBServiceInstance, Operation
+from broker.models import ALBServiceInstance, Certificate, Operation
 from broker.tasks import huey
 
 logger = logging.getLogger(__name__)
@@ -100,9 +102,12 @@ def remove_certificate_from_alb(operation_id, **kwargs):
 def remove_certificate_from_previous_alb(operation_id, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
-    for certificate in service_instance.certificates:
-        if certificate.id != service_instance.current_certificate_id:
-            remove_certificate = certificate
+    remove_certificate = Certificate.query.filter(
+        and_(
+            Certificate.service_instance_id == service_instance.id,
+            Certificate.id != service_instance.current_certificate_id,
+        )
+    ).first()
 
     operation.step_description = "Removing SSL certificate from load balancer"
     db.session.add(operation)
