@@ -1,4 +1,5 @@
 import logging
+import time
 
 from broker.aws import alb
 from broker.extensions import config, db
@@ -36,6 +37,8 @@ def select_alb(operation_id, **kwargs):
         and operation.action == Operation.Actions.PROVISION.value
     ):
         return
+    service_instance.previous_alb_listener_arn = service_instance.alb_listener_arn
+    service_instance.previous_alb_arn = service_instance.alb_arn
 
     service_instance.alb_arn, service_instance.alb_listener_arn = get_lowest_used_alb(
         config.ALB_LISTENER_ARNS
@@ -89,5 +92,33 @@ def remove_certificate_from_alb(operation_id, **kwargs):
                 }
             ],
         )
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+@huey.retriable_task
+def remove_certificate_from_previous_alb(operation_id, **kwargs):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    for certificate in service_instance.certificates:
+        if certificate.id != service_instance.current_certificate_id:
+            remove_certificate = certificate
+
+    operation.step_description = "Removing SSL certificate from load balancer"
+    db.session.add(operation)
+    db.session.commit()
+
+    time.sleep(int(config.DNS_PROPAGATION_SLEEP_TIME))
+
+    if service_instance.previous_alb_listener_arn is not None:
+        alb.remove_listener_certificates(
+            ListenerArn=service_instance.previous_alb_listener_arn,
+            Certificates=[
+                {"CertificateArn": remove_certificate.iam_server_certificate_arn}
+            ],
+        )
+
+    service_instance.previous_alb_arn = None
+    service_instance.previous_alb_listener_arn = None
     db.session.add(service_instance)
     db.session.commit()

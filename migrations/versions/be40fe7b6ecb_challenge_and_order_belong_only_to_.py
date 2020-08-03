@@ -35,6 +35,7 @@ class Certificate(Base):
         sa.String, sa.ForeignKey("service_instance.id"), nullable=False
     )
 
+
 class ServiceInstance(Base):
     __tablename__ = "service_instance"
     id = sa.Column(sa.String(36), primary_key=True)
