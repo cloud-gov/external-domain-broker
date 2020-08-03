@@ -34,35 +34,3 @@ def test_catalog_has_correct_plans(catalog):
     assert "CloudFront" in cloudfront_plan.description
 
     assert cloudfront_plan.id != alb_plan.id
-
-
-def test_provision_returns_spec_with_dashboard_id():
-    pass
-
-
-def test_provision_saves_space_and_org_guids():
-    pass
-
-
-def test_bind_returns_api_url_with_credentials():
-    pass
-
-
-def test_bind_saves_binding_with_apikey_in_db():
-    pass
-
-
-def test_unbind_successfully_unbind():
-    pass
-
-
-def test_unbind_deletes_binding():
-    pass
-
-
-def test_deprovision_successfully_deprovision():
-    pass
-
-
-def test_deprovision_deletes_entry():
-    pass
