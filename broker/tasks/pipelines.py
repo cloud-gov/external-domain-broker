@@ -182,21 +182,6 @@ def queue_all_cdn_renewal_tasks_for_service_instance(operation_id, **kwargs):
         .then(update_operations.provision, operation_id, **correlation)
     )
     huey.enqueue(task_pipeline)
-    # possible workflow:
-    # - follow the rest of ALB provisioning (add cert to lowest ALB, update DNS, mark complete)
-    # - find and clean up unused certificates
-    # this reduces the possibility of getting stuck with a totally-full ALB
-    # also will help to keep ALBs balanced, although that's not super important
-    #
-    # alternate workflow:
-    # - use existing ALB
-    # - add cert to ALB
-    # - remove old cert
-    #
-    # both cases probably require us to either:
-    # - put all certs in a separate table with key on SI table (this is really probably the right way to do it)
-    # - create a table that is just a list of certs to prune/remove (this reduces the need for data migrations)
-    # - add some logic to find and remove certs we think are bad without a table (scary)
 
 
 def queue_all_cdn_update_tasks_for_service_instance(operation_id, correlation_id):
