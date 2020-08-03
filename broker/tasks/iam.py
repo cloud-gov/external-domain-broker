@@ -2,10 +2,11 @@ import logging
 from datetime import date
 
 from botocore.exceptions import ClientError
+from sqlalchemy import and_
 
 from broker.aws import iam_commercial, iam_govcloud
 from broker.extensions import config, db
-from broker.models import Operation
+from broker.models import Certificate, Operation
 from broker.tasks import huey
 
 logger = logging.getLogger(__name__)
@@ -79,3 +80,33 @@ def delete_server_certificate(operation_id: str, **kwargs):
         )
     except iam_commercial.exceptions.NoSuchEntityException:
         return
+
+
+@huey.retriable_task
+def delete_previous_server_certificate(operation_id: str, **kwargs):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    operation.step_description = "Removing SSL certificate from AWS"
+    db.session.add(operation)
+    db.session.commit()
+
+    if service_instance.instance_type == "cdn_service_instance":
+        iam = iam_commercial
+    else:
+        iam = iam_govcloud
+
+    for certificate in Certificate.query.filter(
+        and_(
+            Certificate.service_instance_id == service_instance.id,
+            Certificate.id != service_instance.current_certificate_id,
+        )
+    ).all():
+        try:
+            iam.delete_server_certificate(
+                ServerCertificateName=certificate.iam_server_certificate_name
+            )
+        except iam_commercial.exceptions.NoSuchEntityException:
+            pass
+        db.session.delete(certificate)
+    db.session.commit()

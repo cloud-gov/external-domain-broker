@@ -118,6 +118,7 @@ def test_scan_for_expiring_certs_cdn_happy_path(
     subtest_renew_retrieves_certificate(tasks)
     subtest_provision_uploads_certificate_to_iam(tasks, iam_commercial, simple_regex)
     subtest_updates_certificate_in_cloudfront(tasks, cloudfront)
+    subtest_renewal_removes_certificate_from_iam(tasks, iam_commercial)
     subtest_provision_marks_operation_as_succeeded(tasks)
 
 
@@ -166,3 +167,13 @@ def subtest_renew_retrieves_certificate(tasks):
     assert certificate.fullchain_pem.count("BEGIN CERTIFICATE") == 1
     assert certificate.leaf_pem.count("BEGIN CERTIFICATE") == 1
     assert certificate.expires_at is not None
+
+
+def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud):
+    iam_govcloud.expects_delete_server_certificate("certificate_name")
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    iam_govcloud.assert_no_pending_responses()
+    instance = CDNServiceInstance.query.get("4321")
+    assert len(instance.certificates) == 1
