@@ -83,7 +83,7 @@ def test_duplicate_domain_check_ignores_self(client, dns, service_instance):
 
     client.update_alb_instance("4321", params={"domains": "example.com, foo.com"})
 
-    assert client.response.status_code == 202, client.response.body
+    assert client.response.status_code == 200, client.response.body
 
 
 def test_duplicate_domain_check_ignores_deactivated(client, dns, service_instance):
@@ -417,3 +417,8 @@ def subtest_update_removes_certificate_from_iam(tasks, iam_govcloud):
     iam_govcloud.assert_no_pending_responses()
     instance = ALBServiceInstance.query.get("4321")
     assert len(instance.certificates) == 1
+
+
+def subtest_update_noop(client):
+    client.update_alb_instance("4321", params={"domains": "bar.com, Foo.com"})
+    assert client.response.status_code == 200

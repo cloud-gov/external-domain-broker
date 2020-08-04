@@ -260,12 +260,14 @@ class API(ServiceBroker):
         domain_names = [
             d.strip().lower() for d in params.get("domains", "").split(",") if len(d)
         ]
+        noop = True
         if len(domain_names):
             self.logger.info("validating CNAMEs")
             validators.CNAME(domain_names).validate()
 
             self.logger.info("validating unique domains")
             validators.UniqueDomains(domain_names).validate(instance)
+            noop = (noop and (sorted(domain_names) == sorted(instance.domain_names)))
             instance.domain_names = domain_names
 
         if instance.instance_type == "cdn_service_instance":
@@ -273,6 +275,7 @@ class API(ServiceBroker):
             # params.get("param") because the OSBAPI spec
             # requires we do not mess with params that were not
             # specified, so unset and set to None have different meanings
+            noop = False
 
             if "origin" in params:
                 if params["origin"] is None:
@@ -343,6 +346,9 @@ class API(ServiceBroker):
             queue = queue_all_cdn_update_tasks_for_operation
         else:
             queue = queue_all_alb_update_tasks_for_operation
+        if noop:
+            return UpdateServiceSpec(False)
+
         operation = Operation(
             state=Operation.States.IN_PROGRESS.value,
             service_instance=instance,
