@@ -315,7 +315,7 @@ def test_update_sets_forward_headers_plus_host_when_some_specified(
     )
     instance = CDNServiceInstance.query.get("4321")
     assert sorted(instance.forwarded_headers) == sorted(
-        ["HOST", "x-my-header", "x-your-header"]
+        ["HOST", "X-MY-HEADER", "X-YOUR-HEADER"]
     )
 
 
@@ -559,7 +559,7 @@ def subtest_updates_cloudfront(tasks, cloudfront):
         distribution_hostname="fake1234.cloudfront.net",
         forward_cookie_policy="whitelist",
         forwarded_cookies=["mycookie", "myothercookie", "anewcookie"],
-        forwarded_headers=["x-my-header", "x-your-header"],
+        forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
         origin_protocol_policy="http-only",
     )
 
@@ -608,9 +608,10 @@ def subtest_update_marks_update_complete(tasks):
     assert "succeeded" == operation.state
 
 
-
 def subtest_update_removes_certificate_from_iam(tasks, iam_commercial):
-    iam_commercial.expects_delete_server_certificate(f"4321-{date.today().isoformat()}-1")
+    iam_commercial.expects_delete_server_certificate(
+        f"4321-{date.today().isoformat()}-1"
+    )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 

@@ -54,7 +54,9 @@ class Certificate(Base):
     iam_server_certificate_id = db.Column(db.String)
     iam_server_certificate_name = db.Column(db.String)
     iam_server_certificate_arn = db.Column(db.String)
-    challenges = db.relation("Challenge", backref="certificate", lazy="dynamic", cascade="all, delete-orphan")
+    challenges = db.relation(
+        "Challenge", backref="certificate", lazy="dynamic", cascade="all, delete-orphan"
+    )
     order_json = db.Column(db.Text)
 
 

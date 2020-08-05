@@ -10,7 +10,10 @@ from broker.tasks.alb import get_lowest_used_alb
 from tests.lib.factories import ALBServiceInstanceFactory
 from tests.lib.client import check_last_operation_description
 
-from tests.integration.alb.test_alb_update import subtest_update_happy_path, subtest_update_noop
+from tests.integration.alb.test_alb_update import (
+    subtest_update_happy_path,
+    subtest_update_noop,
+)
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we
 # had separate tests for each stage in the task pipeline.  But each test would
@@ -209,6 +212,7 @@ def test_provision_happy_path(
         client, dns, tasks, route53, iam_govcloud, simple_regex, alb
     )
     subtest_update_noop(client)
+
 
 def subtest_provision_creates_provision_operation(client, dns):
     dns.add_cname("_acme-challenge.example.com")

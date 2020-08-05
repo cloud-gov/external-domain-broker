@@ -176,7 +176,7 @@ def test_provision_sets_forward_headers_plus_host_when_some_specified(client, dn
     )
     instance = CDNServiceInstance.query.get("4321")
     assert sorted(instance.forwarded_headers) == sorted(
-        ["HOST", "x-my-header", "x-your-header"]
+        ["HOST", "X-MY-HEADER", "X-YOUR-HEADER"]
     )
 
 
@@ -478,7 +478,7 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
         distribution_hostname="fake1234.cloudfront.net",
         forward_cookie_policy="whitelist",
         forwarded_cookies=["mycookie", "myothercookie"],
-        forwarded_headers=["x-my-header", "x-your-header"],
+        forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
         origin_protocol_policy="http-only",
     )
 

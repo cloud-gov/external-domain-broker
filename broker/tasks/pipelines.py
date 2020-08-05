@@ -242,7 +242,7 @@ def queue_all_cdn_update_tasks_for_operation(operation_id, correlation_id):
         )
         .then(
             iam.delete_previous_server_certificate,
-            operation_id, 
+            operation_id,
             correlation_id=correlation_id,
         )
         .then(
