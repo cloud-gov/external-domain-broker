@@ -283,9 +283,8 @@ class API(ServiceBroker):
             if "forward_headers" in params:
                 forwarded_headers = parse_header_options(params)
             else:
-                # this is a weird way to do this, but if we _don't_ do this, sqlalchemy doesn't
-                # recognize that instance.forwarded_headers gets changed
-                forwarded_headers = [*instance.forwarded_headers]
+                # .copy() so sqlalchemy recognizes the field has changed
+                forwarded_headers = instance.forwarded_headers.copy()
             if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
                 forwarded_headers.append("HOST")
             forwarded_headers = normalize_header_list(forwarded_headers)
