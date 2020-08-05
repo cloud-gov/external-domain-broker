@@ -293,7 +293,10 @@ class API(ServiceBroker):
             if "insecure_origin" in params:
                 origin_protocol_policy = "https-only"
                 if params["insecure_origin"]:
-                    if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
+                    if (
+                        instance.cloudfront_origin_hostname
+                        == config.DEFAULT_CLOUDFRONT_ORIGIN
+                    ):
                         raise errors.ErrBadRequest(
                             "Cannot use insecure_origin with default origin"
                         )
@@ -317,7 +320,6 @@ class API(ServiceBroker):
         db.session.commit()
 
         queue(operation.id, cf_logging.FRAMEWORK.context.get_correlation_id())
-
 
         return UpdateServiceSpec(True, operation=str(operation.id))
 
