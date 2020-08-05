@@ -70,7 +70,7 @@ class AppConfig(Config):
         if not redis:
             raise MissingRedisError
 
-        self.REDIS_HOST = redis.credentials["host"]
+        self.REDIS_HOST = redis.credentials["HOST"]
         self.REDIS_PORT = redis.credentials["port"]
         self.REDIS_PASSWORD = redis.credentials["password"]
         self.ROUTE53_ZONE_ID = self.env("ROUTE53_ZONE_ID")
@@ -200,6 +200,8 @@ class TestConfig(DockerConfig):
         self.ACME_POLL_TIMEOUT_IN_SECONDS = 10
         self.AWS_POLL_WAIT_TIME_IN_SECONDS = 1
         self.AWS_POLL_MAX_ATTEMPTS = 10
+        # if you need to see what sqlalchemy is doing
+        # self.SQLALCHEMY_ECHO = True
 
 
 class MissingRedisError(RuntimeError):

@@ -21,6 +21,8 @@ from openbrokerapi.service_broker import (
     UpdateServiceSpec,
 )
 from sap import cf_logging
+from sqlalchemy.dialects import postgresql
+
 
 from broker import validators
 from broker.extensions import config, db
@@ -136,30 +138,14 @@ class API(ServiceBroker):
             )
             instance.cloudfront_origin_path = params.get("path", "")
             instance.route53_alias_hosted_zone = config.CLOUDFRONT_HOSTED_ZONE_ID
-            forward_cookies = params.get("forward_cookies", None)
-            if forward_cookies is not None:
-                forward_cookies = forward_cookies.replace(" ", "")
-                if forward_cookies == "":
-                    instance.forward_cookie_policy = (
-                        CDNServiceInstance.ForwardCookiePolicy.NONE.value
-                    )
-                elif forward_cookies == "*":
-                    instance.forward_cookie_policy = (
-                        CDNServiceInstance.ForwardCookiePolicy.ALL.value
-                    )
-                else:
-                    instance.forward_cookie_policy = (
-                        CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
-                    )
-                    instance.forwarded_cookies = forward_cookies.split(",")
-            forwarded_headers = params.get("forward_headers", None)
-            if forwarded_headers is None:
-                forwarded_headers = []
-            else:
-                forwarded_headers = forwarded_headers.replace(" ", "")
-                forwarded_headers = forwarded_headers.split(",")
-            if params.get("origin") is None:
+            forward_cookie_policy, forwarded_cookies = parse_cookie_options(params)
+            instance.forward_cookie_policy = forward_cookie_policy
+            instance.forwarded_cookies = forwarded_cookies
+            forwarded_headers = parse_header_options(params)
+            if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
                 forwarded_headers.append("HOST")
+            forwarded_headers = normalize_header_list(forwarded_headers)
+
             instance.forwarded_headers = forwarded_headers
             if params.get("insecure_origin", False):
                 if params.get("origin") is None:
@@ -267,7 +253,7 @@ class API(ServiceBroker):
 
             self.logger.info("validating unique domains")
             validators.UniqueDomains(domain_names).validate(instance)
-            noop = (noop and (sorted(domain_names) == sorted(instance.domain_names)))
+            noop = noop and (sorted(domain_names) == sorted(instance.domain_names))
             instance.domain_names = domain_names
 
         if instance.instance_type == "cdn_service_instance":
@@ -278,70 +264,42 @@ class API(ServiceBroker):
             noop = False
 
             if "origin" in params:
-                if params["origin"] is None:
-                    instance.cloudfront_origin_hostname = (
-                        config.DEFAULT_CLOUDFRONT_ORIGIN
-                    )
-                    # make sure HOST is in forwarded_headers. Do it by messing with params
-                    # to trick the logic below into updating it.
-                    params["forward_headers"] = params.get(
-                        "forward_headers", []
-                    ).append("HOST")
+                if params["origin"]:
+                    origin_hostname = params["origin"]
                 else:
-                    instance.cloudfront_origin_hostname = params["origin"]
+                    origin_hostname = config.DEFAULT_CLOUDFRONT_ORIGIN
+                instance.cloudfront_origin_hostname = origin_hostname
 
             if "path" in params:
-                if params["path"] is None:
-                    instance.cloudfront_origin_path = ""
+                if params["path"]:
+                    cloudfront_origin_path = params["path"]
                 else:
-                    instance.cloudfront_origin_path = params["path"]
+                    cloudfront_origin_path = ""
+                instance.cloudfront_origin_path = cloudfront_origin_path
             if "forward_cookies" in params:
-                forward_cookies = params["forward_cookies"]
-                if forward_cookies is None:
-                    forward_cookies = "*"
-
-                forward_cookies = forward_cookies.replace(" ", "")
-                if forward_cookies == "":
-                    instance.forward_cookie_policy = (
-                        CDNServiceInstance.ForwardCookiePolicy.NONE.value
-                    )
-                    instance.forwarded_cookies = []
-                elif forward_cookies == "*":
-                    instance.forward_cookie_policy = (
-                        CDNServiceInstance.ForwardCookiePolicy.ALL.value
-                    )
-                    instance.forwarded_cookies = []
-                else:
-                    instance.forward_cookie_policy = (
-                        CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
-                    )
-                    instance.forwarded_cookies = forward_cookies.split(",")
+                forward_cookie_policy, forwarded_cookies = parse_cookie_options(params)
+                instance.forward_cookie_policy = forward_cookie_policy
+                instance.forwarded_cookies = forwarded_cookies
 
             if "forward_headers" in params:
-                forwarded_headers = params["forward_headers"]
-                if not forwarded_headers:
-                    forwarded_headers = []
-                else:
-                    forwarded_headers = forwarded_headers.replace(" ", "")
-                    forwarded_headers = forwarded_headers.split(",")
-                if (
-                    instance.cloudfront_origin_hostname
-                    == config.DEFAULT_CLOUDFRONT_ORIGIN
-                ):
-                    forwarded_headers.append("HOST")
-                instance.forwarded_headers = forwarded_headers
+                forwarded_headers = parse_header_options(params)
+            else:
+                # this is a weird way to do this, but if we _don't_ do this, sqlalchemy doesn't
+                # recognize that instance.forwarded_headers gets changed
+                forwarded_headers = [*instance.forwarded_headers]
+            if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
+                forwarded_headers.append("HOST")
+            forwarded_headers = normalize_header_list(forwarded_headers)
+            instance.forwarded_headers = forwarded_headers
             if "insecure_origin" in params:
+                origin_protocol_policy = "https-only"
                 if params["insecure_origin"]:
-                    if (
-                        instance.cloudfront_origin_hostname
-                        == config.DEFAULT_CLOUDFRONT_ORIGIN
-                    ):
+                    if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
                         raise errors.ErrBadRequest(
                             "Cannot use insecure_origin with default origin"
                         )
-                    instance.origin_protocol_policy = "http-only"
-                else:
-                    instance.origin_protocol_policy = "https-only"
+                    origin_protocol_policy = "http-only"
+                instance.origin_protocol_policy = origin_protocol_policy
 
             queue = queue_all_cdn_update_tasks_for_operation
         else:
@@ -360,6 +318,7 @@ class API(ServiceBroker):
         db.session.commit()
 
         queue(operation.id, cf_logging.FRAMEWORK.context.get_correlation_id())
+
 
         return UpdateServiceSpec(True, operation=str(operation.id))
 
@@ -382,3 +341,40 @@ class API(ServiceBroker):
         **kwargs,
     ) -> UnbindSpec:
         pass
+
+
+def parse_cookie_options(params):
+    forward_cookies = params.get("forward_cookies", None)
+    if forward_cookies is not None:
+        forward_cookies = forward_cookies.replace(" ", "")
+        if forward_cookies == "":
+            forward_cookie_policy = CDNServiceInstance.ForwardCookiePolicy.NONE.value
+            forwarded_cookies = []
+        elif forward_cookies == "*":
+            forward_cookie_policy = CDNServiceInstance.ForwardCookiePolicy.ALL.value
+            forwarded_cookies = []
+        else:
+            forward_cookie_policy = (
+                CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
+            )
+            forwarded_cookies = forward_cookies.split(",")
+    else:
+        forward_cookie_policy = CDNServiceInstance.ForwardCookiePolicy.ALL.value
+        forwarded_cookies = []
+
+    return forward_cookie_policy, forwarded_cookies
+
+
+def parse_header_options(params):
+    forwarded_headers = params.get("forward_headers", None)
+    if forwarded_headers is None:
+        forwarded_headers = []
+    else:
+        forwarded_headers = forwarded_headers.replace(" ", "")
+        forwarded_headers = forwarded_headers.split(",")
+    return forwarded_headers
+
+
+def normalize_header_list(headers):
+    headers = {header.upper() for header in headers}
+    return sorted(list(headers))
