@@ -21,7 +21,6 @@ from openbrokerapi.service_broker import (
     UpdateServiceSpec,
 )
 from sap import cf_logging
-from sqlalchemy.dialects import postgresql
 
 
 from broker import validators
