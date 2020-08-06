@@ -29,6 +29,9 @@ def upload_server_certificate(operation_id: int, **kwargs):
     else:
         iam = iam_govcloud
         iam_server_certificate_prefix = config.ALB_IAM_SERVER_CERTIFICATE_PREFIX
+
+    if service_instance.new_certificate.iam_server_certificate_arn is not None:
+        return
     certificate.iam_server_certificate_name = (
         f"{service_instance.id}-{today}-{certificate.id}"
     )
@@ -41,6 +44,9 @@ def upload_server_certificate(operation_id: int, **kwargs):
             CertificateChain=certificate.fullchain_pem,
         )
     except ClientError as e:
+        # TODO: there's an edge case here, where we uploaded the certificate but
+        # failed to persist the metadata to the database. If that happens, we really
+        # need to get the metadata back from IAM.
         if (
             e.response["Error"]["Code"] == "EntityAlreadyExistsException"
             and certificate.iam_server_certificate_id is not None
