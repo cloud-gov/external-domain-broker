@@ -618,3 +618,121 @@ def subtest_update_removes_certificate_from_iam(tasks, iam_commercial):
     iam_commercial.assert_no_pending_responses()
     instance = CDNServiceInstance.query.get("4321")
     assert len(instance.certificates) == 1
+
+
+def subtest_update_same_domains(
+    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+):
+    subtest_update_same_domains_creates_update_operation(client, dns)
+    subtest_update_same_domains_does_not_create_new_certificate(tasks)
+    subtest_update_same_domains_does_not_create_new_challenges(tasks)
+    subtest_update_same_domains_does_not_update_route53(tasks, route53)
+    subtest_update_same_domains_does_not_retrieve_new_certificate(tasks)
+    subtest_update_same_domains_does_not_update_iam(tasks)
+    subtest_update_same_domains_updates_cloudfront(tasks, cloudfront)
+    subtest_update_waits_for_cloudfront_update(tasks, cloudfront)
+    subtest_update_marks_update_complete(tasks)
+    subtest_update_same_domains_does_not_delete_server_certificate(tasks)
+
+
+def subtest_update_same_domains_creates_update_operation(client, dns):
+    dns.add_cname("_acme-challenge.foo.com")
+    dns.add_cname("_acme-challenge.bar.com")
+    client.update_cdn_instance(
+        "4321", params={"domains": "bar.com, Foo.com", "origin": "newer-origin.com"}
+    )
+    db.session.expunge_all()
+
+    assert client.response.status_code == 202, client.response.body
+    assert "operation" in client.response.json
+
+    operation_id = client.response.json["operation"]
+    operation = Operation.query.get(operation_id)
+
+    assert operation is not None
+    assert operation.state == "in progress"
+    assert operation.action == "Update"
+    assert operation.service_instance_id == "4321"
+
+    instance = CDNServiceInstance.query.get(operation.service_instance_id)
+    assert instance is not None
+    assert instance.domain_names == ["bar.com", "foo.com"]
+    assert instance.cloudfront_origin_hostname == "newer-origin.com"
+    return operation_id
+
+
+def subtest_update_same_domains_does_not_create_new_certificate(tasks):
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    instance = CDNServiceInstance.query.get("4321")
+    assert len(instance.certificates) == 1
+
+
+def subtest_update_same_domains_does_not_create_new_challenges(tasks):
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    instance = CDNServiceInstance.query.get("4321")
+    certificate = instance.new_certificate
+    assert len(certificate.challenges.all()) == 2
+    assert all([c.answered for c in certificate.challenges])
+
+
+def subtest_update_same_domains_does_not_update_route53(tasks, route53):
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    instance = CDNServiceInstance.query.get("4321")
+    assert not instance.route53_change_ids
+    # should run wait for changes, which should do nothing
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+
+def subtest_update_same_domains_does_not_retrieve_new_certificate(tasks):
+    # the idea here is that we don't have new challenges, so asking
+    # for a new certificate should raise an error.
+    # no errors = did not try to ask for a new certificate
+    tasks.run_queued_tasks_and_enqueue_dependents()  # answer_challenges
+    tasks.run_queued_tasks_and_enqueue_dependents()  # retrieve_certificate
+
+
+def subtest_update_same_domains_does_not_update_iam(tasks):
+    # if we don't prime IAM to expect a call, then we didn't update iam
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+
+def subtest_update_same_domains_updates_cloudfront(tasks, cloudfront):
+    db.session.expunge_all()
+    service_instance = CDNServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
+    id_ = certificate.id
+    cloudfront.expect_get_distribution_config(
+        caller_reference="4321",
+        domains=["example.com", "foo.com"],
+        certificate_id=service_instance.new_certificate.iam_server_certificate_id,
+        origin_hostname="origin_hostname",
+        origin_path="origin_path",
+        distribution_id="FakeDistributionId",
+    )
+    cloudfront.expect_update_distribution(
+        caller_reference="4321",
+        domains=["bar.com", "foo.com"],
+        certificate_id=certificate.iam_server_certificate_id,
+        origin_hostname="newer-origin.com",
+        origin_path="/somewhere-else",
+        distribution_id="FakeDistributionId",
+        distribution_hostname="fake1234.cloudfront.net",
+        forward_cookie_policy="whitelist",
+        forwarded_cookies=["mycookie", "myothercookie", "anewcookie"],
+        forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
+        origin_protocol_policy="http-only",
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    db.session.expunge_all()
+
+    service_instance = CDNServiceInstance.query.get("4321")
+    cloudfront.assert_no_pending_responses()
+    assert service_instance.new_certificate is None
+    assert service_instance.current_certificate.id == id_
+
+
+def subtest_update_same_domains_does_not_delete_server_certificate(tasks):
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    instance = CDNServiceInstance.query.get("4321")
+    assert len(instance.certificates) == 1

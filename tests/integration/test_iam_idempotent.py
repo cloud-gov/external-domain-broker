@@ -100,11 +100,5 @@ def test_reupload_certificate_ok(
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("1234")
     certificate = service_instance.new_certificate
-    iam_commercial.expect_upload_server_certificate_raising_duplicate(
-        name=f"{service_instance.id}-{today}-{certificate.id}",
-        cert=certificate.leaf_pem,
-        private_key=certificate.private_key_pem,
-        chain=certificate.fullchain_pem,
-        path="/cloudfront/external-domains-test/",
-    )
+    # unstubbed, so an error should be raised if we do try
     upload_server_certificate.call_local("4321")
