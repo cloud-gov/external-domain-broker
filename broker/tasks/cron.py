@@ -92,6 +92,8 @@ def reschedule_operation(operation_id):
             )
         elif operation.action == Operation.Actions.RENEW.value:
             pipelines.queue_all_cdn_renewal_tasks_for_service_instance(operation.id)
+        elif operation.action == Operation.Actions.UPDATE.value:
+            pipelines.queue_all_cdn_update_tasks_for_operation(operation.id, "recovered_pipeline")
     elif service_instance.instance_type == "alb_service_instance":
         if operation.action == Operation.Actions.PROVISION.value:
             pipelines.queue_all_alb_provision_tasks_for_operation(
@@ -103,3 +105,5 @@ def reschedule_operation(operation_id):
             )
         elif operation.action == Operation.Actions.RENEW.value:
             pipelines.queue_all_alb_renewal_tasks_for_service_instance(operation.id)
+        elif operation.action == Operation.Actions.UPDATE.value:
+            pipelines.queue_all_alb_update_tasks_for_operation(operation.id, "recovered_pipeline")
