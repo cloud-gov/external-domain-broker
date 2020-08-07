@@ -103,7 +103,7 @@ def test_create_distribution_referencing_nonexistent_distribution(
         origin_path=service_instance.cloudfront_origin_path,
         distribution_id="FakeDistributionId",
         distribution_hostname="fake1234.cloudfront.net",
-        bucket_prefix="1234/"
+        bucket_prefix="1234/",
     )
 
     create_distribution.call_local(provision_operation.id)
