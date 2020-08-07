@@ -486,7 +486,7 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
         forwarded_cookies=["mycookie", "myothercookie"],
         forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
         origin_protocol_policy="http-only",
-        bucket_prefix="4321/"
+        bucket_prefix="4321/",
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

@@ -140,7 +140,7 @@ def subtest_updates_certificate_in_cloudfront(tasks, cloudfront: FakeCloudFront)
         origin_hostname="origin_hostname",
         origin_path="origin_path",
         distribution_id="FakeDistributionId",
-        bucket_prefix="4321/"
+        bucket_prefix="4321/",
     )
     cloudfront.expect_update_distribution(
         caller_reference="4321",
@@ -150,7 +150,7 @@ def subtest_updates_certificate_in_cloudfront(tasks, cloudfront: FakeCloudFront)
         origin_path="origin_path",
         distribution_id="FakeDistributionId",
         distribution_hostname="fake1234.cloudfront.net",
-        bucket_prefix="4321/"
+        bucket_prefix="4321/",
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
