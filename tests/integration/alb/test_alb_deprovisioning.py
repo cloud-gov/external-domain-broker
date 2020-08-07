@@ -18,9 +18,12 @@ def service_instance():
     )
     new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
-        private_key_pem="SOMEPRIVATEKEY",
-        leaf_pem="SOMECERTPEM",
-        fullchain_pem="FULLCHAINOFSOMECERTPEM",
+        private_key_pem="NEWSOMEPRIVATEKEY",
+        leaf_pem="NEWSOMECERTPEM",
+        fullchain_pem="NEWFULLCHAINOFSOMECERTPEM",
+        iam_server_certificate_id="new_certificate_id",
+        iam_server_certificate_arn="new_certificate_arn",
+        iam_server_certificate_name="new_certificate_name",
         id=1002,
     )
     current_cert = factories.CertificateFactory.create(
@@ -169,6 +172,9 @@ def subtest_deprovision_removes_certificate_from_iam(
     tasks, service_instance, iam_govcloud
 ):
     service_instance = ALBServiceInstance.query.get("1234")
+    iam_govcloud.expects_delete_server_certificate(
+        service_instance.new_certificate.iam_server_certificate_name
+    )
     iam_govcloud.expects_delete_server_certificate(
         service_instance.current_certificate.iam_server_certificate_name
     )
