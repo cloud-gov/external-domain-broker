@@ -118,10 +118,10 @@ def create_distribution(operation_id: int, **kwargs):
             "CustomErrorResponses": {"Quantity": 0},
             "Comment": "external domain service https://cloud-gov/external-domain-broker",
             "Logging": {
-                "Enabled": False,
+                "Enabled": True,
                 "IncludeCookies": False,
-                "Bucket": "",
-                "Prefix": "",
+                "Bucket": config.CDN_LOG_BUCKET,
+                "Prefix": f"{service_instance.id}/",
             },
             "PriceClass": "PriceClass_100",
             "Enabled": True,

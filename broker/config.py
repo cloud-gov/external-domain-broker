@@ -64,6 +64,7 @@ class AppConfig(Config):
         self.AWS_GOVCLOUD_REGION = self.env("AWS_GOVCLOUD_REGION")
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = self.env("AWS_GOVCLOUD_ACCESS_KEY_ID")
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = self.env("AWS_GOVCLOUD_SECRET_ACCESS_KEY")
+        self.CDN_LOG_BUCKET = self.env("CDN_LOG_BUCKET")
 
         redis = self.cfenv.get_service(label=re.compile("redis.*"))
 
@@ -173,6 +174,7 @@ class DockerConfig(Config):
         self.AWS_GOVCLOUD_REGION = "us-gov-west-1"
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = "GOVCLOUD_FAKE_KEY_ID"
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "GOVCLOUD_FAKE_ACCESS_KEY"
+        self.CDN_LOG_BUCKET = "mybucket.s3.amazonaws.com"
 
         self.SMTP_HOST = "localhost"
         self.SMTP_PORT = 1025
