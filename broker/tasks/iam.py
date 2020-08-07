@@ -80,12 +80,27 @@ def delete_server_certificate(operation_id: str, **kwargs):
     else:
         iam = iam_govcloud
 
-    try:
-        iam.delete_server_certificate(
-            ServerCertificateName=service_instance.current_certificate.iam_server_certificate_name
-        )
-    except iam_commercial.exceptions.NoSuchEntityException:
-        return
+    if (
+        service_instance.new_certificate is not None
+        and service_instance.new_certificate.iam_server_certificate_name is not None
+    ):
+        try:
+            iam.delete_server_certificate(
+                ServerCertificateName=service_instance.new_certificate.iam_server_certificate_name
+            )
+        except iam_commercial.exceptions.NoSuchEntityException:
+            pass
+
+    if (
+        service_instance.current_certificate is not None
+        and service_instance.current_certificate.iam_server_certificate_name is not None
+    ):
+        try:
+            iam.delete_server_certificate(
+                ServerCertificateName=service_instance.current_certificate.iam_server_certificate_name
+            )
+        except iam_commercial.exceptions.NoSuchEntityException:
+            return
 
 
 @huey.retriable_task
