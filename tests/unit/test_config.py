@@ -95,6 +95,7 @@ def mocked_env(monkeypatch, vcap_application, vcap_services):
     monkeypatch.setenv("SMTP_FROM", "no-reply@example.com")
     monkeypatch.setenv("SMTP_TO", "alerts@example.com")
     monkeypatch.setenv("SMTP_CERT", "A_REAL_CERT_WOULD_BE_LONGER_THAN_THIS")
+    monkeypatch.setenv("CDN_LOG_BUCKET", "my-bucket.s3.amazonaws.com")
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
@@ -116,6 +117,16 @@ def test_config_gets_cf_origin_from_env(env, monkeypatch, mocked_env):
     config = config_from_env()
 
     assert config.DEFAULT_CLOUDFRONT_ORIGIN == "foo"
+
+
+@pytest.mark.parametrize("env", ["production", "staging", "development"])
+def test_config_gets_log_bucket_from_env(env, monkeypatch, mocked_env):
+    monkeypatch.setenv("FLASK_ENV", env)
+    monkeypatch.setenv("CDN_LOG_BUCKET", "foo")
+
+    config = config_from_env()
+
+    assert config.CDN_LOG_BUCKET == "foo"
 
 
 @pytest.mark.parametrize("env", ["development"])

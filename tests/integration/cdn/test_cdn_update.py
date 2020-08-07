@@ -548,6 +548,7 @@ def subtest_updates_cloudfront(tasks, cloudfront):
         origin_hostname="origin_hostname",
         origin_path="origin_path",
         distribution_id="FakeDistributionId",
+        bucket_prefix="4321/"
     )
     cloudfront.expect_update_distribution(
         caller_reference="4321",
@@ -561,6 +562,7 @@ def subtest_updates_cloudfront(tasks, cloudfront):
         forwarded_cookies=["mycookie", "myothercookie", "anewcookie"],
         forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
         origin_protocol_policy="http-only",
+        bucket_prefix="4321/"
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -708,6 +710,7 @@ def subtest_update_same_domains_updates_cloudfront(tasks, cloudfront):
         origin_hostname="origin_hostname",
         origin_path="origin_path",
         distribution_id="FakeDistributionId",
+        bucket_prefix="4321/"
     )
     cloudfront.expect_update_distribution(
         caller_reference="4321",
@@ -721,6 +724,7 @@ def subtest_update_same_domains_updates_cloudfront(tasks, cloudfront):
         forwarded_cookies=["mycookie", "myothercookie", "anewcookie"],
         forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
         origin_protocol_policy="http-only",
+        bucket_prefix="4321/"
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
