@@ -146,6 +146,7 @@ class API(ServiceBroker):
             forwarded_headers = normalize_header_list(forwarded_headers)
 
             instance.forwarded_headers = forwarded_headers
+            instance.error_responses = params.get("error_responses", {})
             if params.get("insecure_origin", False):
                 if params.get("origin") is None:
                     raise errors.ErrBadRequest(

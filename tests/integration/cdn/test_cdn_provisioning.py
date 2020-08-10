@@ -223,6 +223,21 @@ def test_provision_refuses_insecure_origin_for_default_origin(client, dns):
     assert client.response.status_code == 400
 
 
+@pytest.mark.focus
+def test_provision_sets_custom_error_responses(client, dns):
+    dns.add_cname("_acme-challenge.example.com")
+    client.provision_cdn_instance(
+        "4321",
+        params={
+            "domains": "example.com",
+            "error_responses": {"404": "/errors/404.html"},
+        },
+    )
+    instance = CDNServiceInstance.query.get("4321")
+    assert instance.error_responses["404"] == "/errors/404.html"
+
+
+@pytest.mark.focus
 def test_provision_happy_path(
     client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
 ):
@@ -298,6 +313,7 @@ def subtest_provision_creates_provision_operation(client, dns):
             "forward_cookies": "mycookie,myothercookie",
             "forward_headers": "x-my-header, x-your-header   ",
             "insecure_origin": True,
+            "error_responses": {"404": "/errors/404.html", "405": "/errors/405.html"},
         },
     )
     db.session.expunge_all()
@@ -487,6 +503,13 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
         forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
         origin_protocol_policy="http-only",
         bucket_prefix="4321/",
+        custom_error_responses={
+            "Quantity": 2,
+            "Items": [
+                {"ErrorCode": 404, "ResponsePagePath": "/errors/404.html"},
+                {"ErrorCode": 405, "ResponsePagePath": "/errors/405.html"},
+            ],
+        },
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
