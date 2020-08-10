@@ -246,7 +246,7 @@ def test_provision_happy_path(
     )
     subtest_provision_waits_for_route53_changes(tasks, route53)
     check_last_operation_description(
-        client, "4321", operation_id, "Updating DNS TXT records"
+        client, "4321", operation_id, "Waiting for DNS changes"
     )
     subtest_provision_answers_challenges(tasks, dns)
     check_last_operation_description(
@@ -274,7 +274,7 @@ def test_provision_happy_path(
     )
     subtest_provision_waits_for_route53_changes(tasks, route53)
     check_last_operation_description(
-        client, "4321", operation_id, "Creating DNS ALIAS records"
+        client, "4321", operation_id, "Waiting for DNS changes"
     )
     subtest_provision_marks_operation_as_succeeded(tasks)
     check_last_operation_description(client, "4321", operation_id, "Complete!")

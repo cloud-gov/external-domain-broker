@@ -18,6 +18,17 @@ def test_operations_marked_failed_after_failing(
     def no_retry_task(operation_id):
         raise Exception()
 
+    @huey.task()
+    def semaphore_task(operation_id):
+        # this task deletes our operation
+        # so tests will fail if the task failure logic
+        # doesn't abort the rest of the pipeline
+
+        with no_context_app.app_context():
+            operation = Operation.query.get(operation_id)
+            db.session.delete(operation)
+            db.session.commit()
+
     with no_context_app.app_context():
         no_retries_left_operation = OperationFactory.create(
             id="9876",
@@ -29,9 +40,8 @@ def test_operations_marked_failed_after_failing(
     with fallible_huey() as h:
         with immediate_huey() as h:
             # this task should fail because we have not created a user
-            task = no_retry_task("9876")
-            with pytest.raises(TaskException):
-                result = task()
+            pipeline = no_retry_task.s("9876").then(semaphore_task, "9876")
+            h.enqueue(pipeline)
     with no_context_app.app_context():
         no_retries_left_operation = Operation.query.get("9876")
     assert no_retries_left_operation.state == "failed"

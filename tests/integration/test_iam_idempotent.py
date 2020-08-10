@@ -1,4 +1,5 @@
 from datetime import date
+import time
 
 import pytest
 
@@ -100,5 +101,9 @@ def test_reupload_certificate_ok(
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("1234")
     certificate = service_instance.new_certificate
+    operation = Operation.query.get("4321")
+    updated_at = operation.updated_at.timestamp()
     # unstubbed, so an error should be raised if we do try
     upload_server_certificate.call_local("4321")
+    operation = Operation.query.get("4321")
+    assert updated_at != operation.updated_at.timestamp()

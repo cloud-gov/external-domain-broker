@@ -2,6 +2,7 @@ import logging
 import time
 
 from sqlalchemy import and_
+from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import alb
 from broker.extensions import config, db
@@ -31,6 +32,7 @@ def select_alb(operation_id, **kwargs):
     service_instance = operation.service_instance
 
     operation.step_description = "Selecting load balancer"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -56,6 +58,7 @@ def add_certificate_to_alb(operation_id, **kwargs):
     certificate = service_instance.new_certificate
 
     operation.step_description = "Adding SSL certificate to load balancer"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -82,6 +85,7 @@ def remove_certificate_from_alb(operation_id, **kwargs):
     service_instance = operation.service_instance
 
     operation.step_description = "Removing SSL certificate from load balancer"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -110,6 +114,7 @@ def remove_certificate_from_previous_alb(operation_id, **kwargs):
     ).first()
 
     operation.step_description = "Removing SSL certificate from load balancer"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 

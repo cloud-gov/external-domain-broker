@@ -10,6 +10,7 @@ from acme import challenges, client, crypto_util, messages
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from sqlalchemy.orm.attributes import flag_modified
 
 from broker.extensions import config, db
 from broker.models import ACMEUser, Certificate, Challenge, Operation
@@ -54,6 +55,7 @@ def create_user(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
 
     operation.step_description = "Registering user for Lets Encrypt"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -99,6 +101,7 @@ def generate_private_key(operation_id: int, **kwargs):
     service_instance = operation.service_instance
 
     operation.step_description = "Creating credentials for Lets Encrypt"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -142,6 +145,7 @@ def initiate_challenges(operation_id: int, **kwargs):
     certificate = service_instance.new_certificate
 
     operation.step_description = "Initiating Lets Encrypt challenges"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -193,6 +197,7 @@ def answer_challenges(operation_id: int, **kwargs):
     acme_user = service_instance.acme_user
 
     operation.step_description = "Answering Lets Encrypt challenges"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -272,6 +277,7 @@ def retrieve_certificate(operation_id: int, **kwargs):
     certificate = service_instance.new_certificate
 
     operation.step_description = "Retrieving SSL certificate from Lets Encrypt"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 

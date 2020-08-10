@@ -3,6 +3,7 @@ from datetime import date
 
 from botocore.exceptions import ClientError
 from sqlalchemy import and_
+from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import iam_commercial, iam_govcloud
 from broker.extensions import config, db
@@ -19,6 +20,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
     certificate = service_instance.new_certificate
 
     operation.step_description = "Uploading SSL certificate to AWS"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -72,6 +74,7 @@ def delete_server_certificate(operation_id: str, **kwargs):
     service_instance = operation.service_instance
 
     operation.step_description = "Removing SSL certificate from AWS"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -109,6 +112,7 @@ def delete_previous_server_certificate(operation_id: str, **kwargs):
     service_instance = operation.service_instance
 
     operation.step_description = "Removing SSL certificate from AWS"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
