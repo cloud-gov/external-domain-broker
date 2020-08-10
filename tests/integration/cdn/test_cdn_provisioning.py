@@ -223,7 +223,6 @@ def test_provision_refuses_insecure_origin_for_default_origin(client, dns):
     assert client.response.status_code == 400
 
 
-@pytest.mark.focus
 def test_provision_sets_custom_error_responses(client, dns):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_cdn_instance(
@@ -237,7 +236,6 @@ def test_provision_sets_custom_error_responses(client, dns):
     assert instance.error_responses["404"] == "/errors/404.html"
 
 
-@pytest.mark.focus
 def test_provision_happy_path(
     client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
 ):

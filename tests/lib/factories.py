@@ -23,6 +23,7 @@ class CDNServiceInstanceFactory(BaseFactory):
         model = CDNServiceInstance
 
     id = Sequence(lambda n: "UUID {}".format(n))
+    error_responses = {}
 
 
 class ALBServiceInstanceFactory(BaseFactory):
