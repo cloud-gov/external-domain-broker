@@ -549,6 +549,13 @@ def subtest_updates_cloudfront(tasks, cloudfront):
         origin_path="origin_path",
         distribution_id="FakeDistributionId",
         bucket_prefix="4321/",
+        custom_error_responses={
+            "Quantity": 2,
+            "Items": [
+                {"ErrorCode": 404, "ResponsePagePath": "/errors/404.html"},
+                {"ErrorCode": 405, "ResponsePagePath": "/errors/405.html"},
+            ],
+        },
     )
     cloudfront.expect_update_distribution(
         caller_reference="4321",
@@ -563,6 +570,13 @@ def subtest_updates_cloudfront(tasks, cloudfront):
         forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
         origin_protocol_policy="http-only",
         bucket_prefix="4321/",
+        custom_error_responses={
+            "Quantity": 2,
+            "Items": [
+                {"ErrorCode": 404, "ResponsePagePath": "/errors/404.html"},
+                {"ErrorCode": 405, "ResponsePagePath": "/errors/405.html"},
+            ],
+        },
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -641,7 +655,12 @@ def subtest_update_same_domains_creates_update_operation(client, dns):
     dns.add_cname("_acme-challenge.foo.com")
     dns.add_cname("_acme-challenge.bar.com")
     client.update_cdn_instance(
-        "4321", params={"domains": "bar.com, Foo.com", "origin": "newer-origin.com"}
+        "4321",
+        params={
+            "domains": "bar.com, Foo.com",
+            "origin": "newer-origin.com",
+            "error_responses": {},
+        },
     )
     db.session.expunge_all()
 
@@ -711,6 +730,13 @@ def subtest_update_same_domains_updates_cloudfront(tasks, cloudfront):
         origin_path="origin_path",
         distribution_id="FakeDistributionId",
         bucket_prefix="4321/",
+        custom_error_responses={
+            "Quantity": 2,
+            "Items": [
+                {"ErrorCode": 404, "ResponsePagePath": "/errors/404.html"},
+                {"ErrorCode": 405, "ResponsePagePath": "/errors/405.html"},
+            ],
+        },
     )
     cloudfront.expect_update_distribution(
         caller_reference="4321",
@@ -725,6 +751,7 @@ def subtest_update_same_domains_updates_cloudfront(tasks, cloudfront):
         forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
         origin_protocol_policy="http-only",
         bucket_prefix="4321/",
+        custom_error_responses={"Quantity": 0},
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
