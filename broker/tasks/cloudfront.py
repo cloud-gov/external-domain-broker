@@ -40,6 +40,16 @@ def get_aliases(service_instance):
     }
 
 
+def get_custom_error_responses(service_instance):
+    items = []
+    for code, page in service_instance.error_responses.items():
+        items.append({"ErrorCode": int(code), "ResponsePagePath": page})
+    if items:
+        return {"Quantity": len(items), "Items": items}
+    else:
+        return {"Quantity": 0}
+
+
 @huey.retriable_task
 def create_distribution(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
@@ -115,7 +125,7 @@ def create_distribution(operation_id: int, **kwargs):
                 "LambdaFunctionAssociations": {"Quantity": 0},
             },
             "CacheBehaviors": {"Quantity": 0},
-            "CustomErrorResponses": {"Quantity": 0},
+            "CustomErrorResponses": get_custom_error_responses(service_instance),
             "Comment": "external domain service https://cloud-gov/external-domain-broker",
             "Logging": {
                 "Enabled": True,
