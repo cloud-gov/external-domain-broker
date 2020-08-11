@@ -1,6 +1,8 @@
 import logging
 import time
 
+from sqlalchemy.orm.attributes import flag_modified
+
 from broker.aws import cloudfront
 from broker.extensions import config, db
 from broker.models import Operation, CDNServiceInstance
@@ -59,6 +61,7 @@ def create_distribution(operation_id: int, **kwargs):
     domains = service_instance.domain_names
 
     operation.step_description = "Creating CloudFront distribution"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -160,6 +163,7 @@ def disable_distribution(operation_id: int, **kwargs):
     service_instance = operation.service_instance
 
     operation.step_description = "Disabling CloudFront distribution"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -181,6 +185,11 @@ def disable_distribution(operation_id: int, **kwargs):
 def wait_for_distribution_disabled(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
+    operation.step_description = "Waiting for CloudFront distribution to disable"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
 
     enabled = True
     num_times = 0
@@ -211,6 +220,7 @@ def delete_distribution(operation_id: int, **kwargs):
     service_instance = operation.service_instance
 
     operation.step_description = "Deleting CloudFront distribution"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -231,6 +241,7 @@ def wait_for_distribution(operation_id: str, **kwargs):
     service_instance = operation.service_instance
 
     operation.step_description = "Waiting for CloudFront distribution"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -248,6 +259,11 @@ def wait_for_distribution(operation_id: str, **kwargs):
 def update_certificate(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
+
+    operation.step_description = "Updating CloudFront distribution certificate"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
 
     config = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id
@@ -271,6 +287,12 @@ def update_distribution(operation_id: str, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
+
+    operation.step_description = "Updating CloudFront distribution"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
 
     config_response = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id

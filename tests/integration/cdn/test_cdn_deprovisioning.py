@@ -145,7 +145,7 @@ def test_deprovision_happy_path(
         tasks, service_instance, cloudfront
     )
     check_last_operation_description(
-        client, "1234", operation_id, "Disabling CloudFront distribution"
+        client, "1234", operation_id, "Waiting for CloudFront distribution to disable"
     )
     subtest_deprovision_removes_cloudfront_distribution(
         tasks, service_instance, cloudfront

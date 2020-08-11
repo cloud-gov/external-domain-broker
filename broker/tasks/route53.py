@@ -16,6 +16,7 @@ def create_TXT_records(operation_id: int, **kwargs):
     service_instance = operation.service_instance
 
     operation.step_description = "Updating DNS TXT records"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -57,6 +58,7 @@ def remove_TXT_records(operation_id: int, **kwargs):
     certificate = service_instance.current_certificate
 
     operation.step_description = "Removing DNS TXT records"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -94,6 +96,11 @@ def wait_for_changes(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
     service_instance = operation.service_instance
 
+    operation.step_description = "Waiting for DNS changes"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
     change_ids = service_instance.route53_change_ids.copy()
     logger.info(f"Waiting for {len(change_ids)} Route53 change IDs: {change_ids}")
     for change_id in change_ids:
@@ -118,6 +125,7 @@ def create_ALIAS_records(operation_id: str, **kwargs):
     service_instance = operation.service_instance
 
     operation.step_description = "Creating DNS ALIAS records"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
@@ -172,6 +180,7 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
     service_instance = operation.service_instance
 
     operation.step_description = "Removing DNS ALIAS records"
+    flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
