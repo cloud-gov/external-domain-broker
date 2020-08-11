@@ -42,6 +42,16 @@ def get_aliases(service_instance):
     }
 
 
+def get_custom_error_responses(service_instance):
+    items = []
+    for code, page in service_instance.error_responses.items():
+        items.append({"ErrorCode": int(code), "ResponsePagePath": page})
+    if items:
+        return {"Quantity": len(items), "Items": items}
+    else:
+        return {"Quantity": 0}
+
+
 @huey.retriable_task
 def create_distribution(operation_id: int, **kwargs):
     operation = Operation.query.get(operation_id)
@@ -118,7 +128,7 @@ def create_distribution(operation_id: int, **kwargs):
                 "LambdaFunctionAssociations": {"Quantity": 0},
             },
             "CacheBehaviors": {"Quantity": 0},
-            "CustomErrorResponses": {"Quantity": 0},
+            "CustomErrorResponses": get_custom_error_responses(service_instance),
             "Comment": "external domain service https://cloud-gov/external-domain-broker",
             "Logging": {
                 "Enabled": True,
@@ -283,33 +293,37 @@ def update_distribution(operation_id: str, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    config = cloudfront.get_distribution_config(
+
+    config_response = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id
     )
-    config["DistributionConfig"]["ViewerCertificate"][
+    etag = config_response["ETag"]
+    config = config_response["DistributionConfig"]
+    config["ViewerCertificate"][
         "IAMCertificateId"
     ] = certificate.iam_server_certificate_id
-    config["DistributionConfig"]["Origins"]["Items"][0][
+    config["Origins"]["Items"][0][
         "DomainName"
     ] = service_instance.cloudfront_origin_hostname
-    config["DistributionConfig"]["Origins"]["Items"][0][
+    config["Origins"]["Items"][0][
         "OriginPath"
     ] = service_instance.cloudfront_origin_path
-    config["DistributionConfig"]["Origins"]["Items"][0]["CustomOriginConfig"][
+    config["Origins"]["Items"][0]["CustomOriginConfig"][
         "OriginProtocolPolicy"
     ] = service_instance.origin_protocol_policy
-    config["DistributionConfig"]["DefaultCacheBehavior"]["ForwardedValues"][
-        "Cookies"
-    ] = get_cookie_policy(service_instance)
-    config["DistributionConfig"]["DefaultCacheBehavior"]["ForwardedValues"][
-        "Headers"
-    ] = get_header_policy(service_instance)
-    config["DistributionConfig"]["Aliases"] = get_aliases(service_instance)
+    config["DefaultCacheBehavior"]["ForwardedValues"]["Cookies"] = get_cookie_policy(
+        service_instance
+    )
+    config["DefaultCacheBehavior"]["ForwardedValues"]["Headers"] = get_header_policy(
+        service_instance
+    )
+    config["Aliases"] = get_aliases(service_instance)
+    config["CustomErrorResponses"] = get_custom_error_responses(service_instance)
 
     cloudfront.update_distribution(
-        DistributionConfig=config["DistributionConfig"],
+        DistributionConfig=config,
         Id=service_instance.cloudfront_distribution_id,
-        IfMatch=config["ETag"],
+        IfMatch=etag,
     )
 
     service_instance.current_certificate = certificate

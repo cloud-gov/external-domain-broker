@@ -22,7 +22,10 @@ class FakeCloudFront(FakeAWS):
         forwarded_headers: list = None,
         origin_protocol_policy: str = "https-only",
         bucket_prefix: str = "",
+        custom_error_responses: dict = None,
     ):
+        if custom_error_responses is None:
+            custom_error_responses = {"Quantity": 0}
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
         self.stubber.add_response(
@@ -40,6 +43,7 @@ class FakeCloudFront(FakeAWS):
                 forwarded_headers=forwarded_headers,
                 origin_protocol_policy=origin_protocol_policy,
                 bucket_prefix=bucket_prefix,
+                custom_error_responses=custom_error_responses,
             ),
             {
                 "DistributionConfig": self._distribution_config(
@@ -53,6 +57,7 @@ class FakeCloudFront(FakeAWS):
                     forwarded_headers=forwarded_headers,
                     origin_protocol_policy=origin_protocol_policy,
                     bucket_prefix=bucket_prefix,
+                    custom_error_responses=custom_error_responses,
                 )
             },
         )
@@ -70,7 +75,10 @@ class FakeCloudFront(FakeAWS):
         forwarded_headers: list = None,
         origin_protocol_policy: str = "https-only",
         bucket_prefix: str = "",
+        custom_error_responses: str = None,
     ):
+        if custom_error_responses is None:
+            custom_error_responses = {"Quantity": 0}
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
         self.etag = str(datetime.now().timestamp())
@@ -88,6 +96,7 @@ class FakeCloudFront(FakeAWS):
                     forwarded_headers=forwarded_headers,
                     origin_protocol_policy=origin_protocol_policy,
                     bucket_prefix=bucket_prefix,
+                    custom_error_responses=custom_error_responses,
                 ),
                 "ETag": self.etag,
             },
@@ -125,6 +134,7 @@ class FakeCloudFront(FakeAWS):
                 origin_path,
                 distribution_id,
                 distribution_hostname,
+                custom_error_responses={"Quantity": 0}
             ),
             {
                 "DistributionConfig": self._distribution_config(
@@ -134,6 +144,7 @@ class FakeCloudFront(FakeAWS):
                     origin_hostname,
                     origin_path,
                     enabled=False,
+                    custom_error_responses={"Quantity": 0}
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,
@@ -171,7 +182,10 @@ class FakeCloudFront(FakeAWS):
         forwarded_headers: list = None,
         origin_protocol_policy: str = "https-only",
         bucket_prefix: str = "",
+        custom_error_responses: dict = None,
     ):
+        if custom_error_responses is None:
+            custom_error_responses = {"Quantity": 0}
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
         self.etag = str(datetime.now().timestamp())
@@ -190,6 +204,7 @@ class FakeCloudFront(FakeAWS):
             forwarded_headers=forwarded_headers,
             origin_protocol_policy=origin_protocol_policy,
             bucket_prefix=bucket_prefix,
+            custom_error_responses=custom_error_responses,
         )
         distribution["ETag"] = self.etag
         self.stubber.add_response(
@@ -221,7 +236,10 @@ class FakeCloudFront(FakeAWS):
         forwarded_headers: list = None,
         origin_protocol_policy: str = "https-only",
         bucket_prefix: str = "",
+        custom_error_responses: dict = None,
     ):
+        if custom_error_responses is None:
+            custom_error_responses = {"Quantity": 0}
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
         self.stubber.add_response(
@@ -239,6 +257,7 @@ class FakeCloudFront(FakeAWS):
                 forwarded_headers=forwarded_headers,
                 origin_protocol_policy=origin_protocol_policy,
                 bucket_prefix=bucket_prefix,
+                custom_error_responses=custom_error_responses,
             ),
             {
                 "DistributionConfig": self._distribution_config(
@@ -252,6 +271,7 @@ class FakeCloudFront(FakeAWS):
                     forwarded_headers=forwarded_headers,
                     origin_protocol_policy=origin_protocol_policy,
                     bucket_prefix=bucket_prefix,
+                    custom_error_responses=custom_error_responses,
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,
@@ -271,6 +291,7 @@ class FakeCloudFront(FakeAWS):
         forwarded_headers: list = None,
         origin_protocol_policy: str = "https-only",
         bucket_prefix: str = "",
+        custom_error_responses: dict = None,
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -337,7 +358,7 @@ class FakeCloudFront(FakeAWS):
                 "LambdaFunctionAssociations": {"Quantity": 0},
             },
             "CacheBehaviors": {"Quantity": 0},
-            "CustomErrorResponses": {"Quantity": 0},
+            "CustomErrorResponses": custom_error_responses,
             "Comment": "external domain service https://cloud-gov/external-domain-broker",
             "Logging": {
                 "Enabled": True,
@@ -372,6 +393,7 @@ class FakeCloudFront(FakeAWS):
         forwarded_headers: list = None,
         origin_protocol_policy: str = "https-only",
         bucket_prefix: str = "",
+        custom_error_responses: dict = None,
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -402,6 +424,7 @@ class FakeCloudFront(FakeAWS):
                     forwarded_headers,
                     origin_protocol_policy,
                     bucket_prefix,
+                    custom_error_responses,
                 ),
             }
         }

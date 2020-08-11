@@ -141,6 +141,7 @@ class CDNServiceInstance(ServiceInstance):
     forward_cookie_policy = db.Column(db.String, default=ForwardCookiePolicy.ALL.value)
     forwarded_cookies = db.Column(postgresql.JSONB, default=[])
     forwarded_headers = db.Column(postgresql.JSONB, default=[])
+    error_responses = db.Column(postgresql.JSONB, default=[])
     origin_protocol_policy = db.Column(db.String)
 
     __mapper_args__ = {"polymorphic_identity": "cdn_service_instance"}

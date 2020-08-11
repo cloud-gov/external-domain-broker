@@ -146,6 +146,7 @@ class API(ServiceBroker):
             forwarded_headers = normalize_header_list(forwarded_headers)
 
             instance.forwarded_headers = forwarded_headers
+            instance.error_responses = params.get("error_responses", {})
             if params.get("insecure_origin", False):
                 if params.get("origin") is None:
                     raise errors.ErrBadRequest(
@@ -303,6 +304,9 @@ class API(ServiceBroker):
                         )
                     origin_protocol_policy = "http-only"
                 instance.origin_protocol_policy = origin_protocol_policy
+            if "error_responses" in params:
+                print("got error responses")
+                instance.error_responses = params["error_responses"]
 
             queue = queue_all_cdn_update_tasks_for_operation
         else:
