@@ -272,11 +272,11 @@ def update_distribution(operation_id: str, **kwargs):
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
 
-    config = cloudfront.get_distribution_config(
+    config_response = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id
     )
-    etag = config["ETag"]
-    config = config["DistributionConfig"]
+    etag = config_response["ETag"]
+    config = config_response["DistributionConfig"]
     config["ViewerCertificate"][
         "IAMCertificateId"
     ] = certificate.iam_server_certificate_id
