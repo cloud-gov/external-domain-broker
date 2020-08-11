@@ -293,7 +293,6 @@ def update_distribution(operation_id: str, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-
     config_response = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id
     )

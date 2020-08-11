@@ -170,9 +170,6 @@ def app():
     cf_logging._SETUP_DONE = False
     _app = create_app()
 
-    # The Exception errorhandler seems to be firing in testing mode.
-    del _app.error_handler_spec["open_broker"][None][Exception]
-
     with _app.app_context():
         print("Running migrations")
         db.drop_all()
@@ -228,6 +225,4 @@ def no_context_app():
     cf_logging._SETUP_DONE = False
     _app = create_app()
 
-    # The Exception errorhandler seems to be firing in testing mode.
-    del _app.error_handler_spec["open_broker"][None][Exception]
     return _app
