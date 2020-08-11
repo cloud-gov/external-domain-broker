@@ -31,6 +31,8 @@ def create_app():
     )
 
     app.register_blueprint(openbrokerapi.get_blueprint(API(), credentials, logger))
+
+    # drop the upstream's error-handlers, because they dump error messages to the cient
     del app.error_handler_spec["open_broker"][None][Exception]
     del app.error_handler_spec["open_broker"][None][NotImplementedError]
 
