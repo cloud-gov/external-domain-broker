@@ -134,7 +134,7 @@ class FakeCloudFront(FakeAWS):
                 origin_path,
                 distribution_id,
                 distribution_hostname,
-                custom_error_responses={"Quantity": 0}
+                custom_error_responses={"Quantity": 0},
             ),
             {
                 "DistributionConfig": self._distribution_config(
@@ -144,7 +144,7 @@ class FakeCloudFront(FakeAWS):
                     origin_hostname,
                     origin_path,
                     enabled=False,
-                    custom_error_responses={"Quantity": 0}
+                    custom_error_responses={"Quantity": 0},
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,
