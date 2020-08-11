@@ -45,7 +45,11 @@ def get_aliases(service_instance):
 def get_custom_error_responses(service_instance):
     items = []
     for code, page in service_instance.error_responses.items():
-        items.append({"ErrorCode": int(code), "ResponsePagePath": page})
+        # yes, ErrorCode is an int, and ResponseCode is a str. No, I don't know why.
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudfront.html#CloudFront.Client.create_distribution
+        items.append(
+            {"ErrorCode": int(code), "ResponsePagePath": page, "ResponseCode": code}
+        )
     if items:
         return {"Quantity": len(items), "Items": items}
     else:
@@ -292,7 +296,6 @@ def update_distribution(operation_id: str, **kwargs):
     flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
-
 
     config_response = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id

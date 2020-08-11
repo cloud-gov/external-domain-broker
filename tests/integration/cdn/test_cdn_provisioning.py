@@ -504,8 +504,16 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
         custom_error_responses={
             "Quantity": 2,
             "Items": [
-                {"ErrorCode": 404, "ResponsePagePath": "/errors/404.html"},
-                {"ErrorCode": 405, "ResponsePagePath": "/errors/405.html"},
+                {
+                    "ErrorCode": 404,
+                    "ResponsePagePath": "/errors/404.html",
+                    "ResponseCode": "404",
+                },
+                {
+                    "ErrorCode": 405,
+                    "ResponsePagePath": "/errors/405.html",
+                    "ResponseCode": "405",
+                },
             ],
         },
     )
