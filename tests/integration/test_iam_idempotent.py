@@ -1,5 +1,4 @@
 from datetime import date
-import time
 
 import pytest
 
