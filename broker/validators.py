@@ -91,3 +91,63 @@ class UniqueDomains:
             return domain
         else:
             return ""
+
+
+class ErrorResponseConfig:
+    # CloudFront only allows us to configure these ones
+    VALID_ERROR_CODES = [
+        "400",
+        "403",
+        "404",
+        "405",
+        "414",
+        "416",
+        "500",
+        "501",
+        "502",
+        "503",
+        "504",
+    ]
+
+    def __init__(self, input):
+        self.input = input
+
+    def validate(self):
+        if not isinstance(self.input, dict):
+            raise errors.ErrBadRequest(
+                "error_response should be a dictionary of error code: response path"
+            )
+        for key, value in self.input.items():
+            if key not in ErrorResponseConfig.VALID_ERROR_CODES:
+                raise errors.ErrBadRequest("error_response keys must be strings")
+            if not isinstance(value, str):
+                raise errors.ErrBadRequest("error_response values must be strings")
+            if not value:
+                raise errors.ErrBadRequest("error_response values must not be empty")
+            if not value[0] == "/":
+                raise errors.ErrBadRequest(
+                    "error_response path must be a path starting with `/`"
+                )
+
+
+class HeaderList:
+    # most clearly stated here: https://tools.ietf.org/html/rfc7230#section-3.2.6
+    ALLOWED_CHARACTERS = set(
+        r"!#$%&'*+-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ^_`abcdefghijklmnopqrstuvwxyz|"
+    )
+
+    def __init__(self, header_list):
+        self.header_list = header_list
+
+    def validate(self):
+        for header in self.header_list:
+            if not header:
+                raise errors.ErrBadRequest("Headers cannot be empty")
+            header_chars = set(header)
+            if not header_chars.issubset(HeaderList.ALLOWED_CHARACTERS):
+                invalid_characters = header_chars.difference(
+                    HeaderList.ALLOWED_CHARACTERS
+                )
+                raise errors.ErrBadRequest(
+                    f"{header} contains these invalid characters: {invalid_characters}"
+                )
