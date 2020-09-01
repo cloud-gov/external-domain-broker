@@ -1,8 +1,13 @@
 import pytest
 
-from broker.tasks.cloudfront import create_distribution
+from broker.tasks.cloudfront import (
+    create_distribution,
+    disable_distribution,
+    wait_for_distribution_disabled,
+    delete_distribution,
+)
 from broker.extensions import db
-from broker.models import CDNServiceInstance
+from broker.models import CDNServiceInstance, Operation
 
 from tests.lib import factories
 
@@ -116,3 +121,26 @@ def test_create_distribution_referencing_nonexistent_distribution(
     assert service_instance.cloudfront_distribution_arn.endswith("FakeDistributionId")
     assert service_instance.cloudfront_distribution_id == "FakeDistributionId"
     assert service_instance.domain_internal == "fake1234.cloudfront.net"
+
+
+def test_deprovision_skips_disabling_when_no_cloudfront_distribution_present(
+    clean_db, cloudfront
+):
+    service_instance = factories.CDNServiceInstanceFactory.create(
+        id="1233",
+        domain_names=["example.com", "foo.com"],
+        domain_internal="fake1233.cloudfront.net",
+        route53_alias_hosted_zone="Z2FDTNDATAQYW2",
+    )
+    operation = factories.OperationFactory.create(
+        id="5677",
+        state=Operation.States.IN_PROGRESS.value,
+        action=Operation.Actions.DEPROVISION.value,
+    )
+    db.session.commit()
+    db.session.expunge_all()
+
+    # try these things - it'll blow up if we try to call cloudfront because we've stubbed boto
+    disable_distribution.call_local("5677")
+    wait_for_distribution_disabled.call_local("5677")
+    delete_distribution.call_local("5677")

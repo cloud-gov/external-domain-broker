@@ -171,6 +171,9 @@ def disable_distribution(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
+    if service_instance.cloudfront_distribution_id is None:
+        return
+
     try:
         distribution_config = cloudfront.get_distribution_config(
             Id=service_instance.cloudfront_distribution_id
@@ -194,6 +197,9 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
     flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
+
+    if service_instance.cloudfront_distribution_id is None:
+        return
 
     enabled = True
     num_times = 0
@@ -227,6 +233,9 @@ def delete_distribution(operation_id: int, **kwargs):
     flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
+
+    if service_instance.cloudfront_distribution_id is None:
+        return
 
     try:
         status = cloudfront.get_distribution(
