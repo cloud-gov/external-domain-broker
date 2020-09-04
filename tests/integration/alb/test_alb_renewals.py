@@ -46,7 +46,7 @@ def alb_instance_needing_renewal(clean_db, tasks):
     current_cert = CertificateFactory.create(
         id=1001,
         service_instance=renew_service_instance,
-        expires_at=datetime.now() + timedelta(days=9),
+        expires_at=datetime.now() + timedelta(days=29),
         iam_server_certificate_id="certificate_id",
         iam_server_certificate_name="certificate_name",
         iam_server_certificate_arn="certificate_arn",
@@ -98,7 +98,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
     no_renew_cert = CertificateFactory.create(
         id=1002,
         service_instance=no_renew_service_instance,
-        expires_at=datetime.now() + timedelta(days=11),
+        expires_at=datetime.now() + timedelta(days=31),
         private_key_pem="SOMEPRIVATEKEY",
         iam_server_certificate_id="certificate_id",
         iam_server_certificate_name="certificate_name",
