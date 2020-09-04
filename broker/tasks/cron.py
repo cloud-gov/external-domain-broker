@@ -18,7 +18,7 @@ def scan_for_expiring_certs():
         logger.info("Scanning for expired certificates")
         # TODO: skip SIs with active operations
         certificates = Certificate.query.filter(
-            Certificate.expires_at - datetime.timedelta(days=10)
+            Certificate.expires_at - datetime.timedelta(days=30)
             < datetime.datetime.now()
         ).all()
         instances = [
