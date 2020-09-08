@@ -17,6 +17,9 @@ from tests.integration.cdn.test_cdn_provisioning import (
     subtest_provision_uploads_certificate_to_iam,
     subtest_provision_marks_operation_as_succeeded,
 )
+from tests.integration.cdn.test_cdn_update import (
+    subtest_update_creates_private_key_and_csr,
+)
 from tests.lib.factories import (
     CDNServiceInstanceFactory,
     CertificateFactory,
@@ -111,6 +114,7 @@ def test_scan_for_expiring_certs_cdn_happy_path(
     dns.add_cname("_acme-challenge.foo.com")
 
     subtest_queues_tasks()
+    subtest_update_creates_private_key_and_csr(tasks)
     subtest_provision_initiates_LE_challenge(tasks)
     subtest_provision_updates_TXT_records(tasks, route53)
     subtest_provision_waits_for_route53_changes(tasks, route53)
