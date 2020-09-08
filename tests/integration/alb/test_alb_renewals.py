@@ -21,6 +21,9 @@ from tests.integration.alb.test_alb_provisioning import (
     subtest_provision_provisions_ALIAS_records,
     subtest_provision_marks_operation_as_succeeded,
 )
+from tests.integration.alb.test_alb_update import (
+    subtest_update_creates_private_key_and_csr,
+)
 from tests.lib.factories import (
     ALBServiceInstanceFactory,
     OperationFactory,
@@ -114,6 +117,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
     dns.add_cname("_acme-challenge.foo.com")
 
     subtest_queues_tasks()
+    subtest_update_creates_private_key_and_csr(tasks)
     subtest_provision_initiates_LE_challenge(tasks)
     subtest_provision_updates_TXT_records(tasks, route53)
     subtest_provision_waits_for_route53_changes(tasks, route53)
