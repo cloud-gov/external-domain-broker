@@ -65,7 +65,7 @@ def cancel_pending_provisioning(operation_id: str, **kwargs):
     service_instance = operation.service_instance
     for op in service_instance.operations:
         if (
-            op.action == Operation.Actions.PROVISION.value
+            op.action != Operation.Actions.DEPROVISION.value
             and op.state == Operation.States.IN_PROGRESS.value
         ):
             op.canceled_at = datetime.utcnow()
