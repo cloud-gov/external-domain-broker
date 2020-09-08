@@ -508,11 +508,13 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
                     "ErrorCode": 404,
                     "ResponsePagePath": "/errors/404.html",
                     "ResponseCode": "404",
+                    "ErrorCachingMinTTL": 300,
                 },
                 {
                     "ErrorCode": 405,
                     "ResponsePagePath": "/errors/405.html",
                     "ResponseCode": "405",
+                    "ErrorCachingMinTTL": 300,
                 },
             ],
         },

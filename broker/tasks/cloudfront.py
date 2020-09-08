@@ -48,7 +48,12 @@ def get_custom_error_responses(service_instance):
         # yes, ErrorCode is an int, and ResponseCode is a str. No, I don't know why.
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudfront.html#CloudFront.Client.create_distribution
         items.append(
-            {"ErrorCode": int(code), "ResponsePagePath": page, "ResponseCode": code}
+            {
+                "ErrorCode": int(code),
+                "ResponsePagePath": page,
+                "ResponseCode": code,
+                "ErrorCachingMinTTL": 300,
+            }
         )
     if items:
         return {"Quantity": len(items), "Items": items}
