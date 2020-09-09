@@ -33,7 +33,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
     else:
         iam = iam_govcloud
         iam_server_certificate_prefix = config.ALB_IAM_SERVER_CERTIFICATE_PREFIX
-        propagation_time = config.IAM_CERTIFICATE_PROPOGATION_TIME
+        propagation_time = config.IAM_CERTIFICATE_PROPAGATION_TIME
 
     if service_instance.new_certificate.iam_server_certificate_arn is not None:
         return

@@ -100,6 +100,7 @@ def remove_certificate_from_alb(operation_id, **kwargs):
         )
     db.session.add(service_instance)
     db.session.commit()
+    time.sleep(config.IAM_CERTIFICATE_PROPAGATION_TIME)
 
 
 @huey.retriable_task
