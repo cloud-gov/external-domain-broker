@@ -15,6 +15,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from broker.extensions import config, db
 from broker.models import ACMEUser, Certificate, Challenge, Operation
 from broker.tasks import huey
+from broker.acme_client import AcmeClient
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ def create_user(operation_id: int, **kwargs):
 
     net = client.ClientNetwork(key, user_agent="cloud.gov external domain broker")
     directory = messages.Directory.from_json(net.get(config.ACME_DIRECTORY).json())
-    client_acme = client.ClientV2(directory, net=net)
+    client_acme = AcmeClient(directory, net=net)
 
     acme_user.email = "cloud-gov-operations@gsa.gov"
     registration = client_acme.new_account(
@@ -164,7 +165,7 @@ def initiate_challenges(operation_id: int, **kwargs):
         account=registration,
     )
     directory = messages.Directory.from_json(net.get(config.ACME_DIRECTORY).json())
-    client_acme = client.ClientV2(directory, net=net)
+    client_acme = AcmeClient(directory, net=net)
 
     order = client_acme.new_order(certificate.csr_pem.encode())
     order_json = json.dumps(order.to_json())
@@ -220,7 +221,7 @@ def answer_challenges(operation_id: int, **kwargs):
         account=registration,
     )
     directory = messages.Directory.from_json(net.get(config.ACME_DIRECTORY).json())
-    client_acme = client.ClientV2(directory, net=net)
+    client_acme = AcmeClient(directory, net=net)
 
     for challenge in unanswered:
         if json.loads(challenge.body_json)["status"] == "valid":
@@ -296,7 +297,7 @@ def retrieve_certificate(operation_id: int, **kwargs):
         account=registration,
     )
     directory = messages.Directory.from_json(net.get(config.ACME_DIRECTORY).json())
-    client_acme = client.ClientV2(directory, net=net)
+    client_acme = AcmeClient(directory, net=net)
 
     order_json = json.loads(certificate.order_json)
     # The csr_pem in the JSON is a binary string, but finalize_order() expects
@@ -318,7 +319,12 @@ def retrieve_certificate(operation_id: int, **kwargs):
                 and certificate.expires_at > next_month
             ):
                 return
-        raise e
+            else:
+                finalized_order = client_acme.get_cert_for_finalized_order(
+                    order, deadline
+                )
+        else:
+            raise e
 
     certificate.leaf_pem, certificate.fullchain_pem = cert_from_fullchain(
         finalized_order.fullchain_pem
