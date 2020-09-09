@@ -96,7 +96,7 @@ class AppConfig(Config):
         self.SMTP_TO = self.env("SMTP_TO")
         self.SMTP_TLS = True
         self.RUN_CRON = self.env.int("INSTANCE_INDEX", default=1) == 0
-        self.IAM_CERTIFICATE_PROPOGATION_TIME = 30
+        self.IAM_CERTIFICATE_PROPAGATION_TIME = 30
 
 
 class ProductionConfig(AppConfig):
@@ -205,7 +205,7 @@ class TestConfig(DockerConfig):
         self.AWS_POLL_MAX_ATTEMPTS = 10
         # if you need to see what sqlalchemy is doing
         # self.SQLALCHEMY_ECHO = True
-        self.IAM_CERTIFICATE_PROPOGATION_TIME = 0
+        self.IAM_CERTIFICATE_PROPAGATION_TIME = 0
 
 
 class MissingRedisError(RuntimeError):
