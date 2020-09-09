@@ -1,5 +1,6 @@
 import logging
 from datetime import date
+import time
 
 from botocore.exceptions import ClientError
 from sqlalchemy import and_
@@ -28,9 +29,11 @@ def upload_server_certificate(operation_id: int, **kwargs):
     if service_instance.instance_type == "cdn_service_instance":
         iam = iam_commercial
         iam_server_certificate_prefix = config.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX
+        propagation_time = 0
     else:
         iam = iam_govcloud
         iam_server_certificate_prefix = config.ALB_IAM_SERVER_CERTIFICATE_PREFIX
+        propagation_time = config.IAM_CERTIFICATE_PROPOGATION_TIME
 
     if service_instance.new_certificate.iam_server_certificate_arn is not None:
         return
@@ -66,6 +69,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
     db.session.add(service_instance)
     db.session.add(certificate)
     db.session.commit()
+    time.sleep(propagation_time)
 
 
 @huey.retriable_task
