@@ -76,6 +76,7 @@ class FakeCloudFront(FakeAWS):
         origin_protocol_policy: str = "https-only",
         bucket_prefix: str = "",
         custom_error_responses: str = None,
+        include_le_bucket: bool = False,
     ):
         if custom_error_responses is None:
             custom_error_responses = {"Quantity": 0}
@@ -97,6 +98,7 @@ class FakeCloudFront(FakeAWS):
                     origin_protocol_policy=origin_protocol_policy,
                     bucket_prefix=bucket_prefix,
                     custom_error_responses=custom_error_responses,
+                    include_le_bucket=include_le_bucket,
                 ),
                 "ETag": self.etag,
             },
@@ -183,6 +185,7 @@ class FakeCloudFront(FakeAWS):
         origin_protocol_policy: str = "https-only",
         bucket_prefix: str = "",
         custom_error_responses: dict = None,
+        include_le_bucket: bool = False,
     ):
         if custom_error_responses is None:
             custom_error_responses = {"Quantity": 0}
@@ -205,6 +208,7 @@ class FakeCloudFront(FakeAWS):
             origin_protocol_policy=origin_protocol_policy,
             bucket_prefix=bucket_prefix,
             custom_error_responses=custom_error_responses,
+            include_le_bucket=include_le_bucket,
         )
         distribution["ETag"] = self.etag
         self.stubber.add_response(
@@ -292,6 +296,7 @@ class FakeCloudFront(FakeAWS):
         origin_protocol_policy: str = "https-only",
         bucket_prefix: str = "",
         custom_error_responses: dict = None,
+        include_le_bucket: bool = False,
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -301,7 +306,7 @@ class FakeCloudFront(FakeAWS):
                 "Quantity": len(forwarded_cookies),
                 "Items": forwarded_cookies,
             }
-        return {
+        response = {
             "CallerReference": caller_reference,
             "Aliases": {"Quantity": len(domains), "Items": domains},
             "DefaultRootObject": "",
@@ -376,6 +381,47 @@ class FakeCloudFront(FakeAWS):
             },
             "IsIPV6Enabled": True,
         }
+        if include_le_bucket:
+            response["Origins"]["Quantity"] += 1
+            response["Origins"]["Items"].append(
+                {
+                    "Id": "s3-cdn-broker-le-test-some-other-stuff",
+                    "DomainName": "cdn-broker-le-test.s3.amazonaws.com",
+                    "OriginPath": "",
+                    "CustomHeaders": {"Quantity": 0},
+                    "S3OriginConfig": {"OriginAccessIdentity": ""},
+                }
+            )
+            response["CacheBehaviors"] = {
+                "Quantity": 1,
+                "Items": [
+                    {
+                        "PathPattern": "/.well-known/acme-challenge/*",
+                        "TargetOriginId": "s3-cdn-broker-le-test-some-other-stuff",
+                        "ForwardedValues": {
+                            "QueryString": False,
+                            "Cookies": {"Forward": "none"},
+                            "Headers": {"Quantity": 0},
+                            "QueryStringCacheKeys": {"Quantity": 0},
+                        },
+                        "TrustedSigners": {"Enabled": False, "Quantity": 0},
+                        "ViewerProtocolPolicy": "allow-all",
+                        "MinTTL": 0,
+                        "AllowedMethods": {
+                            "Quantity": 2,
+                            "Items": ["HEAD", "GET"],
+                            "CachedMethods": {"Quantity": 2, "Items": ["HEAD", "GET"]},
+                        },
+                        "SmoothStreaming": False,
+                        "DefaultTTL": 86400,
+                        "MaxTTL": 31536000,
+                        "Compress": False,
+                        "LambdaFunctionAssociations": {"Quantity": 0},
+                        "FieldLevelEncryptionId": "",
+                    }
+                ],
+            }
+        return response
 
     def _distribution_response(
         self,
@@ -394,6 +440,7 @@ class FakeCloudFront(FakeAWS):
         origin_protocol_policy: str = "https-only",
         bucket_prefix: str = "",
         custom_error_responses: dict = None,
+        include_le_bucket: bool = False,
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -425,6 +472,7 @@ class FakeCloudFront(FakeAWS):
                     origin_protocol_policy,
                     bucket_prefix,
                     custom_error_responses,
+                    include_le_bucket,
                 ),
             }
         }
