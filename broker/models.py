@@ -173,6 +173,7 @@ class Operation(Base):
         DEPROVISION = "Deprovision"
         RENEW = "Renew"
         UPDATE = "Update"
+        MIGRATE_TO_BROKER = "Migrate to broker"
 
     id = db.Column(db.Integer, primary_key=True)
     service_instance_id = db.Column(

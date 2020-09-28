@@ -347,3 +347,48 @@ def update_distribution(operation_id: str, **kwargs):
     service_instance.new_certificate = None
     db.session.add(service_instance)
     db.session.commit()
+
+
+@huey.retriable_task
+def remove_s3_bucket_from_cdn_broker_instance(operation_id: str, **kwargs):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    config_response = cloudfront.get_distribution_config(
+        Id=service_instance.cloudfront_distribution_id
+    )
+    etag = config_response["ETag"]
+    config = config_response["DistributionConfig"]
+    acme_challenge_origin_id = None
+
+    for item in config["CacheBehaviors"].get("Items", []):
+        if item["PathPattern"] == "/.well-known/acme-challenge/*":
+            acme_challenge_origin_id = item["TargetOriginId"]
+    if acme_challenge_origin_id is not None:
+        cache_behaviors = {}
+        cache_behavior_items = [
+            item
+            for item in config["CacheBehaviors"]["Items"]
+            if item["TargetOriginId"] != acme_challenge_origin_id
+        ]
+        if cache_behavior_items:
+            cache_behaviors["Items"] = cache_behavior_items
+        cache_behaviors["Quantity"] = len(cache_behavior_items)
+        origins = {}
+        origin_items = [
+            item
+            for item in config["Origins"]["Items"]
+            if item["Id"] != acme_challenge_origin_id
+        ]
+        if origin_items:
+            origins["Items"] = origin_items
+        origins["Quantity"] = len(origin_items)
+        config["Origins"] = origins
+        config["CacheBehaviors"] = cache_behaviors
+        config[
+            "Comment"
+        ] = "external domain service https://cloud-gov/external-domain-broker"
+        cloudfront.update_distribution(
+            DistributionConfig=config,
+            Id=service_instance.cloudfront_distribution_id,
+            IfMatch=etag,
+        )

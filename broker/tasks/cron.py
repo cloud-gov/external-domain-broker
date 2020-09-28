@@ -5,7 +5,18 @@ from huey import crontab
 
 from broker.extensions import config, db
 from broker.models import Certificate, ServiceInstance, Operation
-from broker.tasks import huey, pipelines
+from broker.tasks import huey
+from broker.tasks.pipelines import (
+    queue_all_alb_deprovision_tasks_for_operation,
+    queue_all_alb_provision_tasks_for_operation,
+    queue_all_alb_renewal_tasks_for_operation,
+    queue_all_alb_update_tasks_for_operation,
+    queue_all_cdn_deprovision_tasks_for_operation,
+    queue_all_cdn_broker_migration_tasks_for_operation,
+    queue_all_cdn_provision_tasks_for_operation,
+    queue_all_cdn_update_tasks_for_operation,
+    queue_all_cdn_renewal_tasks_for_operation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +57,9 @@ def scan_for_expiring_certs():
                 alb_renewals.append(renewal)
         db.session.commit()
         for renewal in cdn_renewals:
-            pipelines.queue_all_cdn_renewal_tasks_for_service_instance(renewal.id)
+            queue_all_cdn_renewal_tasks_for_operation(renewal.id)
         for renewal in alb_renewals:
-            pipelines.queue_all_alb_renewal_tasks_for_service_instance(renewal.id)
+            queue_all_alb_renewal_tasks_for_operation(renewal.id)
 
         renew_instances = cdn_renewals + alb_renewals
         # n.b. this return is only for testing - huey ignores it.
@@ -81,33 +92,24 @@ def reschedule_operation(operation_id):
     logger.info(
         f"Restarting {operation.action} operation {operation.id} for service instance {service_instance.id}"
     )
-    if service_instance.instance_type == "cdn_service_instance":
-        if operation.action == Operation.Actions.PROVISION.value:
-            pipelines.queue_all_cdn_provision_tasks_for_operation(
-                operation.id, "recovered pipeline"
-            )
-        elif operation.action == Operation.Actions.DEPROVISION.value:
-            pipelines.queue_all_cdn_deprovision_tasks_for_operation(
-                operation.id, "recovered pipeline"
-            )
-        elif operation.action == Operation.Actions.RENEW.value:
-            pipelines.queue_all_cdn_renewal_tasks_for_service_instance(operation.id)
-        elif operation.action == Operation.Actions.UPDATE.value:
-            pipelines.queue_all_cdn_update_tasks_for_operation(
-                operation.id, "recovered_pipeline"
-            )
-    elif service_instance.instance_type == "alb_service_instance":
-        if operation.action == Operation.Actions.PROVISION.value:
-            pipelines.queue_all_alb_provision_tasks_for_operation(
-                operation.id, "recovered pipeline"
-            )
-        elif operation.action == Operation.Actions.DEPROVISION.value:
-            pipelines.queue_all_alb_deprovision_tasks_for_operation(
-                operation.id, "recovered pipeline"
-            )
-        elif operation.action == Operation.Actions.RENEW.value:
-            pipelines.queue_all_alb_renewal_tasks_for_service_instance(operation.id)
-        elif operation.action == Operation.Actions.UPDATE.value:
-            pipelines.queue_all_alb_update_tasks_for_operation(
-                operation.id, "recovered_pipeline"
-            )
+    actions = Operation.Actions
+    alb_queues = {
+        actions.DEPROVISION.value: queue_all_alb_deprovision_tasks_for_operation,
+        actions.PROVISION.value: queue_all_alb_provision_tasks_for_operation,
+        actions.RENEW.value: queue_all_alb_renewal_tasks_for_operation,
+        actions.UPDATE.value: queue_all_alb_update_tasks_for_operation,
+    }
+    cdn_queues = {
+        actions.DEPROVISION.value: queue_all_cdn_deprovision_tasks_for_operation,
+        actions.MIGRATE_TO_BROKER.value: queue_all_cdn_broker_migration_tasks_for_operation,
+        actions.PROVISION.value: queue_all_cdn_provision_tasks_for_operation,
+        actions.RENEW.value: queue_all_cdn_renewal_tasks_for_operation,
+        actions.UPDATE.value: queue_all_cdn_update_tasks_for_operation,
+    }
+    queues = {"cdn_service_instance": cdn_queues, "alb_service_instance": alb_queues}
+    queue = queues[service_instance.instance_type].get(operation.action)
+    if not queue:
+        raise RuntimeError(
+            f"Operation {operation_id} has unknown action {operation.action}"
+        )
+    queue(operation.id, "Recovered operation")
