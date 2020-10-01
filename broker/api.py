@@ -119,9 +119,8 @@ class API(ServiceBroker):
 
         params = details.parameters or {}
 
-        if params.get("domains"):
-            domain_names = [d.strip().lower() for d in params["domains"].split(",")]
-        else:
+        domain_names = parse_domain_options(params)
+        if not domain_names:
             raise errors.ErrBadRequest("'domains' parameter required.")
 
         self.logger.info("validating CNAMEs")
@@ -244,11 +243,9 @@ class API(ServiceBroker):
         if instance.has_active_operations():
             raise errors.ErrBadRequest("Instance has an active operation in progress")
 
-        domain_names = [
-            d.strip().lower() for d in params.get("domains", "").split(",") if len(d)
-        ]
+        domain_names = parse_domain_options(params)
         noop = True
-        if len(domain_names):
+        if domain_names is not None:
             self.logger.info("validating CNAMEs")
             validators.CNAME(domain_names).validate()
 
@@ -386,3 +383,11 @@ def parse_header_options(params):
 def normalize_header_list(headers):
     headers = {header.upper() for header in headers}
     return sorted(list(headers))
+
+
+def parse_domain_options(params):
+    domains = params.get("domains", None)
+    if isinstance(domains, str):
+        return [d.strip().lower() for d in domains.split(",")]
+    if isinstance(domains, list):
+        return domains
