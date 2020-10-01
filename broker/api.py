@@ -388,6 +388,6 @@ def normalize_header_list(headers):
 def parse_domain_options(params):
     domains = params.get("domains", None)
     if isinstance(domains, str):
-        return [d.strip().lower() for d in domains.split(",")]
+        domains = domains.split(",")
     if isinstance(domains, list):
-        return domains
+        return [d.strip().lower() for d in domains]
