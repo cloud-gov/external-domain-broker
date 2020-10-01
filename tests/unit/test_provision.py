@@ -13,3 +13,4 @@ def test_parse_domains():
         "example.com",
         "example.gov",
     ]
+    assert api.parse_domain_options(dict(domains=["eXaMpLe.cOm   "])) == ["example.com"]
