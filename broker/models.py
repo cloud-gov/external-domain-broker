@@ -163,6 +163,13 @@ class ALBServiceInstance(ServiceInstance):
         return f"<ALBServiceInstance {self.id} {self.domain_names}>"
 
 
+class MigrationServiceInstance(ServiceInstance):
+    __mapper_args__ = {"polymorphic_identity": "migration_service_instance"}
+
+    def __repr__(self):
+        return f"<MigrationServiceInstance {self.id} {self.domain_names}>"
+
+
 class Operation(Base):
     # operation.state = Operation.States.IN_PROGRESS.value
     States = OperationState
