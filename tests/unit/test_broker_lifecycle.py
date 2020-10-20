@@ -22,6 +22,7 @@ def test_catalog_has_correct_plans(catalog):
     assert catalog.plans is not []
     alb_plan = catalog.plans[0]
     cloudfront_plan = catalog.plans[1]
+    migration_plan = catalog.plans[2]
 
     assert alb_plan.id is not None
     assert alb_plan.id != ""
@@ -33,4 +34,11 @@ def test_catalog_has_correct_plans(catalog):
     assert cloudfront_plan.name == "domain-with-cdn"
     assert "CloudFront" in cloudfront_plan.description
 
+    assert migration_plan.id is not None
+    assert migration_plan.id != ""
+    assert migration_plan.name == "migration-not-for-direct-use"
+    assert "Migration" in migration_plan.description
+
     assert cloudfront_plan.id != alb_plan.id
+    assert cloudfront_plan.id != migration_plan.id
+    assert migration_plan.id != alb_plan.id

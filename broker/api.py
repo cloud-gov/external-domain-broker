@@ -29,6 +29,7 @@ from broker.models import (
     Operation,
     ALBServiceInstance,
     CDNServiceInstance,
+    MigrationServiceInstance,
     ServiceInstance,
 )
 from broker.tasks.pipelines import (
@@ -42,6 +43,7 @@ from broker.tasks.pipelines import (
 
 ALB_PLAN_ID = "6f60835c-8964-4f1f-a19a-579fb27ce694"
 CDN_PLAN_ID = "1cc78b0c-c296-48f5-9182-0b38404f79ef"
+MIGRATION_PLAN_ID = "739e78F5-a919-46ef-9193-1293cc086c17"
 
 
 class API(ServiceBroker):
@@ -73,6 +75,11 @@ class API(ServiceBroker):
                     name="domain-with-cdn",
                     description="Custom domain with TLS and CloudFront.",
                 ),
+                ServicePlan(
+                    id=MIGRATION_PLAN_ID, 
+                    name="migration-not-for-direct-use",
+                    description="Migration plan for internal autmation.",
+                )
             ],
         )
 
@@ -129,41 +136,19 @@ class API(ServiceBroker):
         validators.UniqueDomains(domain_names).validate()
 
         if details.plan_id == CDN_PLAN_ID:
-            instance = CDNServiceInstance(id=instance_id, domain_names=domain_names)
+            instance = provision_cdn_instance(instance_id, domain_names, params)
             queue = queue_all_cdn_provision_tasks_for_operation
-            instance.cloudfront_origin_hostname = params.get(
-                "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
-            )
-            instance.cloudfront_origin_path = params.get("path", "")
-            instance.route53_alias_hosted_zone = config.CLOUDFRONT_HOSTED_ZONE_ID
-            forward_cookie_policy, forwarded_cookies = parse_cookie_options(params)
-            instance.forward_cookie_policy = forward_cookie_policy
-            instance.forwarded_cookies = forwarded_cookies
-            forwarded_headers = parse_header_options(params)
-            if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
-                forwarded_headers.append("HOST")
-            forwarded_headers = normalize_header_list(forwarded_headers)
-
-            instance.forwarded_headers = forwarded_headers
-            instance.error_responses = params.get("error_responses", {})
-            validators.ErrorResponseConfig(instance.error_responses).validate()
-            if params.get("insecure_origin", False):
-                if params.get("origin") is None:
-                    raise errors.ErrBadRequest(
-                        "'insecure_origin' cannot be set when using the default origin."
-                    )
-                instance.origin_protocol_policy = (
-                    CDNServiceInstance.ProtocolPolicy.HTTP.value
-                )
-            else:
-                instance.origin_protocol_policy = (
-                    CDNServiceInstance.ProtocolPolicy.HTTPS.value
-                )
         elif details.plan_id == ALB_PLAN_ID:
             instance = ALBServiceInstance(id=instance_id, domain_names=domain_names)
             queue = queue_all_alb_provision_tasks_for_operation
+        elif details.plan_id == MIGRATION_PLAN_ID:
+            instance = MigrationServiceInstance(id=instance_id, domain_names=domain_names)
+            db.session.add(instance)
+            db.session.commit()
+            return ProvisionedServiceSpec(state=ProvisionState.SUCCESSFUL_CREATED)
         else:
             raise NotImplementedError()
+
 
         self.logger.info("setting origin hostname")
         self.logger.info("creating operation")
@@ -391,3 +376,36 @@ def parse_domain_options(params):
         domains = domains.split(",")
     if isinstance(domains, list):
         return [d.strip().lower() for d in domains]
+
+def provision_cdn_instance(instance_id: str, domain_names: list, params: dict):
+    instance = CDNServiceInstance(id=instance_id, domain_names=domain_names)
+    queue = queue_all_cdn_provision_tasks_for_operation
+    instance.cloudfront_origin_hostname = params.get(
+        "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
+    )
+    instance.cloudfront_origin_path = params.get("path", "")
+    instance.route53_alias_hosted_zone = config.CLOUDFRONT_HOSTED_ZONE_ID
+    forward_cookie_policy, forwarded_cookies = parse_cookie_options(params)
+    instance.forward_cookie_policy = forward_cookie_policy
+    instance.forwarded_cookies = forwarded_cookies
+    forwarded_headers = parse_header_options(params)
+    if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
+        forwarded_headers.append("HOST")
+    forwarded_headers = normalize_header_list(forwarded_headers)
+
+    instance.forwarded_headers = forwarded_headers
+    instance.error_responses = params.get("error_responses", {})
+    validators.ErrorResponseConfig(instance.error_responses).validate()
+    if params.get("insecure_origin", False):
+        if params.get("origin") is None:
+            raise errors.ErrBadRequest(
+                "'insecure_origin' cannot be set when using the default origin."
+            )
+        instance.origin_protocol_policy = (
+            CDNServiceInstance.ProtocolPolicy.HTTP.value
+        )
+    else:
+        instance.origin_protocol_policy = (
+            CDNServiceInstance.ProtocolPolicy.HTTPS.value
+        )
+    return instance
