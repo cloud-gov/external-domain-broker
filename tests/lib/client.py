@@ -97,7 +97,6 @@ class CFAPIClient(FlaskClient):
             query_string={"accepts_incomplete": accepts_incomplete},
         )
 
-
     def update_cdn_instance(
         self, id: str, accepts_incomplete: str = "true", params: dict = None
     ):

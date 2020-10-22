@@ -213,3 +213,48 @@ class Challenge(Base):
 
     def __repr__(self):
         return f"<Challenge {self.id} {self.domain}>"
+
+
+def change_instance_type(service_instance: ServiceInstance, new_type: type, session):
+    """
+    creates a new service instance of a given type based on an old service instance.
+    Note that this method:
+    - deletes the old service instance
+    - calls session.commit
+    """
+
+    def clone_instance(old_instance, new_type, session):
+        new_instance = new_type()
+        new_instance.id = old_instance.id
+        new_instance.domain_names = old_instance.domain_names
+        session.delete(old_instance)
+        session.add(new_instance)
+        session.commit()
+        return new_instance
+
+    # these should probably always be like this
+    if new_type not in (
+        CDNServiceInstance,
+        ALBServiceInstance,
+        MigrationServiceInstance,
+    ):
+        # we only know about service instances
+        raise NotImplementedError()
+    if not isinstance(service_instance, ServiceInstance):
+        # we only know about service instances
+        raise NotImplementedError()
+    if type(service_instance) == new_type:
+        # why are you doing this?
+        return service_instance
+
+    # these may be implemented in the future, when we can change a CDN into an ALB, for instance
+    # that's why we're doing a bunch of checks that could be summarized as "if type(si) != migration"
+    if type(service_instance) == CDNServiceInstance:
+        raise NotImplementedError()
+    if type(service_instance) == ALBServiceInstance:
+        raise NotImplementedError()
+    if type(service_instance) == MigrationServiceInstance:
+        if new_type == ALBServiceInstance:
+            raise NotImplementedError()
+        if new_type == CDNServiceInstance:
+            return clone_instance(service_instance, new_type, session)
