@@ -76,10 +76,10 @@ class API(ServiceBroker):
                     description="Custom domain with TLS and CloudFront.",
                 ),
                 ServicePlan(
-                    id=MIGRATION_PLAN_ID, 
+                    id=MIGRATION_PLAN_ID,
                     name="migration-not-for-direct-use",
                     description="Migration plan for internal autmation.",
-                )
+                ),
             ],
         )
 
@@ -142,13 +142,14 @@ class API(ServiceBroker):
             instance = ALBServiceInstance(id=instance_id, domain_names=domain_names)
             queue = queue_all_alb_provision_tasks_for_operation
         elif details.plan_id == MIGRATION_PLAN_ID:
-            instance = MigrationServiceInstance(id=instance_id, domain_names=domain_names)
+            instance = MigrationServiceInstance(
+                id=instance_id, domain_names=domain_names
+            )
             db.session.add(instance)
             db.session.commit()
             return ProvisionedServiceSpec(state=ProvisionState.SUCCESSFUL_CREATED)
         else:
             raise NotImplementedError()
-
 
         self.logger.info("setting origin hostname")
         self.logger.info("creating operation")
@@ -377,6 +378,7 @@ def parse_domain_options(params):
     if isinstance(domains, list):
         return [d.strip().lower() for d in domains]
 
+
 def provision_cdn_instance(instance_id: str, domain_names: list, params: dict):
     instance = CDNServiceInstance(id=instance_id, domain_names=domain_names)
     queue = queue_all_cdn_provision_tasks_for_operation
@@ -401,11 +403,7 @@ def provision_cdn_instance(instance_id: str, domain_names: list, params: dict):
             raise errors.ErrBadRequest(
                 "'insecure_origin' cannot be set when using the default origin."
             )
-        instance.origin_protocol_policy = (
-            CDNServiceInstance.ProtocolPolicy.HTTP.value
-        )
+        instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTP.value
     else:
-        instance.origin_protocol_policy = (
-            CDNServiceInstance.ProtocolPolicy.HTTPS.value
-        )
+        instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTPS.value
     return instance
