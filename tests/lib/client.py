@@ -183,6 +183,13 @@ class CFAPIClient(FlaskClient):
             query_string={"operation": op_id},
         )
 
+    # these are basically aliases
+    # when update is called with a plan id different from the current plan i
+    # OSBAPI says we treat it as a plan upgrade. This (hopefully) makes tests using
+    # this functionality more readable, without having to duplicate this code
+    update_instance_to_cdn = update_cdn_instance
+    update_instance_to_alb = update_alb_instance
+
 
 @pytest.fixture(scope="session")
 def app():

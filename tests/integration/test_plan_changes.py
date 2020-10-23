@@ -19,7 +19,7 @@ from tests.lib import factories
 @pytest.fixture
 def alb_instance(clean_db):
     service_instance = factories.ALBServiceInstanceFactory.create(
-        id="started-as-alb-instance", domain_names=["example.com", "foo.com"],
+        id="started-as-alb-instance", domain_names=["example.com", "foo.com"]
     )
     return service_instance
 
@@ -27,7 +27,7 @@ def alb_instance(clean_db):
 @pytest.fixture
 def migration_instance(clean_db):
     service_instance = factories.MigrationServiceInstanceFactory.create(
-        id="started-as-migration-instance", domain_names=["example.com", "foo.com"],
+        id="started-as-migration-instance", domain_names=["example.com", "foo.com"]
     )
     return service_instance
 
