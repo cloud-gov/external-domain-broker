@@ -20,6 +20,8 @@ from openbrokerapi.service_broker import (
     UpdateDetails,
     UpdateServiceSpec,
 )
+from openbrokerapi.helper import to_json_response
+from openbrokerapi.response import ErrorResponse
 from sap import cf_logging
 
 
@@ -31,6 +33,7 @@ from broker.models import (
     CDNServiceInstance,
     MigrationServiceInstance,
     ServiceInstance,
+    change_instance_type,
 )
 from broker.tasks.pipelines import (
     queue_all_alb_deprovision_tasks_for_operation,
@@ -249,6 +252,9 @@ class API(ServiceBroker):
             # specified, so unset and set to None have different meanings
             noop = False
 
+            if details.plan_id != CDN_PLAN_ID:
+                raise ClientError("Updating service plan is not supported")
+
             if "origin" in params:
                 if params["origin"]:
                     origin_hostname = params["origin"]
@@ -293,8 +299,17 @@ class API(ServiceBroker):
                 validators.ErrorResponseConfig(instance.error_responses).validate()
 
             queue = queue_all_cdn_update_tasks_for_operation
-        else:
+        elif instance.instance_type == "alb_service_instance":
+            if details.plan_id != ALB_PLAN_ID:
+                raise ClientError("Updating service plan is not supported")
             queue = queue_all_alb_update_tasks_for_operation
+        elif instance.instance_type == "migration_service_instance":
+            if details.plan_id == CDN_PLAN_ID:
+                validate_migration_to_cdn_params(params)
+                instance = change_instance_type(instance, CDNServiceInstance, db.session)
+                update_cdn_params_for_migration(instance, params)
+            else:
+                raise ClientError("Updating to this service plan is not supported")
         if noop:
             return UpdateServiceSpec(False)
 
@@ -407,3 +422,34 @@ def provision_cdn_instance(instance_id: str, domain_names: list, params: dict):
     else:
         instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTPS.value
     return instance
+
+
+def validate_migration_to_cdn_params(params):
+    required = [
+        "origin",
+        "path",
+        "forwarded_cookies",
+        "forward_cookie_policy",
+        "forwarded_headers",
+        "insecure_origin",
+        "error_responses",
+        "cloudfront_distribution_id",
+        "cloudfront_distribution_arn"
+    ]
+    for param in required:
+        # since this should only be hit by another app, it seems
+        # fair and smart to require all params
+        if not param in params:
+            raise ClientError(f"Missing parameter {param}")
+
+
+def update_cdn_params_for_migration(instance, params):
+    pass
+
+
+class ClientError(Exception):
+    """
+    This class is used for errors that have messaging that clients are allowed to see.
+    """
+
+    pass
