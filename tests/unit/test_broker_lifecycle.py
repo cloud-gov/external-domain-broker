@@ -38,6 +38,7 @@ def test_catalog_has_correct_plans(catalog):
     assert migration_plan.id != ""
     assert migration_plan.name == "migration-not-for-direct-use"
     assert "Migration" in migration_plan.description
+    assert migration_plan.plan_updateable
 
     assert cloudfront_plan.id != alb_plan.id
     assert cloudfront_plan.id != migration_plan.id
