@@ -34,6 +34,7 @@ from broker.models import (
     MigrationServiceInstance,
     ServiceInstance,
     change_instance_type,
+    Certificate,
 )
 from broker.tasks.pipelines import (
     queue_all_alb_deprovision_tasks_for_operation,
@@ -42,6 +43,7 @@ from broker.tasks.pipelines import (
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
+    queue_all_cdn_broker_migration_tasks_for_operation,
 )
 
 ALB_PLAN_ID = "6f60835c-8964-4f1f-a19a-579fb27ce694"
@@ -82,6 +84,7 @@ class API(ServiceBroker):
                     id=MIGRATION_PLAN_ID,
                     name="migration-not-for-direct-use",
                     description="Migration plan for internal autmation.",
+                    plan_updateable=True,
                 ),
             ],
         )
@@ -305,9 +308,14 @@ class API(ServiceBroker):
             queue = queue_all_alb_update_tasks_for_operation
         elif instance.instance_type == "migration_service_instance":
             if details.plan_id == CDN_PLAN_ID:
+                noop = False
                 validate_migration_to_cdn_params(params)
-                instance = change_instance_type(instance, CDNServiceInstance, db.session)
+                instance = change_instance_type(
+                    instance, CDNServiceInstance, db.session
+                )
                 update_cdn_params_for_migration(instance, params)
+                db.session.add(instance.current_certificate)
+                queue = queue_all_cdn_broker_migration_tasks_for_operation
             else:
                 raise ClientError("Updating to this service plan is not supported")
         if noop:
@@ -434,7 +442,11 @@ def validate_migration_to_cdn_params(params):
         "insecure_origin",
         "error_responses",
         "cloudfront_distribution_id",
-        "cloudfront_distribution_arn"
+        "cloudfront_distribution_arn",
+        "iam_server_certificate_name",
+        "iam_server_certificate_id",
+        "iam_server_certificate_arn",
+        "domain_internal",
     ]
     for param in required:
         # since this should only be hit by another app, it seems
@@ -444,7 +456,29 @@ def validate_migration_to_cdn_params(params):
 
 
 def update_cdn_params_for_migration(instance, params):
-    pass
+    instance.cloudfront_origin_hostname = params["origin"]
+    instance.cloudfront_origin_path = params["path"]
+    instance.forwarded_cookies = params["forwarded_cookies"]
+    instance.forward_cookie_policy = params["forward_cookie_policy"]
+    if params["insecure_origin"]:
+        instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTP.value
+    else:
+        instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTPS.value
+    instance.forwarded_headers = params["forwarded_headers"]
+    instance.error_responses = params["error_responses"]
+    instance.cloudfront_distribution_id = params["cloudfront_distribution_id"]
+    instance.cloudfront_distribution_arn = params["cloudfront_distribution_arn"]
+    instance.domain_internal = params["domain_internal"]
+    instance.current_certificate = Certificate(service_instance_id=instance.id)
+    instance.current_certificate.iam_server_certificate_id = params[
+        "iam_server_certificate_id"
+    ]
+    instance.current_certificate.iam_server_certificate_arn = params[
+        "iam_server_certificate_arn"
+    ]
+    instance.current_certificate.iam_server_certificate_name = params[
+        "iam_server_certificate_name"
+    ]
 
 
 class ClientError(Exception):
