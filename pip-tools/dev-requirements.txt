@@ -17,7 +17,7 @@ cffi==1.14.0              # via -r pip-tools/../requirements.txt, cryptography
 chardet==3.0.4            # via -r pip-tools/../requirements.txt, requests
 click==7.1.1              # via -r pip-tools/../requirements.txt, black, flask, pip-tools
 colorama==0.4.3           # via pytest-watch
-cryptography==2.9.2       # via -r pip-tools/../requirements.txt, acme, josepy, pyopenssl, requests
+cryptography==3.2         # via -r pip-tools/../requirements.txt, acme, josepy, pyopenssl, requests
 dnspython==1.16.0         # via -r pip-tools/../requirements.txt
 docopt==0.6.2             # via pytest-watch
 docutils==0.15.2          # via -r pip-tools/../requirements.txt, botocore
