@@ -13,7 +13,7 @@ cfenv==0.5.3              # via -r pip-tools/requirements.in
 cffi==1.14.0              # via cryptography
 chardet==3.0.4            # via requests
 click==7.1.1              # via flask
-cryptography==2.9.2       # via acme, josepy, pyopenssl, requests
+cryptography==3.2       # via acme, josepy, pyopenssl, requests
 dnspython==1.16.0         # via -r pip-tools/requirements.in
 docutils==0.15.2          # via botocore
 environs==7.4.0           # via -r pip-tools/requirements.in
