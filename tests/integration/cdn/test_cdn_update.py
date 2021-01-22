@@ -365,6 +365,8 @@ def subtest_update_happy_path(
     subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex)
     subtest_updates_cloudfront(tasks, cloudfront)
     subtest_update_waits_for_cloudfront_update(tasks, cloudfront)
+    subtest_update_updates_ALIAS_records(tasks, route53)
+    subtest_waits_for_dns_changes(tasks, route53)
     subtest_update_removes_certificate_from_iam(tasks, iam_commercial)
     subtest_update_marks_update_complete(tasks)
 
@@ -667,8 +669,10 @@ def subtest_update_same_domains(
     subtest_update_same_domains_does_not_update_iam(tasks)
     subtest_update_same_domains_updates_cloudfront(tasks, cloudfront)
     subtest_update_waits_for_cloudfront_update(tasks, cloudfront)
-    subtest_update_marks_update_complete(tasks)
+    subtest_update_updates_ALIAS_records(tasks, route53)
+    subtest_waits_for_dns_changes(tasks, route53)
     subtest_update_same_domains_does_not_delete_server_certificate(tasks)
+    subtest_update_marks_update_complete(tasks)
 
 
 def subtest_update_same_domains_creates_update_operation(client, dns):
@@ -797,3 +801,21 @@ def subtest_update_same_domains_does_not_delete_server_certificate(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
     instance = CDNServiceInstance.query.get("4321")
     assert len(instance.certificates) == 1
+
+
+def subtest_update_updates_ALIAS_records(tasks, route53):
+    bar_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
+        "bar.com.domains.cloud.test", "fake1234.cloudfront.net"
+    )
+    foo_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
+        "foo.com.domains.cloud.test", "fake1234.cloudfront.net"
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    route53.assert_no_pending_responses()
+    db.session.expunge_all()
+    service_instance = CDNServiceInstance.query.get("4321")
+    assert service_instance.route53_change_ids == [
+        bar_com_change_id,
+        foo_com_change_id,
+    ]
