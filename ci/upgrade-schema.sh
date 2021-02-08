@@ -19,7 +19,7 @@ cf push \
   --var FLASK_ENV="$FLASK_ENV" \
   --var DATABASE_ENCRYPTION_KEY="$DATABASE_ENCRYPTION_KEY" \
   --no-route \
-  --health-check-type=none \
+  --health-check-type=process \
   -c "sleep 3600" \
   "$APP_NAME"
 
