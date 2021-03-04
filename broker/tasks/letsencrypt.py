@@ -324,6 +324,7 @@ def retrieve_certificate(operation_id: int, **kwargs):
                     order, deadline
                 )
         else:
+            logger.error(f"failed to retrieve certificate with code {e.code}, {e.description}, {e.detail}")
             raise e
 
     certificate.leaf_pem, certificate.fullchain_pem = cert_from_fullchain(
