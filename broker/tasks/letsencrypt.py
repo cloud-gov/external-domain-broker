@@ -325,7 +325,7 @@ def retrieve_certificate(operation_id: int, **kwargs):
                 )
         else:
             logger.error(
-                f"failed to retrieve certificate with code {e.code}, {e.description}, {e.detail}"
+                f"failed to retrieve certificate for {service_instance.domain_names} with code {e.code}, {e.description}, {e.detail}"
             )
             raise e
 
