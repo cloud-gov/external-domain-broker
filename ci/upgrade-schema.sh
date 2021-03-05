@@ -27,7 +27,7 @@ cf push \
 (cf logs "$APP_NAME" | grep "TASK/db-upgrade") &
 
 cmd="FLASK_APP='broker.app:create_app()' flask db upgrade"
-id=$(cf run-task "$APP_NAME" "$cmd" --name="db-upgrade" | grep "task id:" | awk '{print $3}')
+id=$(cf run-task "$APP_NAME" --command "$cmd" --name="db-upgrade" | grep "task id:" | awk '{print $3}')
 
 set +x
 status=RUNNING
