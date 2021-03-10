@@ -11,11 +11,11 @@ participant IAM
 
 user -> capi : Create service instance
 capi -> broker : Create service instance
-broker -> db : get service instances\n (this is to validate that the instance is unique)
+broker -> db : get service instances by domain\n (this is to validate that the instance is unique)
 broker <- db : service instances\n(this should be an empty set)
-broker -> db : service instance
+broker -> db : create service instance record
 db -> broker : service instance id
-broker -> db : operation
+broker -> db : create operation
 broker <- db : operation id
 broker -> capi : Create in progress as <operation id>
 
@@ -67,20 +67,20 @@ loop each ALB listener in configured ALB listeners
 end
 worker -> worker : decide which ALB to use
 
-worker -> db : update step description
+worker -> db : update step description\n"Adding SSL certificate to load balancer"
 worker -> ALB : Assign certificate and name to ALB
 worker <- ALB : ok
 
-worker -> db : update step description
-worker -> Route53 : Create CNAME pointing to ALB
+worker -> db : update step description\n"Creating DNS ALIAS records"
+worker -> Route53 : Create ALIAS pointing to ALB
 worker <- Route53 : Change set
 
-worker -> db : update step description
+worker -> db : update step description\n"Waiting for DNS changes"
 loop until status == done
     worker -> Route53 : change status for id
     worker <- Route53 : status
 end
-worker -> db : update step description
-worker -> db : update operation state
+worker -> db : update step description\n"Complete!""
+worker -> db : update operation.state\n"provisioned"
 
 @enduml
