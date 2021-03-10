@@ -1,0 +1,62 @@
+@startuml
+database "broker database" as db
+participant "broker worker" as worker
+participant "Lets Encrypt" as le
+participant Route53
+participant CloudFront
+participant IAM
+
+group Hourly [forever]
+worker -> db : get service instances expiring soon
+worker <- db : service instances
+end
+loop service instances
+    worker -> db : create operation
+    worker <- db : operation id
+
+    worker -> worker : Queue tasks
+
+    worker -> db : update step description\n"Creating credentials for Lets Encrypt"
+    worker -> worker : generate Certificate Signing Request
+
+    worker -> db : update step description\n"Initiating Lets Encrypt challenges"
+    worker -> le : create certificate order
+    le -> worker : Challenges (one per domain in the order)
+
+    worker -> db : update step description\n"Updating DNS TXT Records"
+    loop Challenges
+        worker -> Route53 : create TXT record
+        worker <- Route53 : Change ID
+    end
+    worker -> db : update step description\n"Waiting for DNS changes"
+    loop until done
+        worker -> Route53 : change status for Change ID
+        worker <- Route53 : status
+    end
+    worker -> db : update step description\n"Answering Lets Encrypt challenges"
+    loop each challenge in Challenges
+        worker -> le : answer challenges
+        worker <- le : accepted
+    end
+
+    worker -> db : update step description\n"Retrieving SSL certificate from Lets Encrypt"
+    worker -> le : retrieve certificate
+    worker <- le : certificate
+
+    worker -> db : update step description\n"Uploading SSL certificate to AWS"
+    worker -> IAM : store certificate
+    worker <- IAM : Server Certificate metadata
+
+    worker -> db : update step description\n"Updating CloudFront distribution"
+    worker -> CloudFront : update distribution
+    CloudFront -> worker : distribution ID
+
+    worker -> db : update step description\n"Removing SSL certificate from AWS"
+    worker -> IAM : remove old certificate
+    worker <- IAM : OK
+
+    worker -> db : update step description\n"Complete!""
+    worker -> db : update operation.state\n"provisioned"
+
+end
+@enduml

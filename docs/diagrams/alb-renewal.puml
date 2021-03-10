@@ -1,0 +1,75 @@
+@startuml
+database "broker database" as db
+participant "broker worker" as worker
+participant "Lets Encrypt" as le
+participant Route53
+participant ALB
+participant IAM
+
+worker -> db : get service instances expiring soon
+worker <- db : service instances
+
+loop service instances
+    worker -> db : create operation
+    worker <- db : operation id
+    
+    worker -> worker : Queue tasks
+
+    worker -> db : update step description\n"Creating credentials for Lets Encrypt"
+    worker -> worker : generate Certificate Signing Request
+
+    worker -> db : update step description\n"Initiating Lets Encrypt challenges"
+    worker -> le : create certificate order
+    le -> worker : Challenges (one per domain)
+
+    worker -> db : update step description\n"Updating DNS TXT Records"
+    loop Challenges
+        worker -> Route53 : create TXT record
+        worker <- Route53 : Change ID
+    end
+    worker -> db : update step description\n"Waiting for DNS changes"
+    loop until done
+        worker -> Route53 : change status for Change ID
+        worker <- Route53 : status
+    end
+    worker -> db : update step description\n"Answering Lets Encrypt challenges"
+    loop each challenge in Challenges
+        worker -> le : answer challenges
+        worker <- le : accepted
+    end
+
+    worker -> db : update step description\n"Retrieving SSL certificate from Lets Encrypt"
+    worker -> le : retrieve certificate
+    worker <- le : certificate
+
+    worker -> db : update step description\n"Uploading SSL certificate to AWS
+    worker -> IAM : store certificate
+    worker <- IAM : Server Certificate metadata
+
+    worker -> db : update step description\n"Selecting load balancer"
+    loop each ALB listener in configured ALB listeners
+        worker -> ALB : list certificates for ALB listener
+        ALB -> worker : certificates
+    end
+    worker -> worker : decide which ALB to use
+
+    worker -> db : update step description\n"Adding SSL certificate to load balancer"
+    worker -> ALB : Assign certificate and name to ALB
+    worker <- ALB : ok
+
+    worker -> db : update step description\n"Updating DNS ALIAS records"
+    worker -> Route53 : Create ALIAS pointing to ALB
+    worker <- Route53 : Change set
+
+    worker -> db : update step description\n"Waiting for DNS changes"
+    loop until status == done
+        worker -> Route53 : change status for id
+        worker <- Route53 : status
+    end
+    worker -> ALB : remove old server certificate
+    ALB -> worker : OK
+    worker -> db : update step description\n"Complete!""
+    worker -> db : update operation.state\n"provisioned"
+end
+
+@enduml
