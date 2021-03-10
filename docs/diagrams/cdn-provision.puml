@@ -6,7 +6,7 @@ database "broker database" as db
 participant "broker worker" as worker
 participant "Lets Encrypt" as le
 participant Route53
-participant ALB
+participant CloudFront
 participant IAM
 
 user -> capi : Create service instance
@@ -39,7 +39,7 @@ worker -> le : create certificate order
 le -> worker : Challenges (one per domain)
 
 worker -> db : update step description\n"Updating DNS TXT Records"
-loop challenges
+loop Challenges
     worker -> Route53 : create TXT record
     worker <- Route53 : Change ID
 end
@@ -58,20 +58,19 @@ worker -> db : update step description\n"Retrieving SSL certificate from Lets En
 worker -> le : retrieve certificate
 worker <- le : certificate
 
-worker -> db : update step description\n"Uploading SSL certificate to AWS
+worker -> db : update step description\n"Uploading SSL certificate to AWS"
 worker -> IAM : store certificate
 worker <- IAM : Server Certificate metadata
 
-worker -> db : update step description\n"Selecting load balancer"
-loop each ALB listener in configured ALB listeners
-    worker -> ALB : list certificates for ALB listener
-    ALB -> worker : certificates
-end
-worker -> worker : decide which ALB to use
+worker -> db : update step description\n"Creating CloudFront distribution"
+worker -> CloudFront : create distribution
+CloudFront -> worker : distribution ID
 
-worker -> db : update step description\n"Adding SSL certificate to load balancer"
-worker -> ALB : Assign certificate and name to ALB
-worker <- ALB : ok
+worker -> db : update step description\n"Waiting for CloudFront distribution"
+loop until distribution.status == Deployed
+    worker -> CloudFront : get distribution
+    CloudFront -> worker : distribution
+end
 
 worker -> db : update step description\n"Creating DNS ALIAS records"
 worker -> Route53 : Create ALIAS pointing to ALB
