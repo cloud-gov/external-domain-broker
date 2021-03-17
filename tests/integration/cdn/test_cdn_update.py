@@ -815,7 +815,4 @@ def subtest_update_updates_ALIAS_records(tasks, route53):
     route53.assert_no_pending_responses()
     db.session.expunge_all()
     service_instance = CDNServiceInstance.query.get("4321")
-    assert service_instance.route53_change_ids == [
-        bar_com_change_id,
-        foo_com_change_id,
-    ]
+    assert service_instance.route53_change_ids == [bar_com_change_id, foo_com_change_id]

@@ -31,19 +31,28 @@ class CNAME:
     def _error_for_domain(self, domain: str) -> str:
         cname = get_cname(acme_challenge_cname_name(domain))
 
+        # track the CNAMEs we've resolved to check for loops
+        visited_cnames = [acme_challenge_cname_name(domain)]
+
         if not cname:
             return (
                 f"CNAME {acme_challenge_cname_name(domain)} should point to "
                 f"{acme_challenge_cname_target(domain)}, but it does not exist."
             )
 
-        if cname != acme_challenge_cname_target(domain):
-            return (
-                f"CNAME {acme_challenge_cname_name(domain)} should point to "
-                f"{acme_challenge_cname_target(domain)}, but it is set incorrectly to {cname}."
-            )
-        else:
-            return ""
+        while cname:
+            if cname == acme_challenge_cname_target(domain):
+                return ""
+            last_resolved_cname = cname
+            visited_cnames.append(cname)
+            cname = get_cname(last_resolved_cname)
+            if cname in visited_cnames:
+                return f"Loop detected in CNAMEs - {cname} points to itself. Resolution chain: {visited_cnames} "
+
+        return (
+            f"CNAME {acme_challenge_cname_name(domain)} should point to "
+            f"{acme_challenge_cname_target(domain)}, but it is set incorrectly to {last_resolved_cname}."
+        )
 
 
 class UniqueDomains:
