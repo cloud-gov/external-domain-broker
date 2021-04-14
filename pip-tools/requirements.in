@@ -7,6 +7,7 @@ cryptography>=3.2 # pin for https://github.com/pyca/cryptography/blob/c9e65222c9
 dnspython
 environs
 flask
+jinja2>=2.11.3
 git+git://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d#egg=openbrokerapi
 gunicorn
 huey
