@@ -1,3 +1,4 @@
+import re
 from typing import List
 
 from openbrokerapi import errors
@@ -160,3 +161,40 @@ class HeaderList:
                 raise errors.ErrBadRequest(
                     f"{header} contains these invalid characters: {invalid_characters}"
                 )
+
+
+class Hostname:
+    # a hostname consists of a set of 1-63 nodes, separated by dots, up to 253 characters in total
+    # each node consists of 1-63 characters
+    # because these need internet domain names, the final node needs to be a root domain, which must be at least two characters
+    # a node
+    # - starts and ends with a letter or number
+    # - may contain letters, numbers, and dashes
+    # - must contain at least one character
+    # - must contain at most 63 characters
+    # - is case-insensitive
+
+    domain_name = re.compile(
+        r"""^
+(                                                   # start node
+    (                                               # start node label
+        ([a-zA-Z0-9])|                              # special case for single-character label
+        ([a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]) # labels start & end w/non-hyphen char. 1-63 chars, 1 char case handled above
+    )                                               # end node label
+     \.                                             # dot at the end of the node
+)                                                   # end node.
+{1,62}                                              # cound non-tld nodes. At least 1, (we want hostnames). Up to 63 nodes allowed, one more below
+     [a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]      # tld node needs to be at least 2 characters
+        """,
+        re.VERBOSE,
+    )
+
+    def __init__(self, origin):
+        self.origin = origin
+
+    def validate(self):
+
+        if not re.fullmatch(Hostname.domain_name, self.origin):
+            raise errors.ErrBadRequest(f"{self.origin} is not a valid hostname")
+        if len(self.origin) > 253:
+            raise errors.ErrBadRequest(f"{self.origin} is not a valid hostname")

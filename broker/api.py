@@ -261,6 +261,7 @@ class API(ServiceBroker):
             if "origin" in params:
                 if params["origin"]:
                     origin_hostname = params["origin"]
+                    validators.Hostname(origin_hostname).validate()
                 else:
                     origin_hostname = config.DEFAULT_CLOUDFRONT_ORIGIN
                 instance.cloudfront_origin_hostname = origin_hostname
@@ -408,6 +409,7 @@ def provision_cdn_instance(instance_id: str, domain_names: list, params: dict):
     instance.cloudfront_origin_hostname = params.get(
         "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
     )
+    validators.Hostname(instance.cloudfront_origin_hostname).validate()
     instance.cloudfront_origin_path = params.get("path", "")
     instance.route53_alias_hosted_zone = config.CLOUDFRONT_HOSTED_ZONE_ID
     forward_cookie_policy, forwarded_cookies = parse_cookie_options(params)
