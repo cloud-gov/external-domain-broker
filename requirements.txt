@@ -24,7 +24,7 @@ chardet==3.0.4
     # via requests
 click==7.1.1
     # via flask
-cryptography==3.2
+cryptography==3.4.7
     # via
     #   -r pip-tools/requirements.in
     #   acme
@@ -119,7 +119,6 @@ sap-cf-logging==4.1.1
 six==1.14.0
     # via
     #   acme
-    #   cryptography
     #   furl
     #   josepy
     #   orderedmultidict

@@ -47,7 +47,7 @@ click==7.1.1
     #   pip-tools
 colorama==0.4.3
     # via pytest-watch
-cryptography==3.2
+cryptography==3.4.7
     # via
     #   -r pip-tools/../requirements.txt
     #   acme
@@ -247,7 +247,6 @@ six==1.14.0
     # via
     #   -r pip-tools/../requirements.txt
     #   acme
-    #   cryptography
     #   furl
     #   josepy
     #   orderedmultidict

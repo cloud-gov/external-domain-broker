@@ -3,7 +3,7 @@ Flask-SQLAlchemy
 acme>1.4<5
 boto3
 cfenv
-cryptography>=3.2 # pin for https://github.com/pyca/cryptography/blob/c9e65222c91df8b6f61650a3460e30232962c1e0/CHANGELOG.rst#32---2020-10-25
+cryptography>=3.3.2
 dnspython
 environs
 flask
