@@ -462,6 +462,7 @@ def update_cdn_params_for_migration(instance, params):
     instance.cloudfront_origin_path = params["path"]
     instance.forwarded_cookies = params["forwarded_cookies"]
     instance.forward_cookie_policy = params["forward_cookie_policy"]
+    instance.route53_alias_hosted_zone = config.CLOUDFRONT_HOSTED_ZONE_ID
     if params["insecure_origin"]:
         instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTP.value
     else:

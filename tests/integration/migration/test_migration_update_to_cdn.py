@@ -6,6 +6,7 @@ from tests.lib.client import check_last_operation_description
 from tests.integration.cdn.test_cdn_provisioning import (
     subtest_provision_creates_LE_user,
     subtest_provision_initiates_LE_challenge,
+    subtest_provision_provisions_ALIAS_records,
     subtest_provision_updates_TXT_records,
     subtest_provision_answers_challenges,
     subtest_provision_waits_for_route53_changes,
@@ -134,6 +135,8 @@ def test_migration_pipeline(
     subtest_provision_creates_LE_user(tasks)
     subtest_update_creates_private_key_and_csr(tasks)
     subtest_provision_initiates_LE_challenge(tasks)
+    subtest_provision_provisions_ALIAS_records(tasks, route53)
+    subtest_provision_waits_for_route53_changes(tasks, route53)
     subtest_provision_updates_TXT_records(tasks, route53)
     subtest_provision_waits_for_route53_changes(tasks, route53)
     subtest_provision_answers_challenges(tasks, dns)
