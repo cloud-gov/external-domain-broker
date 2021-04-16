@@ -182,6 +182,8 @@ def queue_all_cdn_broker_migration_tasks_for_operation(operation_id, correlation
         .then(letsencrypt.create_user, operation_id, **correlation)
         .then(letsencrypt.generate_private_key, operation_id, **correlation)
         .then(letsencrypt.initiate_challenges, operation_id, **correlation)
+        .then(route53.create_ALIAS_records, operation_id, **correlation)
+        .then(route53.wait_for_changes, operation_id, **correlation)
         .then(route53.create_TXT_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
         .then(letsencrypt.answer_challenges, operation_id, **correlation)
