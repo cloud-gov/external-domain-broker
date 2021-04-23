@@ -130,6 +130,7 @@ def test_answer_challenges_idempotent(
     answer_challenges.call_local(4321)
     instance = CDNServiceInstance.query.get("1234")
     certificate = instance.new_certificate
+    challenges_before = certificate.challenges.all()
     example_com_challenge = certificate.challenges.filter(
         Challenge.domain.like("%example.com")
     ).first()
@@ -140,9 +141,11 @@ def test_answer_challenges_idempotent(
     db.session.expunge_all()
     answer_challenges.call_local(4321)
     answer_challenges.call_local(4321)
+    instance = CDNServiceInstance.query.get("1234")
+    certificate = instance.new_certificate
     challenges_after = certificate.challenges.all()
     for i in range(len(challenges_after)):
-        assert challenges_after[i].updated_at == challenges_before.updated_at
+        assert challenges_after[i].updated_at == challenges_before[i].updated_at
 
 
 def test_retrieve_certificate_idempotent(
