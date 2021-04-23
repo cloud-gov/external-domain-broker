@@ -53,7 +53,7 @@ class AppConfig(Config):
         self.SECRET_KEY = self.env("SECRET_KEY")
         self.BROKER_USERNAME = self.env("BROKER_USERNAME")
         self.BROKER_PASSWORD = self.env("BROKER_PASSWORD")
-        self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
+        self.SQLALCHEMY_DATABASE_URI = normalize_db_url(self.env("DATABASE_URL"))
         self.ALB_LISTENER_ARNS = self.env.list("ALB_LISTENER_ARNS")
         self.ALB_LISTENER_ARNS = list(set(self.ALB_LISTENER_ARNS))
         self.AWS_COMMERCIAL_REGION = self.env("AWS_COMMERCIAL_REGION")
@@ -122,7 +122,7 @@ class UpgradeSchemaConfig(Config):
 
     def __init__(self):
         super().__init__()
-        self.SQLALCHEMY_DATABASE_URI = self.env("DATABASE_URL")
+        self.SQLALCHEMY_DATABASE_URI = normalize_db_url(self.env("DATABASE_URL"))
         self.TESTING = False
         self.DEBUG = False
         self.SECRET_KEY = "NONE"
@@ -211,3 +211,11 @@ class TestConfig(DockerConfig):
 class MissingRedisError(RuntimeError):
     def __init__(self):
         super().__init__("Cannot find redis in VCAP_SERVICES")
+
+
+def normalize_db_url(url):
+    # sqlalchemy no longer lets us use postgres://
+    # it requires postgresql://
+    if url.split(":")[0] == "postgres":
+        url = url.replace("postgres:", "postgresql:", 1)
+    return url

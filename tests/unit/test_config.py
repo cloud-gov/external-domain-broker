@@ -197,3 +197,14 @@ def test_config_doesnt_explode(env, monkeypatch, mocked_env):
     config = config_from_env()
 
     assert env == config.FLASK_ENV
+
+
+@pytest.mark.parametrize("env", ["production", "staging", "development"])
+@pytest.mark.parametrize("dburl_in", ["postgresql://mydb", "postgres://mydb"])
+def test_config_fixes_db_uri(env, monkeypatch, mocked_env, dburl_in):
+    monkeypatch.setenv("FLASK_ENV", env)
+    monkeypatch.setenv("DATABASE_URL", dburl_in)
+
+    config = config_from_env()
+
+    assert config.SQLALCHEMY_DATABASE_URI == "postgresql://mydb"
