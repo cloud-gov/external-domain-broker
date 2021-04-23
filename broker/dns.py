@@ -11,7 +11,7 @@ _resolver.port = int(_port)
 
 def get_cname(domain: str) -> str:
     try:
-        answers = _resolver.query(domain, "CNAME")
+        answers = _resolver.resolve(domain, "CNAME")
 
         return answers[0].target.to_text(omit_final_dot=True)
 
