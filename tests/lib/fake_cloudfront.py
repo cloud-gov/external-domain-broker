@@ -77,6 +77,7 @@ class FakeCloudFront(FakeAWS):
         bucket_prefix: str = "",
         custom_error_responses: str = None,
         include_le_bucket: bool = False,
+        include_log_bucket: bool = True,
     ):
         if custom_error_responses is None:
             custom_error_responses = {"Quantity": 0}
@@ -99,6 +100,7 @@ class FakeCloudFront(FakeAWS):
                     bucket_prefix=bucket_prefix,
                     custom_error_responses=custom_error_responses,
                     include_le_bucket=include_le_bucket,
+                    include_log_bucket=include_log_bucket,
                 ),
                 "ETag": self.etag,
             },
@@ -297,6 +299,7 @@ class FakeCloudFront(FakeAWS):
         bucket_prefix: str = "",
         custom_error_responses: dict = None,
         include_le_bucket: bool = False,
+        include_log_bucket: bool = True,
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -365,12 +368,6 @@ class FakeCloudFront(FakeAWS):
             "CacheBehaviors": {"Quantity": 0},
             "CustomErrorResponses": custom_error_responses,
             "Comment": "external domain service https://cloud-gov/external-domain-broker",
-            "Logging": {
-                "Enabled": True,
-                "IncludeCookies": False,
-                "Bucket": "mybucket.s3.amazonaws.com",
-                "Prefix": bucket_prefix,
-            },
             "PriceClass": "PriceClass_100",
             "Enabled": enabled,
             "ViewerCertificate": {
@@ -420,6 +417,20 @@ class FakeCloudFront(FakeAWS):
                         "FieldLevelEncryptionId": "",
                     }
                 ],
+            }
+        if include_log_bucket:
+            response["Logging"] = {
+                "Enabled": True,
+                "IncludeCookies": False,
+                "Bucket": "mybucket.s3.amazonaws.com",
+                "Prefix": bucket_prefix,
+            }
+        else:
+            response["Logging"] = {
+                "Enabled": False,
+                "IncludeCookies": False,
+                "Bucket": "",
+                "Prefix": "",
             }
         return response
 
