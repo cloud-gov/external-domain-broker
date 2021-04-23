@@ -38,6 +38,10 @@ main() {
       build_image
       new-migration "$@"
       ;;
+    upgrade-requirements)
+      build_image
+      upgrade-requirements "$@"
+      ;;
     update-requirements)
       build_image
       update-requirements "$@"
@@ -123,6 +127,10 @@ serve() {
 
 update-requirements() {
   run "docker/update-requirements-txt"
+}
+
+upgrade-requirements() {
+  run "docker/upgrade-requirements-txt"
 }
 
 new-migration() {
