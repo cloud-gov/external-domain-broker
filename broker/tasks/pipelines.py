@@ -179,6 +179,7 @@ def queue_all_cdn_broker_migration_tasks_for_operation(operation_id, correlation
         cloudfront.remove_s3_bucket_from_cdn_broker_instance.s(
             operation_id, **correlation
         )
+        .then(cloudfront.add_logging_to_bucket, operation_id, **correlation)
         .then(letsencrypt.create_user, operation_id, **correlation)
         .then(letsencrypt.generate_private_key, operation_id, **correlation)
         .then(letsencrypt.initiate_challenges, operation_id, **correlation)

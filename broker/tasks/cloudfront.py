@@ -392,3 +392,26 @@ def remove_s3_bucket_from_cdn_broker_instance(operation_id: str, **kwargs):
             Id=service_instance.cloudfront_distribution_id,
             IfMatch=etag,
         )
+
+
+@huey.retriable_task
+def add_logging_to_bucket(operation_id: str, **kwargs):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    config_response = cloudfront.get_distribution_config(
+        Id=service_instance.cloudfront_distribution_id
+    )
+    dist_config = config_response["DistributionConfig"]
+    etag = config_response["ETag"]
+    if not dist_config["Logging"]["Enabled"]:
+        dist_config["Logging"] = {
+            "Enabled": True,
+            "IncludeCookies": False,
+            "Bucket": config.CDN_LOG_BUCKET,
+            "Prefix": f"{service_instance.id}/",
+        }
+        cloudfront.update_distribution(
+            DistributionConfig=dist_config,
+            Id=service_instance.cloudfront_distribution_id,
+            IfMatch=etag,
+        )

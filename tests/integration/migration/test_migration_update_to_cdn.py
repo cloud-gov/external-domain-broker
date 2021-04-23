@@ -132,6 +132,7 @@ def test_migration_pipeline(
     dns.add_cname("_acme-challenge.foo.com")
     client.update_instance_to_cdn("4321", params=full_update_example)
     subtest_removes_s3_bucket(tasks, cloudfront, clean_db)
+    subtest_adds_logging(tasks, cloudfront, clean_db)
     subtest_provision_creates_LE_user(tasks)
     subtest_update_creates_private_key_and_csr(tasks)
     subtest_provision_initiates_LE_challenge(tasks)
@@ -167,5 +168,30 @@ def subtest_removes_s3_bucket(tasks, cloudfront, db):
         origin_path="origin_path",
         distribution_id="FakeDistributionId",
         distribution_hostname="example.cloudfront.net",
+    )
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+
+def subtest_adds_logging(tasks, cloudfront, db):
+    db.session.expunge_all()
+    service_instance = CDNServiceInstance.query.get("4321")
+    cloudfront.expect_get_distribution_config(
+        caller_reference="4321",
+        domains=["example.com", "foo.com"],
+        certificate_id=service_instance.current_certificate.iam_server_certificate_id,
+        origin_hostname="origin_hostname",
+        origin_path="origin_path",
+        distribution_id="FakeDistributionId",
+        include_log_bucket=False,
+    )
+    cloudfront.expect_update_distribution(
+        caller_reference="4321",
+        domains=["example.com", "foo.com"],
+        certificate_id=service_instance.current_certificate.iam_server_certificate_id,
+        origin_hostname="origin_hostname",
+        origin_path="origin_path",
+        distribution_id="FakeDistributionId",
+        distribution_hostname="example.cloudfront.net",
+        bucket_prefix="4321/",
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
