@@ -128,7 +128,7 @@ sqlalchemy==1.4.11
     #   alembic
     #   flask-sqlalchemy
     #   sqlalchemy-utils
-urllib3==1.26.4
+urllib3==1.26.5
     # via
     #   botocore
     #   requests
