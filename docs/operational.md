@@ -62,5 +62,5 @@ This could also be used to force an early renewal of a certificate:
 
 ```
 sql> INSERT INTO operation (service_instance_id, updated_at, action, state)
-        VALUES (<service_instance_id>, now(), 'Renewal', 'in progress');
+        VALUES (<service_instance_id>, now(), 'Renew', 'in progress');
 ```
