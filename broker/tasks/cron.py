@@ -112,4 +112,7 @@ def reschedule_operation(operation_id):
         raise RuntimeError(
             f"Operation {operation_id} has unknown action {operation.action}"
         )
-    queue(operation.id, "Recovered operation")
+    if operation.action == actions.RENEW.value:
+        queue(operation.id)
+    else:
+        queue(operation.id, "Recovered operation")
