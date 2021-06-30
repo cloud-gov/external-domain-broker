@@ -3,7 +3,8 @@ import datetime
 import pytest
 from broker.extensions import db
 from broker.models import Operation
-from broker.tasks.cron import scan_for_stalled_pipelines
+from broker.tasks.cron import scan_for_stalled_pipelines, reschedule_operation
+from broker.tasks.huey import huey
 
 import tests.lib.factories as factories
 
@@ -84,3 +85,17 @@ def test_does_not_find_canceled_operations(clean_db):
     complete = Operation.query.get(1234)
 
     assert scan_for_stalled_pipelines() == []
+
+
+@pytest.mark.parametrize("action", ["Provision", "Deprovision", "Renew", "Update", "Migrate to broker"])
+def test_reschedules_operation(clean_db, action):
+    stalled_operation = factories.OperationFactory.create(
+        id=1234, state="in progress", action=action
+    )
+    db.session.add(stalled_operation)
+    db.session.commit()
+    stalled_operation = Operation.query.get(1234)
+
+    reschedule_operation(1234)
+    assert len(huey.pending()) == 1
+    huey.dequeue()
