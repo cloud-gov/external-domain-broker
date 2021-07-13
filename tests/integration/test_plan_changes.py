@@ -75,8 +75,6 @@ def test_refuses_not_yet_implemented_transformations(
         change_instance_type(alb_instance, CDNServiceInstance, None)
     with pytest.raises(NotImplementedError):
         change_instance_type(alb_instance, MigrationServiceInstance, None)
-    with pytest.raises(NotImplementedError):
-        change_instance_type(migration_instance, ALBServiceInstance, None)
 
 
 def test_migration_to_cdn(migration_instance, clean_db):

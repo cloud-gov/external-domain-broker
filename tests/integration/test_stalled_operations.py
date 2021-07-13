@@ -87,7 +87,9 @@ def test_does_not_find_canceled_operations(clean_db):
     assert scan_for_stalled_pipelines() == []
 
 
-@pytest.mark.parametrize("action", ["Provision", "Deprovision", "Renew", "Update", "Migrate to broker"])
+@pytest.mark.parametrize(
+    "action", ["Provision", "Deprovision", "Renew", "Update", "Migrate to broker"]
+)
 def test_reschedules_operation(clean_db, action):
     stalled_operation = factories.OperationFactory.create(
         id=1234, state="in progress", action=action

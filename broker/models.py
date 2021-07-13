@@ -254,7 +254,5 @@ def change_instance_type(service_instance: ServiceInstance, new_type: type, sess
     if type(service_instance) == ALBServiceInstance:
         raise NotImplementedError()
     if type(service_instance) == MigrationServiceInstance:
-        if new_type == ALBServiceInstance:
-            raise NotImplementedError()
-        if new_type == CDNServiceInstance:
+        if new_type in (CDNServiceInstance, ALBServiceInstance):
             return clone_instance(service_instance, new_type, session)
