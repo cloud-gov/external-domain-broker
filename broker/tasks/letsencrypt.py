@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import josepy
 import OpenSSL
-from acme import challenges, client, crypto_util, messages
+from acme import challenges, client, crypto_util, messages, errors
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -328,6 +328,12 @@ def retrieve_certificate(operation_id: int, **kwargs):
                 f"failed to retrieve certificate for {service_instance.domain_names} with code {e.code}, {e.description}, {e.detail}"
             )
             raise e
+    except errors.ValidationError as e:
+            logger.error(
+                f"failed to retrieve certificate for {service_instance.domain_names} with errors {e.failed_authzrs}"
+            )
+            raise e
+
 
     certificate.leaf_pem, certificate.fullchain_pem = cert_from_fullchain(
         finalized_order.fullchain_pem
