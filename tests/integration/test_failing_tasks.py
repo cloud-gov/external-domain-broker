@@ -68,7 +68,6 @@ def test_retry_tasks_marked_failed_only_after_last_retry():
     db.session.commit()
     with fallible_huey() as h:
         with immediate_huey() as h:
-            # this task should fail because we have not created a user
             task = retry_task("6789")
             with pytest.raises(TaskException):
                 result = task()

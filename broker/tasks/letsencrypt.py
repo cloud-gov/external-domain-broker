@@ -238,7 +238,14 @@ def answer_challenges(operation_id: int, **kwargs):
         )
         challenge_response = challenge_body.response(wrapped_account_key)
         # Let the CA server know that we are ready for the challenge.
-        client_acme.answer_challenge(challenge_body, challenge_response)
+        response = client_acme.answer_challenge(challenge_body, challenge_response)
+        print(response)
+        if response.body.error is not None:
+            # log the error for now. We haven't reproduced this locally, so we can't act on it yet
+            # but it would be interesting in the real world
+            logger.error(
+                f"challenge for instance {service_instance.id} errored. Error: {response.body.error}"
+            )
         challenge.answered = True
         db.session.add(challenge)
         db.session.commit()
@@ -329,11 +336,18 @@ def retrieve_certificate(operation_id: int, **kwargs):
             )
             raise e
     except errors.ValidationError as e:
-            logger.error(
-                f"failed to retrieve certificate for {service_instance.domain_names} with errors {e.failed_authzrs}"
-            )
-            raise e
-
+        logger.error(
+            f"failed to retrieve certificate for {service_instance.domain_names} with errors {e.failed_authzrs}"
+        )
+        # if we fail validation, nuke the cert record and its challenges.
+        # this way, when we retry from the beginning, we won't try to reuse them
+        # the bad new is that we'll still retry this task a bunch of times before the pipeline fails
+        new_cert = service_instance.new_certificate
+        service_instance.new_certificate = None
+        db.session.delete(new_cert)
+        db.session.add(service_instance)
+        db.session.commit()
+        raise e
 
     certificate.leaf_pem, certificate.fullchain_pem = cert_from_fullchain(
         finalized_order.fullchain_pem

@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta, date
 
+from acme.errors import ValidationError
 import pytest
 
 from broker.extensions import db
-from broker.models import Operation, ALBServiceInstance
+from broker.models import Operation, ALBServiceInstance, Challenge
 from broker.tasks.cron import scan_for_expiring_certs
 from broker.tasks.huey import huey
 from broker.tasks.letsencrypt import create_user, generate_private_key
@@ -222,3 +223,41 @@ def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud):
     iam_govcloud.assert_no_pending_responses()
     instance = ALBServiceInstance.query.get("4321")
     assert len(instance.certificates) == 1
+
+
+def test_cleanup_on_failed_challenges(
+    clean_db, alb_instance_needing_renewal, tasks, route53, dns,
+):
+    """
+    When a renewal fails because the Lets Encrypt thinks we didn't solve the challenges
+    we need to clean up the challenges and service_instance.new_certificate so that next
+    time we try to renew, we won't try to reuse them.
+    """
+
+    # note that we didn't do dns.add_cname(...)
+    # that should be what causes the challenges to fail
+
+    dns.add_txt(
+        "_acme-challenge.example.com", "bad",
+    )
+
+    dns.add_txt(
+        "_acme-challenge.foo.com", "bad",
+    )
+
+    # borrow subtests to get us to the right state
+    subtest_queues_tasks()
+    subtest_update_creates_private_key_and_csr(tasks)
+    subtest_provision_initiates_LE_challenge(tasks)
+    subtest_provision_updates_TXT_records(tasks, route53)
+    subtest_provision_waits_for_route53_changes(tasks, route53)
+    subtest_provision_answers_challenges(tasks, dns)
+
+    # now do the stuff
+    with pytest.raises(ValidationError):
+        tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = ALBServiceInstance.query.get("4321")
+    certificate = service_instance.new_certificate
+    assert certificate is None
