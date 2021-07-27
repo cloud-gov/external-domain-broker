@@ -119,9 +119,8 @@ def remove_certificate_from_previous_alb(operation_id, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    time.sleep(int(config.DNS_PROPAGATION_SLEEP_TIME))
-
     if service_instance.previous_alb_listener_arn is not None:
+        time.sleep(int(config.DNS_PROPAGATION_SLEEP_TIME))
         alb.remove_listener_certificates(
             ListenerArn=service_instance.previous_alb_listener_arn,
             Certificates=[
