@@ -7,7 +7,7 @@ broker-register-params: &broker-register-params
   BROKER_NAME: ((name))
   AUTH_USER: ((broker-auth-username))
   AUTH_PASS: ((broker-auth-password))
-  SERVICES: ((service-name))
+  SERVICES: ((visible-services))
 
 cf-creds-dev: &cf-creds-dev
   CF_API_URL: ((dev-cf-api-url))
