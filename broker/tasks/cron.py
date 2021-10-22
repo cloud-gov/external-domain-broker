@@ -23,8 +23,6 @@ logger = logging.getLogger(__name__)
 
 @huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="13"))
 def scan_for_expiring_certs():
-    if not config.RUN_CRON:
-        return
     with huey.huey.flask_app.app_context():
         logger.info("Scanning for expired certificates")
         # TODO: skip SIs with active operations
@@ -68,8 +66,6 @@ def scan_for_expiring_certs():
 
 @huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="*/5"))
 def restart_stalled_pipelines():
-    if not config.RUN_CRON:
-        return
     with huey.huey.flask_app.app_context():
         for operation in scan_for_stalled_pipelines():
             reschedule_operation(operation)
