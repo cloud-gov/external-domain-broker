@@ -95,7 +95,6 @@ class AppConfig(Config):
         self.SMTP_PORT = self.env.int("SMTP_PORT")
         self.SMTP_TO = self.env("SMTP_TO")
         self.SMTP_TLS = True
-        self.RUN_CRON = self.env.int("INSTANCE_INDEX", default=1) == 0
         self.IAM_CERTIFICATE_PROPAGATION_TIME = 30
 
 
@@ -187,7 +186,6 @@ class DockerConfig(Config):
         self.SMTP_TLS = False
         self.SMTP_USER = None
         self.SMTP_PASS = None
-        self.RUN_CRON = True
 
 
 class LocalDevelopmentConfig(DockerConfig):
