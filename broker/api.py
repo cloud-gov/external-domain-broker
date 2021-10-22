@@ -45,6 +45,7 @@ from broker.tasks.pipelines import (
     queue_all_cdn_update_tasks_for_operation,
     queue_all_cdn_broker_migration_tasks_for_operation,
     queue_all_domain_broker_migration_tasks_for_operation,
+    queue_all_migration_deprovision_tasks_for_operation,
 )
 
 ALB_PLAN_ID = "6f60835c-8964-4f1f-a19a-579fb27ce694"
@@ -208,6 +209,15 @@ class API(ServiceBroker):
             )
         elif details.plan_id == ALB_PLAN_ID:
             queue_all_alb_deprovision_tasks_for_operation(
+                operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
+            )
+        elif details.plan_id == MIGRATION_PLAN_ID:
+            for o in instance.operations:
+                if o.action == Operation.Actions.UPDATE.value:
+                    raise errors.ErrBadRequest(
+                        msg="Can't delete migration with update operations"
+                    )
+            queue_all_migration_deprovision_tasks_for_operation(
                 operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
             )
         else:

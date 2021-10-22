@@ -49,6 +49,18 @@ def queue_all_alb_deprovision_tasks_for_operation(
     huey.enqueue(task_pipeline)
 
 
+def queue_all_migration_deprovision_tasks_for_operation(
+    operation_id: int, correlation_id: str
+):
+    if correlation_id is None:
+        raise RuntimeError("correlation_id must be set")
+    if operation_id is None:
+        raise RuntimeError("operation_id must be set")
+    correlation = {"correlation_id": correlation_id}
+    task_pipeline = update_operations.deprovision.s(operation_id, **correlation)
+    huey.enqueue(task_pipeline)
+
+
 def queue_all_cdn_provision_tasks_for_operation(operation_id: int, correlation_id: str):
     if correlation_id is None:
         raise RuntimeError("correlation_id must be set")
