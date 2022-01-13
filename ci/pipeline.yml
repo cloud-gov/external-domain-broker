@@ -30,6 +30,34 @@ cf-creds-production: &cf-creds-production
   CF_ORGANIZATION: ((broker-organization))
   CF_SPACE: ((broker-space))
 
+cf-creds-easta: &cf-creds-easta
+  CF_API_URL: ((easta-cf-api-url))
+  CF_USERNAME: ((easta-cf-username))
+  CF_PASSWORD: ((easta-cf-password))
+  CF_ORGANIZATION: ((broker-organization))
+  CF_SPACE: ((broker-space))
+
+cf-creds-eastb: &cf-creds-eastb
+  CF_API_URL: ((eastb-cf-api-url))
+  CF_USERNAME: ((eastb-cf-username))
+  CF_PASSWORD: ((eastb-cf-password))
+  CF_ORGANIZATION: ((broker-organization))
+  CF_SPACE: ((broker-space))
+
+cf-creds-westb: &cf-creds-westb
+  CF_API_URL: ((westb-cf-api-url))
+  CF_USERNAME: ((westb-cf-username))
+  CF_PASSWORD: ((westb-cf-password))
+  CF_ORGANIZATION: ((broker-organization))
+  CF_SPACE: ((broker-space))
+
+cf-creds-westc: &cf-creds-westc
+  CF_API_URL: ((westc-cf-api-url))
+  CF_USERNAME: ((westc-cf-username))
+  CF_PASSWORD: ((westc-cf-password))
+  CF_ORGANIZATION: ((broker-organization))
+  CF_SPACE: ((broker-space))
+
 create-postgres-service-params: &create-postgres-service-params
   APP_NAME: ((name))
   SVC_SERVICE: ((db_service))
