@@ -141,7 +141,8 @@ class API(ServiceBroker):
         self.logger.info("validating CNAMEs")
         validators.CNAME(domain_names).validate()
         self.logger.info("validating unique domains")
-        validators.UniqueDomains(domain_names).validate()
+        if not config.IGNORE_DUPLICATE_DOMAINS:
+            validators.UniqueDomains(domain_names).validate()
 
         if details.plan_id == CDN_PLAN_ID:
             instance = provision_cdn_instance(instance_id, domain_names, params)

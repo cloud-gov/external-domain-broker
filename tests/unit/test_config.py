@@ -208,3 +208,20 @@ def test_config_fixes_db_uri(env, monkeypatch, mocked_env, dburl_in):
     config = config_from_env()
 
     assert config.SQLALCHEMY_DATABASE_URI == "postgresql://mydb"
+
+
+@pytest.mark.parametrize("env", env_mappings().keys())
+def test_config_sets_ignore_duplicates_false_by_default(env, monkeypatch, mocked_env):
+
+    config = config_from_env()
+
+    assert not config.IGNORE_DUPLICATE_DOMAINS
+
+
+@pytest.mark.parametrize("env", env_mappings().keys())
+def test_config_sets_ignore_duplicates_false_by_default(env, monkeypatch, mocked_env):
+    monkeypatch.setenv("IGNORE_DUPLICATE_DOMAINS", "true")
+
+    config = config_from_env()
+
+    assert config.IGNORE_DUPLICATE_DOMAINS
