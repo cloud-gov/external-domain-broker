@@ -185,6 +185,7 @@ cf-manifest-env-easta: &cf-manifest-env-easta
     SMTP_TO: ((smtp-to))
     SMTP_CERT: ((smtp-cert))
     CDN_LOG_BUCKET: ((easta-log-bucket))
+    IGNORE_DUPLICATE_DOMAINS: "true"
 
 cf-manifest-env-eastb: &cf-manifest-env-eastb
   environment_variables:
@@ -211,6 +212,7 @@ cf-manifest-env-eastb: &cf-manifest-env-eastb
     SMTP_TO: ((smtp-to))
     SMTP_CERT: ((smtp-cert))
     CDN_LOG_BUCKET: ((eastb-log-bucket))
+    IGNORE_DUPLICATE_DOMAINS: "true"
 
 cf-manifest-env-westb: &cf-manifest-env-westb
   environment_variables:
@@ -237,6 +239,7 @@ cf-manifest-env-westb: &cf-manifest-env-westb
     SMTP_TO: ((smtp-to))
     SMTP_CERT: ((smtp-cert))
     CDN_LOG_BUCKET: ((westb-log-bucket))
+    IGNORE_DUPLICATE_DOMAINS: "true"
 
 cf-manifest-env-westc: &cf-manifest-env-westc
   environment_variables:
@@ -263,6 +266,7 @@ cf-manifest-env-westc: &cf-manifest-env-westc
     SMTP_TO: ((smtp-to))
     SMTP_CERT: ((smtp-cert))
     CDN_LOG_BUCKET: ((westc-log-bucket))
+    IGNORE_DUPLICATE_DOMAINS: "true"
 
 acceptance-tests-params-staging-alb: &acceptance-tests-params-staging-alb
   PLAN_NAME: "domain"

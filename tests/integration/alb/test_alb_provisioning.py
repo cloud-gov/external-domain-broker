@@ -101,6 +101,19 @@ def test_refuses_to_provision_with_duplicate_domains(client, dns):
     assert client.response.status_code == 400, client.response.body
 
 
+def test_doesnt_refuse_to_provision_with_duplicate_domains_when_not_configured_to(app, client, dns):
+    old_ignore = config.IGNORE_DUPLICATE_DOMAINS
+    config.IGNORE_DUPLICATE_DOMAINS = True
+    ALBServiceInstanceFactory.create(domain_names=["foo.com", "bar.com"])
+    dns.add_cname("_acme-challenge.example.com")
+    dns.add_cname("_acme-challenge.foo.com")
+
+    client.provision_cdn_instance("4321", params={"domains": "example.com, foo.com"})
+
+    assert client.response.status_code == 202, client.response.body
+    config.IGNORE_DUPLICATE_DOMAINS
+
+
 def test_duplicate_domain_check_ignores_deactivated(client, dns):
     ALBServiceInstanceFactory.create(
         domain_names="foo.com", deactivated_at=datetime.utcnow()
