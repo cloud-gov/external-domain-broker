@@ -65,7 +65,7 @@ def test_doesnt_refuse_to_provision_with_duplicate_domains_when_not_configured_t
     client.provision_cdn_instance("4321", params={"domains": "example.com, foo.com"})
 
     assert client.response.status_code == 202, client.response.body
-    config.IGNORE_DUPLICATE_DOMAINS = False
+    config.IGNORE_DUPLICATE_DOMAINS = old_ignore
 
 
 def test_duplicate_domain_check_ignores_deactivated(client, dns):
