@@ -78,7 +78,7 @@ markupsafe==2.0.1
     #   mako
 marshmallow==3.13.0
     # via environs
-git+git://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d#egg=openbrokerapi
+git+https://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d#egg=openbrokerapi
     # via -r pip-tools/requirements.in
 orderedmultidict==1.0.1
     # via furl
