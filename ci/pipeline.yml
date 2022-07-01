@@ -282,7 +282,7 @@ jobs:
       text: |
         :x: FAILED to deploy external-domain-broker on development
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-channel))
+      channel: '#cg-platform-news'
       username: ((slack-username))
       icon_url: ((slack-icon-url))
   on_success:
@@ -291,7 +291,7 @@ jobs:
       text: |
         :white_check_mark: Successfully deployed external-domain-broker on development
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-channel))
+      channel: '#cg-platform-news'
       username: ((slack-username))
       icon_url: ((slack-icon-url))
 
@@ -352,7 +352,7 @@ jobs:
       text: |
         :x: FAILED to deploy external-domain-broker on staging
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-channel))
+      channel: '#cg-platform-news'
       username: ((slack-username))
       icon_url: ((slack-icon-url))
   on_success:
@@ -361,7 +361,7 @@ jobs:
       text: |
         :white_check_mark: Successfully deployed external-domain-broker on staging
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-channel))
+      channel: '#cg-platform-news'
       username: ((slack-username))
       icon_url: ((slack-icon-url))
 
@@ -406,7 +406,7 @@ jobs:
       text: |
         :x: Acceptance tests for external-domain-broker FAILED in staging
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-channel))
+      channel: '#cg-platform-news'
       username: ((slack-username))
       icon_url: ((slack-icon-url))
   on_success:
@@ -415,7 +415,7 @@ jobs:
       text: |
         :white_check_mark: Acceptance tests for external-domain-broker PASSED in staging
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-channel))
+      channel: '#cg-platform-news'
       username: ((slack-username))
       icon_url: ((slack-icon-url))
 
@@ -477,7 +477,7 @@ jobs:
       text: |
         :x: FAILED to deploy external-domain-broker on production
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-channel))
+      channel: '#cg-platform'
       username: ((slack-username))
       icon_url: ((slack-icon-url))
   on_success:
@@ -486,7 +486,7 @@ jobs:
       text: |
         :white_check_mark: Successfully deployed external-domain-broker on production
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-channel))
+      channel: '#cg-platform-news'
       username: ((slack-username))
       icon_url: ((slack-icon-url))
 
@@ -531,7 +531,7 @@ jobs:
       text: |
         :x: Acceptance tests for external-domain-broker FAILED in production
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-channel))
+      channel: '#cg-platform'
       username: ((slack-username))
       icon_url: ((slack-icon-url))
   on_success:
@@ -540,7 +540,7 @@ jobs:
       text: |
         :white_check_mark: Acceptance tests for external-domain-broker PASSED in production
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-channel))
+      channel: '#cg-platform-news'
       username: ((slack-username))
       icon_url: ((slack-icon-url))
 
@@ -562,6 +562,7 @@ resources:
   icon: github-circle
   check_every: 10s
   source:
+    commit_verification_keys: ((cloud-gov-pgp-keys))
     uri: https://github.com/cloud-gov/((name))
     branch: ((git-branch))
 
