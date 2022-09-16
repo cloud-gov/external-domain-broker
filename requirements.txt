@@ -70,7 +70,7 @@ jmespath==0.10.0
     #   botocore
 josepy==1.8.0
     # via acme
-mako==1.1.4
+mako==1.2.2
     # via alembic
 markupsafe==2.0.1
     # via
