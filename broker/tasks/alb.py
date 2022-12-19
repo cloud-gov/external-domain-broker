@@ -1,8 +1,9 @@
 import logging
 import time
 
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, select, desc
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.sql import text
 
 from broker.aws import alb
 from broker.extensions import config, db
@@ -26,16 +27,15 @@ def get_lowest_used_alb(listener_arns):
     return listener_data["LoadBalancerArn"], listener_data["ListenerArn"]
 
 def scan_for_duplicate_alb_certs():
-    with huey.huey.flask_app.app_context():
-        results = Certificate.query(
-            Certificate.service_instance_id,
-            func.count(Certificate.id).label('cert_count')
-        ).group_by(
-            Certificate.service_instance_id
-        ).order_by(
-            'cert_count DESC'
-        ).all()
-        return results
+    query = select(
+        Certificate.service_instance_id,
+        func.count(Certificate.id).label("cert_count")
+    ).group_by(
+        Certificate.service_instance_id
+    ).order_by(
+        desc("cert_count")
+    )
+    return db.engine.execute(query).fetchall()
 
 @huey.retriable_task
 def select_alb(operation_id, **kwargs):
