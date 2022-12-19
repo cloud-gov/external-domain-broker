@@ -32,6 +32,8 @@ def scan_for_duplicate_alb_certs():
         func.count(Certificate.id).label("cert_count")
     ).group_by(
         Certificate.service_instance_id
+    ).having(
+        func.count(Certificate.id) > 1
     ).order_by(
         desc("cert_count")
     )
