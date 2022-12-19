@@ -26,7 +26,7 @@ def get_lowest_used_alb(listener_arns):
     listener_data = listener_data["Listeners"][0]
     return listener_data["LoadBalancerArn"], listener_data["ListenerArn"]
 
-def scan_for_duplicate_alb_certs():
+def find_duplicate_alb_certs():
     query = select(
         Certificate.service_instance_id,
         func.count(Certificate.id).label("cert_count")

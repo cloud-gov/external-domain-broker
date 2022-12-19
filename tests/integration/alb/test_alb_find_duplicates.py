@@ -9,7 +9,7 @@ from broker.tasks.huey import huey
 
 from broker.tasks.alb import scan_for_duplicate_alb_certs
 
-def test_scan_for_duplicate_alb_certs(no_context_clean_db, no_context_app):
+def test_find_duplicate_alb_certs(no_context_clean_db, no_context_app):
   with no_context_app.app_context():
     service_instance = ALBServiceInstanceFactory.create(id="1234")
     CertificateFactory.create(
