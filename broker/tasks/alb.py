@@ -33,10 +33,12 @@ def find_duplicate_alb_certs():
     ).select_from(Certificate).join(
         ALBServiceInstance,
         ALBServiceInstance.id == Certificate.service_instance_id,
+    ).where(
+        ALBServiceInstance.current_certificate_id != Certificate.id
     ).group_by(
         ALBServiceInstance.id
     ).having(
-        func.count(Certificate.id) > 1
+        func.count(Certificate.id) > 0
     ).order_by(
         desc("cert_count")
     )
