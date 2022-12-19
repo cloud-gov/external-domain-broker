@@ -7,7 +7,7 @@ from tests.lib.factories import (
 
 from broker.tasks.huey import huey
 
-from broker.tasks.alb import scan_for_duplicate_alb_certs
+from broker.tasks.alb import find_duplicate_alb_certs
 
 def test_find_duplicate_alb_certs(no_context_clean_db, no_context_app):
   with no_context_app.app_context():
@@ -26,7 +26,7 @@ def test_find_duplicate_alb_certs(no_context_clean_db, no_context_app):
 
     no_context_clean_db.session.commit()
 
-    results = scan_for_duplicate_alb_certs()
+    results = find_duplicate_alb_certs()
 
     assert len(results) == 1
     assert results == [("5678", 2)]

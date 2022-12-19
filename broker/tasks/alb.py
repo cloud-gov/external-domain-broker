@@ -28,10 +28,13 @@ def get_lowest_used_alb(listener_arns):
 
 def find_duplicate_alb_certs():
     query = select(
-        Certificate.service_instance_id,
+        ALBServiceInstance.id,
         func.count(Certificate.id).label("cert_count")
+    ).select_from(Certificate).join(
+        ALBServiceInstance,
+        ALBServiceInstance.id == Certificate.service_instance_id,
     ).group_by(
-        Certificate.service_instance_id
+        ALBServiceInstance.id
     ).having(
         func.count(Certificate.id) > 1
     ).order_by(
