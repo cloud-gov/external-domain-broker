@@ -20,7 +20,6 @@ from broker.tasks.pipelines import (
 
 logger = logging.getLogger(__name__)
 
-
 @huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="13"))
 def scan_for_expiring_certs():
     with huey.huey.flask_app.app_context():
