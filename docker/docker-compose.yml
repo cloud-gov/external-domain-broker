@@ -7,18 +7,3 @@ services:
       - 5432:5432
     expose:
       - "5432"
-    # environment:
-    #   PG_MAJOR: 11
-      # PGDATA: "/tmp/data"
-      # PGCONFIG: "/tmp/data/postgresql.conf"
-      # POSTGRES_HOST_AUTH_METHOD: "trust"
-    # networks:
-    #   - odfe-net
-    # volumes: []
-
-# volumes:
-#   odfe-data1:
-#   odfe-data2:
-
-# networks:
-#   odfe-net:
