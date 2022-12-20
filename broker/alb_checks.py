@@ -25,7 +25,7 @@ def find_duplicate_alb_certs():
     )
     return db.engine.execute(query).fetchall()
 
-def print_duplicate_alb_cert_metrics(file):
+def print_duplicate_alb_cert_metrics(file=None):
   for duplicate_result in find_duplicate_alb_certs():
     [service_instance_id, num_duplicates] = duplicate_result
     logger.info(f"service_instance_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}")
