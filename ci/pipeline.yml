@@ -544,6 +544,18 @@ jobs:
       username: ((slack-username))
       icon_url: ((slack-icon-url))
 
+- name: check-duplicate-certs-prod
+  plan:
+  - get: src
+    params: {depth: 1}
+    passed: [reconfigure]
+
+  - task: check-duplicate-certs
+    file: src/ci/check-duplicate-certs.yml
+    params:
+      ENVIRONMENT: production
+      GATEWAY_HOST: prometheus-production.service.cf.internal
+
 ############################
 #  RESOURCES
 
