@@ -48,5 +48,5 @@ if __name__ == '__main__':
     if filepath is None:
         logger.error("DUPLICATE_CERT_METRICS_FILEPATH environment variable must be set")
         os.exit(1)
-    with create_app.app_context():
+    with create_app().app_context():
         write_duplicate_alb_cert_metrics_to_file(filepath)
