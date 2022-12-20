@@ -26,7 +26,8 @@ cf push \
 # This is just to put logs in the concourse output.
 (cf logs "$APP_NAME" | grep "TASK/check-duplicate-certs") &
 
-cmd="FLASK_APP='broker.app:create_app()' flask check-duplicate-certs"
+DUPLICATE_CERTS_OUTPUT=$(mktemp)
+cmd="FLASK_APP='broker.app:create_app()' flask check-duplicate-certs $DUPLICATE_CERTS_OUTPUT"
 id=$(cf run-task "$APP_NAME" --command "$cmd" --name="check-duplicate-certs" | grep "task id:" | awk '{print $3}')
 
 set +x
