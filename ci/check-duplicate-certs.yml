@@ -3,9 +3,7 @@ platform: linux
 image_resource:
   type: registry-image
   source:
-    repository: 18fgsa/concourse-task
-    registry_mirror:
-      host: docker-registry-mirror.app.cloud.gov:443
+    repository: python:3.8
 
 inputs:
 - {name: src2}
