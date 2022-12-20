@@ -8,10 +8,10 @@ image_resource:
       host: docker-registry-mirror.app.cloud.gov:443
 
 inputs:
-- {name: src}
+- {name: src2}
 
 run:
-  path: src/ci/check-duplicate-certs.sh
+  path: src2/ci/check-duplicate-certs.sh
 
 params:
   ENVIRONMENT:

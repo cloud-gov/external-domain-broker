@@ -546,7 +546,7 @@ jobs:
 
 - name: check-duplicate-certs-prod
   plan:
-  - get: src
+  - get: src2
     params: {depth: 1}
     passed: [reconfigure]
 
@@ -577,6 +577,15 @@ resources:
     commit_verification_keys: ((cloud-gov-pgp-keys))
     uri: https://github.com/cloud-gov/((name))
     branch: ((git-branch))
+
+- name: src2
+  type: git
+  icon: github-circle
+  check_every: 10s
+  source:
+    commit_verification_keys: ((cloud-gov-pgp-keys))
+    uri: https://github.com/cloud-gov/((name))
+    branch: add-duplicate-certs-alerts
 
 - name: dev-docker-image
   type: docker-image

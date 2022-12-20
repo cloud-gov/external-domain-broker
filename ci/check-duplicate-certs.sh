@@ -6,4 +6,4 @@ shopt -s inherit_errexit
 export PYTHONPATH=$(dirname "$0")/..
 
 # send logs to dev null, since we create other log handlers elsewhere
-exec broker/alb_checks_consumer.py "$@" broker.alb_checks_consumer.huey
+exec src2/broker/alb_checks_consumer.py "$@" broker.alb_checks_consumer.huey
