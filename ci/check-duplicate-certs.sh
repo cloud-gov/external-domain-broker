@@ -39,6 +39,7 @@ set -x
 
 DUPLICATE_CERTS_OUTPUT=$(mktemp)
 cf logs "$APP_NAME" --recent | grep 'service_instance_cert_count' | awk '{print $4 " " $5}' > "$DUPLICATE_CERTS_OUTPUT"
+cat "$DUPLICATE_CERTS_OUTPUT"
 curl --data-binary @- "${GATEWAY_HOST}:${GATEWAY_PORT:-9091}/metrics/job/domain_broker/instance/${ENVIRONMENT}" < "$DUPLICATE_CERTS_OUTPUT"
 
 cf delete -r -f "$APP_NAME"
