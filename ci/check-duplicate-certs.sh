@@ -10,7 +10,7 @@ cf target -o "$CF_ORGANIZATION" -s "$CF_SPACE"
 
 # dummy app so we can run a task.
 cf push \
-  -f src2/manifests/upgrade-schema.yml \
+  -f src2/manifests/check-duplicate-certs.yml \
   -p src2 \
   -i 1 \
   --var DB_NAME="$DB_NAME" \
@@ -37,6 +37,8 @@ while [[ "$status" == 'RUNNING' ]]; do
   status=$(cf tasks "$APP_NAME" | grep "^$id " | awk '{print $3}')
 done
 set -x
+
+cf logs --recent | grep 'service_instance_cert_count' | awk '{print $4 " " $5}'
 
 cf delete -r -f "$APP_NAME"
 
