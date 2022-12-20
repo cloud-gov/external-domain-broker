@@ -7,6 +7,7 @@ from sqlalchemy import func, select, desc
 
 from broker.extensions import db
 from broker.models import ALBServiceInstance, Certificate
+from broker.app import create_app
 # from broker.tasks.huey import huey
 
 logger = logging.getLogger(__name__)
@@ -47,4 +48,5 @@ if __name__ == '__main__':
     if filepath is None:
         logger.error("DUPLICATE_CERT_METRICS_FILEPATH environment variable must be set")
         os.exit(1)
-    write_duplicate_alb_cert_metrics_to_file(filepath)
+    with create_app.app_context():
+        write_duplicate_alb_cert_metrics_to_file(filepath)
