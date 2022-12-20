@@ -554,6 +554,7 @@ jobs:
   - task: check-duplicate-certs
     file: src2/ci/check-duplicate-certs.yml
     params:
+      <<: *cf-manifest-env-production
       ENVIRONMENT: production
       FLASK_ENV: production
       GATEWAY_HOST: prometheus-production.service.cf.internal
