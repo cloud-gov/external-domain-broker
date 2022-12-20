@@ -20,6 +20,7 @@ cf push \
   --var DATABASE_ENCRYPTION_KEY="$DATABASE_ENCRYPTION_KEY" \
   --no-route \
   --health-check-type=process \
+  -c "sleep 3600" \
   "$APP_NAME"
 
 # This is just to put logs in the concourse output.

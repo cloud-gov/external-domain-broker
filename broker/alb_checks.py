@@ -1,15 +1,9 @@
-#!/usr/bin/env python
-
 import logging
-# import os
-# import click
 
 from sqlalchemy import func, select, desc
 
 from broker.extensions import db
 from broker.models import ALBServiceInstance, Certificate
-from broker.app import create_app
-# from broker.tasks.huey import huey
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +28,7 @@ def find_duplicate_alb_certs():
 def print_duplicate_alb_cert_metrics(file):
   for duplicate_result in find_duplicate_alb_certs():
     [service_instance_id, num_duplicates] = duplicate_result
+    logger.info(f"service_instance_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}")
     print(
       f"service_instance_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}",
       file=file
