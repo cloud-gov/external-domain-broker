@@ -3,7 +3,6 @@ import time
 
 from sqlalchemy import and_, func, select, desc
 from sqlalchemy.orm.attributes import flag_modified
-from sqlalchemy.sql import text
 
 from broker.aws import alb
 from broker.extensions import config, db
@@ -25,24 +24,6 @@ def get_lowest_used_alb(listener_arns):
     listener_data = alb.describe_listeners(ListenerArns=[selected_arn])
     listener_data = listener_data["Listeners"][0]
     return listener_data["LoadBalancerArn"], listener_data["ListenerArn"]
-
-def find_duplicate_alb_certs():
-    query = select(
-        ALBServiceInstance.id,
-        func.count(Certificate.id).label("cert_count")
-    ).select_from(Certificate).join(
-        ALBServiceInstance,
-        ALBServiceInstance.id == Certificate.service_instance_id,
-    ).where(
-        ALBServiceInstance.current_certificate_id != Certificate.id
-    ).group_by(
-        ALBServiceInstance.id
-    ).having(
-        func.count(Certificate.id) > 0
-    ).order_by(
-        desc("cert_count")
-    )
-    return db.engine.execute(query).fetchall()
 
 @huey.retriable_task
 def select_alb(operation_id, **kwargs):

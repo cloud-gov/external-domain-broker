@@ -7,9 +7,9 @@ export PYTHONPATH=$(dirname "$0")/..
 
 opts=""
 
-if [[ ! ${INSTANCE_INDEX:-0} = 0 ]]; then
+if [[ ! ${CF_INSTANCE_INDEX:-0} = 0 ]]; then
     opts="$opts --no-periodic"
 fi
 
 # send logs to dev null, since we create other log handlers elsewhere
-exec huey_consumer.py "$@" $opts broker.huey_consumer.huey -l /dev/null 
+exec huey_consumer.py "$@" $opts broker.huey_consumer.huey -l /dev/null
