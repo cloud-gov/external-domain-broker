@@ -6,9 +6,10 @@ shopt -s inherit_errexit
 export PYTHONPATH
 export DUPLICATE_CERT_METRICS_FILEPATH
 
-PYTHONPATH=$(dirname "$0")/..
-
 pushd src2
+  PYTHONPATH=$(pwd)
+  echo "$PYTHONPATH"
+
   python -m venv venv
   source ./venv/bin/activate
 
