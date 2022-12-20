@@ -69,7 +69,6 @@ def create_app():
         )
 
     @app.cli.command("check-duplicate-certs")
-    @click.argument("filepath")
     def write_duplicate_alb_cert_metrics_to_file():
         print_duplicate_alb_cert_metrics()
 
