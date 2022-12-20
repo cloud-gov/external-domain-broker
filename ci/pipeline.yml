@@ -548,10 +548,10 @@ jobs:
   plan:
   - get: src2
     params: {depth: 1}
-    passed: [reconfigure]
+    # passed: [reconfigure]
 
   - task: check-duplicate-certs
-    file: src/ci/check-duplicate-certs.yml
+    file: src2/ci/check-duplicate-certs.yml
     params:
       ENVIRONMENT: production
       GATEWAY_HOST: prometheus-production.service.cf.internal
