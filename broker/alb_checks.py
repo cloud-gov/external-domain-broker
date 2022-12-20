@@ -29,7 +29,8 @@ def print_duplicate_alb_cert_metrics(file):
   for duplicate_result in find_duplicate_alb_certs():
     [service_instance_id, num_duplicates] = duplicate_result
     logger.info(f"service_instance_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}")
-    print(
-      f"service_instance_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}",
-      file=file
-    )
+    if file is not None:
+        print(
+            f"service_instance_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}",
+            file=file
+        )
