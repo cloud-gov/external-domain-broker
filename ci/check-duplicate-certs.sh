@@ -10,6 +10,6 @@ export DUPLICATE_CERT_METRICS_FILEPATH=$(mktemp)
 
 export PYTHONPATH=$(dirname "$0")/..
 
-python -m src2/broker/tasks/alb_checks.py
+python -m src2/broker/alb_checks.py
 
 cat "$DUPLICATE_CERT_METRICS_FILEPATH"
