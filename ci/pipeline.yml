@@ -106,31 +106,34 @@ cf-manifest-env-staging: &cf-manifest-env-staging
     SMTP_CERT: ((smtp-cert))
     CDN_LOG_BUCKET: ((staging-log-bucket))
 
+cf-prod-env-vars: &cf-prod-env-vars
+  FLASK_ENV: production
+  BROKER_USERNAME: ((broker-auth-username))
+  BROKER_PASSWORD: ((broker-auth-password))
+  SECRET_KEY: ((flask-secret-key))
+  DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
+  ROUTE53_ZONE_ID: ((production-route53-zone-id))
+  DNS_ROOT_DOMAIN: ((production-dns-root-domain))
+  DEFAULT_CLOUDFRONT_ORIGIN: ((production-default-cloudfront-origin-domain-name))
+  AWS_GOVCLOUD_REGION: ((production-aws-govcloud-region))
+  AWS_GOVCLOUD_SECRET_ACCESS_KEY: ((production-aws-govcloud-secret-access-key))
+  AWS_GOVCLOUD_ACCESS_KEY_ID: ((production-aws-govcloud-access-key-id))
+  AWS_COMMERCIAL_REGION: ((production-aws-commercial-region))
+  AWS_COMMERCIAL_SECRET_ACCESS_KEY: ((production-aws-commercial-secret-access-key))
+  AWS_COMMERCIAL_ACCESS_KEY_ID: ((production-aws-commercial-access-key-id))
+  ALB_LISTENER_ARNS: ((production-alb-listener-arns))
+  SMTP_PASS: ((smtp-pass))
+  SMTP_HOST: ((smtp-host))
+  SMTP_USER: ((smtp-user))
+  SMTP_FROM: ((smtp-from))
+  SMTP_PORT: ((smtp-port))
+  SMTP_TO: ((smtp-to))
+  SMTP_CERT: ((smtp-cert))
+  CDN_LOG_BUCKET: ((production-log-bucket))
+
 cf-manifest-env-production: &cf-manifest-env-production
   environment_variables:
-    FLASK_ENV: production
-    BROKER_USERNAME: ((broker-auth-username))
-    BROKER_PASSWORD: ((broker-auth-password))
-    SECRET_KEY: ((flask-secret-key))
-    DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
-    ROUTE53_ZONE_ID: ((production-route53-zone-id))
-    DNS_ROOT_DOMAIN: ((production-dns-root-domain))
-    DEFAULT_CLOUDFRONT_ORIGIN: ((production-default-cloudfront-origin-domain-name))
-    AWS_GOVCLOUD_REGION: ((production-aws-govcloud-region))
-    AWS_GOVCLOUD_SECRET_ACCESS_KEY: ((production-aws-govcloud-secret-access-key))
-    AWS_GOVCLOUD_ACCESS_KEY_ID: ((production-aws-govcloud-access-key-id))
-    AWS_COMMERCIAL_REGION: ((production-aws-commercial-region))
-    AWS_COMMERCIAL_SECRET_ACCESS_KEY: ((production-aws-commercial-secret-access-key))
-    AWS_COMMERCIAL_ACCESS_KEY_ID: ((production-aws-commercial-access-key-id))
-    ALB_LISTENER_ARNS: ((production-alb-listener-arns))
-    SMTP_PASS: ((smtp-pass))
-    SMTP_HOST: ((smtp-host))
-    SMTP_USER: ((smtp-user))
-    SMTP_FROM: ((smtp-from))
-    SMTP_PORT: ((smtp-port))
-    SMTP_TO: ((smtp-to))
-    SMTP_CERT: ((smtp-cert))
-    CDN_LOG_BUCKET: ((production-log-bucket))
+    <<: *cf-prod-env-vars
 
 acceptance-tests-params-staging-alb: &acceptance-tests-params-staging-alb
   PLAN_NAME: "domain"
@@ -554,7 +557,8 @@ jobs:
   - task: check-duplicate-certs
     file: src2/ci/check-duplicate-certs.yml
     params:
-      <<: *cf-manifest-env-production
+      <<: *cf-prod-env-vars
+      DATABASE_URL: ((prod-database-url))
       ENVIRONMENT: production
       FLASK_ENV: production
       GATEWAY_HOST: prometheus-production.service.cf.internal

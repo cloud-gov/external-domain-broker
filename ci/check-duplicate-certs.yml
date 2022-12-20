@@ -7,7 +7,7 @@ image_resource:
     tag: 3.8
 
 inputs:
-- {name: src2}
+- name: src2
 
 run:
   path: src2/ci/check-duplicate-certs.sh
