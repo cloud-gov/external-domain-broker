@@ -3,18 +3,23 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
-python -m venv venv
-source ./venv/bin/activate
+export PYTHONPATH
+export DUPLICATE_CERT_METRICS_FILEPATH
 
-python --version
+PYTHONPATH=$(dirname "$0")/..
 
-python -m pip install -r src2/requirements.txt
+pushd src2
+  python -m venv venv
+  source ./venv/bin/activate
 
-# python src2/broker/alb_checks_consumer.py "$@" broker.alb_checks_consumer.huey
-export DUPLICATE_CERT_METRICS_FILEPATH=$(mktemp)
+  python --version
 
-export PYTHONPATH=$(dirname "$0")/..
+  python -m pip install -r requirements.txt
 
-python src2/broker/alb_checks.py
+  # python src2/broker/alb_checks_consumer.py "$@" broker.alb_checks_consumer.huey
+  DUPLICATE_CERT_METRICS_FILEPATH=$(mktemp)
 
-cat "$DUPLICATE_CERT_METRICS_FILEPATH"
+  python broker/alb_checks.py
+
+  cat "$DUPLICATE_CERT_METRICS_FILEPATH"
+popd
