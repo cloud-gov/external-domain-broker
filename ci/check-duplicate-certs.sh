@@ -10,8 +10,8 @@ cf target -o "$CF_ORGANIZATION" -s "$CF_SPACE"
 
 # dummy app so we can run a task.
 cf push \
-  -f src/manifests/upgrade-schema.yml \
-  -p src \
+  -f src2/manifests/upgrade-schema.yml \
+  -p src2 \
   -i 1 \
   --var DB_NAME="$DB_NAME" \
   --var REDIS_NAME="$REDIS_NAME" \

@@ -1,5 +1,6 @@
 from http import HTTPStatus
 import logging
+import click
 
 from flask import Flask
 from openbrokerapi import api as openbrokerapi
@@ -14,6 +15,7 @@ from sap.cf_logging import flask_logging
 from broker import models  # noqa: F401
 from broker.api import API, ClientError
 from broker.extensions import config, db, migrate
+from broker.alb_checks import print_duplicate_alb_cert_metrics
 
 
 def create_app():
@@ -65,5 +67,11 @@ def create_app():
             to_json_response(ErrorResponse(description="Not Implemented")),
             HTTPStatus.NOT_IMPLEMENTED,
         )
+
+    @app.cli.command("check-duplicate-certs")
+    @click.argument("filepath")
+    def write_duplicate_alb_cert_metrics_to_file(filepath):
+        with open(filepath, mode='w') as file:
+            print_duplicate_alb_cert_metrics(file)
 
     return app
