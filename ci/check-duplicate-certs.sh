@@ -38,7 +38,7 @@ while [[ "$status" == 'RUNNING' ]]; do
 done
 set -x
 
-cf logs --recent | grep 'service_instance_cert_count' | awk '{print $4 " " $5}'
+cf logs "$APP_NAME" --recent | grep 'service_instance_cert_count' | awk '{print $4 " " $5}'
 
 cf delete -r -f "$APP_NAME"
 
