@@ -549,6 +549,7 @@ jobs:
   - get: src2
     params: {depth: 1}
     # passed: [reconfigure]
+    trigger: true
 
   - task: check-duplicate-certs
     file: src2/ci/check-duplicate-certs.yml
