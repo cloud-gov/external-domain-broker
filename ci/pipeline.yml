@@ -559,8 +559,8 @@ jobs:
     params:
       <<: *cf-prod-env-vars
       DATABASE_URL: ((prod-database-url))
-      ENVIRONMENT: production
-      FLASK_ENV: production
+      ENVIRONMENT: check-duplicate-certs
+      FLASK_ENV: check-duplicate-certs
       GATEWAY_HOST: prometheus-production.service.cf.internal
 
 ############################
