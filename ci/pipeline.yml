@@ -557,10 +557,12 @@ jobs:
   - task: check-duplicate-certs
     file: src2/ci/check-duplicate-certs.yml
     params:
-      <<: *cf-prod-env-vars
-      DATABASE_URL: ((prod-database-url))
-      ENVIRONMENT: check-duplicate-certs
+      DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
+      <<: *cf-creds-production
       FLASK_ENV: check-duplicate-certs
+      APP_NAME: ((name))-check-duplicate-certs
+      DB_NAME: ((db_name))
+      REDIS_NAME: ((redis_name))
       GATEWAY_HOST: prometheus-production.service.cf.internal
 
 ############################

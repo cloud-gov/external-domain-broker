@@ -2,28 +2,41 @@
 
 set -euo pipefail
 shopt -s inherit_errexit
+set -x
 
-export PYTHONPATH
-export DUPLICATE_CERT_METRICS_FILEPATH
+cf api "$CF_API_URL"
+(set +x; cf auth "$CF_USERNAME" "$CF_PASSWORD")
+cf target -o "$CF_ORGANIZATION" -s "$CF_SPACE"
 
-pushd src2
-  PYTHONPATH=$(pwd)
-  echo "$PYTHONPATH"
+# dummy app so we can run a task.
+cf push \
+  -f src/manifests/upgrade-schema.yml \
+  -p src \
+  -i 1 \
+  --var DB_NAME="$DB_NAME" \
+  --var REDIS_NAME="$REDIS_NAME" \
+  --var APP_NAME="$APP_NAME" \
+  --var FLASK_ENV="$FLASK_ENV" \
+  --var DATABASE_ENCRYPTION_KEY="$DATABASE_ENCRYPTION_KEY" \
+  --no-route \
+  --health-check-type=process \
+  "$APP_NAME"
 
-  python -m venv venv
-  source ./venv/bin/activate
+# This is just to put logs in the concourse output.
+(cf logs "$APP_NAME" | grep "TASK/check-duplicate-certs") &
 
-  PYTHONPATH="$PYTHONPATH:$PYTHONPATH/venv/lib/python3.8/site-packages/"
-  echo "$PYTHONPATH"
+cmd="FLASK_APP='broker.app:create_app()' flask check-duplicate-certs"
+id=$(cf run-task "$APP_NAME" --command "$cmd" --name="check-duplicate-certs" | grep "task id:" | awk '{print $3}')
 
-  python --version
+set +x
+status=RUNNING
+while [[ "$status" == 'RUNNING' ]]; do
+  sleep 5
+  status=$(cf tasks "$APP_NAME" | grep "^$id " | awk '{print $3}')
+done
+set -x
 
-  python -m pip install -r requirements.txt
+cf delete -r -f "$APP_NAME"
 
-  # python src2/broker/alb_checks_consumer.py "$@" broker.alb_checks_consumer.huey
-  DUPLICATE_CERT_METRICS_FILEPATH=$(mktemp)
-
-  python broker/alb_checks.py
-
-  cat "$DUPLICATE_CERT_METRICS_FILEPATH"
-popd
+[[ "$status" == 'SUCCEEDED' ]] && exit 0
+exit 1
