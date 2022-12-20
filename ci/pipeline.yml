@@ -551,6 +551,10 @@ jobs:
     passed: [reconfigure]
     trigger: true
 
+  - get: check-duplicate-certificates-timer
+    passed: [reconfigure]
+    trigger: true
+
   - task: check-duplicate-certs
     file: src/ci/check-duplicate-certs.yml
     params:
@@ -633,6 +637,19 @@ resources:
     commit_verification_keys: ((cloud-gov-pgp-keys))
 
 - name: test-timer
+  type: time
+  source:
+    start: 8:00 AM
+    stop: 8:00 PM
+    timezone: America/New_York
+    days:
+      - Monday
+      - Tuesday
+      - Wednesday
+      - Thursday
+      - Friday
+
+- name: check-duplicate-certificates-timer
   type: time
   source:
     start: 8:00 AM
