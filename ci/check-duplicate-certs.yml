@@ -3,7 +3,8 @@ platform: linux
 image_resource:
   type: registry-image
   source:
-    repository: python:3.8
+    repository: python
+    version: 3.8
 
 inputs:
 - {name: src2}
