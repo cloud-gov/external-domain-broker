@@ -1,7 +1,7 @@
 import logging
 import time
 
-from sqlalchemy import and_, func, select, desc
+from sqlalchemy import and_
 from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import alb
