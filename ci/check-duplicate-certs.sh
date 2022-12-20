@@ -13,6 +13,9 @@ pushd src2
   python -m venv venv
   source ./venv/bin/activate
 
+  PYTHONPATH="$PYTHONPATH:$PYTHONPATH/venv/lib/python3.8/site-packages/"
+  echo "$PYTHONPATH"
+
   python --version
 
   python -m pip install -r requirements.txt
