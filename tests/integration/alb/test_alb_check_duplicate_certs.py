@@ -1,12 +1,9 @@
-import io
 import pytest  # noqa F401
 
 from tests.lib.factories import (
     CertificateFactory,
     ALBServiceInstanceFactory,
 )
-
-from broker.tasks.huey import huey
 
 from broker.check_duplicate_certs import find_duplicate_alb_certs, log_duplicate_alb_cert_metrics
 
