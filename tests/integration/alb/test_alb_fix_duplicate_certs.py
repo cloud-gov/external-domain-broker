@@ -60,6 +60,31 @@ def test_get_matching_alb_listener_arns_for_single_cert_arn(alb):
       "listener-arn-0/certificate-arn": "listener-arn-0"
     }
 
+def test_get_matching_alb_listener_arns_breaks_correctly(alb):
+    class FakeALBTest:
+      def __init__(self):
+        self.requested_listener_arns = []
+
+      def describe_listener_certificates(self, ListenerArn=""):
+        self.requested_listener_arns.append(ListenerArn)
+        return {
+          "Certificates": [{
+            "CertificateArn": "listener-arn-0/certificate-arn"
+          }],
+        }
+    
+    fakeAlbTester = FakeALBTest()
+    get_matching_alb_listener_arns_for_cert_arns(
+      ["listener-arn-0/certificate-arn"],
+      listener_arns=["listener-arn-0", "listener-arn-1"],
+      alb=fakeAlbTester
+    )
+    # Only request for the first listener was made because it
+    # contained all of the specified certificate ARNs
+    assert fakeAlbTester.requested_listener_arns == [
+      "listener-arn-0"
+    ]
+
 def test_get_matching_alb_listener_arns_for_multiple_cert_arns(alb):
     alb.expect_get_certificates_for_listener("listener-arn-0", 1)
     results = get_matching_alb_listener_arns_for_cert_arns([
