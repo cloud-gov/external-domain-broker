@@ -6,7 +6,13 @@ from tests.lib.factories import (
     ALBServiceInstanceFactory,
 )
 
-from broker.duplicate_certs import get_duplicate_certs_for_service, remove_duplicate_alb_certs, get_matching_alb_listener_arns_for_cert_arns
+from broker.duplicate_certs import (
+  get_duplicate_certs_for_service,
+  remove_duplicate_alb_certs,
+  get_matching_alb_listener_arns_for_cert_arns,
+  delete_cert_record_and_resource
+)
+from broker.models import Certificate
 
 def test_get_duplicate_certs_for_service(no_context_clean_db, no_context_app):
   with no_context_app.app_context():
@@ -93,6 +99,44 @@ def test_get_matching_alb_listener_arns_for_multiple_listeners(alb):
       "listener-arn-0/certificate-arn-2": "listener-arn-0",
       "listener-arn-1/certificate-arn-1": "listener-arn-1"
     }
+
+def test_delete_cert_record_success(no_context_app, alb):
+  with no_context_app.app_context():
+    service_instance = ALBServiceInstanceFactory.create(id="1234")
+    certificate = CertificateFactory.create(
+        service_instance=service_instance,
+        iam_server_certificate_arn="arn1"
+    )
+
+    assert len(Certificate.query.all()) == 1
+
+    alb.expect_remove_certificate_from_listener("1234", "arn1")
+
+    delete_cert_record_and_resource(certificate, "1234")
+
+    assert len(Certificate.query.all()) == 0
+
+def test_delete_cert_record_handle_exception(no_context_clean_db, no_context_app):
+  with no_context_app.app_context():
+    service_instance = ALBServiceInstanceFactory.create(id="1234")
+    certificate = CertificateFactory.create(
+        service_instance=service_instance,
+        iam_server_certificate_arn="arn1"
+    )
+
+    assert len(Certificate.query.all()) == 1
+
+    class FakeALBTest:
+      # def __init__(self):
+      #   self.requested_listener_arns = []
+      def remove_listener_certificates(self):
+        raise Exception("fail")
+    
+    fakeAlbTest = FakeALBTest()
+    delete_cert_record_and_resource(certificate, "1234", alb=fakeAlbTest)
+
+    foo = Certificate.query.all()
+    assert len(foo) == 1
 
 def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app, alb):
   with no_context_app.app_context():

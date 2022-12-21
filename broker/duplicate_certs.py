@@ -47,7 +47,7 @@ def delete_duplicate_cert_db_record(duplicate_cert):
         Certificate.id == duplicate_cert.id
     ).delete()
 
-def delete_cert_record_and_resource(certificate, listener_arn):
+def delete_cert_record_and_resource(certificate, listener_arn, alb=alb, db=db):
     try:
         logger.info(f"Deleting duplicate certificate {certificate.id} for service instance {certificate.service_instance_id}")
         delete_duplicate_cert_db_record(certificate)
