@@ -55,8 +55,6 @@ def test_fix_duplicate_certs_for_service(no_context_clean_db, no_context_app):
 
 def test_get_matching_alb_listener_arns_for_single_cert_arn(alb):
     alb.expect_get_certificates_for_listener("listener-arn-0", 1)
-    # we don't expect this request to occur
-    # alb.expect_get_certificates_for_listener("listener-arn-1", 1)
     results = get_matching_alb_listener_arns_for_cert_arns(["listener-arn-0/certificate-arn"])
     assert results == {
       "listener-arn-0/certificate-arn": "listener-arn-0"
@@ -74,15 +72,15 @@ def test_get_matching_alb_listener_arns_for_multiple_cert_arns(alb):
     }
 
 def test_get_matching_alb_listener_arns_for_multiple_listeners(alb):
-    alb.expect_get_certificates_for_listener("listener-arn-0", 1)
+    alb.expect_get_certificates_for_listener("listener-arn-0", 4)
     alb.expect_get_certificates_for_listener("listener-arn-1", 2)
     results = get_matching_alb_listener_arns_for_cert_arns([
       "listener-arn-0/certificate-arn-0",
-      "listener-arn-1/certificate-arn-0",
+      "listener-arn-0/certificate-arn-2",
       "listener-arn-1/certificate-arn-1",
     ])
     assert results == {
       "listener-arn-0/certificate-arn-0": "listener-arn-0",
-      "listener-arn-1/certificate-arn-0": "listener-arn-1",
+      "listener-arn-0/certificate-arn-2": "listener-arn-0",
       "listener-arn-1/certificate-arn-1": "listener-arn-1"
     }
