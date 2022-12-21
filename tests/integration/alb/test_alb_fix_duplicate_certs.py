@@ -6,7 +6,7 @@ from tests.lib.factories import (
     ALBServiceInstanceFactory,
 )
 
-from broker.check_duplicate_certs import get_duplicate_certs_for_service, remove_duplicate_alb_certs, get_matching_alb_listener_arns_for_cert_arns
+from broker.duplicate_certs import get_duplicate_certs_for_service, remove_duplicate_alb_certs, get_matching_alb_listener_arns_for_cert_arns
 
 def test_get_duplicate_certs_for_service(no_context_clean_db, no_context_app):
   with no_context_app.app_context():
