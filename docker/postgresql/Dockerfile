@@ -39,3 +39,6 @@ RUN initdb \
   && grep -F "listen_addresses = '*'" "$PGCONFIG" \
   && echo 'CREATE DATABASE "test"' | postgres --single -D "$PGDATA" postgres \
   && echo 'CREATE DATABASE "local-development"' | postgres --single -D "$PGDATA" postgres
+
+# Trust connection from Docker for local development
+RUN echo "host local-development ${USER} 172.16.0.0/12 trust" >> /tmp/data/pg_hba.conf

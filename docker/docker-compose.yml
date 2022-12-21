@@ -6,8 +6,6 @@ services:
       args:
         - USER=${USER}
     container_name: postgresql
-    volumes:
-      - ./postgresql/pg_hba.conf:/tmp/data/pg_hba.conf
     ports:
       - 5432:5432
     expose:
