@@ -78,8 +78,15 @@ def test_duplicate_alb_certs_output(no_context_clean_db, no_context_app):
 
     no_context_clean_db.session.commit()
 
-    capturedOutput = io.StringIO()
-    print_duplicate_alb_cert_metrics(file=capturedOutput)
+    class FakeLogger:
+      def __init__(self):
+        self.output = ""
 
-    assert capturedOutput.getvalue().strip() == "service_instance_cert_count{service_instance_id=\"1234\"} 2"
+      def info(self, input):
+        self.output = self.output + input
+    fakeLogger = FakeLogger()
+
+    print_duplicate_alb_cert_metrics(logger=fakeLogger)
+
+    assert fakeLogger.output.strip() == "service_instance_cert_count{service_instance_id=\"1234\"} 2"
 
