@@ -47,7 +47,7 @@ def delete_duplicate_cert_db_record(duplicate_cert):
         Certificate.id == duplicate_cert.id
     ).delete()
 
-def get_matching_alb_listener_arns_for_cert_arns(duplicate_cert_arns, listener_arns=config.ALB_LISTENER_ARNS, alb=alb):
+def get_matching_alb_listener_arns_for_cert_arns(duplicate_cert_arns, listener_arns, alb=alb):
     matched_listeners_dict = {}
     all_matched_cert_arns = []
     for listener_arn in listener_arns:
@@ -67,12 +67,31 @@ def get_matching_alb_listener_arns_for_cert_arns(duplicate_cert_arns, listener_a
                 break
     return matched_listeners_dict
 
-def fix_duplicate_alb_certs():
+def fix_duplicate_alb_certs(listener_arns=config.ALB_LISTENER_ARNS):
   for duplicate_result in find_duplicate_alb_certs():
     [service_instance_id, num_duplicates] = duplicate_result
     duplicate_certs = get_duplicate_certs_for_service(service_instance_id)
     logger.info(f"Found {num_duplicates} duplicate certificates for service instance {service_instance_id}")
+    
+    
     duplicate_cert_arns = [cert.iam_server_certificate_arn for cert in duplicate_certs]
+    # Get dictionary for reverse lookup of listener ARN by certificate ARN
+    listener_arns_dict = get_matching_alb_listener_arns_for_cert_arns(duplicate_cert_arns, listener_arns)
+
     for duplicate_cert in duplicate_certs:
-        delete_duplicate_cert_db_record(duplicate_cert)
+        try:
+            logger.info(f"Deleting duplicate certificate {duplicate_cert.id} for service instance {service_instance_id}")
+            delete_duplicate_cert_db_record(duplicate_cert)
+                        
+            listener_arn = listener_arns_dict.get(duplicate_cert.iam_server_certificate_arn)
+            logger.info(f"Removing certificate {duplicate_cert.iam_server_certificate_arn} from listener {listener_arn}")
+            alb.remove_listener_certificates(
+                ListenerArn=listener_arn,
+                Certificates=[{"CertificateArn": duplicate_cert.iam_server_certificate_arn}]
+            )
+
+            # only commit deletion if deleting certificate ARN was successful
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
     
