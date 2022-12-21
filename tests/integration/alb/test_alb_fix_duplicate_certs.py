@@ -6,7 +6,7 @@ from tests.lib.factories import (
     ALBServiceInstanceFactory,
 )
 
-from broker.check_duplicate_certs import get_duplicate_certs_for_service, fix_duplicate_alb_certs, get_matching_alb_listener_arns_for_cert_arns
+from broker.check_duplicate_certs import get_duplicate_certs_for_service, remove_duplicate_alb_certs, get_matching_alb_listener_arns_for_cert_arns
 
 def test_get_duplicate_certs_for_service(no_context_clean_db, no_context_app):
   with no_context_app.app_context():
@@ -94,7 +94,7 @@ def test_get_matching_alb_listener_arns_for_multiple_listeners(alb):
       "listener-arn-1/certificate-arn-1": "listener-arn-1"
     }
 
-def test_fix_duplicate_certs_for_service(no_context_clean_db, no_context_app, alb):
+def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app, alb):
   with no_context_app.app_context():
     service_instance = ALBServiceInstanceFactory.create(id="1234")
     certificate1 = CertificateFactory.create(
@@ -124,7 +124,7 @@ def test_fix_duplicate_certs_for_service(no_context_clean_db, no_context_app, al
     results = get_duplicate_certs_for_service(service_instance.id)
     assert len(results) == 2
     
-    fix_duplicate_alb_certs(listener_arns=[service_instance.id])
+    remove_duplicate_alb_certs(listener_arns=[service_instance.id])
     
     results = get_duplicate_certs_for_service(service_instance.id)
     assert len(results) == 0
