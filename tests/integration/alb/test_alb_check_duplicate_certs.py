@@ -8,7 +8,7 @@ from tests.lib.factories import (
 
 from broker.tasks.huey import huey
 
-from broker.check_duplicate_certs import find_duplicate_alb_certs, print_duplicate_alb_cert_metrics
+from broker.check_duplicate_certs import find_duplicate_alb_certs, log_duplicate_alb_cert_metrics
 
 def test_no_duplicate_alb_certs(no_context_clean_db, no_context_app):
   with no_context_app.app_context():
@@ -86,7 +86,7 @@ def test_duplicate_alb_certs_output(no_context_clean_db, no_context_app):
         self.output = self.output + input
     fakeLogger = FakeLogger()
 
-    print_duplicate_alb_cert_metrics(logger=fakeLogger)
+    log_duplicate_alb_cert_metrics(logger=fakeLogger)
 
     assert fakeLogger.output.strip() == "service_instance_cert_count{service_instance_id=\"1234\"} 2"
 
