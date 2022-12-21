@@ -40,10 +40,10 @@ class FakeALB(FakeAWS):
         )
 
     def expect_get_certificates_for_listener(self, listener_arn, num_certificates=0):
-        certificates = [{"CertificateArn": "certificate-arn", "IsDefault": True}]
+        certificates = [{"CertificateArn": f"{listener_arn}/certificate-arn", "IsDefault": True}]
         for i in range(num_certificates):
             certificates.append(
-                {"CertificateArn": f"certificate-arn-{i}", "IsDefault": False}
+                {"CertificateArn": f"{listener_arn}/certificate-arn-{i}", "IsDefault": False}
             )
         self.stubber.add_response(
             "describe_listener_certificates",
