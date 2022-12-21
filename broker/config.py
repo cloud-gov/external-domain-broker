@@ -145,32 +145,11 @@ class UpgradeSchemaConfig(Config):
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = "NONE"
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
 
-class CheckDuplicateCertsConfig(Config):
+class CheckDuplicateCertsConfig(UpgradeSchemaConfig):
     """ I'm used when running flask check-duplicate-certs in any self.environment """
 
     def __init__(self):
         super().__init__()
-        self.SQLALCHEMY_DATABASE_URI = normalize_db_url(self.env("DATABASE_URL"))
-        self.TESTING = False
-        self.DEBUG = False
-        self.SECRET_KEY = "NONE"
-        self.BROKER_USERNAME = "NONE"
-        self.BROKER_PASSWORD = "NONE"
-        self.DATABASE_ENCRYPTION_KEY = self.env("DATABASE_ENCRYPTION_KEY")
-        self.REDIS_HOST = "NONE"
-        self.REDIS_PORT = 1234
-        self.REDIS_PASSWORD = "NONE"
-        self.ACME_DIRECTORY = "NONE"
-        self.ROUTE53_ZONE_ID = "NONE"
-        self.DNS_ROOT_DOMAIN = "NONE"
-        self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
-        self.REDIS_SSL = False
-        self.AWS_COMMERCIAL_REGION = "NONE"
-        self.AWS_COMMERCIAL_ACCESS_KEY_ID = "NONE"
-        self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = "NONE"
-        self.AWS_GOVCLOUD_REGION = "NONE"
-        self.AWS_GOVCLOUD_ACCESS_KEY_ID = "NONE"
-        self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
 
 
 class DockerConfig(Config):
