@@ -146,7 +146,7 @@ class UpgradeSchemaConfig(Config):
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
 
 class CheckDuplicateCertsConfig(Config):
-    """ I'm used when running flask db upgrade in any self.environment """
+    """ I'm used when running flask check-duplicate-certs in any self.environment """
 
     def __init__(self):
         super().__init__()
