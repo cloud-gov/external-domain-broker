@@ -8,7 +8,7 @@ from tests.lib.factories import (
 
 from broker.tasks.huey import huey
 
-from broker.alb_checks import find_duplicate_alb_certs, print_duplicate_alb_cert_metrics
+from broker.check_duplicate_certs import find_duplicate_alb_certs, print_duplicate_alb_cert_metrics
 
 def test_no_duplicate_alb_certs(no_context_clean_db, no_context_app):
   with no_context_app.app_context():
