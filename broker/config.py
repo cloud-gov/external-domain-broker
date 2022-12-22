@@ -15,6 +15,8 @@ def env_mappings():
         "staging": StagingConfig,
         "production": ProductionConfig,
         "upgrade-schema": UpgradeSchemaConfig,
+        "check-duplicate-certs": CheckDuplicateCertsConfig,
+        "local-debugging": LocalDebuggingConfig
     }
 
 
@@ -144,6 +146,12 @@ class UpgradeSchemaConfig(Config):
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = "NONE"
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
 
+class CheckDuplicateCertsConfig(UpgradeSchemaConfig):
+    """ I'm used when running flask check-duplicate-certs in any self.environment """
+
+    def __init__(self):
+        super().__init__()
+
 
 class DockerConfig(Config):
     """ Base class for running in the local dev docker image """
@@ -193,6 +201,12 @@ class LocalDevelopmentConfig(DockerConfig):
     def __init__(self):
         super().__init__()
 
+class LocalDebuggingConfig(DockerConfig):
+    def __init__(self):
+        super().__init__()
+        with open('./docker/postgresql/password') as reader:
+            password=reader.read().strip()
+            self.SQLALCHEMY_DATABASE_URI = f"postgresql://:{password}@localhost/local-development"
 
 class TestConfig(DockerConfig):
     def __init__(self):

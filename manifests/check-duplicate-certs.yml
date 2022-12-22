@@ -1,0 +1,14 @@
+---
+applications:
+- name: ((APP_NAME))
+  memory: 256M
+  instances: 1
+  command: gunicorn -b 0.0.0.0:$PORT 'broker.app:create_app()'
+  services:
+  - ((DB_NAME))
+  - ((REDIS_NAME))
+  buildpacks:
+  - python_buildpack
+  env:
+    FLASK_ENV: ((FLASK_ENV))
+    DATABASE_ENCRYPTION_KEY: ((DATABASE_ENCRYPTION_KEY))

@@ -25,7 +25,6 @@ def get_lowest_used_alb(listener_arns):
     listener_data = listener_data["Listeners"][0]
     return listener_data["LoadBalancerArn"], listener_data["ListenerArn"]
 
-
 @huey.retriable_task
 def select_alb(operation_id, **kwargs):
     operation = Operation.query.get(operation_id)

@@ -1,0 +1,13 @@
+version: '3'
+services:
+  postgresql:
+    build:
+      context: ./postgresql
+      args:
+        - USER=${USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    container_name: postgresql
+    ports:
+      - 5432:5432
+    expose:
+      - "5432"

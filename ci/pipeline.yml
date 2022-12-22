@@ -544,6 +544,29 @@ jobs:
       username: ((slack-username))
       icon_url: ((slack-icon-url))
 
+- name: check-duplicate-certs-prod
+  plan:
+  - get: src
+    params: {depth: 1}
+    passed: [reconfigure]
+    trigger: true
+
+  - get: check-duplicate-certificates-timer
+    passed: [reconfigure]
+    trigger: true
+
+  - task: check-duplicate-certs
+    file: src/ci/check-duplicate-certs.yml
+    params:
+      DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
+      <<: *cf-creds-production
+      ENVIRONMENT: production
+      FLASK_ENV: check-duplicate-certs
+      APP_NAME: ((name))-check-duplicate-certs
+      DB_NAME: ((db_name))
+      REDIS_NAME: ((redis_name))
+      GATEWAY_HOST: prometheus-production.service.cf.internal
+
 ############################
 #  RESOURCES
 
@@ -614,6 +637,19 @@ resources:
     commit_verification_keys: ((cloud-gov-pgp-keys))
 
 - name: test-timer
+  type: time
+  source:
+    start: 8:00 AM
+    stop: 8:00 PM
+    timezone: America/New_York
+    days:
+      - Monday
+      - Tuesday
+      - Wednesday
+      - Thursday
+      - Friday
+
+- name: check-duplicate-certificates-timer
   type: time
   source:
     start: 8:00 AM
