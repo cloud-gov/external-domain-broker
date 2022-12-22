@@ -546,7 +546,7 @@ jobs:
 
 - name: check-duplicate-certs-prod
   plan:
-  - get: src
+  - get: src2
     params: {depth: 1}
     passed: [reconfigure]
     trigger: true
@@ -555,7 +555,7 @@ jobs:
     trigger: true
 
   - task: check-duplicate-certs
-    file: src/ci/check-duplicate-certs.yml
+    file: src2/ci/check-duplicate-certs.yml
     params:
       DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
       <<: *cf-creds-production
@@ -568,12 +568,12 @@ jobs:
 
 - name: remove-duplicate-certs-prod
   plan:
-  - get: src
+  - get: src2
     params: {depth: 1}
     passed: [reconfigure]
 
   - task: remove-duplicate-certs
-    file: src/ci/remove-duplicate-certs.yml
+    file: src2/ci/remove-duplicate-certs.yml
     params:
       DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
       <<: *cf-creds-production
@@ -607,6 +607,15 @@ resources:
     commit_verification_keys: ((cloud-gov-pgp-keys))
     uri: https://github.com/cloud-gov/((name))
     branch: ((git-branch))
+
+- name: src2
+  type: git
+  icon: github-circle
+  check_every: 10s
+  source:
+    commit_verification_keys: ((cloud-gov-pgp-keys))
+    uri: https://github.com/cloud-gov/((name))
+    branch: fix-duplicate-certs
 
 - name: dev-docker-image
   type: docker-image

@@ -10,8 +10,8 @@ cf target -o "$CF_ORGANIZATION" -s "$CF_SPACE"
 
 # dummy app so we can run a task.
 cf push \
-  -f src/manifests/remove-duplicate-certs.yml \
-  -p src \
+  -f src2/manifests/remove-duplicate-certs.yml \
+  -p src2 \
   -i 1 \
   --var DB_NAME="$DB_NAME" \
   --var APP_NAME="$APP_NAME" \
