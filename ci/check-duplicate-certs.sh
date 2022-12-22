@@ -14,10 +14,10 @@ cf push \
   -p src \
   -i 1 \
   --var DB_NAME="$DB_NAME" \
-  --var REDIS_NAME="$REDIS_NAME" \
   --var APP_NAME="$APP_NAME" \
   --var FLASK_ENV="$FLASK_ENV" \
   --var DATABASE_ENCRYPTION_KEY="$DATABASE_ENCRYPTION_KEY" \
+  --var ALB_LISTENER_ARNS="$ALB_LISTENER_ARNS" \
   --no-route \
   --health-check-type=process \
   -c "sleep 3600" \
