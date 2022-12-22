@@ -563,8 +563,28 @@ jobs:
       FLASK_ENV: check-duplicate-certs
       APP_NAME: ((name))-check-duplicate-certs
       DB_NAME: ((db_name))
-      REDIS_NAME: ((redis_name))
       GATEWAY_HOST: prometheus-production.service.cf.internal
+      ALB_LISTENER_ARNS: ((production-alb-listener-arns))
+
+- name: remove-duplicate-certs-prod
+  plan:
+  - get: src
+    params: {depth: 1}
+    passed: [reconfigure]
+
+  - task: remove-duplicate-certs
+    file: src/ci/remove-duplicate-certs.yml
+    params:
+      DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
+      <<: *cf-creds-production
+      ENVIRONMENT: production
+      FLASK_ENV: remove-duplicate-certs
+      APP_NAME: ((name))-remove-duplicate-certs
+      DB_NAME: ((db_name))
+      AWS_GOVCLOUD_REGION: ((production-aws-govcloud-region))
+      AWS_GOVCLOUD_SECRET_ACCESS_KEY: ((production-aws-govcloud-secret-access-key))
+      AWS_GOVCLOUD_ACCESS_KEY_ID: ((production-aws-govcloud-access-key-id))
+      ALB_LISTENER_ARNS: ((production-alb-listener-arns))
 
 ############################
 #  RESOURCES
