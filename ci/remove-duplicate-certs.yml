@@ -7,7 +7,7 @@ image_resource:
     repository: 18fgsa/concourse-task
 
 inputs:
-- name: src2
+- name: src
 
 run:
-  path: src2/ci/remove-duplicate-certs.sh
+  path: src/ci/remove-duplicate-certs.sh
