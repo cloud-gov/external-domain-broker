@@ -43,10 +43,9 @@ def log_duplicate_alb_cert_metrics(logger=logger):
     logger.info(f"service_instance_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}")
 
 def delete_duplicate_cert_db_record(duplicate_cert):
-    certificate = db.session.query(Certificate).filter(
+    Certificate.query.filter(
         Certificate.id == duplicate_cert.id
-    ).first()
-    db.session.delete(certificate)
+    ).delete()
 
 def delete_cert_record_and_resource(certificate, listener_arn, alb=alb, db=db):
     try:
