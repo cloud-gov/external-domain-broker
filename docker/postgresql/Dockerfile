@@ -29,7 +29,11 @@ RUN mkdir -p "$PGDATA" \
 
 USER $UID:$GID
 
+COPY password password
+
 RUN initdb \
+  -A md5 \
+  --pwfile=password \
   && echo "unix_socket_directories = '$PGDATA'" >> "$PGCONFIG" \
   && echo "log_statement = 'all'" >> "$PGCONFIG" \
   && echo "log_connections = on" >> "$PGCONFIG" \
@@ -41,4 +45,4 @@ RUN initdb \
   && echo 'CREATE DATABASE "local-development"' | postgres --single -D "$PGDATA" postgres
 
 # Trust connection from Docker for local development
-RUN echo "host local-development ${USER} 172.16.0.0/12 trust" >> /tmp/data/pg_hba.conf
+RUN echo "host local-development ${USER} 172.16.0.0/12 md5" >> /tmp/data/pg_hba.conf

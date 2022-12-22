@@ -33,9 +33,26 @@ pip install -r requirements.txt # Install requirements
 pip install -r pip-tools/dev-requirements.txt # Install requirements
 ```
 
+### Create your .env file
+
+Create an `.env` file which minimally contains:
+
+```env
+FLASK_APP="broker.app:create_app()"
+FLASK_ENV=local-debugging
+```
+
+You can also specify any environment variable that is supported by `broker/config.py` file to customize the application behavior.
+
 ### Start up local PostgreSQL database
 
-Start up a PostgreSQL service that will be exposed on `localhost:5432`, which is what is expected by the test suite configuration:
+First, create the file `docker/postgresql/password` to specify the password used for accessing the PostgreSQL database in the container:
+
+```text
+<your-password-here>
+```
+
+Then, start up a PostgreSQL service that will be exposed on `localhost:5432`, which is what is expected by the test suite configuration:
 
 ```shell
 cd docker

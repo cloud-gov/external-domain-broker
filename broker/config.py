@@ -16,6 +16,7 @@ def env_mappings():
         "production": ProductionConfig,
         "upgrade-schema": UpgradeSchemaConfig,
         "check-duplicate-certs": CheckDuplicateCertsConfig,
+        "local-debugging": LocalDebuggingConfig
     }
 
 
@@ -200,6 +201,12 @@ class LocalDevelopmentConfig(DockerConfig):
     def __init__(self):
         super().__init__()
 
+class LocalDebuggingConfig(DockerConfig):
+    def __init__(self):
+        super().__init__()
+        with open('./docker/postgresql/password') as reader:
+            password=reader.read().strip()
+            self.SQLALCHEMY_DATABASE_URI = f"postgresql://:{password}@localhost/local-development"
 
 class TestConfig(DockerConfig):
     def __init__(self):
