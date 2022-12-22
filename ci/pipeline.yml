@@ -552,7 +552,6 @@ jobs:
     trigger: true
 
   - get: check-duplicate-certificates-timer
-    passed: [reconfigure]
     trigger: true
 
   - task: check-duplicate-certs
