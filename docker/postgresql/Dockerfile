@@ -3,7 +3,7 @@ FROM postgres:11
 ARG UID=2000
 ARG GID=2000
 ARG USER=pg-user
-ARG POSTGRES_PASSWORD
+ARG PGPASSWORD
 
 RUN grep -q ":$GID:" /etc/group \
  || groupadd --gid="$GID" "$USER"
@@ -30,7 +30,7 @@ RUN mkdir -p "$PGDATA" \
 
 USER $UID:$GID
 
-RUN echo "${POSTGRES_PASSWORD}" > /tmp/password
+RUN echo "${PGPASSWORD}" > /tmp/password
 
 RUN initdb \
   -A md5 \

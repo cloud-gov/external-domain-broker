@@ -215,7 +215,7 @@ class LocalDevelopmentConfig(DockerConfig):
 class LocalDebuggingConfig(DockerConfig):
     def __init__(self):
         super().__init__()
-        self.SQLALCHEMY_DATABASE_URI = f"postgresql://:{self.env('POSTGRES_PASSWORD', '')}@localhost/local-development"
+        self.SQLALCHEMY_DATABASE_URI = f"postgresql://:{self.env('PGPASSWORD', '')}@localhost/local-development"
 
 class TestConfig(DockerConfig):
     def __init__(self):

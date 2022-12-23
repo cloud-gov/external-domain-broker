@@ -217,7 +217,6 @@ def test_remove_duplicate_certs_with_active_operations(no_context_clean_db, no_c
     results = get_duplicate_certs_for_service(service_instance.id)
     assert len(results) == 1
 
-
 def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app, alb):
   with no_context_app.app_context():
     service_instance = ALBServiceInstanceFactory.create(id="1234")
