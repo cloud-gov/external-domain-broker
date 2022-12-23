@@ -215,9 +215,7 @@ class LocalDevelopmentConfig(DockerConfig):
 class LocalDebuggingConfig(DockerConfig):
     def __init__(self):
         super().__init__()
-        with open('./docker/postgresql/password') as reader:
-            password=reader.read().strip()
-            self.SQLALCHEMY_DATABASE_URI = f"postgresql://:{password}@localhost/local-development"
+        self.SQLALCHEMY_DATABASE_URI = f"postgresql://:{self.env('POSTGRES_PASSWORD')}@localhost/local-development"
 
 class TestConfig(DockerConfig):
     def __init__(self):

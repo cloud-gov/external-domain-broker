@@ -40,16 +40,15 @@ Create an `.env` file which minimally contains:
 ```env
 FLASK_APP="broker.app:create_app()"
 FLASK_ENV=local-debugging
+POSTGRES_PASSWORD=<your-password>
 ```
-
-You can also specify any environment variable that is supported by `broker/config.py` file to customize the application behavior.
 
 ### Start up local PostgreSQL database
 
-First, create the file `docker/postgresql/password` to specify the password used for accessing the PostgreSQL database in the container:
+Export the PostgreSQL password that you set in `.env` as an environment variable in your shell so that Docker can set it on the database:
 
-```text
-<your-password-here>
+```shell
+export POSTGRES_PASSWORD=<your-password>
 ```
 
 Then, start up a PostgreSQL service that will be exposed on `localhost:5432`, which is what is expected by the test suite configuration:

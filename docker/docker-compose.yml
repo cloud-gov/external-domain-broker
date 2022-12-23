@@ -5,6 +5,7 @@ services:
       context: ./postgresql
       args:
         - USER=${USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     container_name: postgresql
     ports:
       - 5432:5432
