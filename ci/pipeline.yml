@@ -274,6 +274,7 @@ jobs:
       DATABASE_ENCRYPTION_KEY: ((dev-db-encryption-key))
       <<: *cf-creds-dev
       <<: *upgrade-schema-vars
+      ALB_LISTENER_ARNS: ((dev-alb-listener-arns))
   - in_parallel:
     - put: cf-dev
       params:
@@ -344,6 +345,7 @@ jobs:
       DATABASE_ENCRYPTION_KEY: ((staging-db-encryption-key))
       <<: *cf-creds-staging
       <<: *upgrade-schema-vars
+      ALB_LISTENER_ARNS: ((staging-alb-listener-arns))
   - in_parallel:
     - put: cf-staging
       params:
@@ -469,6 +471,7 @@ jobs:
       DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
       <<: *cf-creds-production
       <<: *upgrade-schema-vars
+      ALB_LISTENER_ARNS: ((production-alb-listener-arns))
   - in_parallel:
     - put: cf-production
       params:
