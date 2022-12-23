@@ -18,6 +18,23 @@ You can run these commands like so:
 ./dev tests
 ```
 
+### Troubleshooting
+
+If you get an error like this when running the `dev` script:
+
+```shell
+./dev: line 10: conditional binary operator expected
+```
+
+Then you can either:
+
+- Upgrade your `bash` shell version using `homebrew` and try again
+- Run the script using `zsh`
+
+    ```shell
+    zsh ./dev tests
+    ```
+
 ## Running and debugging tests
 
 ### Prerequisites
