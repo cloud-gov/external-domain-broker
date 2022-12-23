@@ -146,14 +146,14 @@ class UpgradeSchemaConfig(Config):
         self.AWS_GOVCLOUD_REGION = "NONE"
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = "NONE"
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
+        self.ALB_LISTENER_ARNS = self.env.list("ALB_LISTENER_ARNS")
+        self.ALB_LISTENER_ARNS = list(set(self.ALB_LISTENER_ARNS))
 
 class CheckDuplicateCertsConfig(UpgradeSchemaConfig):
     """ I'm used when running flask check-duplicate-certs in any self.environment """
 
     def __init__(self):
         super().__init__()
-        self.ALB_LISTENER_ARNS = self.env.list("ALB_LISTENER_ARNS")
-        self.ALB_LISTENER_ARNS = list(set(self.ALB_LISTENER_ARNS))
 
 class RemoveDuplicateCertsConfig(CheckDuplicateCertsConfig):
     """ I'm used when running flask remove-duplicate-certs in any self.environment """
