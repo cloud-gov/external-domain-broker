@@ -181,6 +181,24 @@ acceptance-tests-params-production-alb: &acceptance-tests-params-production-alb
   TEST_DOMAIN_1: ((production-test-domain-3))
 
 ############################
+#  GROUPS
+
+groups:
+- name: deployment
+  jobs:
+  - reconfigure
+  - test
+  - dev
+  - staging
+  - staging-acceptance-tests
+  - production
+  - production-acceptance-tests
+- name: duplicate-certs
+  jobs:
+  - check-duplicate-certs-prod
+  - remove-duplicate-certs-prod
+
+############################
 #  JOBS
 
 jobs:
@@ -607,15 +625,6 @@ resources:
     commit_verification_keys: ((cloud-gov-pgp-keys))
     uri: https://github.com/cloud-gov/((name))
     branch: ((git-branch))
-
-- name: src
-  type: git
-  icon: github-circle
-  check_every: 10s
-  source:
-    commit_verification_keys: ((cloud-gov-pgp-keys))
-    uri: https://github.com/cloud-gov/((name))
-    branch: fix-duplicate-certs
 
 - name: dev-docker-image
   type: docker-image
