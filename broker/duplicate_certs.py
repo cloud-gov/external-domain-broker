@@ -60,7 +60,7 @@ def delete_cert_record_and_resource(certificate, listener_arn, alb=alb, db=db):
 
         # only commit deletion if deleting certificate ARN was successful
         db.session.commit()
-    except Exception as e:
+    except Exception:
         db.session.rollback()
 
 def get_matching_alb_listener_arns_for_cert_arns(duplicate_cert_arns, listener_arns, alb=alb):
@@ -86,6 +86,12 @@ def get_matching_alb_listener_arns_for_cert_arns(duplicate_cert_arns, listener_a
 def remove_duplicate_alb_certs(listener_arns=config.ALB_LISTENER_ARNS):
   for duplicate_result in find_duplicate_alb_certs():
     [service_instance_id, num_duplicates] = duplicate_result
+
+    service_instance = ALBServiceInstance.query.get(service_instance_id)
+    if service_instance.has_active_operations():
+        logger.info(f"Instance {service_instance_id} has an active operation in progress, so duplicate certificates cannot be removed. Try again in a few minutes.")
+        continue
+
     logger.info(f"Found {num_duplicates} duplicate certificates for service instance {service_instance_id}")
     
     duplicate_certs = get_duplicate_certs_for_service(service_instance_id)

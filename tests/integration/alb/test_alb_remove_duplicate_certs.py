@@ -1,9 +1,10 @@
 import pytest  # noqa F401
 
-from broker.extensions import config
+from broker.models import Operation
 from tests.lib.factories import (
     CertificateFactory,
     ALBServiceInstanceFactory,
+    OperationFactory,
 )
 
 from broker.duplicate_certs import (
@@ -187,6 +188,35 @@ def test_delete_cert_record_and_resource_success(no_context_clean_db, no_context
     delete_cert_record_and_resource(certificate, "1234")
 
     assert len(Certificate.query.all()) == 0
+
+def test_remove_duplicate_certs_with_active_operations(no_context_clean_db, no_context_app, alb):
+  with no_context_app.app_context():
+    service_instance = ALBServiceInstanceFactory.create(id="1234")
+    certificate1 = CertificateFactory.create(
+        service_instance=service_instance,
+        iam_server_certificate_arn="arn1"
+    )
+    CertificateFactory.create(
+        service_instance=service_instance,
+        iam_server_certificate_arn="arn2"
+    )
+    OperationFactory.create(
+      service_instance=service_instance,
+      state=Operation.States.IN_PROGRESS.value,
+      action=Operation.Actions.RENEW.value
+    )
+    service_instance.current_certificate_id = certificate1.id
+    no_context_clean_db.session.commit()
+
+    results = get_duplicate_certs_for_service(service_instance.id)
+    assert len(results) == 1
+    
+    remove_duplicate_alb_certs(listener_arns=[service_instance.id])
+    
+    # nothing should get deleted if there are active operations for a service instance
+    results = get_duplicate_certs_for_service(service_instance.id)
+    assert len(results) == 1
+
 
 def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app, alb):
   with no_context_app.app_context():
