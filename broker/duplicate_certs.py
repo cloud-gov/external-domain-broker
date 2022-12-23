@@ -83,7 +83,7 @@ def get_matching_alb_listener_arns_for_cert_arns(duplicate_cert_arns, listener_a
                 break
     return matched_listeners_dict
 
-def remove_duplicate_alb_certs(listener_arns=config.get("ALB_LISTENER_ARNS", "")):
+def remove_duplicate_alb_certs(listener_arns=config.ALB_LISTENER_ARNS):
   for duplicate_result in find_duplicate_alb_certs():
     [service_instance_id, num_duplicates] = duplicate_result
 
