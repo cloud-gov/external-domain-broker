@@ -15,7 +15,7 @@ from sap.cf_logging import flask_logging
 from broker import models  # noqa: F401
 from broker.api import API, ClientError
 from broker.extensions import config, db, migrate
-from broker.check_duplicate_certs import log_duplicate_alb_cert_metrics
+from broker.duplicate_certs import log_duplicate_alb_cert_metrics, remove_duplicate_alb_certs
 
 
 def create_app():
@@ -69,7 +69,11 @@ def create_app():
         )
 
     @app.cli.command("check-duplicate-certs")
-    def check_duplicate_alb_certs():
+    def check_duplicate_alb_certs_command():
         log_duplicate_alb_cert_metrics()
+
+    @app.cli.command("remove-duplicate-certs")
+    def remove_duplicate_alb_certs_command():
+        remove_duplicate_alb_certs()
 
     return app

@@ -3,6 +3,7 @@ FROM postgres:11
 ARG UID=2000
 ARG GID=2000
 ARG USER=pg-user
+ARG PGPASSWORD
 
 RUN grep -q ":$GID:" /etc/group \
  || groupadd --gid="$GID" "$USER"
@@ -29,11 +30,11 @@ RUN mkdir -p "$PGDATA" \
 
 USER $UID:$GID
 
-COPY password password
+RUN echo "${PGPASSWORD}" > /tmp/password
 
 RUN initdb \
   -A md5 \
-  --pwfile=password \
+  --pwfile=/tmp/password \
   && echo "unix_socket_directories = '$PGDATA'" >> "$PGCONFIG" \
   && echo "log_statement = 'all'" >> "$PGCONFIG" \
   && echo "log_connections = on" >> "$PGCONFIG" \
@@ -43,6 +44,8 @@ RUN initdb \
   && grep -F "listen_addresses = '*'" "$PGCONFIG" \
   && echo 'CREATE DATABASE "test"' | postgres --single -D "$PGDATA" postgres \
   && echo 'CREATE DATABASE "local-development"' | postgres --single -D "$PGDATA" postgres
+
+RUN rm /tmp/password
 
 # Trust connection from Docker for local development
 RUN echo "host local-development ${USER} 172.16.0.0/12 md5" >> /tmp/data/pg_hba.conf

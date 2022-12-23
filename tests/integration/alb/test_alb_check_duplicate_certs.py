@@ -1,4 +1,3 @@
-import io
 import pytest  # noqa F401
 
 from tests.lib.factories import (
@@ -6,9 +5,7 @@ from tests.lib.factories import (
     ALBServiceInstanceFactory,
 )
 
-from broker.tasks.huey import huey
-
-from broker.check_duplicate_certs import find_duplicate_alb_certs, log_duplicate_alb_cert_metrics
+from broker.duplicate_certs import find_duplicate_alb_certs, log_duplicate_alb_cert_metrics
 
 def test_no_duplicate_alb_certs(no_context_clean_db, no_context_app):
   with no_context_app.app_context():

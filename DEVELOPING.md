@@ -18,6 +18,23 @@ You can run these commands like so:
 ./dev tests
 ```
 
+### Troubleshooting
+
+If you get an error like this when running the `dev` script:
+
+```shell
+./dev: line 10: conditional binary operator expected
+```
+
+Then you can either:
+
+- Upgrade your `bash` shell version using `homebrew` and try again
+- Run the script using `zsh`
+
+    ```shell
+    zsh ./dev tests
+    ```
+
 ## Running and debugging tests
 
 ### Prerequisites
@@ -40,16 +57,15 @@ Create an `.env` file which minimally contains:
 ```env
 FLASK_APP="broker.app:create_app()"
 FLASK_ENV=local-debugging
+PGPASSWORD=<your-password>
 ```
-
-You can also specify any environment variable that is supported by `broker/config.py` file to customize the application behavior.
 
 ### Start up local PostgreSQL database
 
-First, create the file `docker/postgresql/password` to specify the password used for accessing the PostgreSQL database in the container:
+Export the PostgreSQL password that you set in `.env` as an environment variable in your shell so that Docker can set it on the database:
 
-```text
-<your-password-here>
+```shell
+export PGPASSWORD=<your-password>
 ```
 
 Then, start up a PostgreSQL service that will be exposed on `localhost:5432`, which is what is expected by the test suite configuration:

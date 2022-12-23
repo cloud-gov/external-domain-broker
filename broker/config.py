@@ -16,7 +16,8 @@ def env_mappings():
         "production": ProductionConfig,
         "upgrade-schema": UpgradeSchemaConfig,
         "check-duplicate-certs": CheckDuplicateCertsConfig,
-        "local-debugging": LocalDebuggingConfig
+        "local-debugging": LocalDebuggingConfig,
+        "remove-duplicate-certs": RemoveDuplicateCertsConfig,
     }
 
 
@@ -151,7 +152,17 @@ class CheckDuplicateCertsConfig(UpgradeSchemaConfig):
 
     def __init__(self):
         super().__init__()
+        self.ALB_LISTENER_ARNS = self.env.list("ALB_LISTENER_ARNS")
+        self.ALB_LISTENER_ARNS = list(set(self.ALB_LISTENER_ARNS))
 
+class RemoveDuplicateCertsConfig(CheckDuplicateCertsConfig):
+    """ I'm used when running flask remove-duplicate-certs in any self.environment """
+
+    def __init__(self):
+        super().__init__()
+        self.AWS_GOVCLOUD_REGION = self.env("AWS_GOVCLOUD_REGION")
+        self.AWS_GOVCLOUD_ACCESS_KEY_ID = self.env("AWS_GOVCLOUD_ACCESS_KEY_ID")
+        self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = self.env("AWS_GOVCLOUD_SECRET_ACCESS_KEY")
 
 class DockerConfig(Config):
     """ Base class for running in the local dev docker image """
@@ -204,9 +215,7 @@ class LocalDevelopmentConfig(DockerConfig):
 class LocalDebuggingConfig(DockerConfig):
     def __init__(self):
         super().__init__()
-        with open('./docker/postgresql/password') as reader:
-            password=reader.read().strip()
-            self.SQLALCHEMY_DATABASE_URI = f"postgresql://:{password}@localhost/local-development"
+        self.SQLALCHEMY_DATABASE_URI = f"postgresql://:{self.env('PGPASSWORD', '')}@localhost/local-development"
 
 class TestConfig(DockerConfig):
     def __init__(self):
