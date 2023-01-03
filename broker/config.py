@@ -46,7 +46,6 @@ class Config:
         # https://docs.aws.amazon.com/Route53/latest/APIReference/API_AliasTarget.html
         self.CLOUDFRONT_HOSTED_ZONE_ID = "Z2FDTNDATAQYW2"
 
-
 class AppConfig(Config):
     """ Base class for apps running in Cloud Foundry """
 
@@ -146,6 +145,7 @@ class UpgradeSchemaConfig(Config):
         self.AWS_GOVCLOUD_REGION = "NONE"
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = "NONE"
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
+        self.ALB_LISTENER_ARNS = []
 
 class CheckDuplicateCertsConfig(UpgradeSchemaConfig):
     """ I'm used when running flask check-duplicate-certs in any self.environment """

@@ -177,7 +177,6 @@ def test_config_sets_smtp_variables(env, monkeypatch, mocked_env):
     assert config.SMTP_CERT == "A_REAL_CERT_WOULD_BE_LONGER_THAN_THIS"
     assert config.SMTP_TO == "alerts@example.com"
 
-
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
 def test_config_provides_alb_arns(env, monkeypatch, mocked_env):
     monkeypatch.setenv("FLASK_ENV", env)
