@@ -2,7 +2,6 @@
 
 set -euo pipefail
 shopt -s inherit_errexit
-set -x
 
 cf api "$CF_API_URL"
 (set +x; cf auth "$CF_USERNAME" "$CF_PASSWORD")
@@ -29,13 +28,11 @@ cf push \
 cmd="FLASK_APP='broker.app:create_app()' flask db upgrade"
 id=$(cf run-task "$APP_NAME" --command "$cmd" --name="db-upgrade" | grep "task id:" | awk '{print $3}')
 
-set +x
 status=RUNNING
 while [[ "$status" == 'RUNNING' ]]; do
   sleep 5
   status=$(cf tasks "$APP_NAME" | grep "^$id " | awk '{print $3}')
 done
-set -x
 
 cf delete -r -f "$APP_NAME"
 
