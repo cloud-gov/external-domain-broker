@@ -3,6 +3,7 @@ import pytest  # noqa F401
 from broker.models import Operation
 from tests.lib.factories import (
     CertificateFactory,
+    ChallengeFactory,
     ALBServiceInstanceFactory,
     OperationFactory,
 )
@@ -141,6 +142,9 @@ def test_delete_duplicate_cert_record_commit(no_context_app, no_context_clean_db
     certificate = CertificateFactory.create(
         service_instance=service_instance,
         iam_server_certificate_arn="arn1"
+    )
+    challenge = ChallengeFactory.create(
+        certificate_id = certificate.id
     )
     no_context_clean_db.session.commit()
 
