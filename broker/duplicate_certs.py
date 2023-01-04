@@ -60,7 +60,8 @@ def delete_cert_record_and_resource(certificate, listener_arn, alb=alb, db=db):
 
         # only commit deletion if deleting certificate ARN was successful
         db.session.commit()
-    except Exception:
+    except Exception e:
+        logger.error(f"Exception while deleting certificate: {e}")
         db.session.rollback()
 
 def get_matching_alb_listener_arns_for_cert_arns(duplicate_cert_arns, listener_arns, alb=alb):
