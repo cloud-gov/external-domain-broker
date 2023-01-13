@@ -63,6 +63,15 @@ class FakeIAM(FakeAWS):
             expected_params={"ServerCertificateName": name},
         )
 
+    def expects_delete_server_certificate_returning_unexpected_error(self, name: str):
+        self.stubber.add_client_error(
+            "delete_server_certificate",
+            service_error_code="UnexpectedError",
+            service_message="Unexpected error",
+            http_status_code=500,
+            expected_params={"ServerCertificateName": name},
+        )
+
 
 @pytest.fixture(autouse=True)
 def iam_commercial():

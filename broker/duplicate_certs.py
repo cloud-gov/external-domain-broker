@@ -2,7 +2,7 @@ import logging
 
 from sqlalchemy import func, select, desc
 
-from broker.aws import alb
+from broker.aws import alb, iam_govcloud
 from broker.extensions import config, db
 from broker.models import ALBServiceInstance, Certificate
 
@@ -48,19 +48,33 @@ def delete_duplicate_cert_db_record(duplicate_cert):
     ).first()
     db.session.delete(certificate)
 
+def delete_iam_server_certificate(certificate_name):
+    try:
+        iam_govcloud.delete_server_certificate(
+            ServerCertificateName=certificate_name
+        )
+        logger.info(f"Deleted IAM certificate {certificate_name}")
+    except iam_govcloud.exceptions.NoSuchEntityException as e:
+        logger.info(f"IAM certificate {certificate_name} does not exist: {e}, continuing")
+
 def delete_cert_record_and_resource(certificate, listener_arn, alb=alb, db=db):
     try:
-        logger.info(f"Deleting duplicate certificate {certificate.id} for service instance {certificate.service_instance_id}")
         delete_duplicate_cert_db_record(certificate)
-                    
-        logger.info(f"Removing certificate {certificate.iam_server_certificate_arn} from listener {listener_arn}")
-        alb.remove_listener_certificates(
-            ListenerArn=listener_arn,
-            Certificates=[{"CertificateArn": certificate.iam_server_certificate_arn}]
-        )
+        
+        if listener_arn:
+            alb.remove_listener_certificates(
+                ListenerArn=listener_arn,
+                Certificates=[{"CertificateArn": certificate.iam_server_certificate_arn}]
+            )
+            logger.info(f"Removed certificate {certificate.iam_server_certificate_arn} from listener {listener_arn}")
 
-        # only commit deletion if deleting certificate ARN was successful
+        if certificate.iam_server_certificate_name:
+            delete_iam_server_certificate(certificate.iam_server_certificate_name)
+
+        # only commit deletion if previous operations were successful
         db.session.commit()
+
+        logger.info(f"Deleted duplicate certificate {certificate.id} for service instance {certificate.service_instance_id}")
     except Exception as e:
         logger.error(f"Exception while deleting certificate: {e}")
         db.session.rollback()
