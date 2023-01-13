@@ -13,7 +13,8 @@ from broker.duplicate_certs import (
   remove_duplicate_alb_certs,
   get_matching_alb_listener_arns_for_cert_arns,
   delete_duplicate_cert_db_record,
-  delete_cert_record_and_resource
+  delete_cert_record_and_resource,
+  delete_iam_server_certificate
 )
 from broker.models import Certificate
 
@@ -155,6 +156,20 @@ def test_delete_duplicate_cert_record_commit(no_context_app, no_context_clean_db
 
     assert len(Certificate.query.all()) == 0
 
+def test_delete_iam_server_certificate_success(iam_govcloud):
+    iam_govcloud.expects_delete_server_certificate(
+        "name1"
+    )
+
+    delete_iam_server_certificate("name1")
+
+def test_delete_iam_server_certificate_no_certificate(iam_govcloud):
+    iam_govcloud.expects_delete_server_certificate_returning_no_such_entity(
+        "name1"
+    )
+
+    delete_iam_server_certificate("name1")
+
 def test_delete_cert_record_and_resource_handle_exception(no_context_clean_db, no_context_app):
   with no_context_app.app_context():
     service_instance = ALBServiceInstanceFactory.create(id="1234")
@@ -176,12 +191,13 @@ def test_delete_cert_record_and_resource_handle_exception(no_context_clean_db, n
 
     assert len(Certificate.query.all()) == 1
 
-def test_delete_cert_record_and_resource_success(no_context_clean_db, no_context_app, alb):
+def test_delete_cert_record_and_resource_success(no_context_clean_db, no_context_app, alb, iam_govcloud):
   with no_context_app.app_context():
     service_instance = ALBServiceInstanceFactory.create(id="1234")
     certificate = CertificateFactory.create(
         service_instance=service_instance,
-        iam_server_certificate_arn="arn1"
+        iam_server_certificate_arn="arn1",
+        iam_server_certificate_name="name1"
     )
 
     no_context_clean_db.session.commit()
@@ -189,11 +205,14 @@ def test_delete_cert_record_and_resource_success(no_context_clean_db, no_context
     assert len(Certificate.query.all()) == 1
 
     alb.expect_remove_certificate_from_listener(service_instance.id, "arn1")
+    iam_govcloud.expects_delete_server_certificate(
+        "name1"
+    )
     delete_cert_record_and_resource(certificate, "1234")
 
     assert len(Certificate.query.all()) == 0
 
-def test_delete_cert_no_listener(no_context_clean_db, no_context_app, alb):
+def test_delete_cert_record_and_resource_no_listener(no_context_clean_db, no_context_app):
   with no_context_app.app_context():
     service_instance = ALBServiceInstanceFactory.create(id="1234")
     certificate = CertificateFactory.create(
@@ -206,6 +225,27 @@ def test_delete_cert_no_listener(no_context_clean_db, no_context_app, alb):
     assert len(Certificate.query.all()) == 1
 
     delete_cert_record_and_resource(certificate, None)
+
+    assert len(Certificate.query.all()) == 0
+
+def test_delete_cert_record_and_resource_no_certificate(no_context_clean_db, no_context_app, alb, iam_govcloud):
+  with no_context_app.app_context():
+    service_instance = ALBServiceInstanceFactory.create(id="1234")
+    certificate = CertificateFactory.create(
+        service_instance=service_instance,
+        iam_server_certificate_arn="arn1",
+        iam_server_certificate_name="name1"
+    )
+
+    no_context_clean_db.session.commit()
+
+    assert len(Certificate.query.all()) == 1
+
+    alb.expect_remove_certificate_from_listener(service_instance.id, "arn1")
+    iam_govcloud.expects_delete_server_certificate_returning_no_such_entity(
+        "name1"
+    )
+    delete_cert_record_and_resource(certificate, "1234")
 
     assert len(Certificate.query.all()) == 0
 
