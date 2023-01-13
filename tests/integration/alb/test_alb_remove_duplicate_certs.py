@@ -193,6 +193,22 @@ def test_delete_cert_record_and_resource_success(no_context_clean_db, no_context
 
     assert len(Certificate.query.all()) == 0
 
+def test_delete_cert_no_listener(no_context_clean_db, no_context_app, alb):
+  with no_context_app.app_context():
+    service_instance = ALBServiceInstanceFactory.create(id="1234")
+    certificate = CertificateFactory.create(
+        service_instance=service_instance,
+        iam_server_certificate_arn="arn1"
+    )
+
+    no_context_clean_db.session.commit()
+
+    assert len(Certificate.query.all()) == 1
+
+    delete_cert_record_and_resource(certificate, None)
+
+    assert len(Certificate.query.all()) == 0
+
 def test_remove_duplicate_certs_with_active_operations(no_context_clean_db, no_context_app, alb):
   with no_context_app.app_context():
     service_instance = ALBServiceInstanceFactory.create(id="1234")
