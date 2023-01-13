@@ -1,5 +1,6 @@
 import pytest  # noqa F401
 
+from botocore.exceptions import ClientError
 from broker.models import Operation
 from tests.lib.factories import (
     CertificateFactory,
@@ -169,6 +170,14 @@ def test_delete_iam_server_certificate_no_certificate(iam_govcloud):
     )
 
     delete_iam_server_certificate("name1")
+
+def test_delete_iam_server_certificate_unexpected_error(iam_govcloud):
+    with pytest.raises(ClientError):
+      iam_govcloud.expects_delete_server_certificate_returning_unexpected_error(
+          "name1"
+      )
+
+      delete_iam_server_certificate("name1")
 
 def test_delete_cert_record_and_resource_handle_exception(no_context_clean_db, no_context_app):
   with no_context_app.app_context():
