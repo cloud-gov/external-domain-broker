@@ -117,6 +117,7 @@ def test_delete_cert_record_success(no_context_app, no_context_clean_db, alb):
     assert len(Certificate.query.all()) == 1
 
     alb.expect_remove_certificate_from_listener("1234", "arn1")
+    alb.expect_get_certificates_for_listener(service_instance.id)
 
     delete_cert_record_and_resource(certificate, "1234")
 
@@ -214,6 +215,7 @@ def test_delete_cert_record_and_resource_success(no_context_clean_db, no_context
     assert len(Certificate.query.all()) == 1
 
     alb.expect_remove_certificate_from_listener(service_instance.id, "arn1")
+    alb.expect_get_certificates_for_listener(service_instance.id)
     iam_govcloud.expects_delete_server_certificate(
         "name1"
     )
@@ -251,6 +253,7 @@ def test_delete_cert_record_and_resource_no_certificate(no_context_clean_db, no_
     assert len(Certificate.query.all()) == 1
 
     alb.expect_remove_certificate_from_listener(service_instance.id, "arn1")
+    alb.expect_get_certificates_for_listener(service_instance.id)
     iam_govcloud.expects_delete_server_certificate_returning_no_such_entity(
         "name1"
     )
@@ -309,13 +312,16 @@ def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app,
     }, {
       "CertificateArn": "arn3"
     }])
-    alb.expect_remove_certificate_from_listener(service_instance.id, "arn2")
-    alb.expect_remove_certificate_from_listener(service_instance.id, "arn3")
 
     no_context_clean_db.session.commit()
 
     results = get_duplicate_certs_for_service(service_instance.id)
     assert len(results) == 2
+
+    alb.expect_remove_certificate_from_listener(service_instance.id, "arn2")
+    alb.expect_get_certificates_for_listener(service_instance.id)
+    alb.expect_remove_certificate_from_listener(service_instance.id, "arn3")
+    alb.expect_get_certificates_for_listener(service_instance.id)
     
     remove_duplicate_alb_certs(listener_arns=[service_instance.id])
     
