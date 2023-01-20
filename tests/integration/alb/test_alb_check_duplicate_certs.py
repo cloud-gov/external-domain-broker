@@ -85,5 +85,5 @@ def test_duplicate_alb_certs_output(no_context_clean_db, no_context_app):
 
     log_duplicate_alb_cert_metrics(logger=fakeLogger)
 
-    assert fakeLogger.output.strip() == "service_instance_cert_count{service_instance_id=\"1234\"} 2"
+    assert fakeLogger.output.strip() == "service_instance_duplicate_cert_count{service_instance_id=\"1234\"} 2"
 
