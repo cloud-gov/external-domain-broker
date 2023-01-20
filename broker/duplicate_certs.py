@@ -40,7 +40,7 @@ def get_duplicate_certs_for_service(service_instance_id):
 def log_duplicate_alb_cert_metrics(logger=logger):
   for duplicate_result in find_duplicate_alb_certs():
     [service_instance_id, num_duplicates] = duplicate_result
-    logger.info(f"service_instance_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}")
+    logger.info(f"service_instance_duplicate_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}")
 
 def delete_duplicate_cert_db_record(duplicate_cert):
     certificate = Certificate.query.filter(
