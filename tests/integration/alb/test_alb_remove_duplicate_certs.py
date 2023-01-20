@@ -15,7 +15,8 @@ from broker.duplicate_certs import (
   get_matching_alb_listener_arns_for_cert_arns,
   delete_duplicate_cert_db_record,
   delete_cert_record_and_resource,
-  delete_iam_server_certificate
+  delete_iam_server_certificate,
+  remove_certificate_from_listener_and_verify_removal
 )
 from broker.models import Certificate
 
@@ -327,3 +328,28 @@ def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app,
     
     results = get_duplicate_certs_for_service(service_instance.id)
     assert len(results) == 0
+
+def test_remove_certificate_from_listener_and_verify_removal_correctly_breaks():
+    class FakeALBTest:
+      def __init__(self):
+        self.attempts = 0
+
+      def remove_listener_certificates(self, ListenerArn="", Certificates=[]):
+        return True
+
+      def describe_listener_certificates(self, ListenerArn=""):
+        self.attempts += 1
+        return {
+          "Certificates": [{
+            "CertificateArn": "listener-arn-0/certificate-arn"
+          }],
+        }
+    
+    fakeAlbTester = FakeALBTest()
+    remove_certificate_from_listener_and_verify_removal(
+      "listener-arn-0",
+      "listener-arn-0/certificate-arn",
+      alb=fakeAlbTester
+    )
+    # Only 10 attempts were made because the code breaks after 10 tries
+    assert fakeAlbTester.attempts == 10

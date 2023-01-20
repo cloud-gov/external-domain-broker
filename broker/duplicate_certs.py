@@ -64,15 +64,20 @@ def get_listener_cert_arns(listener_arn, alb=alb):
     listener_cert_arns = [cert["CertificateArn"] for cert in response["Certificates"]]
     return listener_cert_arns
 
-def remove_certificate_from_listener_and_wait_for_deletion(listener_arn, certificate_arn):
+def remove_certificate_from_listener_and_verify_removal(listener_arn, certificate_arn, alb=alb):
     alb.remove_listener_certificates(
         ListenerArn=listener_arn,
         Certificates=[{"CertificateArn": certificate_arn}]
     )
+    attempts = 0
     while True:
-        listener_cert_arns = get_listener_cert_arns(listener_arn)
+        if (attempts == 10):
+            logger.info(f"Could not verify certificate {certificate_arn} was removed from listener {listener_arn} after 10 tries, giving up")
+            break
+        listener_cert_arns = get_listener_cert_arns(listener_arn, alb=alb)
         if certificate_arn not in listener_cert_arns:
             break
+        attempts += 1
     logger.info(f"Removed certificate {certificate_arn} from listener {listener_arn}")
 
 def delete_cert_record_and_resource(certificate, listener_arn, alb=alb, db=db):
@@ -80,7 +85,7 @@ def delete_cert_record_and_resource(certificate, listener_arn, alb=alb, db=db):
         delete_duplicate_cert_db_record(certificate)
         
         if listener_arn:
-            remove_certificate_from_listener_and_wait_for_deletion(listener_arn, certificate.iam_server_certificate_arn)
+            remove_certificate_from_listener_and_verify_removal(listener_arn, certificate.iam_server_certificate_arn)
 
         if certificate.iam_server_certificate_name:
             delete_iam_server_certificate(certificate.iam_server_certificate_name)
