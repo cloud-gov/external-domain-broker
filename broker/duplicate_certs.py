@@ -40,7 +40,7 @@ def get_duplicate_certs_for_service(service_instance_id):
 def log_duplicate_alb_cert_metrics(logger=logger):
   for duplicate_result in find_duplicate_alb_certs():
     [service_instance_id, num_duplicates] = duplicate_result
-    logger.info(f"service_instance_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}")
+    logger.info(f"service_instance_duplicate_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}")
 
 def delete_duplicate_cert_db_record(duplicate_cert):
     certificate = Certificate.query.filter(
@@ -57,16 +57,32 @@ def delete_iam_server_certificate(certificate_name):
     except iam_govcloud.exceptions.NoSuchEntityException as e:
         logger.info(f"IAM certificate {certificate_name} does not exist: {e}, continuing")
 
+def get_listener_cert_arns(listener_arn, alb=alb):
+    response = alb.describe_listener_certificates(
+        ListenerArn=listener_arn,
+    )
+    listener_cert_arns = [cert["CertificateArn"] for cert in response["Certificates"]]
+    return listener_cert_arns
+
+def remove_certificate_from_listener_and_verify_removal(listener_arn, certificate_arn, alb=alb):
+    alb.remove_listener_certificates(
+        ListenerArn=listener_arn,
+        Certificates=[{"CertificateArn": certificate_arn}]
+    )
+    max_attempts = 10
+    for _ in range(max_attempts):
+        listener_cert_arns = get_listener_cert_arns(listener_arn, alb=alb)
+        if certificate_arn not in listener_cert_arns:
+            logger.info(f"Removed certificate {certificate_arn} from listener {listener_arn}")
+            return
+    logger.info(f"Could not verify certificate {certificate_arn} was removed from listener {listener_arn} after {max_attempts} tries, giving up")
+
 def delete_cert_record_and_resource(certificate, listener_arn, alb=alb, db=db):
     try:
         delete_duplicate_cert_db_record(certificate)
         
         if listener_arn:
-            alb.remove_listener_certificates(
-                ListenerArn=listener_arn,
-                Certificates=[{"CertificateArn": certificate.iam_server_certificate_arn}]
-            )
-            logger.info(f"Removed certificate {certificate.iam_server_certificate_arn} from listener {listener_arn}")
+            remove_certificate_from_listener_and_verify_removal(listener_arn, certificate.iam_server_certificate_arn)
 
         if certificate.iam_server_certificate_name:
             delete_iam_server_certificate(certificate.iam_server_certificate_name)
@@ -83,10 +99,7 @@ def get_matching_alb_listener_arns_for_cert_arns(duplicate_cert_arns, listener_a
     matched_listeners_dict = {}
     all_matched_cert_arns = []
     for listener_arn in listener_arns:
-        response = alb.describe_listener_certificates(
-            ListenerArn=listener_arn,
-        )
-        listener_cert_arns = [cert["CertificateArn"] for cert in response["Certificates"]]
+        listener_cert_arns = get_listener_cert_arns(listener_arn, alb=alb)
         # Get list of duplicate cert ARNs that were matched for this ALB listener ARN
         matched_cert_arns = list(set(listener_cert_arns) & set(duplicate_cert_arns))
 

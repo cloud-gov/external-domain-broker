@@ -15,7 +15,8 @@ from broker.duplicate_certs import (
   get_matching_alb_listener_arns_for_cert_arns,
   delete_duplicate_cert_db_record,
   delete_cert_record_and_resource,
-  delete_iam_server_certificate
+  delete_iam_server_certificate,
+  remove_certificate_from_listener_and_verify_removal
 )
 from broker.models import Certificate
 
@@ -117,6 +118,7 @@ def test_delete_cert_record_success(no_context_app, no_context_clean_db, alb):
     assert len(Certificate.query.all()) == 1
 
     alb.expect_remove_certificate_from_listener("1234", "arn1")
+    alb.expect_get_certificates_for_listener(service_instance.id)
 
     delete_cert_record_and_resource(certificate, "1234")
 
@@ -214,6 +216,7 @@ def test_delete_cert_record_and_resource_success(no_context_clean_db, no_context
     assert len(Certificate.query.all()) == 1
 
     alb.expect_remove_certificate_from_listener(service_instance.id, "arn1")
+    alb.expect_get_certificates_for_listener(service_instance.id)
     iam_govcloud.expects_delete_server_certificate(
         "name1"
     )
@@ -251,6 +254,7 @@ def test_delete_cert_record_and_resource_no_certificate(no_context_clean_db, no_
     assert len(Certificate.query.all()) == 1
 
     alb.expect_remove_certificate_from_listener(service_instance.id, "arn1")
+    alb.expect_get_certificates_for_listener(service_instance.id)
     iam_govcloud.expects_delete_server_certificate_returning_no_such_entity(
         "name1"
     )
@@ -309,15 +313,43 @@ def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app,
     }, {
       "CertificateArn": "arn3"
     }])
-    alb.expect_remove_certificate_from_listener(service_instance.id, "arn2")
-    alb.expect_remove_certificate_from_listener(service_instance.id, "arn3")
 
     no_context_clean_db.session.commit()
 
     results = get_duplicate_certs_for_service(service_instance.id)
     assert len(results) == 2
+
+    alb.expect_remove_certificate_from_listener(service_instance.id, "arn2")
+    alb.expect_get_certificates_for_listener(service_instance.id)
+    alb.expect_remove_certificate_from_listener(service_instance.id, "arn3")
+    alb.expect_get_certificates_for_listener(service_instance.id)
     
     remove_duplicate_alb_certs(listener_arns=[service_instance.id])
     
     results = get_duplicate_certs_for_service(service_instance.id)
     assert len(results) == 0
+
+def test_remove_certificate_from_listener_and_verify_removal_correctly_breaks():
+    class FakeALBTest:
+      def __init__(self):
+        self.attempts = 0
+
+      def remove_listener_certificates(self, ListenerArn="", Certificates=[]):
+        return True
+
+      def describe_listener_certificates(self, ListenerArn=""):
+        self.attempts += 1
+        return {
+          "Certificates": [{
+            "CertificateArn": "listener-arn-0/certificate-arn"
+          }],
+        }
+    
+    fakeAlbTester = FakeALBTest()
+    remove_certificate_from_listener_and_verify_removal(
+      "listener-arn-0",
+      "listener-arn-0/certificate-arn",
+      alb=fakeAlbTester
+    )
+    # Only 10 attempts were made because the code breaks after 10 tries
+    assert fakeAlbTester.attempts == 10
