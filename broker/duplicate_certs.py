@@ -57,16 +57,20 @@ def delete_iam_server_certificate(certificate_name):
     except iam_govcloud.exceptions.NoSuchEntityException as e:
         logger.info(f"IAM certificate {certificate_name} does not exist: {e}, continuing")
 
+def get_listener_cert_arns(listener_arn, alb=alb):
+    response = alb.describe_listener_certificates(
+        ListenerArn=listener_arn,
+    )
+    listener_cert_arns = [cert["CertificateArn"] for cert in response["Certificates"]]
+    return listener_cert_arns
+
 def remove_certificate_from_listener_and_wait_for_deletion(listener_arn, certificate_arn):
     alb.remove_listener_certificates(
         ListenerArn=listener_arn,
         Certificates=[{"CertificateArn": certificate_arn}]
     )
     while True:
-        response = alb.describe_listener_certificates(
-            ListenerArn=listener_arn,
-        )
-        listener_cert_arns = [cert["CertificateArn"] for cert in response["Certificates"]]
+        listener_cert_arns = get_listener_cert_arns(listener_arn)
         if certificate_arn not in listener_cert_arns:
             break
     logger.info(f"Removed certificate {certificate_arn} from listener {listener_arn}")
@@ -93,10 +97,7 @@ def get_matching_alb_listener_arns_for_cert_arns(duplicate_cert_arns, listener_a
     matched_listeners_dict = {}
     all_matched_cert_arns = []
     for listener_arn in listener_arns:
-        response = alb.describe_listener_certificates(
-            ListenerArn=listener_arn,
-        )
-        listener_cert_arns = [cert["CertificateArn"] for cert in response["Certificates"]]
+        listener_cert_arns = get_listener_cert_arns(listener_arn, alb=alb)
         # Get list of duplicate cert ARNs that were matched for this ALB listener ARN
         matched_cert_arns = list(set(listener_cert_arns) & set(duplicate_cert_arns))
 
