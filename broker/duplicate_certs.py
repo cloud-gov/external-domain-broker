@@ -53,7 +53,15 @@ def get_duplicate_certs_for_service(service_instance_id):
 def log_duplicate_cert_count_metric(service_instance_id, num_duplicates, logger=logger):
     logger.info(f"service_instance_duplicate_cert_count{{service_instance_id=\"{service_instance_id}\"}} {num_duplicates}")
 
-def log_duplicate_alb_cert_metrics(logger=logger):
+def get_and_log_service_duplicate_alb_cert_metric(service_instance_id, logger=logger):
+    num_duplicates = get_service_duplicate_alb_cert_count(service_instance_id)
+    # Log metric of remaining duplicate count so Prometheus is updated
+    log_duplicate_cert_count_metric(service_instance_id, num_duplicates, logger=logger)
+
+def log_duplicate_alb_cert_metrics(logger=logger, service_instance_id=None):
+  if service_instance_id:
+    get_and_log_service_duplicate_alb_cert_metric(service_instance_id, logger=logger)
+    return
   for duplicate_result in find_duplicate_alb_certs():
     [service_instance_id, num_duplicates] = duplicate_result
     log_duplicate_cert_count_metric(service_instance_id, num_duplicates, logger=logger)
@@ -149,8 +157,6 @@ def remove_duplicate_alb_certs(listener_arns=config.ALB_LISTENER_ARNS, logger=lo
         listener_arn = listener_arns_dict.get(duplicate_cert.iam_server_certificate_arn)
         delete_cert_record_and_resource(duplicate_cert, listener_arn)
 
-    # Get remaining count of duplicates
-    remaining_duplicates = get_service_duplicate_alb_cert_count(service_instance_id)
-    # Log metric of remaining duplicate count so Prometheus is updated
-    log_duplicate_cert_count_metric(service_instance_id, remaining_duplicates, logger=logger)
+    # Get and log metric of remaining count of duplicates so Prometheus is updated
+    get_and_log_service_duplicate_alb_cert_metric(service_instance_id, logger=logger)
     
