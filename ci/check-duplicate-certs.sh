@@ -32,6 +32,7 @@ status=RUNNING
 while [[ "$status" == 'RUNNING' ]]; do
   sleep 5
   status=$(cf tasks "$APP_NAME" | grep "^$id " | awk '{print $3}')
+  echo $status
 done
 
 DUPLICATE_CERTS_OUTPUT=$(mktemp)
