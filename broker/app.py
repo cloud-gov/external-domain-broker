@@ -1,6 +1,5 @@
 from http import HTTPStatus
 import logging
-import click
 
 from flask import Flask
 from openbrokerapi import api as openbrokerapi

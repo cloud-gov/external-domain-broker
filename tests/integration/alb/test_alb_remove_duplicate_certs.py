@@ -285,7 +285,7 @@ def test_remove_duplicate_certs_with_active_operations(no_context_clean_db, no_c
     assert len(results) == 1
     
     remove_duplicate_alb_certs(listener_arns=[service_instance.id])
-    
+
     # nothing should get deleted if there are active operations for a service instance
     results = get_duplicate_certs_for_service(service_instance.id)
     assert len(results) == 1
@@ -323,9 +323,19 @@ def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app,
     alb.expect_get_certificates_for_listener(service_instance.id)
     alb.expect_remove_certificate_from_listener(service_instance.id, "arn3")
     alb.expect_get_certificates_for_listener(service_instance.id)
+
+    class FakeLogger:
+      def __init__(self):
+        self.output = []
+
+      def info(self, input):
+        self.output.append(input)
+    fakeLogger = FakeLogger()
     
-    remove_duplicate_alb_certs(listener_arns=[service_instance.id])
-    
+    remove_duplicate_alb_certs(listener_arns=[service_instance.id], logger=fakeLogger)
+
+    assert fakeLogger.output[-1].strip() == "service_instance_duplicate_cert_count{service_instance_id=\"1234\"} 0"
+        
     results = get_duplicate_certs_for_service(service_instance.id)
     assert len(results) == 0
 
