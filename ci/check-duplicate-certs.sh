@@ -32,11 +32,10 @@ status=RUNNING
 while [[ "$status" == 'RUNNING' ]]; do
   sleep 5
   status=$(cf tasks "$APP_NAME" | grep "^$id " | awk '{print $3}')
-  echo $status
 done
 
 DUPLICATE_CERTS_OUTPUT=$(mktemp)
-cf logs "$APP_NAME" --recent | grep 'service_instance_duplicate_cert_count' | awk '{print $4 " " $5}' > "$DUPLICATE_CERTS_OUTPUT"
+cf logs "$APP_NAME" --recent | { grep 'service_instance_duplicate_cert_count' || true; } | awk '{print $4 " " $5}' > "$DUPLICATE_CERTS_OUTPUT"
 cat "$DUPLICATE_CERTS_OUTPUT"
 curl --data-binary @- "${GATEWAY_HOST}:${GATEWAY_PORT:-9091}/metrics/job/domain_broker/instance/${ENVIRONMENT}" < "$DUPLICATE_CERTS_OUTPUT"
 
