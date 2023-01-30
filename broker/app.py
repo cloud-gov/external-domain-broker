@@ -1,6 +1,5 @@
 from http import HTTPStatus
 import logging
-import click
 
 from flask import Flask
 from openbrokerapi import api as openbrokerapi
@@ -69,9 +68,8 @@ def create_app():
         )
 
     @app.cli.command("check-duplicate-certs")
-    @click.argument('service_instance_id')
-    def check_duplicate_alb_certs_command(service_instance_id):
-        log_duplicate_alb_cert_metrics(service_instance_id=service_instance_id)
+    def check_duplicate_alb_certs_command():
+        log_duplicate_alb_cert_metrics()
 
     @app.cli.command("remove-duplicate-certs")
     def remove_duplicate_alb_certs_command():

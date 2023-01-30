@@ -58,10 +58,7 @@ def get_and_log_service_duplicate_alb_cert_metric(service_instance_id, logger=lo
     # Log metric of remaining duplicate count so Prometheus is updated
     log_duplicate_cert_count_metric(service_instance_id, num_duplicates, logger=logger)
 
-def log_duplicate_alb_cert_metrics(logger=logger, service_instance_id=None):
-  if service_instance_id:
-    get_and_log_service_duplicate_alb_cert_metric(service_instance_id, logger=logger)
-    return
+def log_duplicate_alb_cert_metrics(logger=logger):
   for duplicate_result in find_duplicate_alb_certs():
     [service_instance_id, num_duplicates] = duplicate_result
     log_duplicate_cert_count_metric(service_instance_id, num_duplicates, logger=logger)
