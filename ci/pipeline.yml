@@ -313,6 +313,59 @@ jobs:
       username: ((slack-username))
       icon_url: ((slack-icon-url))
 
+- name: dev-acceptance-tests
+  serial_groups: [dev]
+  plan:
+  - in_parallel:
+    - get: src
+      params: {depth: 1}
+      passed: [dev]
+    - get: cf-dev
+      trigger: true
+      passed: [dev]
+    - get: dev-docker-image
+    - get: test-timer
+      trigger: true
+  - in_parallel:
+    - task: acceptance-cdn
+      image: dev-docker-image
+      timeout: 6h
+      config:
+        platform: linux
+        params:
+          <<: *cf-creds-staging
+          <<: *acceptance-tests-params-staging-cdn
+        run:
+          path: /app/acceptance/run.sh
+    - task: acceptance-alb
+      image: dev-docker-image
+      timeout: 6h
+      config:
+        platform: linux
+        params:
+          <<: *cf-creds-staging
+          <<: *acceptance-tests-params-staging-alb
+        run:
+          path: /app/acceptance/run.sh
+  on_failure:
+    put: slack
+    params:
+      text: |
+        :x: Acceptance tests for external-domain-broker FAILED in dev
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: '#cg-platform-news'
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+  on_success:
+    put: slack
+    params:
+      text: |
+        :white_check_mark: Acceptance tests for external-domain-broker PASSED in dev
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: '#cg-platform-news'
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+
 - name: staging
   serial_groups: [staging]
   plan:
@@ -624,7 +677,8 @@ resources:
   source:
     commit_verification_keys: ((cloud-gov-pgp-keys))
     uri: https://github.com/cloud-gov/((name))
-    branch: ((git-branch))
+      #branch: ((git-branch)
+    branch: verify-linuxfs4
 
 - name: dev-docker-image
   type: docker-image
