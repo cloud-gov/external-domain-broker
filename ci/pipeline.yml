@@ -245,6 +245,7 @@ jobs:
         path: /app/docker/tests
 
 - name: dev
+  serial_groups: [dev]
   plan:
   - in_parallel:
     - get: src
