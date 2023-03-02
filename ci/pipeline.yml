@@ -189,6 +189,7 @@ groups:
   - reconfigure
   - test
   - dev
+  - dev-acceptance-tests
   - staging
   - staging-acceptance-tests
   - production
