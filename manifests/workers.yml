@@ -4,7 +4,6 @@ applications:
   no-route: true
   memory: 256M
   instances: 10
-  stack: cflinuxfs4
   command: ./scripts/run-worker
   health-check-type: process
   services:
@@ -12,3 +11,4 @@ applications:
   - ((REDIS_NAME))
   buildpacks:
   - python_buildpack
+

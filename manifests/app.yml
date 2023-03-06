@@ -3,7 +3,6 @@ applications:
 - name: ((APP_NAME))
   memory: 256M
   instances: 3
-  stack: cflinuxfs4
   command: /app/scripts/run-app
   services:
   - ((DB_NAME))
