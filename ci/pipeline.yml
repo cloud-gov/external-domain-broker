@@ -679,7 +679,7 @@ resources:
   source:
     commit_verification_keys: ((cloud-gov-pgp-keys))
     uri: https://github.com/cloud-gov/((name))
-    branch: ((git-branch)
+    branch: ((git-branch))
 
 - name: dev-docker-image
   type: docker-image
