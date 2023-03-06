@@ -11,4 +11,3 @@ applications:
   - ((REDIS_NAME))
   buildpacks:
   - python_buildpack
-
