@@ -132,6 +132,30 @@ cf-manifest-env-production: &cf-manifest-env-production
     SMTP_CERT: ((smtp-cert))
     CDN_LOG_BUCKET: ((production-log-bucket))
 
+acceptance-tests-params-dev-alb: &acceptance-tests-params-dev-alb
+  PLAN_NAME: "domain"
+  SERVICE_NAME: "external-domain"
+  DNS_ROOT_DOMAIN: ((dev-dns-root-domain))
+  HOSTED_ZONE_ID_0: ((dev-test-hosted-zone-id-2))
+  TEST_DOMAIN_0: ((dev-test-domain-2))
+  HOSTED_ZONE_ID_1: ((dev-test-hosted-zone-id-3))
+  TEST_DOMAIN_1: ((dev-test-domain-3))
+  AWS_ACCESS_KEY_ID: ((dev-test-user-aws-access-key-id))
+  AWS_SECRET_ACCESS_KEY: ((dev-test-user-aws-secret-access-key))
+  AWS_REGION: ((dev-aws-commercial-region))
+
+acceptance-tests-params-dev-cdn: &acceptance-tests-params-dev-cdn
+  PLAN_NAME: "domain-with-cdn"
+  SERVICE_NAME: "external-domain"
+  DNS_ROOT_DOMAIN: ((dev-dns-root-domain))
+  HOSTED_ZONE_ID_0: ((dev-test-hosted-zone-id-0))
+  TEST_DOMAIN_0: ((dev-test-domain-0))
+  HOSTED_ZONE_ID_1: ((dev-test-hosted-zone-id-1))
+  TEST_DOMAIN_1: ((dev-test-domain-1))
+  AWS_ACCESS_KEY_ID: ((dev-test-user-aws-access-key-id))
+  AWS_SECRET_ACCESS_KEY: ((dev-test-user-aws-secret-access-key))
+  AWS_REGION: ((dev-aws-commercial-region))
+
 acceptance-tests-params-staging-alb: &acceptance-tests-params-staging-alb
   PLAN_NAME: "domain"
   SERVICE_NAME: "external-domain"
@@ -335,8 +359,8 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *cf-creds-staging
-          <<: *acceptance-tests-params-staging-cdn
+          <<: *cf-creds-dev
+          <<: *acceptance-tests-params-dev-cdn
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
@@ -345,8 +369,8 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *cf-creds-staging
-          <<: *acceptance-tests-params-staging-alb
+          <<: *cf-creds-dev
+          <<: *acceptance-tests-params-dev-alb
         run:
           path: /app/acceptance/run.sh
   on_failure:
@@ -679,7 +703,7 @@ resources:
   source:
     commit_verification_keys: ((cloud-gov-pgp-keys))
     uri: https://github.com/cloud-gov/((name))
-    branch: ((git-branch))
+    branch: verify-linuxfs4
 
 - name: dev-docker-image
   type: docker-image
