@@ -603,6 +603,7 @@ jobs:
       AWS_GOVCLOUD_SECRET_ACCESS_KEY: ((production-aws-govcloud-secret-access-key))
       AWS_GOVCLOUD_ACCESS_KEY_ID: ((production-aws-govcloud-access-key-id))
       ALB_LISTENER_ARNS: ((production-alb-listener-arns))
+      GATEWAY_HOST: prometheus-production.service.cf.internal
 
 ############################
 #  RESOURCES
