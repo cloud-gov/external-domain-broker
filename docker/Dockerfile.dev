@@ -30,8 +30,9 @@ RUN apt update \
       curl \
       gnupg2 \
       procps \
-      git
-
+      git \
+      lsb-release
+      
 # Install Fake Pebble LE server
 COPY --from=letsencrypt/pebble /usr/bin/pebble /usr/bin/pebble
 COPY --from=letsencrypt/pebble /test/ /test/
@@ -49,12 +50,11 @@ COPY --from=redis:5.0 /usr/local/bin/redis-cli /usr/bin/redis-cli
 RUN curl -sSL "https://cli.run.pivotal.io/stable?release=linux64-binary&version=6.45.0" \
   | tar -zx -C /usr/local/bin
 
-# Install Postgresql
-ENV PG_MAJOR=11
-RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-    | apt-key add - \
- && echo "deb http://apt.postgresql.org/pub/repos/apt/ bullseye"-pgdg main\
+# Install PostgreSQL
+ENV PG_MAJOR=15
+RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main"\
     > /etc/apt/sources.list.d/pgdg.list \
+ && curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
  && apt update \
  && apt install -y --no-install-recommends "postgresql-$PG_MAJOR"
 
