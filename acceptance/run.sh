@@ -3,13 +3,14 @@
 # This acceptance test run in CI against a live CF instance, and provisions
 # production Let's Encrypt certificates.  The domains (DOMAIN_0 & DOMAIN_1)
 # should each be pre-configured in DNS like such:
-# 
+#
 # CNAME $DOMAIN -> $DOMAIN.$DNS_ROOT_DOMAIN
 # CNAME _acme-challenge.$DOMAIN -> _acme-challenge.$DOMAIN.$DNS_ROOT_DOMAIN
 #
 # ($DNS_ROOT_DOMAIN is the value the broker is configured with)
 
-INSTANCE="edb-test-${RANDOM}"
+DATESTAMP=$(date +"%Y%m%d%H%M%S")
+INSTANCE="edb-test-${DATESTAMP}"
 TTL=120
 
 required_vars=(
