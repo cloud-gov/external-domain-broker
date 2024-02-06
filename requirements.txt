@@ -14,7 +14,7 @@ botocore==1.21.23
     # via
     #   boto3
     #   s3transfer
-certifi==2023.7.22
+certifi==2024.2.2
     # via requests
 cfenv==0.5.3
     # via -r pip-tools/requirements.in
@@ -70,7 +70,7 @@ jmespath==0.10.0
     #   botocore
 josepy==1.8.0
     # via acme
-mako==1.1.4
+mako==1.2.2
     # via alembic
 markupsafe==2.0.1
     # via
@@ -130,11 +130,11 @@ sqlalchemy==1.4.22
     #   alembic
     #   flask-sqlalchemy
     #   sqlalchemy-utils
-urllib3==1.26.18
+urllib3==2.2.0
     # via
     #   botocore
     #   requests
-werkzeug==2.3.8
+werkzeug==3.0.1
     # via flask
 
 # The following packages are considered to be unsafe in a requirements file:
