@@ -1,6 +1,7 @@
 Flask-Migrate
 Flask-SQLAlchemy
-acme>1.4<5
+# Pin to < 2.8 until https://github.com/certbot/certbot/issues/9828 is fixed
+acme>1.4,<2.8
 boto3
 cfenv
 cryptography>=3.3.2
