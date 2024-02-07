@@ -581,6 +581,20 @@ jobs:
       DB_NAME: ((db_name))
       GATEWAY_HOST: prometheus-production.service.cf.internal
       ALB_LISTENER_ARNS: ((production-alb-listener-arns))
+  on_failure:
+    put: slack
+    params:
+      <<: *slack-failure-params
+      text: |
+        :x: Failed to check for duplicate external-domain-broker certificates in production
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+  on_success:
+    put: slack
+    params:
+      <<: *slack-success-params
+      text: |
+        :white_check_mark: Successfully checked for duplicate external-domain-broker certificates in production
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
 
 - name: remove-duplicate-certs-prod
   plan:
@@ -602,6 +616,20 @@ jobs:
       AWS_GOVCLOUD_ACCESS_KEY_ID: ((production-aws-govcloud-access-key-id))
       ALB_LISTENER_ARNS: ((production-alb-listener-arns))
       GATEWAY_HOST: prometheus-production.service.cf.internal
+  on_failure:
+    put: slack
+    params:
+      <<: *slack-failure-params
+      text: |
+        :x: Failed to remove duplicate external-domain-broker certificates in production
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+  on_success:
+    put: slack
+    params:
+      <<: *slack-success-params
+      text: |
+        :white_check_mark: Successfully removed duplicate external-domain-broker certificates in production
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
 
 ############################
 #  RESOURCES
