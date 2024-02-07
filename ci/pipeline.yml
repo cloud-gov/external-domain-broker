@@ -243,6 +243,24 @@ jobs:
         TMPDIR: /tmp
       run:
         path: /app/docker/tests
+  on_failure:
+    put: slack
+    params: &slack-failure-params
+      text: |
+        :x: Testing FAILED for external-domain-broker
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-failure-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
+  on_success:
+    put: slack
+    params: &slack-success-params
+      text: |
+        :white_check_mark: Testing passed for external-domain-broker
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: ((slack-success-channel))
+      username: ((slack-username))
+      icon_url: ((slack-icon-url))
 
 - name: dev
   plan:
@@ -297,21 +315,17 @@ jobs:
   on_failure:
     put: slack
     params:
+      <<: *slack-failure-params
       text: |
         :x: FAILED to deploy external-domain-broker on development
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-failure-channel))
-      username: ((slack-username))
-      icon_url: ((slack-icon-url))
   on_success:
     put: slack
     params:
+      <<: *slack-success-params
       text: |
         :white_check_mark: Successfully deployed external-domain-broker on development
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-success-channel))
-      username: ((slack-username))
-      icon_url: ((slack-icon-url))
 
 - name: staging
   serial_groups: [staging]
@@ -367,21 +381,17 @@ jobs:
   on_failure:
     put: slack
     params:
+      <<: *slack-failure-params
       text: |
         :x: FAILED to deploy external-domain-broker on staging
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-failure-channel))
-      username: ((slack-username))
-      icon_url: ((slack-icon-url))
   on_success:
     put: slack
     params:
+      <<: *slack-success-params
       text: |
         :white_check_mark: Successfully deployed external-domain-broker on staging
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-success-channel))
-      username: ((slack-username))
-      icon_url: ((slack-icon-url))
 
 
 - name: staging-acceptance-tests
@@ -421,21 +431,17 @@ jobs:
   on_failure:
     put: slack
     params:
+      <<: *slack-failure-params
       text: |
         :x: Acceptance tests for external-domain-broker FAILED in staging
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-failure-channel))
-      username: ((slack-username))
-      icon_url: ((slack-icon-url))
   on_success:
     put: slack
     params:
+      <<: *slack-success-params
       text: |
         :white_check_mark: Acceptance tests for external-domain-broker PASSED in staging
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-success-channel))
-      username: ((slack-username))
-      icon_url: ((slack-icon-url))
 
 
 - name: production
@@ -492,21 +498,17 @@ jobs:
   on_failure:
     put: slack
     params:
+      <<: *slack-failure-params
       text: |
         :x: FAILED to deploy external-domain-broker on production
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-failure-channel))
-      username: ((slack-username))
-      icon_url: ((slack-icon-url))
   on_success:
     put: slack
     params:
+      <<: *slack-success-params
       text: |
         :white_check_mark: Successfully deployed external-domain-broker on production
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-success-channel))
-      username: ((slack-username))
-      icon_url: ((slack-icon-url))
 
 
 - name: production-acceptance-tests
@@ -546,21 +548,17 @@ jobs:
   on_failure:
     put: slack
     params:
+      <<: *slack-failure-params
       text: |
         :x: Acceptance tests for external-domain-broker FAILED in production
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-failure-channel))
-      username: ((slack-username))
-      icon_url: ((slack-icon-url))
   on_success:
     put: slack
     params:
+      <<: *slack-success-params
       text: |
         :white_check_mark: Acceptance tests for external-domain-broker PASSED in production
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-success-channel))
-      username: ((slack-username))
-      icon_url: ((slack-icon-url))
 
 - name: check-duplicate-certs-prod
   plan:
