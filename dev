@@ -64,7 +64,6 @@ build_image() {
   # concourse pipeline.
   echo "Building image..."
   docker build \
-    --quiet \
     --file=docker/Dockerfile.dev \
     --tag=${built_image_name} \
     --build-arg UID="$(id -u)" \
