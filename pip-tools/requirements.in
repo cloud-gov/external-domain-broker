@@ -1,12 +1,12 @@
-Flask-Migrate
-Flask-SQLAlchemy
-acme>1.4<5
+Flask-Migrate<4
+Flask-SQLAlchemy<3
+acme<2
 boto3
 cfenv
 cryptography>=3.3.2
 dnspython
 environs
-flask
+flask==2.0.1
 jinja2>=2.11.3
 git+https://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d#egg=openbrokerapi
 gunicorn
@@ -15,3 +15,4 @@ psycopg2
 redis
 sqlalchemy-utils
 sap-cf-logging
+werkzeug<3
