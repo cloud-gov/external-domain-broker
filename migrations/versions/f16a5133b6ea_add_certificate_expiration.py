@@ -9,7 +9,7 @@ from datetime import datetime
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import orm
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy_utils
 
 import OpenSSL
