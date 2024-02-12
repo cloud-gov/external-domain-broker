@@ -26,7 +26,7 @@ charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via flask
-cryptography==42.0.2
+cryptography==41.0.7
     # via
     #   -r pip-tools/requirements.in
     #   acme
@@ -80,7 +80,6 @@ markupsafe==2.1.5
     # via
     #   jinja2
     #   mako
-    #   werkzeug
 marshmallow==3.20.2
     # via environs
 openbrokerapi @ git+https://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d
@@ -95,8 +94,9 @@ psycopg2==2.9.9
     # via -r pip-tools/requirements.in
 pycparser==2.21
     # via cffi
-pyopenssl==24.0.0
+pyopenssl==23.2.0
     # via
+    #   -r pip-tools/requirements.in
     #   acme
     #   josepy
 pyrfc3339==1.1
@@ -126,8 +126,9 @@ six==1.16.0
     #   furl
     #   orderedmultidict
     #   python-dateutil
-sqlalchemy==1.4.51
+sqlalchemy==1.4.22
     # via
+    #   -r pip-tools/requirements.in
     #   alembic
     #   flask-sqlalchemy
     #   sqlalchemy-utils
@@ -139,7 +140,7 @@ urllib3==1.26.18
     # via
     #   botocore
     #   requests
-werkzeug==2.3.8
+werkzeug==2.0.3
     # via
     #   -r pip-tools/requirements.in
     #   flask

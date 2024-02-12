@@ -1,6 +1,9 @@
 Flask-Migrate<4
 Flask-SQLAlchemy<3
+sqlalchemy==1.4.22
+# pin acme/pyopenssl until https://github.com/certbot/certbot/issues/9828 is fixed
 acme<2
+pyopenssl<23.3.0
 boto3
 cfenv
 cryptography>=3.3.2
@@ -15,4 +18,4 @@ psycopg2
 redis
 sqlalchemy-utils
 sap-cf-logging
-werkzeug<3
+werkzeug<2.1.0

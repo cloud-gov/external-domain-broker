@@ -47,7 +47,7 @@ click==8.1.7
     #   pip-tools
 colorama==0.4.6
     # via pytest-watch
-cryptography==42.0.2
+cryptography==41.0.7
     # via
     #   -r pip-tools/../requirements.txt
     #   acme
@@ -139,7 +139,6 @@ markupsafe==2.1.5
     #   -r pip-tools/../requirements.txt
     #   jinja2
     #   mako
-    #   werkzeug
 marshmallow==3.20.2
     # via
     #   -r pip-tools/../requirements.txt
@@ -195,7 +194,7 @@ pycparser==2.21
     #   cffi
 pyflakes==3.2.0
     # via flake8
-pyopenssl==24.0.0
+pyopenssl==23.2.0
     # via
     #   -r pip-tools/../requirements.txt
     #   acme
@@ -264,7 +263,7 @@ six==1.16.0
     #   orderedmultidict
     #   pytest-profiling
     #   python-dateutil
-sqlalchemy==1.4.51
+sqlalchemy==1.4.22
     # via
     #   -r pip-tools/../requirements.txt
     #   alembic
@@ -299,7 +298,7 @@ urllib3==1.26.18
     #   requests
 watchdog==4.0.0
     # via pytest-watch
-werkzeug==2.3.8
+werkzeug==2.0.3
     # via
     #   -r pip-tools/../requirements.txt
     #   flask
