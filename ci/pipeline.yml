@@ -270,6 +270,7 @@ jobs:
       trigger: true
       passed: [test]
     - get: pipeline-tasks
+    - get: general-task
   - in_parallel:
     - task: create-postgres
       file: pipeline-tasks/ensure-misbehaved-service.yml
@@ -283,11 +284,13 @@ jobs:
         <<: *create-redis-service-params
   - task: stop-apps
     file: src/ci/stop-apps.yml
+    image: general-task
     params:
       <<: *cf-creds-dev
       APPLICATIONS: "((name))-workers"
   - task: upgrade-schema
     file: src/ci/upgrade-schema.yml
+    image: general-task
     params:
       DATABASE_ENCRYPTION_KEY: ((dev-db-encryption-key))
       <<: *cf-creds-dev
@@ -336,6 +339,7 @@ jobs:
       trigger: true
       passed: [dev]
     - get: pipeline-tasks
+    - get: general-task
   - in_parallel:
     - task: create-postgres
       file: pipeline-tasks/ensure-misbehaved-service.yml
@@ -348,11 +352,13 @@ jobs:
         <<: *cf-creds-staging
         <<: *create-redis-service-params
   - task: stop-apps
+    image: general-task
     file: src/ci/stop-apps.yml
     params:
       <<: *cf-creds-staging
       APPLICATIONS: "((name))-workers"
   - task: upgrade-schema
+    image: general-task
     file: src/ci/upgrade-schema.yml
     params:
       DATABASE_ENCRYPTION_KEY: ((staging-db-encryption-key))
@@ -453,6 +459,7 @@ jobs:
       trigger: true
       passed: [staging-acceptance-tests]
     - get: pipeline-tasks
+    - get: general-task
   - in_parallel:
     - task: create-postgres
       file: pipeline-tasks/ensure-misbehaved-service.yml
@@ -466,11 +473,13 @@ jobs:
         <<: *create-redis-service-params
   - task: stop-apps
     file: src/ci/stop-apps.yml
+    image: general-task
     params:
       <<: *cf-creds-production
       APPLICATIONS: "((name))-workers"
   - task: upgrade-schema
     file: src/ci/upgrade-schema.yml
+    image: general-task
     params:
       DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
       <<: *cf-creds-production
@@ -562,15 +571,18 @@ jobs:
 
 - name: check-duplicate-certs-prod
   plan:
-  - get: src
-    params: {depth: 1}
-    passed: [reconfigure]
-    trigger: true
+  - in_parallel:
+    - get: src
+      params: {depth: 1}
+      passed: [reconfigure]
+      trigger: true
+    - get: general-task
 
   - get: check-duplicate-certificates-timer
     trigger: true
 
   - task: check-duplicate-certs
+    image: general-task
     file: src/ci/check-duplicate-certs.yml
     params:
       DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
@@ -598,11 +610,14 @@ jobs:
 
 - name: remove-duplicate-certs-prod
   plan:
-  - get: src
-    params: {depth: 1}
-    passed: [reconfigure]
+  - in_parallel:
+    - get: src
+      params: {depth: 1}
+      passed: [reconfigure]
+    - get: general-task
 
   - task: remove-duplicate-certs
+    image: general-task
     file: src/ci/remove-duplicate-certs.yml
     params:
       DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
@@ -731,10 +746,28 @@ resources:
   source:
     url: ((slack-webhook-url))
 
+- name: general-task
+  type: registry-image
+  source:
+    aws_access_key_id: ((ecr_aws_key))
+    aws_secret_access_key: ((ecr_aws_secret))
+    repository: general-task
+    aws_region: us-gov-west-1
+    tag: latest
+
 ############################
 #  RESOURCE TYPES
 
 resource_types:
+
+- name: registry-image
+  type: registry-image
+  source:
+    aws_access_key_id: ((ecr_aws_key))
+    aws_secret_access_key: ((ecr_aws_secret))
+    repository: registry-image-resource
+    aws_region: us-gov-west-1
+    tag: latest
 
 - name: s3-iam
   type: registry-image
@@ -754,7 +787,6 @@ resource_types:
     aws_region: us-gov-west-1
     tag: latest
 
-
 - name: git
   type: registry-image
   source:
@@ -770,14 +802,5 @@ resource_types:
     aws_access_key_id: ((ecr_aws_key))
     aws_secret_access_key: ((ecr_aws_secret))
     repository: cf-resource
-    aws_region: us-gov-west-1
-    tag: latest
-
-- name: registry-image
-  type: registry-image
-  source:
-    aws_access_key_id: ((ecr_aws_key))
-    aws_secret_access_key: ((ecr_aws_secret))
-    repository: registry-image-resource
     aws_region: us-gov-west-1
     tag: latest
