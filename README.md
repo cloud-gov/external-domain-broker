@@ -10,7 +10,7 @@ provisions Let's Encrypt certificates for a given domain, and configures
 either AWS ALBs (created out-of-band) or an AWS CloudFront distribution
 (created by the broker) to use that certificate.
 
-## AWS GovCloud
+## AWS GovCloud 
 
 It's important to note this broker and it's configuration was designed first
 and foremost for AWS GovCloud, which has some limitations when it comes to

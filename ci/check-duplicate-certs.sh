@@ -2,7 +2,6 @@
 
 set -euo pipefail
 shopt -s inherit_errexit
-set -x
 
 cf api "$CF_API_URL"
 (set +x; cf auth "$CF_USERNAME" "$CF_PASSWORD")
@@ -29,16 +28,14 @@ cf push \
 cmd="FLASK_APP='broker.app:create_app()' flask check-duplicate-certs"
 id=$(cf run-task "$APP_NAME" --command "$cmd" --name="check-duplicate-certs" | grep "task id:" | awk '{print $3}')
 
-set +x
 status=RUNNING
 while [[ "$status" == 'RUNNING' ]]; do
   sleep 5
   status=$(cf tasks "$APP_NAME" | grep "^$id " | awk '{print $3}')
 done
-set -x
 
 DUPLICATE_CERTS_OUTPUT=$(mktemp)
-cf logs "$APP_NAME" --recent | grep 'service_instance_cert_count' | awk '{print $4 " " $5}' > "$DUPLICATE_CERTS_OUTPUT"
+cf logs "$APP_NAME" --recent | { grep 'service_instance_duplicate_cert_count' || true; } | awk '{print $4 " " $5}' > "$DUPLICATE_CERTS_OUTPUT"
 cat "$DUPLICATE_CERTS_OUTPUT"
 curl --data-binary @- "${GATEWAY_HOST}:${GATEWAY_PORT:-9091}/metrics/job/domain_broker/instance/${ENVIRONMENT}" < "$DUPLICATE_CERTS_OUTPUT"
 
