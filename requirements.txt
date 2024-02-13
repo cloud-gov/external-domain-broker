@@ -4,17 +4,15 @@
 #
 #    pip-compile --output-file=requirements.txt pip-tools/requirements.in
 #
-acme==2.7.4
+acme==1.32.0
     # via -r pip-tools/requirements.in
 alembic==1.13.1
     # via flask-migrate
 async-timeout==4.0.3
     # via redis
-blinker==1.7.0
-    # via flask
-boto3==1.34.36
+boto3==1.34.39
     # via -r pip-tools/requirements.in
-botocore==1.34.36
+botocore==1.34.39
     # via
     #   boto3
     #   s3transfer
@@ -28,7 +26,7 @@ charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via flask
-cryptography==42.0.2
+cryptography==41.0.7
     # via
     #   -r pip-tools/requirements.in
     #   acme
@@ -38,15 +36,15 @@ dnspython==2.5.0
     # via -r pip-tools/requirements.in
 environs==10.3.0
     # via -r pip-tools/requirements.in
-flask==3.0.2
+flask==2.0.1
     # via
     #   -r pip-tools/requirements.in
     #   flask-migrate
     #   flask-sqlalchemy
     #   openbrokerapi
-flask-migrate==4.0.5
+flask-migrate==3.1.0
     # via -r pip-tools/requirements.in
-flask-sqlalchemy==3.1.1
+flask-sqlalchemy==2.5.1
     # via
     #   -r pip-tools/requirements.in
     #   flask-migrate
@@ -61,9 +59,7 @@ huey==2.5.0
 idna==3.6
     # via requests
 importlib-metadata==7.0.1
-    # via
-    #   alembic
-    #   flask
+    # via alembic
 importlib-resources==6.1.1
     # via alembic
 itsdangerous==2.1.2
@@ -84,7 +80,6 @@ markupsafe==2.1.5
     # via
     #   jinja2
     #   mako
-    #   werkzeug
 marshmallow==3.20.2
     # via environs
 openbrokerapi @ git+https://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d
@@ -99,8 +94,9 @@ psycopg2==2.9.9
     # via -r pip-tools/requirements.in
 pycparser==2.21
     # via cffi
-pyopenssl==24.0.0
+pyopenssl==23.2.0
     # via
+    #   -r pip-tools/requirements.in
     #   acme
     #   josepy
 pyrfc3339==1.1
@@ -116,6 +112,10 @@ pytz==2024.1
 redis==5.0.1
     # via -r pip-tools/requirements.in
 requests==2.31.0
+    # via
+    #   acme
+    #   requests-toolbelt
+requests-toolbelt==1.0.0
     # via acme
 s3transfer==0.10.0
     # via boto3
@@ -126,23 +126,24 @@ six==1.16.0
     #   furl
     #   orderedmultidict
     #   python-dateutil
-sqlalchemy==2.0.25
+sqlalchemy==1.4.22
     # via
+    #   -r pip-tools/requirements.in
     #   alembic
     #   flask-sqlalchemy
     #   sqlalchemy-utils
 sqlalchemy-utils==0.41.1
     # via -r pip-tools/requirements.in
 typing-extensions==4.9.0
-    # via
-    #   alembic
-    #   sqlalchemy
+    # via alembic
 urllib3==1.26.18
     # via
     #   botocore
     #   requests
-werkzeug==3.0.1
-    # via flask
+werkzeug==2.0.3
+    # via
+    #   -r pip-tools/requirements.in
+    #   flask
 zipp==3.17.0
     # via
     #   importlib-metadata
