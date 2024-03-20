@@ -80,6 +80,7 @@ markupsafe==2.1.5
     # via
     #   jinja2
     #   mako
+    #   werkzeug
 marshmallow==3.20.2
     # via environs
 openbrokerapi @ git+https://github.com/cloud-gov/openbrokerapi@cae863a885a7d161d6870e09519330c4a0f6341d
@@ -140,7 +141,7 @@ urllib3==1.26.18
     # via
     #   botocore
     #   requests
-werkzeug==2.0.3
+werkzeug==2.3.8
     # via
     #   -r pip-tools/requirements.in
     #   flask
