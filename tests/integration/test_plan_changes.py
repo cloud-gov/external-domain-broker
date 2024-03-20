@@ -1,6 +1,7 @@
 """
 These tests are about updating from one plan type to another
 """
+
 from broker.extensions import config, db
 from broker.models import (
     Challenge,

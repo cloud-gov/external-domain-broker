@@ -384,9 +384,9 @@ def remove_s3_bucket_from_cdn_broker_instance(operation_id: str, **kwargs):
         origins["Quantity"] = len(origin_items)
         config["Origins"] = origins
         config["CacheBehaviors"] = cache_behaviors
-        config[
-            "Comment"
-        ] = "external domain service https://cloud-gov/external-domain-broker"
+        config["Comment"] = (
+            "external domain service https://cloud-gov/external-domain-broker"
+        )
         cloudfront.update_distribution(
             DistributionConfig=config,
             Id=service_instance.cloudfront_distribution_id,

@@ -31,6 +31,7 @@ from broker.models import (
     Operation,
     ALBServiceInstance,
     CDNServiceInstance,
+    DedicatedALBServiceInstance,
     MigrationServiceInstance,
     ServiceInstance,
     change_instance_type,
@@ -44,6 +45,8 @@ from broker.tasks.pipelines import (
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
     queue_all_cdn_broker_migration_tasks_for_operation,
+    queue_all_dedicated_alb_provision_tasks_for_operation,
+    queue_all_dedicated_alb_update_tasks_for_operation,
     queue_all_domain_broker_migration_tasks_for_operation,
     queue_all_migration_deprovision_tasks_for_operation,
 )
@@ -51,6 +54,7 @@ from broker.tasks.pipelines import (
 ALB_PLAN_ID = "6f60835c-8964-4f1f-a19a-579fb27ce694"
 CDN_PLAN_ID = "1cc78b0c-c296-48f5-9182-0b38404f79ef"
 MIGRATION_PLAN_ID = "739e78F5-a919-46ef-9193-1293cc086c17"
+DEDICATED_ALB_PLAN_ID = "fcde69c6-077b-4edd-8d12-7b95bbc2595f"
 
 
 class API(ServiceBroker):
@@ -87,6 +91,11 @@ class API(ServiceBroker):
                     name="migration-not-for-direct-use",
                     description="Migration plan for internal autmation.",
                     plan_updateable=True,
+                ),
+                ServicePlan(
+                    id=DEDICATED_ALB_PLAN_ID,
+                    name="domain-with-org-lb",
+                    description="Basic custom domain with TLS, on org-scoped load balanacers.",
                 ),
             ],
         )
@@ -157,6 +166,13 @@ class API(ServiceBroker):
             db.session.add(instance)
             db.session.commit()
             return ProvisionedServiceSpec(state=ProvisionState.SUCCESSFUL_CREATED)
+        elif details.plan_id == DEDICATED_ALB_PLAN_ID:
+            instance = DedicatedALBServiceInstance(
+                id=instance_id,
+                domain_names=domain_names,
+                org_id=details.organization_guid,
+            )
+            queue = queue_all_dedicated_alb_provision_tasks_for_operation
         else:
             raise NotImplementedError()
 
@@ -319,6 +335,10 @@ class API(ServiceBroker):
             if details.plan_id != ALB_PLAN_ID:
                 raise ClientError("Updating service plan is not supported")
             queue = queue_all_alb_update_tasks_for_operation
+        elif instance.instance_type == "dedicated_alb_service_instance":
+            if details.plan_id != DEDICATED_ALB_PLAN_ID:
+                raise ClientError("Updating service plan is not supported")
+            queue = queue_all_dedicated_alb_update_tasks_for_operation
         elif instance.instance_type == "migration_service_instance":
             if details.plan_id == CDN_PLAN_ID:
                 noop = False

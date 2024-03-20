@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime
+from datetime import date
 
 import pytest  # noqa F401
 
@@ -20,104 +20,6 @@ from tests.integration.cdn.test_cdn_update import (
 # methods.  This still makes it clear which stage in the task pipeline is
 # failing (look for the subtask_foo in the traceback), and allows us to re-use
 # these subtasks when testing failure scenarios.
-
-
-def test_refuses_to_provision_synchronously(client):
-    client.provision_cdn_instance("4321", accepts_incomplete="false")
-
-    assert "AsyncRequired" in client.response.body
-    assert client.response.status_code == 422
-
-
-def test_refuses_to_provision_synchronously_by_default(client):
-    client.provision_cdn_instance("4321", accepts_incomplete="")
-
-    assert "AsyncRequired" in client.response.body
-    assert client.response.status_code == 422
-
-
-def test_refuses_to_provision_without_domains(client):
-    client.provision_cdn_instance("4321")
-
-    assert "domains" in client.response.body
-    assert client.response.status_code == 400
-
-
-def test_refuses_to_provision_with_duplicate_domains(client, dns):
-    CDNServiceInstanceFactory.create(domain_names=["foo.com", "bar.com"])
-    dns.add_cname("_acme-challenge.example.com")
-    dns.add_cname("_acme-challenge.foo.com")
-
-    client.provision_cdn_instance("4321", params={"domains": "example.com, foo.com"})
-
-    assert "already exists" in client.response.body, client.response.body
-    assert client.response.status_code == 400, client.response.body
-
-
-
-def test_doesnt_refuse_to_provision_with_duplicate_domains_when_not_configured_to(app, client, dns):
-    old_ignore = config.IGNORE_DUPLICATE_DOMAINS
-    config.IGNORE_DUPLICATE_DOMAINS = True
-    CDNServiceInstanceFactory.create(domain_names=["foo.com", "bar.com"])
-    dns.add_cname("_acme-challenge.example.com")
-    dns.add_cname("_acme-challenge.foo.com")
-
-    client.provision_cdn_instance("4321", params={"domains": "example.com, foo.com"})
-
-    assert client.response.status_code == 202, client.response.body
-    config.IGNORE_DUPLICATE_DOMAINS = old_ignore
-
-
-def test_duplicate_domain_check_ignores_deactivated(client, dns):
-    CDNServiceInstanceFactory.create(
-        domain_names="foo.com", deactivated_at=datetime.utcnow()
-    )
-    dns.add_cname("_acme-challenge.foo.com")
-
-    client.provision_cdn_instance("4321", params={"domains": "foo.com"})
-
-    assert client.response.status_code == 202, client.response.body
-
-
-def test_refuses_to_provision_without_any_acme_challenge_CNAMEs(client):
-    client.provision_cdn_instance("4321", params={"domains": "bar.com,foo.com"})
-
-    desc = client.response.json.get("description")
-    assert "CNAME" in desc
-    assert "_acme-challenge.foo.com " in desc
-    assert "_acme-challenge.foo.com.domains.cloud.test" in desc
-    assert "_acme-challenge.bar.com " in desc
-    assert "_acme-challenge.bar.com.domains.cloud.test" in desc
-    assert client.response.status_code == 400
-
-
-def test_refuses_to_provision_without_one_acme_challenge_CNAME(client, dns):
-    dns.add_cname("_acme-challenge.foo.com")
-    client.provision_cdn_instance("4321", params={"domains": "bar.com,foo.com"})
-
-    desc = client.response.json.get("description")
-    assert "CNAME" in desc
-    assert "_acme-challenge.foo.com" not in desc
-    assert "_acme-challenge.bar.com " in desc
-    assert "_acme-challenge.bar.com.domains.cloud.test" in desc
-    assert client.response.status_code == 400
-
-
-def test_refuses_to_provision_with_incorrect_acme_challenge_CNAME(client, dns):
-    dns.add_cname("_acme-challenge.bar.com")
-    dns.add_cname("_acme-challenge.foo.com", target="INCORRECT")
-    client.provision_cdn_instance("4321", params={"domains": "bar.com,foo.com"})
-
-    desc = client.response.json.get("description")
-
-    assert "is set incorrectly" in desc
-
-    assert " _acme-challenge.foo.com " in desc
-    assert " _acme-challenge.foo.com.domains.cloud.test" in desc
-    assert " INCORRECT" in desc
-
-    assert " _acme-challenge.bar.com" not in desc
-    assert client.response.status_code == 400
 
 
 def test_provision_sets_default_origin_and_path_if_none_provided(client, dns):

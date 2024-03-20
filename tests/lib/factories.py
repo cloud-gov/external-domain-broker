@@ -9,6 +9,7 @@ from broker.models import (
     Operation,
     CDNServiceInstance,
     ALBServiceInstance,
+    DedicatedALBServiceInstance,
     MigrationServiceInstance,
 )
 
@@ -30,6 +31,13 @@ class CDNServiceInstanceFactory(BaseFactory):
 class ALBServiceInstanceFactory(BaseFactory):
     class Meta(object):
         model = ALBServiceInstance
+
+    id = Sequence(lambda n: "UUID {}".format(n))
+
+
+class DedicatedALBServiceInstanceFactory(BaseFactory):
+    class Meta(object):
+        model = DedicatedALBServiceInstance
 
     id = Sequence(lambda n: "UUID {}".format(n))
 

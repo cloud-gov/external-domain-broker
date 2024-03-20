@@ -59,6 +59,17 @@ class CFAPIClient(FlaskClient):
 
         return self.response
 
+    def provision_instance(self, instance_type: str, *args, **kwargs):
+        if instance_type == "cdn":
+            method = self.provision_cdn_instance
+        elif instance_type == "alb":
+            method = self.provision_alb_instance
+        elif instance_type == "migration":
+            method = self.provision_migration_instance
+        elif instance_type == "dedicated_alb":
+            method = self.provision_dedicated_alb_instance
+        return method(*args, **kwargs)
+
     def provision_cdn_instance(
         self, id: str, accepts_incomplete: str = "true", params: dict = None
     ):
@@ -174,6 +185,56 @@ class CFAPIClient(FlaskClient):
             },
         )
 
+    def provision_dedicated_alb_instance(
+        self, id: str, accepts_incomplete: str = "true", params: dict = None
+    ):
+        json = {
+            "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
+            "plan_id": "fcde69c6-077b-4edd-8d12-7b95bbc2595f",
+            "organization_guid": "our-org",
+            "space_guid": "123",
+        }
+
+        if params is not None:
+            json["parameters"] = params
+
+        self.put(
+            f"/v2/service_instances/{id}",
+            json=json,
+            query_string={"accepts_incomplete": accepts_incomplete},
+        )
+
+    def update_dedicated_alb_instance(
+        self, id: str, accepts_incomplete: str = "true", params: dict = None
+    ):
+        json = {
+            "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
+            "plan_id": "fcde69c6-077b-4edd-8d12-7b95bbc2595f",
+            "organization_guid": "our-org",
+            "space_guid": "123",
+        }
+
+        if params is not None:
+            json["parameters"] = params
+
+        self.patch(
+            f"/v2/service_instances/{id}",
+            json=json,
+            query_string={"accepts_incomplete": accepts_incomplete},
+        )
+
+    def deprovision_dedicated_alb_instance(
+        self, id: str, accepts_incomplete: str = "true"
+    ):
+        self.delete(
+            f"/v2/service_instances/{id}",
+            query_string={
+                "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
+                "plan_id": "fcde69c6-077b-4edd-8d12-7b95bbc2595f",
+                "accepts_incomplete": accepts_incomplete,
+            },
+        )
+
     def deprovision_migration_instance(self, id: str, accepts_incomplete: str = "true"):
         self.delete(
             f"/v2/service_instances/{id}",
@@ -220,7 +281,7 @@ def clean_db(app):
     """
     get a db with schema and no contents. Remove contents and restore schema when done
     Note that this pushes an app context, which can hide problems with missing contexts
-    
+
     """
     print("Clearing Redis")
     huey.storage.conn.flushall()
