@@ -3,10 +3,16 @@ import time
 
 from sqlalchemy import and_
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.dialects.postgresql import insert
 
 from broker.aws import alb
 from broker.extensions import config, db
-from broker.models import ALBServiceInstance, Certificate, Operation
+from broker.models import (
+    ALBServiceInstance,
+    DedicatedALBListener,
+    Certificate,
+    Operation,
+)
 from broker.tasks import huey
 
 logger = logging.getLogger(__name__)
@@ -24,6 +30,68 @@ def get_lowest_used_alb(listener_arns):
     listener_data = alb.describe_listeners(ListenerArns=[selected_arn])
     listener_data = listener_data["Listeners"][0]
     return listener_data["LoadBalancerArn"], listener_data["ListenerArn"]
+
+
+def load_albs(dedicated_listener_arns):
+    stmt = insert(DedicatedALBListener).values(
+        [dict(listener_arn=arn) for arn in dedicated_listener_arns]
+    )
+    stmt = stmt.on_conflict_do_nothing(index_elements=["listener_arn"])
+    db.session.execute(stmt)
+
+
+def get_lowest_dedicated_alb(service_instance, db):
+    # TODO: handle grabbing the next available ALB when ours are full, or nearly so
+    potential_listeners = DedicatedALBListener.query.filter(
+        DedicatedALBListener.dedicated_org == service_instance.org_id
+    ).all()
+    if len(potential_listeners) == 0:
+        potential_listeners = DedicatedALBListener.query.filter(
+            DedicatedALBListener.dedicated_org == None
+        ).all()
+    arns = [listener.listener_arn for listener in potential_listeners]
+    arns.sort()  # this just makes testing easier
+    alb_arn, alb_listener_arn = get_lowest_used_alb(arns)
+    selected_listener = [
+        listener
+        for listener in potential_listeners
+        if listener.listener_arn == alb_listener_arn
+    ][0]
+    selected_listener.alb_arn = alb_arn
+    selected_listener.dedicated_org = service_instance.org_id
+
+    service_instance.alb_arn = alb_arn
+    service_instance.alb_listener_arn = alb_listener_arn
+
+    db.session.add(service_instance)
+    db.session.add(selected_listener)
+    db.session.commit()
+
+
+@huey.nonretriable_task
+def load_albs_from_config():
+    load_albs(config.DEDICATED_ALB_LISTENER_ARNS)
+
+
+@huey.retriable_task
+def select_dedicated_alb(operation_id, **kwargs):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+
+    operation.step_description = "Selecting load balancer"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    if (
+        service_instance.alb_arn
+        and operation.action == Operation.Actions.PROVISION.value
+    ):
+        return
+    service_instance.previous_alb_listener_arn = service_instance.alb_listener_arn
+    service_instance.previous_alb_arn = service_instance.alb_arn
+    return get_lowest_dedicated_alb(service_instance, db)
+
 
 @huey.retriable_task
 def select_alb(operation_id, **kwargs):

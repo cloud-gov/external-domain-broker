@@ -25,7 +25,7 @@ if ! pgrep -x pebble > /dev/null; then
   )
 fi
 
-if ! pgrep -x pebble-challtestsrv > /dev/null; then
+if ! pgrep -x pebble-challtes > /dev/null; then
   echo "Starting Pebble Challenge Test Server"
   (
     cd /app

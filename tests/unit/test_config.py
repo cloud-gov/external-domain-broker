@@ -78,9 +78,14 @@ def mocked_env(monkeypatch, vcap_application, vcap_services):
     monkeypatch.setenv("VCAP_APPLICATION", vcap_application)
     monkeypatch.setenv("VCAP_SERVICES", vcap_services)
     monkeypatch.setenv("DEFAULT_CLOUDFRONT_ORIGIN", "None")
+    # TODO: validate listener arns are unique
     monkeypatch.setenv(
         "ALB_LISTENER_ARNS",
         "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-load-balancer/1234567890123456,arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-load-balancer/1234567890123456",
+    )
+    monkeypatch.setenv(
+        "DEDICATED_ALB_LISTENER_ARNS",
+        "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456,arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456",
     )
     monkeypatch.setenv("AWS_COMMERCIAL_REGION", "us-west-1")
     monkeypatch.setenv("AWS_COMMERCIAL_ACCESS_KEY_ID", "ASIAFAKEKEY")
@@ -177,6 +182,7 @@ def test_config_sets_smtp_variables(env, monkeypatch, mocked_env):
     assert config.SMTP_CERT == "A_REAL_CERT_WOULD_BE_LONGER_THAN_THIS"
     assert config.SMTP_TO == "alerts@example.com"
 
+
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
 def test_config_provides_alb_arns(env, monkeypatch, mocked_env):
     monkeypatch.setenv("FLASK_ENV", env)
@@ -186,6 +192,18 @@ def test_config_provides_alb_arns(env, monkeypatch, mocked_env):
     assert type(config.ALB_LISTENER_ARNS) == list
     assert config.ALB_LISTENER_ARNS == [
         "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-load-balancer/1234567890123456"
+    ]
+
+
+@pytest.mark.parametrize("env", ["production", "staging", "development"])
+def test_config_provides_dedicated_alb_arns(env, monkeypatch, mocked_env):
+    monkeypatch.setenv("FLASK_ENV", env)
+
+    config = config_from_env()
+
+    assert type(config.DEDICATED_ALB_LISTENER_ARNS) == list
+    assert config.DEDICATED_ALB_LISTENER_ARNS == [
+        "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456"
     ]
 
 

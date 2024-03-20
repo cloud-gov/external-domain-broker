@@ -11,6 +11,7 @@ from broker.tasks.pipelines import (
     queue_all_alb_provision_tasks_for_operation,
     queue_all_alb_renewal_tasks_for_operation,
     queue_all_alb_update_tasks_for_operation,
+    queue_all_dedicated_alb_renewal_tasks_for_operation,
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_broker_migration_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
@@ -19,6 +20,7 @@ from broker.tasks.pipelines import (
 )
 
 logger = logging.getLogger(__name__)
+
 
 @huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="13"))
 def scan_for_expiring_certs():
@@ -37,6 +39,7 @@ def scan_for_expiring_certs():
         ]
         cdn_renewals = []
         alb_renewals = []
+        dedicated_alb_renewals = []
         for instance in instances:
             if instance.has_active_operations():
                 continue
@@ -50,15 +53,19 @@ def scan_for_expiring_certs():
             db.session.add(renewal)
             if instance.instance_type == "cdn_service_instance":
                 cdn_renewals.append(renewal)
-            else:
+            elif instance.instance_type == "alb_service_instance":
                 alb_renewals.append(renewal)
+            elif instance.instance_type == "dedicated_alb_service_instance":
+                dedicated_alb_renewals.append(renewal)
         db.session.commit()
         for renewal in cdn_renewals:
             queue_all_cdn_renewal_tasks_for_operation(renewal.id)
         for renewal in alb_renewals:
             queue_all_alb_renewal_tasks_for_operation(renewal.id)
+        for renewal in dedicated_alb_renewals:
+            queue_all_dedicated_alb_renewal_tasks_for_operation(renewal.id)
 
-        renew_instances = cdn_renewals + alb_renewals
+        renew_instances = cdn_renewals + alb_renewals + dedicated_alb_renewals
         # n.b. this return is only for testing - huey ignores it.
         return [instance.service_instance_id for instance in renew_instances]
 

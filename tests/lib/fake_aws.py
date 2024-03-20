@@ -9,7 +9,7 @@ from botocore import stub
 
 
 class FakeAWS:
-    """ Base class for Fake* classes"""
+    """Base class for Fake* classes"""
 
     @classmethod
     @contextmanager

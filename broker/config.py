@@ -1,4 +1,5 @@
 """Flask config class."""
+
 import os
 import re
 from typing import Type
@@ -46,8 +47,9 @@ class Config:
         # https://docs.aws.amazon.com/Route53/latest/APIReference/API_AliasTarget.html
         self.CLOUDFRONT_HOSTED_ZONE_ID = "Z2FDTNDATAQYW2"
 
+
 class AppConfig(Config):
-    """ Base class for apps running in Cloud Foundry """
+    """Base class for apps running in Cloud Foundry"""
 
     def __init__(self):
         super().__init__()
@@ -59,6 +61,8 @@ class AppConfig(Config):
         self.SQLALCHEMY_DATABASE_URI = normalize_db_url(self.env("DATABASE_URL"))
         self.ALB_LISTENER_ARNS = self.env.list("ALB_LISTENER_ARNS")
         self.ALB_LISTENER_ARNS = list(set(self.ALB_LISTENER_ARNS))
+        self.DEDICATED_ALB_LISTENER_ARNS = self.env.list("DEDICATED_ALB_LISTENER_ARNS")
+        self.DEDICATED_ALB_LISTENER_ARNS = list(set(self.DEDICATED_ALB_LISTENER_ARNS))
         self.AWS_COMMERCIAL_REGION = self.env("AWS_COMMERCIAL_REGION")
         self.AWS_COMMERCIAL_ACCESS_KEY_ID = self.env("AWS_COMMERCIAL_ACCESS_KEY_ID")
         self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = self.env(
@@ -120,7 +124,7 @@ class DevelopmentConfig(AppConfig):
 
 
 class UpgradeSchemaConfig(Config):
-    """ I'm used when running flask db upgrade in any self.environment """
+    """I'm used when running flask db upgrade in any self.environment"""
 
     def __init__(self):
         super().__init__()
@@ -147,16 +151,18 @@ class UpgradeSchemaConfig(Config):
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
         self.ALB_LISTENER_ARNS = []
 
+
 class CheckDuplicateCertsConfig(UpgradeSchemaConfig):
-    """ I'm used when running flask check-duplicate-certs in any self.environment """
+    """I'm used when running flask check-duplicate-certs in any self.environment"""
 
     def __init__(self):
         super().__init__()
         self.ALB_LISTENER_ARNS = self.env.list("ALB_LISTENER_ARNS")
         self.ALB_LISTENER_ARNS = list(set(self.ALB_LISTENER_ARNS))
 
+
 class RemoveDuplicateCertsConfig(CheckDuplicateCertsConfig):
-    """ I'm used when running flask remove-duplicate-certs in any self.environment """
+    """I'm used when running flask remove-duplicate-certs in any self.environment"""
 
     def __init__(self):
         super().__init__()
@@ -164,8 +170,9 @@ class RemoveDuplicateCertsConfig(CheckDuplicateCertsConfig):
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = self.env("AWS_GOVCLOUD_ACCESS_KEY_ID")
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = self.env("AWS_GOVCLOUD_SECRET_ACCESS_KEY")
 
+
 class DockerConfig(Config):
-    """ Base class for running in the local dev docker image """
+    """Base class for running in the local dev docker image"""
 
     def __init__(self):
         super().__init__()
@@ -188,6 +195,10 @@ class DockerConfig(Config):
         self.ALB_IAM_SERVER_CERTIFICATE_PREFIX = "/alb/external-domains-test/"
         self.REDIS_SSL = False
         self.ALB_LISTENER_ARNS = ["listener-arn-0", "listener-arn-1"]
+        self.ALB_DEDICATED_LISTENER_ARNS = [
+            "dedicated-listener-arn-0",
+            "dedicated-listener-arn-1",
+        ]
         self.AWS_COMMERCIAL_REGION = "us-west-1"
         self.AWS_COMMERCIAL_ACCESS_KEY_ID = "COMMERCIAL_FAKE_KEY_ID"
         self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = "COMMERCIAL_FAKE_ACCESS_KEY"
@@ -212,10 +223,14 @@ class LocalDevelopmentConfig(DockerConfig):
     def __init__(self):
         super().__init__()
 
+
 class LocalDebuggingConfig(DockerConfig):
     def __init__(self):
         super().__init__()
-        self.SQLALCHEMY_DATABASE_URI = f"postgresql://:{self.env('PGPASSWORD', '')}@localhost/local-development"
+        self.SQLALCHEMY_DATABASE_URI = (
+            f"postgresql://:{self.env('PGPASSWORD', '')}@localhost/local-development"
+        )
+
 
 class TestConfig(DockerConfig):
     def __init__(self):

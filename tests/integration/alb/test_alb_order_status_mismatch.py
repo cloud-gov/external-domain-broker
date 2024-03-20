@@ -7,6 +7,7 @@ I _think_ this can be any of these:
 It doesn't matter that this test is on ALB - the same issue occurs for the same reason on either 
 instance type, but there's no need to test both cases.
 """
+
 import pytest
 from broker.extensions import config, db
 from broker.models import Challenge, Operation, ALBServiceInstance

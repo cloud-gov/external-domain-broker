@@ -150,14 +150,32 @@ class CDNServiceInstance(ServiceInstance):
         return f"<CDNServiceInstance {self.id} {self.domain_names}>"
 
 
-class ALBServiceInstance(ServiceInstance):
+class AbstractALBServiceInstance(ServiceInstance):
+    """
+    This allows us to have ALBServiceInstance and
+    DedicatedALBServiceInstance share columns without
+    making one an instance of the other.
+    """
+
     alb_arn = db.Column(db.String)
     alb_listener_arn = db.Column(db.String)
 
     previous_alb_arn = db.Column(db.String)
     previous_alb_listener_arn = db.Column(db.String)
 
+
+class ALBServiceInstance(AbstractALBServiceInstance):
+
     __mapper_args__ = {"polymorphic_identity": "alb_service_instance"}
+
+    def __repr__(self):
+        return f"<ALBServiceInstance {self.id} {self.domain_names}>"
+
+
+class DedicatedALBServiceInstance(AbstractALBServiceInstance):
+    org_id = db.Column(db.String)
+
+    __mapper_args__ = {"polymorphic_identity": "dedicated_alb_service_instance"}
 
     def __repr__(self):
         return f"<ALBServiceInstance {self.id} {self.domain_names}>"
@@ -215,6 +233,13 @@ class Challenge(Base):
         return f"<Challenge {self.id} {self.domain}>"
 
 
+class DedicatedALBListener(Base):
+    id = db.Column(db.Integer, primary_key=True)
+    listener_arn = db.Column(db.String, nullable=False, unique=True)
+    alb_arn = db.Column(db.String, nullable=True)
+    dedicated_org = db.Column(db.String, nullable=True)
+
+
 def change_instance_type(service_instance: ServiceInstance, new_type: type, session):
     """
     creates a new service instance of a given type based on an old service instance.
@@ -228,6 +253,7 @@ def change_instance_type(service_instance: ServiceInstance, new_type: type, sess
         new_instance.id = old_instance.id
         new_instance.domain_names = old_instance.domain_names
         session.delete(old_instance)
+        session.commit()
         session.add(new_instance)
         session.commit()
         return new_instance

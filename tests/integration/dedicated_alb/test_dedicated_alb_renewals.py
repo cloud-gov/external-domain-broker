@@ -4,12 +4,12 @@ from acme.errors import ValidationError
 import pytest
 
 from broker.extensions import db
-from broker.models import Operation, ALBServiceInstance, Challenge
+from broker.models import Operation, DedicatedALBServiceInstance, Challenge
 from broker.tasks.cron import scan_for_expiring_certs
 from broker.tasks.huey import huey
 from broker.tasks.letsencrypt import create_user, generate_private_key
 
-from tests.integration.alb.test_alb_provisioning import (
+from tests.integration.dedicated_alb.test_dedicated_alb_provisioning import (
     subtest_provision_initiates_LE_challenge,
     subtest_provision_updates_TXT_records,
     subtest_provision_answers_challenges,
@@ -22,11 +22,11 @@ from tests.integration.alb.test_alb_provisioning import (
     subtest_provision_provisions_ALIAS_records,
     subtest_provision_marks_operation_as_succeeded,
 )
-from tests.integration.alb.test_alb_update import (
+from tests.integration.dedicated_alb.test_dedicated_alb_update import (
     subtest_update_creates_private_key_and_csr,
 )
 from tests.lib.factories import (
-    ALBServiceInstanceFactory,
+    DedicatedALBServiceInstanceFactory,
     OperationFactory,
     CertificateFactory,
 )
@@ -34,18 +34,19 @@ from tests.lib.fake_cloudfront import FakeCloudFront
 
 
 @pytest.fixture
-def alb_instance_needing_renewal(clean_db, tasks):
+def dedicated_alb_instance_needing_renewal(clean_db, tasks):
     """
     create a cdn service instance that needs renewal.
     This includes walking it through the first few ACME steps to create a user so we can reuse that user.
     """
-    renew_service_instance = ALBServiceInstanceFactory.create(
+    renew_service_instance = DedicatedALBServiceInstanceFactory.create(
         id="4321",
         domain_names=["example.com", "foo.com"],
         domain_internal="fake1234.cloud.test",
         route53_alias_hosted_zone="ALBHOSTEDZONEID",
         alb_arn="alb-arn-0",
-        alb_listener_arn="listener-arn-0",
+        alb_listener_arn="our-arn-0",
+        org_id="our-org",
     )
     current_cert = CertificateFactory.create(
         id=1001,
@@ -81,7 +82,7 @@ def alb_instance_needing_renewal(clean_db, tasks):
 
 def test_scan_for_expiring_certs_alb_happy_path(
     clean_db,
-    alb_instance_needing_renewal,
+    dedicated_alb_instance_needing_renewal,
     tasks,
     route53,
     dns,
@@ -91,13 +92,14 @@ def test_scan_for_expiring_certs_alb_happy_path(
     alb,
 ):
 
-    no_renew_service_instance = ALBServiceInstanceFactory.create(
+    no_renew_service_instance = DedicatedALBServiceInstanceFactory.create(
         id="1234",
         domain_names=["example.org", "foo.org"],
         domain_internal="fake1234.cloud.test",
         route53_alias_hosted_zone="ALBHOSTEDZONEID",
         alb_arn="alb-arn-0",
-        alb_listener_arn="listener-arn-0",
+        alb_listener_arn="our-arn-0",
+        org_id="our-org",
     )
     no_renew_cert = CertificateFactory.create(
         id=1002,
@@ -136,7 +138,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
 
 def subtest_queues_tasks():
     assert scan_for_expiring_certs.call_local() == ["4321"]
-    service_instance = ALBServiceInstance.query.get("4321")
+    service_instance = DedicatedALBServiceInstance.query.get("4321")
 
     assert len(list(service_instance.operations)) == 1
     operation = service_instance.operations[0]
@@ -145,21 +147,21 @@ def subtest_queues_tasks():
 
 
 def test_does_queues_renewal_for_instance_with_canceled_operations(
-    clean_db, alb_instance_needing_renewal
+    clean_db, dedicated_alb_instance_needing_renewal
 ):
     # make a canceled operation
     operation = OperationFactory.create(
-        service_instance=alb_instance_needing_renewal,
+        service_instance=dedicated_alb_instance_needing_renewal,
         state=Operation.States.IN_PROGRESS.value,
         canceled_at=datetime.now(),
     )
     db.session.add(operation)
     db.session.commit()
-    instance = ALBServiceInstance.query.get("4321")
+    instance = DedicatedALBServiceInstance.query.get("4321")
     assert not instance.has_active_operations()
     # this will queue an operation
     assert scan_for_expiring_certs.call_local() == ["4321"]
-    instance = ALBServiceInstance.query.get("4321")
+    instance = DedicatedALBServiceInstance.query.get("4321")
     assert instance.has_active_operations()
     assert scan_for_expiring_certs.call_local() == []
 
@@ -168,18 +170,18 @@ def test_does_queues_renewal_for_instance_with_canceled_operations(
     "state", [Operation.States.FAILED.value, Operation.States.SUCCEEDED.value]
 )
 def test_queues_renewal_operations_not_in_progress(
-    clean_db, state, alb_instance_needing_renewal
+    clean_db, state, dedicated_alb_instance_needing_renewal
 ):
     operation = OperationFactory.create(
-        service_instance=alb_instance_needing_renewal, state=state
+        service_instance=dedicated_alb_instance_needing_renewal, state=state
     )
     db.session.add(operation)
     db.session.commit()
-    instance = ALBServiceInstance.query.get("4321")
+    instance = DedicatedALBServiceInstance.query.get("4321")
     assert not instance.has_active_operations()
     # this will queue an operation
     assert scan_for_expiring_certs.call_local() == ["4321"]
-    instance = ALBServiceInstance.query.get("4321")
+    instance = DedicatedALBServiceInstance.query.get("4321")
     assert instance.has_active_operations()
     assert scan_for_expiring_certs.call_local() == []
 
@@ -193,22 +195,22 @@ def test_queues_renewal_operations_not_in_progress(
     ],
 )
 def test_does_not_queue_for_in_progress_actions(
-    clean_db, action, alb_instance_needing_renewal
+    clean_db, action, dedicated_alb_instance_needing_renewal
 ):
     operation = OperationFactory.create(
-        service_instance=alb_instance_needing_renewal,
+        service_instance=dedicated_alb_instance_needing_renewal,
         state=Operation.States.IN_PROGRESS.value,
         action=action,
     )
     db.session.add(operation)
     db.session.commit()
-    instance = ALBServiceInstance.query.get("4321")
+    instance = DedicatedALBServiceInstance.query.get("4321")
     assert instance.has_active_operations()
     assert scan_for_expiring_certs.call_local() == []
 
 
 def subtest_renewal_removes_certificate_from_alb(tasks, alb):
-    alb.expect_remove_certificate_from_listener("listener-arn-0", "certificate_arn")
+    alb.expect_remove_certificate_from_listener("our-arn-0", "certificate_arn")
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
@@ -221,13 +223,13 @@ def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     iam_govcloud.assert_no_pending_responses()
-    instance = ALBServiceInstance.query.get("4321")
+    instance = DedicatedALBServiceInstance.query.get("4321")
     assert len(instance.certificates) == 1
 
 
 def test_cleanup_on_failed_challenges(
     clean_db,
-    alb_instance_needing_renewal,
+    dedicated_alb_instance_needing_renewal,
     tasks,
     route53,
     dns,
@@ -264,6 +266,6 @@ def test_cleanup_on_failed_challenges(
         tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = ALBServiceInstance.query.get("4321")
+    service_instance = DedicatedALBServiceInstance.query.get("4321")
     certificate = service_instance.new_certificate
     assert certificate is None

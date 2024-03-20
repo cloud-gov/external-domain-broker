@@ -108,6 +108,7 @@ The Broker can be configured via the following environment variables:
 | AWS_COMMERCIAL_SECRET_ACCESS_KEY | Access key for commercial AWS services                      |
 | AWS_COMMERCIAL_ACCESS_KEY_ID     | Access key ID for commercial AWS services                   |
 | ALB_LISTENER_ARNS                | comma-separated list of ARNs for AWS ALB Listeners to use   |
+| DEDICATED_ALB_LISTENER_ARNS      | comma-separated list listener ARNs for dedicated instances  |
 | SMTP_HOST                        | Hostname of SMTP server (for alerts)                        |
 | SMTP_PORT                        | Port for SMTP server (for alerts)                           |
 | SMTP_CERT                        | Certificate chain to trust for SMTP server (for alerts)     |
@@ -134,6 +135,6 @@ concourse configuration files in [the `ci/` directory](/ci).
 ## History
 
 This broker supersedes the
-[cf-domain-broker](https://github.com/18F/cf-domain-broker), the
-[cf-cdn-service-broker](https://github.com/18F/cf-cdn-service-broker) and
-the [cf-domain-broker-alb](https://github.com/18F/cf-domain-broker-alb).
+[cf-domain-broker](https://github.com/cloud-gov/cf-domain-broker), the
+[cf-cdn-service-broker](https://github.com/cloud-gov/cf-cdn-service-broker) and
+the [cf-domain-broker-alb](https://github.com/cloud-gov/cf-domain-broker-alb).
