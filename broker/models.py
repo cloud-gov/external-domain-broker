@@ -178,7 +178,7 @@ class DedicatedALBServiceInstance(AbstractALBServiceInstance):
     __mapper_args__ = {"polymorphic_identity": "dedicated_alb_service_instance"}
 
     def __repr__(self):
-        return f"<ALBServiceInstance {self.id} {self.domain_names}>"
+        return f"<DedicatedALBServiceInstance {self.id} {self.domain_names}>"
 
 
 class MigrationServiceInstance(ServiceInstance):
