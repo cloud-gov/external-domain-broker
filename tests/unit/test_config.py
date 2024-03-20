@@ -78,11 +78,12 @@ def mocked_env(monkeypatch, vcap_application, vcap_services):
     monkeypatch.setenv("VCAP_APPLICATION", vcap_application)
     monkeypatch.setenv("VCAP_SERVICES", vcap_services)
     monkeypatch.setenv("DEFAULT_CLOUDFRONT_ORIGIN", "None")
-    # TODO: validate listener arns are unique
+    # note - we're using the same listener arn twice - this allows us to test deduplication
     monkeypatch.setenv(
         "ALB_LISTENER_ARNS",
         "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-load-balancer/1234567890123456,arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-load-balancer/1234567890123456",
     )
+    # note - we're using the same listener arn twice - this allows us to test deduplication
     monkeypatch.setenv(
         "DEDICATED_ALB_LISTENER_ARNS",
         "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456,arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456",
@@ -184,11 +185,12 @@ def test_config_sets_smtp_variables(env, monkeypatch, mocked_env):
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
-def test_config_provides_alb_arns(env, monkeypatch, mocked_env):
+def test_config_provides_alb_arns_deduplicated(env, monkeypatch, mocked_env):
     monkeypatch.setenv("FLASK_ENV", env)
 
     config = config_from_env()
 
+    # we have the same arn twice in the fixture, so we expect to see just one here
     assert type(config.ALB_LISTENER_ARNS) == list
     assert config.ALB_LISTENER_ARNS == [
         "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-load-balancer/1234567890123456"
@@ -196,11 +198,12 @@ def test_config_provides_alb_arns(env, monkeypatch, mocked_env):
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
-def test_config_provides_dedicated_alb_arns(env, monkeypatch, mocked_env):
+def test_config_provides_dedicated_alb_arns_deduplicated(env, monkeypatch, mocked_env):
     monkeypatch.setenv("FLASK_ENV", env)
 
     config = config_from_env()
 
+    # we have the same arn twice in the fixture, so we expect to see just one here
     assert type(config.DEDICATED_ALB_LISTENER_ARNS) == list
     assert config.DEDICATED_ALB_LISTENER_ARNS == [
         "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456"
