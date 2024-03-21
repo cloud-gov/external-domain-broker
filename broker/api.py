@@ -224,7 +224,7 @@ class API(ServiceBroker):
             queue_all_cdn_deprovision_tasks_for_operation(
                 operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
             )
-        elif details.plan_id == ALB_PLAN_ID:
+        elif details.plan_id in (ALB_PLAN_ID, DEDICATED_ALB_PLAN_ID):
             queue_all_alb_deprovision_tasks_for_operation(
                 operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
             )
