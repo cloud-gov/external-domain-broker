@@ -153,6 +153,29 @@ def queue_all_dedicated_alb_renewal_tasks_for_operation(operation_id, **kwargs):
     huey.enqueue(task_pipeline)
 
 
+def queue_all_alb_to_dedicated_alb_update_tasks_for_operation(
+    operation_id, correlation_id
+):
+    if correlation_id is None:
+        raise RuntimeError("correlation_id must be set")
+    if operation_id is None:
+        raise RuntimeError("operation_id must be set")
+    correlation = {"correlation_id": correlation_id}
+    task_pipeline = (
+        alb.select_dedicated_alb.s(operation_id, **correlation)
+        .then(alb.add_certificate_to_alb, operation_id, **correlation)
+        .then(route53.create_ALIAS_records, operation_id, **correlation)
+        .then(route53.wait_for_changes, operation_id, **correlation)
+        .then(
+            alb.remove_certificate_from_previous_alb_during_update_to_dedicated,
+            operation_id,
+            **correlation,
+        )
+        .then(update_operations.provision, operation_id, **correlation)
+    )
+    huey.enqueue(task_pipeline)
+
+
 def queue_all_alb_renewal_tasks_for_operation(operation_id, **kwargs):
     correlation = {"correlation_id": "Renewal"}
     task_pipeline = (

@@ -1,5 +1,6 @@
 from enum import Enum
 from sqlalchemy.dialects import postgresql
+import sqlalchemy as sa
 
 from openbrokerapi.service_broker import OperationState
 from sqlalchemy_utils.types.encrypted.encrypted_type import (
@@ -262,6 +263,7 @@ def change_instance_type(service_instance: ServiceInstance, new_type: type, sess
     if new_type not in (
         CDNServiceInstance,
         ALBServiceInstance,
+        DedicatedALBServiceInstance,
         MigrationServiceInstance,
     ):
         # we only know about service instances
@@ -278,7 +280,20 @@ def change_instance_type(service_instance: ServiceInstance, new_type: type, sess
     if type(service_instance) == CDNServiceInstance:
         raise NotImplementedError()
     if type(service_instance) == ALBServiceInstance:
-        raise NotImplementedError()
+        id_ = service_instance.id
+        if new_type == DedicatedALBServiceInstance:
+            # we need to use raw sql here because SqlAlchemy doesn't support changing types
+            # cloning would probably also work, but keeping track of the certificates gets fiddly
+            t = sa.text(
+                "UPDATE service_instance SET instance_type = 'dedicated_alb_service_instance' WHERE id = :instance_id"
+            ).bindparams(instance_id=id_)
+            session.execute(t)
+            session.expunge_all()
+            service_instance = DedicatedALBServiceInstance.query.get(id_)
+            service_instance.new_certificate = service_instance.current_certificate
+            return service_instance
+        else:
+            raise NotImplementedError()
     if type(service_instance) == MigrationServiceInstance:
         if new_type in (CDNServiceInstance, ALBServiceInstance):
             return clone_instance(service_instance, new_type, session)

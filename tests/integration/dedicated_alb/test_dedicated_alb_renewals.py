@@ -15,9 +15,8 @@ from tests.integration.dedicated_alb.test_dedicated_alb_provisioning import (
     subtest_provision_answers_challenges,
     subtest_provision_retrieves_certificate,
     subtest_provision_waits_for_route53_changes,
-    subtest_provision_creates_private_key_and_csr,
     subtest_provision_uploads_certificate_to_iam,
-    subtest_provision_selects_alb,
+    subtest_provision_selects_dedicated_alb,
     subtest_provision_adds_certificate_to_alb,
     subtest_provision_provisions_ALIAS_records,
     subtest_provision_marks_operation_as_succeeded,
@@ -127,7 +126,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
     subtest_provision_answers_challenges(tasks, dns)
     subtest_provision_retrieves_certificate(tasks)
     subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_regex)
-    subtest_provision_selects_alb(tasks, alb)
+    subtest_provision_selects_dedicated_alb(tasks, alb)
     subtest_provision_adds_certificate_to_alb(tasks, alb)
     subtest_provision_provisions_ALIAS_records(tasks, route53, alb)
     subtest_provision_waits_for_route53_changes(tasks, route53)

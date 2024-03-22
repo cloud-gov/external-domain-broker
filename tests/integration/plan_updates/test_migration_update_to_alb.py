@@ -75,7 +75,7 @@ def test_can_update_migration_instance_to_alb(
     client, migration_instance, full_update_example
 ):
     client.update_instance_to_alb("4321", params=full_update_example)
-    assert client.response.status_code == 202
+    assert client.response.status_code == 202, client.response.json
 
 
 def test_migration_creates_certificate_record(

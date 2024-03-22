@@ -114,8 +114,10 @@ class CFAPIClient(FlaskClient):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "1cc78b0c-c296-48f5-9182-0b38404f79ef",
-            "organization_guid": "abc",
-            "space_guid": "123",
+            "context": {
+                "organization_guid": "abc",
+                "space_guid": "123",
+            },
         }
 
         if params is not None:
@@ -162,8 +164,10 @@ class CFAPIClient(FlaskClient):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "6f60835c-8964-4f1f-a19a-579fb27ce694",
-            "organization_guid": "abc",
-            "space_guid": "123",
+            "context": {
+                "organization_guid": "abc",
+                "space_guid": "123",
+            },
         }
 
         if params is not None:
@@ -210,8 +214,10 @@ class CFAPIClient(FlaskClient):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "fcde69c6-077b-4edd-8d12-7b95bbc2595f",
-            "organization_guid": "our-org",
-            "space_guid": "123",
+            "context": {
+                "organization_guid": "our-org",
+                "space_guid": "123",
+            },
         }
 
         if params is not None:
@@ -260,6 +266,7 @@ class CFAPIClient(FlaskClient):
     # this functionality more readable, without having to duplicate this code
     update_instance_to_cdn = update_cdn_instance
     update_instance_to_alb = update_alb_instance
+    update_instance_to_dedicated_alb = update_dedicated_alb_instance
 
 
 @pytest.fixture(scope="session")

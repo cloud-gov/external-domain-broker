@@ -66,7 +66,7 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Uploading SSL certificate to AWS"
     )
-    subtest_provision_selects_alb(tasks, alb)
+    subtest_provision_selects_dedicated_alb(tasks, alb)
     check_last_operation_description(
         client, "4321", operation_id, "Selecting load balancer"
     )
@@ -257,7 +257,7 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_reg
     assert certificate.iam_server_certificate_arn.startswith("arn:aws:iam")
 
 
-def subtest_provision_selects_alb(tasks, alb):
+def subtest_provision_selects_dedicated_alb(tasks, alb):
     our_listener_0 = DedicatedALBListener(
         listener_arn="our-arn-0", dedicated_org="our-org"
     )
