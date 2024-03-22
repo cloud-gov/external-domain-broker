@@ -41,6 +41,7 @@ from broker.tasks.pipelines import (
     queue_all_alb_deprovision_tasks_for_operation,
     queue_all_alb_provision_tasks_for_operation,
     queue_all_alb_update_tasks_for_operation,
+    queue_all_alb_to_dedicated_alb_update_tasks_for_operation,
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
@@ -332,9 +333,21 @@ class API(ServiceBroker):
 
             queue = queue_all_cdn_update_tasks_for_operation
         elif instance.instance_type == "alb_service_instance":
-            if details.plan_id != ALB_PLAN_ID:
+            if details.plan_id == ALB_PLAN_ID:
+                queue = queue_all_alb_update_tasks_for_operation
+            elif details.plan_id == DEDICATED_ALB_PLAN_ID:
+                queue = queue_all_alb_to_dedicated_alb_update_tasks_for_operation
+                instance = change_instance_type(
+                    instance, DedicatedALBServiceInstance, db.session
+                )
+                db.session.refresh(instance)
+                instance.org_id = details.context["organization_guid"]
+                instance.new_certificate_id = (
+                    instance.current_certificate_id
+                )  # this lets us reuse renewal logic for updates
+                noop = False
+            else:
                 raise ClientError("Updating service plan is not supported")
-            queue = queue_all_alb_update_tasks_for_operation
         elif instance.instance_type == "dedicated_alb_service_instance":
             if details.plan_id != DEDICATED_ALB_PLAN_ID:
                 raise ClientError("Updating service plan is not supported")

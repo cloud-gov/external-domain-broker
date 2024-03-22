@@ -199,3 +199,31 @@ def remove_certificate_from_previous_alb(operation_id, **kwargs):
     service_instance.previous_alb_listener_arn = None
     db.session.add(service_instance)
     db.session.commit()
+
+
+@huey.retriable_task
+def remove_certificate_from_previous_alb_during_update_to_dedicated(
+    operation_id, **kwargs
+):
+    operation = Operation.query.get(operation_id)
+    service_instance = operation.service_instance
+    remove_certificate = service_instance.current_certificate
+
+    operation.step_description = "Removing SSL certificate from load balancer"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    if service_instance.previous_alb_listener_arn is not None:
+        time.sleep(int(config.DNS_PROPAGATION_SLEEP_TIME))
+        alb.remove_listener_certificates(
+            ListenerArn=service_instance.previous_alb_listener_arn,
+            Certificates=[
+                {"CertificateArn": remove_certificate.iam_server_certificate_arn}
+            ],
+        )
+
+    service_instance.previous_alb_arn = None
+    service_instance.previous_alb_listener_arn = None
+    db.session.add(service_instance)
+    db.session.commit()
