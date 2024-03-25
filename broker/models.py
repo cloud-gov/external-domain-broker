@@ -2,6 +2,8 @@ from enum import Enum
 from sqlalchemy.dialects import postgresql
 import sqlalchemy as sa
 
+from typing import List
+
 from openbrokerapi.service_broker import OperationState
 from sqlalchemy_utils.types.encrypted.encrypted_type import (
     AesGcmEngine,
@@ -121,6 +123,13 @@ class ServiceInstance(Base):
                 return True
         return False
 
+    def can_update_to_type(self, new_type) -> bool:
+        return type(self) == new_type or new_type in self.update_targets()
+
+    @classmethod
+    def update_targets(self) -> List[type]:
+        return []
+
     def __repr__(self):
         return f"<ServiceInstance {self.id} {self.domain_names}>"
 
@@ -169,6 +178,10 @@ class ALBServiceInstance(AbstractALBServiceInstance):
 
     __mapper_args__ = {"polymorphic_identity": "alb_service_instance"}
 
+    @classmethod
+    def update_targets(self) -> List[type]:
+        return [ALBServiceInstance, DedicatedALBServiceInstance]
+
     def __repr__(self):
         return f"<ALBServiceInstance {self.id} {self.domain_names}>"
 
@@ -178,12 +191,20 @@ class DedicatedALBServiceInstance(AbstractALBServiceInstance):
 
     __mapper_args__ = {"polymorphic_identity": "dedicated_alb_service_instance"}
 
+    @classmethod
+    def update_targets(self) -> List[type]:
+        return [DedicatedALBServiceInstance]
+
     def __repr__(self):
         return f"<DedicatedALBServiceInstance {self.id} {self.domain_names}>"
 
 
 class MigrationServiceInstance(ServiceInstance):
     __mapper_args__ = {"polymorphic_identity": "migration_service_instance"}
+
+    @classmethod
+    def update_targets(self) -> List[type]:
+        return [ALBServiceInstance, CDNServiceInstance]
 
     def __repr__(self):
         return f"<MigrationServiceInstance {self.id} {self.domain_names}>"
@@ -241,59 +262,24 @@ class DedicatedALBListener(Base):
     dedicated_org = db.Column(db.String, nullable=True)
 
 
-def change_instance_type(service_instance: ServiceInstance, new_type: type, session):
+def change_instance_type(
+    service_instance: ServiceInstance, new_type: type, session
+) -> ServiceInstance:
     """
-    creates a new service instance of a given type based on an old service instance.
-    Note that this method:
-    - deletes the old service instance
-    - calls session.commit
+    Convert `service_instance` to `new_type` and return the converted instance
     """
-
-    def clone_instance(old_instance, new_type, session):
-        new_instance = new_type()
-        new_instance.id = old_instance.id
-        new_instance.domain_names = old_instance.domain_names
-        session.delete(old_instance)
-        session.commit()
-        session.add(new_instance)
-        session.commit()
-        return new_instance
-
-    # these should probably always be like this
-    if new_type not in (
-        CDNServiceInstance,
-        ALBServiceInstance,
-        DedicatedALBServiceInstance,
-        MigrationServiceInstance,
-    ):
-        # we only know about service instances
-        raise NotImplementedError()
-    if not isinstance(service_instance, ServiceInstance):
-        # we only know about service instances
-        raise NotImplementedError()
     if type(service_instance) == new_type:
-        # why are you doing this?
         return service_instance
-
-    # these may be implemented in the future, when we can change a CDN into an ALB, for instance
-    # that's why we're doing a bunch of checks that could be summarized as "if type(si) != migration"
-    if type(service_instance) == CDNServiceInstance:
+    if not service_instance.can_update_to_type(new_type):
         raise NotImplementedError()
-    if type(service_instance) == ALBServiceInstance:
-        id_ = service_instance.id
-        if new_type == DedicatedALBServiceInstance:
-            # we need to use raw sql here because SqlAlchemy doesn't support changing types
-            # cloning would probably also work, but keeping track of the certificates gets fiddly
-            t = sa.text(
-                "UPDATE service_instance SET instance_type = 'dedicated_alb_service_instance' WHERE id = :instance_id"
-            ).bindparams(instance_id=id_)
-            session.execute(t)
-            session.expunge_all()
-            service_instance = DedicatedALBServiceInstance.query.get(id_)
-            service_instance.new_certificate = service_instance.current_certificate
-            return service_instance
-        else:
-            raise NotImplementedError()
-    if type(service_instance) == MigrationServiceInstance:
-        if new_type in (CDNServiceInstance, ALBServiceInstance):
-            return clone_instance(service_instance, new_type, session)
+    new_type_identity = new_type.__mapper_args__["polymorphic_identity"]
+    id_ = service_instance.id
+    # we need to use raw sql here because SqlAlchemy doesn't support changing types
+    # cloning would probably also work, but keeping track of the certificates gets fiddly
+    t = sa.text(
+        "UPDATE service_instance SET instance_type = :type_id WHERE id = :instance_id"
+    ).bindparams(instance_id=id_, type_id=new_type_identity)
+    session.execute(t)
+    session.expunge_all()
+    service_instance = new_type.query.get(id_)
+    return service_instance

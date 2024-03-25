@@ -55,11 +55,6 @@ def test_refuses_if_new_type_not_serviceinstance(cdn_instance):
         change_instance_type(cdn_instance, ServiceInstance, None)
 
 
-def test_refuses_if_not_serviceinstance():
-    with pytest.raises(NotImplementedError):
-        change_instance_type(Challenge(), ALBServiceInstance, None)
-
-
 def test_returns_instance_if_same_type(cdn_instance):
     instance = change_instance_type(cdn_instance, CDNServiceInstance, None)
     assert instance is cdn_instance
