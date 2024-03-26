@@ -9,9 +9,6 @@ export FLASK_ENV=test
 
 if [[ "$#" -ge 1 ]] && [[ "$1" == "watch" ]]; then
   shift
-  # --poll makes this work better for folks using podman
-  # `tests` and `broker` tell this to only recurse tests and broker directories
-  # very important if you have a virtual environment in this directory.
   ptw . --now --clear --delay 0.2 -- -Werror -vv "$@"
 else
   python -m pytest -Werror -vv "$@"

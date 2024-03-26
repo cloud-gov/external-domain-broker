@@ -83,7 +83,8 @@ def test_does_not_find_canceled_operations(clean_db):
     # have to do this manually to skip the onupdate on the model
     db.session.execute(
         text("UPDATE operation SET updated_at = :time WHERE id = 1234").bindparams(
-        time = too_old.isoformat())
+            time=too_old.isoformat()
+        )
     )
     db.session.commit()
     complete = db.session.get(Operation, 1234)
