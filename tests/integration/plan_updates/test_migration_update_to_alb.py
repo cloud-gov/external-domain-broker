@@ -84,7 +84,7 @@ def test_migration_creates_certificate_record(
     client.update_instance_to_alb("4321", params=full_update_example)
     assert client.response.status_code == 202
     clean_db.session.expunge_all()
-    instance = ALBServiceInstance.query.get("4321")
+    instance = clean_db.session.get(ALBServiceInstance, "4321")
     assert instance.current_certificate is not None
     assert instance.current_certificate.iam_server_certificate_id == "certificate_id"
     assert instance.current_certificate.iam_server_certificate_arn == "certificate_arn"

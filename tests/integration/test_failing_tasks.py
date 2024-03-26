@@ -25,7 +25,7 @@ def test_operations_marked_failed_after_failing(
         # doesn't abort the rest of the pipeline
 
         with no_context_app.app_context():
-            operation = Operation.query.get(operation_id)
+            operation = db.session.get(Operation, operation_id)
             db.session.delete(operation)
             db.session.commit()
 
@@ -43,17 +43,17 @@ def test_operations_marked_failed_after_failing(
             pipeline = no_retry_task.s("9876").then(semaphore_task, "9876")
             h.enqueue(pipeline)
     with no_context_app.app_context():
-        no_retries_left_operation = Operation.query.get("9876")
+        no_retries_left_operation = db.session.get(Operation, "9876")
     assert no_retries_left_operation.state == "failed"
 
 
-def test_retry_tasks_marked_failed_only_after_last_retry():
+def test_retry_tasks_marked_failed_only_after_last_retry(clean_db):
     global retry_marked_failed
     retry_marked_failed = False
 
     @huey.task(retries=7)
     def retry_task(operation_id):
-        operation = Operation.query.get(operation_id)
+        operation = clean_db.session.get(Operation, operation_id)
         global retry_marked_failed
         if operation.state == "failed":
             retry_marked_failed = True
@@ -65,12 +65,13 @@ def test_retry_tasks_marked_failed_only_after_last_retry():
         action="Provision",
         service_instance_id="nonextistent",
     )
-    db.session.commit()
+    clean_db.session.commit()
     with fallible_huey() as h:
         with immediate_huey() as h:
             task = retry_task("6789")
             with pytest.raises(TaskException):
                 result = task()
-    operation_with_retries = Operation.query.get("6789")
+    clean_db.session.expunge_all()
+    operation_with_retries = clean_db.session.get(Operation, "6789")
     assert operation_with_retries.state == "failed"
     assert not retry_marked_failed

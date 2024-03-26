@@ -1,9 +1,9 @@
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py311']
 include = '\.pyi?$'
 exclude = '''
-/(
+(
     \.eggs
   | \.git
   | \.hg
@@ -15,5 +15,5 @@ exclude = '''
   | buck-out
   | build
   | dist
-)/
+)
 '''

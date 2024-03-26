@@ -63,7 +63,7 @@ def get_custom_error_responses(service_instance):
 
 @huey.retriable_task
 def create_distribution(operation_id: int, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
 
@@ -168,7 +168,7 @@ def create_distribution(operation_id: int, **kwargs):
 
 @huey.retriable_task
 def disable_distribution(operation_id: int, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Disabling CloudFront distribution"
@@ -195,7 +195,7 @@ def disable_distribution(operation_id: int, **kwargs):
 
 @huey.retriable_task
 def wait_for_distribution_disabled(operation_id: int, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Waiting for CloudFront distribution to disable"
@@ -231,7 +231,7 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
 
 @huey.retriable_task
 def delete_distribution(operation_id: int, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Deleting CloudFront distribution"
@@ -255,7 +255,7 @@ def delete_distribution(operation_id: int, **kwargs):
 
 @huey.retriable_task
 def wait_for_distribution(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Waiting for CloudFront distribution"
@@ -275,7 +275,7 @@ def wait_for_distribution(operation_id: str, **kwargs):
 
 @huey.retriable_task
 def update_certificate(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Updating CloudFront distribution certificate"
@@ -302,7 +302,7 @@ def update_certificate(operation_id: str, **kwargs):
 
 @huey.retriable_task
 def update_distribution(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
 
@@ -351,7 +351,7 @@ def update_distribution(operation_id: str, **kwargs):
 
 @huey.retriable_task
 def remove_s3_bucket_from_cdn_broker_instance(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     config_response = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id
@@ -396,7 +396,7 @@ def remove_s3_bucket_from_cdn_broker_instance(operation_id: str, **kwargs):
 
 @huey.retriable_task
 def add_logging_to_bucket(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     config_response = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id

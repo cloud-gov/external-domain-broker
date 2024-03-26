@@ -86,7 +86,7 @@ def test_migration_update_updates_cdn_instance_with_all_fields(
     client.update_instance_to_cdn("4321", params=full_update_example)
     assert client.response.status_code == 202
     clean_db.session.expunge_all()
-    instance = CDNServiceInstance.query.get("4321")
+    instance = clean_db.session.get(CDNServiceInstance, "4321")
     assert instance.cloudfront_origin_hostname == "origin_hostname"
     assert instance.cloudfront_origin_path == "origin_path"
     assert instance.forwarded_cookies == ["my-cookie", "my-other-cookie"]
@@ -105,7 +105,7 @@ def test_migration_creates_certificate_record(
     client.update_instance_to_cdn("4321", params=full_update_example)
     assert client.response.status_code == 202
     clean_db.session.expunge_all()
-    instance = CDNServiceInstance.query.get("4321")
+    instance = clean_db.session.get(CDNServiceInstance, "4321")
     assert instance.current_certificate is not None
     assert instance.current_certificate.iam_server_certificate_id == "my-cert-id"
     assert (
@@ -150,7 +150,7 @@ def test_migration_pipeline(
 
 def subtest_removes_s3_bucket(tasks, cloudfront, db):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     cloudfront.expect_get_distribution_config(
         caller_reference="4321",
         domains=["example.com", "foo.com"],
@@ -174,7 +174,7 @@ def subtest_removes_s3_bucket(tasks, cloudfront, db):
 
 def subtest_adds_logging(tasks, cloudfront, db):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     cloudfront.expect_get_distribution_config(
         caller_reference="4321",
         domains=["example.com", "foo.com"],

@@ -29,7 +29,7 @@ def test_provision_sets_default_origin_and_path_if_none_provided(client, dns):
 
     assert client.response.status_code == 202, client.response.body
 
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert config.DEFAULT_CLOUDFRONT_ORIGIN == "cloud.local"
     assert instance.cloudfront_origin_hostname == "cloud.local"
     assert instance.cloudfront_origin_path == ""
@@ -38,7 +38,7 @@ def test_provision_sets_default_origin_and_path_if_none_provided(client, dns):
 def test_provision_sets_default_cookie_policy_if_none_provided(client, dns):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_cdn_instance("4321", params={"domains": "example.com"})
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forward_cookie_policy == "all"
     assert instance.forwarded_cookies == []
 
@@ -48,7 +48,7 @@ def test_provision_sets_none_cookie_policy(client, dns):
     client.provision_cdn_instance(
         "4321", params={"domains": "example.com", "forward_cookies": ""}
     )
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forward_cookie_policy == "none"
     assert instance.forwarded_cookies == []
 
@@ -62,7 +62,7 @@ def test_provision_sets_forward_cookie_policy_with_cookies(client, dns):
             "forward_cookies": "my_cookie , my_other_cookie",
         },
     )
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forward_cookie_policy == "whitelist"
     assert instance.forwarded_cookies == ["my_cookie", "my_other_cookie"]
 
@@ -72,7 +72,7 @@ def test_provision_sets_forward_cookie_policy_with_star(client, dns):
     client.provision_cdn_instance(
         "4321", params={"domains": "example.com", "forward_cookies": "*"}
     )
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forward_cookie_policy == "all"
     assert instance.forwarded_cookies == []
 
@@ -80,7 +80,7 @@ def test_provision_sets_forward_cookie_policy_with_star(client, dns):
 def test_provision_sets_forward_headers_to_host_when_none_specified(client, dns):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_cdn_instance("4321", params={"domains": "example.com"})
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forwarded_headers == ["HOST"]
 
 
@@ -93,7 +93,7 @@ def test_provision_sets_forward_headers_plus_host_when_some_specified(client, dn
             "forward_headers": "x-my-header,x-your-header",
         },
     )
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert sorted(instance.forwarded_headers) == sorted(
         ["HOST", "X-MY-HEADER", "X-YOUR-HEADER"]
     )
@@ -104,14 +104,14 @@ def test_provision_does_not_set_host_header_when_using_custom_origin(client, dns
     client.provision_cdn_instance(
         "4321", params={"domains": "example.com", "origin": "my-origin.example.gov"}
     )
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forwarded_headers == []
 
 
 def test_provision_sets_https_only_by_default(client, dns):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_cdn_instance("4321", params={"domains": "example.com"})
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.origin_protocol_policy == "https-only"
 
 
@@ -125,7 +125,7 @@ def test_provision_sets_http_when_set(client, dns):
             "insecure_origin": True,
         },
     )
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.origin_protocol_policy == "http-only"
 
 
@@ -148,7 +148,7 @@ def test_provision_sets_custom_error_responses(client, dns):
             "error_responses": {"404": "/errors/404.html"},
         },
     )
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.error_responses["404"] == "/errors/404.html"
 
 
@@ -236,14 +236,14 @@ def subtest_provision_creates_provision_operation(client, dns):
     assert "operation" in client.response.json
 
     operation_id = client.response.json["operation"]
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
 
     assert operation is not None
     assert operation.state == "in progress"
     assert operation.action == "Provision"
     assert operation.service_instance_id == "4321"
 
-    instance = CDNServiceInstance.query.get(operation.service_instance_id)
+    instance = db.session.get(CDNServiceInstance, operation.service_instance_id)
     assert instance is not None
     assert instance.domain_names == ["example.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "origin.com"
@@ -259,7 +259,7 @@ def subtest_provision_creates_LE_user(tasks):
     db.session.expunge_all()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     acme_user = service_instance.acme_user
     assert acme_user
     assert "RSA" in acme_user.private_key_pem
@@ -272,7 +272,7 @@ def subtest_provision_creates_private_key_and_csr(tasks):
     db.session.expunge_all()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     assert len(service_instance.certificates) == 1
 
     assert "BEGIN PRIVATE KEY" in service_instance.new_certificate.private_key_pem
@@ -283,7 +283,7 @@ def subtest_provision_initiates_LE_challenge(tasks):
     db.session.expunge_all()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
 
     assert service_instance.new_certificate.challenges.count() == 2
     assert service_instance.new_certificate.order_json is not None
@@ -301,7 +301,7 @@ def subtest_provision_updates_TXT_records(tasks, route53):
 
     route53.assert_no_pending_responses()
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     assert service_instance.route53_change_ids == [
         example_com_change_id,
         foo_com_change_id,
@@ -310,7 +310,7 @@ def subtest_provision_updates_TXT_records(tasks, route53):
 
 def subtest_provision_waits_for_route53_changes(tasks, route53):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
 
     for change_id in service_instance.route53_change_ids:
         route53.expect_wait_for_change_insync(change_id)
@@ -318,14 +318,14 @@ def subtest_provision_waits_for_route53_changes(tasks, route53):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     assert service_instance.route53_change_ids == []
     route53.assert_no_pending_responses()
 
 
 def subtest_provision_answers_challenges(tasks, dns):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
 
     example_com_challenge = certificate.challenges.filter(
@@ -349,7 +349,7 @@ def subtest_provision_answers_challenges(tasks, dns):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
     answered = [c.answered for c in certificate.challenges]
     assert answered == [True, True]
@@ -359,7 +359,7 @@ def subtest_provision_retrieves_certificate(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
 
     assert len(service_instance.certificates) == 1
     certificate = service_instance.new_certificate
@@ -371,7 +371,7 @@ def subtest_provision_retrieves_certificate(tasks):
 
 def subtest_provision_uploads_certificate_to_iam(tasks, iam_commercial, simple_regex):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
@@ -387,7 +387,7 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam_commercial, simple_r
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
     assert certificate.iam_server_certificate_name
     assert certificate.iam_server_certificate_name.startswith("4321")
@@ -399,7 +399,7 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam_commercial, simple_r
 
 def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
 
     id_ = certificate.id
@@ -439,7 +439,7 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
 
     assert service_instance.cloudfront_distribution_arn
     assert service_instance.cloudfront_distribution_arn.startswith("arn:aws:cloudfront")
@@ -453,7 +453,7 @@ def subtest_provision_creates_cloudfront_distribution(tasks, cloudfront):
 
 def subtest_provision_waits_for_cloudfront_distribution(tasks, cloudfront):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.current_certificate
 
     cloudfront.expect_get_distribution(
@@ -490,7 +490,7 @@ def subtest_provision_provisions_ALIAS_records(tasks, route53):
 
     route53.assert_no_pending_responses()
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     assert service_instance.route53_change_ids == [
         example_com_change_id,
         foo_com_change_id,
@@ -500,7 +500,7 @@ def subtest_provision_provisions_ALIAS_records(tasks, route53):
 def subtest_provision_marks_operation_as_succeeded(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     operation = service_instance.operations.first()
     assert operation
     assert "succeeded" == operation.state

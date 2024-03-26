@@ -45,7 +45,7 @@ params = [
 
 
 @pytest.mark.parametrize("task_type", params)
-def test_noop_when_operation_canceled(task_type):
+def test_noop_when_operation_canceled(clean_db, task_type):
     op = OperationFactory.create(id="4321", canceled_at=datetime.now())
     db.session.refresh(op)
     task = task_type.s("4321")
@@ -55,7 +55,7 @@ def test_noop_when_operation_canceled(task_type):
 
 
 @pytest.mark.parametrize("task_type", params)
-def test_no_cancel_for_uncanceled_tasks(task_type):
+def test_no_cancel_for_uncanceled_tasks(clean_db, task_type):
     op = OperationFactory.create(id="4321")
     db.session.refresh(op)
     task = task_type.s("4321")
@@ -88,9 +88,9 @@ def test_cancel_operation_cdn(client, tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     # reinstantiate these because we are really messing with sqlalchemy's idea of what a session should look like
-    in_progress = Operation.query.get(in_progress_id)
-    failed = Operation.query.get(failed_id)
-    completed = Operation.query.get(completed_id)
+    in_progress = db.session.get(Operation, in_progress_id)
+    failed = db.session.get(Operation, failed_id)
+    completed = db.session.get(Operation, completed_id)
 
     assert in_progress.canceled_at is not None
     assert completed.canceled_at is None
@@ -122,9 +122,9 @@ def test_cancel_operation_alb(client, tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     # reinstantiate these because we are really messing with sqlalchemy's idea of what a session should look like
-    in_progress = Operation.query.get(in_progress_id)
-    failed = Operation.query.get(failed_id)
-    completed = Operation.query.get(completed_id)
+    in_progress = db.session.get(Operation, in_progress_id)
+    failed = db.session.get(Operation, failed_id)
+    completed = db.session.get(Operation, completed_id)
 
     assert in_progress.canceled_at is not None
     assert completed.canceled_at is None

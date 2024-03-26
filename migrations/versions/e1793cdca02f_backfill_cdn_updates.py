@@ -5,12 +5,13 @@ Revises: d2e8578fe341
 Create Date: 2020-06-30 00:53:24.426405
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 import sqlalchemy_utils
 from sqlalchemy import orm
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 
 # revision identifiers, used by Alembic.

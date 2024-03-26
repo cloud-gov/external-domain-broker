@@ -5,6 +5,7 @@ from broker.extensions import db
 from broker.models import Operation
 from broker.tasks.cron import scan_for_stalled_pipelines, reschedule_operation
 from broker.tasks.huey import huey
+from sqlalchemy import text
 
 import tests.lib.factories as factories
 
@@ -29,17 +30,19 @@ def test_finds_stalled_operations(clean_db):
 
     # have to do this manually to skip the onupdate on the model
     db.session.execute(
-        "UPDATE operation SET updated_at = :time WHERE id = 1234",
-        {"time": too_old.isoformat()},
+        text("UPDATE operation SET updated_at = :time WHERE id = 1234").bindparams(
+            time=too_old.isoformat()
+        )
     )
     db.session.execute(
-        "UPDATE operation SET updated_at = :time WHERE id = 4321",
-        {"time": ok.isoformat()},
+        text("UPDATE operation SET updated_at = :time WHERE id = 4321").bindparams(
+            time=ok.isoformat()
+        )
     )
     db.session.commit()
 
     # sanity check - did we actually set updated_at?
-    stalled_operation = Operation.query.get(1234)
+    stalled_operation = db.session.get(Operation, 1234)
     assert stalled_operation.updated_at.isoformat() == too_old.isoformat()
 
     assert scan_for_stalled_pipelines() == [1234]
@@ -56,11 +59,12 @@ def test_does_not_find_ended_operations(clean_db, state):
 
     # have to do this manually to skip the onupdate on the model
     db.session.execute(
-        "UPDATE operation SET updated_at = :time WHERE id = 1234",
-        {"time": too_old.isoformat()},
+        text("UPDATE operation SET updated_at = :time WHERE id = 1234").bindparams(
+            time=too_old.isoformat()
+        )
     )
     db.session.commit()
-    complete = Operation.query.get(1234)
+    complete = db.session.get(Operation, 1234)
 
     assert scan_for_stalled_pipelines() == []
 
@@ -78,11 +82,12 @@ def test_does_not_find_canceled_operations(clean_db):
 
     # have to do this manually to skip the onupdate on the model
     db.session.execute(
-        "UPDATE operation SET updated_at = :time WHERE id = 1234",
-        {"time": too_old.isoformat()},
+        text("UPDATE operation SET updated_at = :time WHERE id = 1234").bindparams(
+            time=too_old.isoformat()
+        )
     )
     db.session.commit()
-    complete = Operation.query.get(1234)
+    complete = db.session.get(Operation, 1234)
 
     assert scan_for_stalled_pipelines() == []
 
@@ -96,7 +101,7 @@ def test_reschedules_operation(clean_db, action):
     )
     db.session.add(stalled_operation)
     db.session.commit()
-    stalled_operation = Operation.query.get(1234)
+    stalled_operation = db.session.get(Operation, 1234)
 
     reschedule_operation(1234)
     assert len(huey.pending()) == 1

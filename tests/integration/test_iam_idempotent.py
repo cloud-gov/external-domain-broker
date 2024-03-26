@@ -82,7 +82,7 @@ def test_reupload_certificate_ok(
     clean_db, iam_commercial, service_instance, provision_operation, simple_regex
 ):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     certificate = service_instance.new_certificate
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
@@ -98,11 +98,12 @@ def test_reupload_certificate_ok(
     upload_server_certificate.call_local("4321")
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     certificate = service_instance.new_certificate
-    operation = Operation.query.get("4321")
+    operation = db.session.get(Operation, "4321")
     updated_at = operation.updated_at.timestamp()
+    db.session.expunge_all()
     # unstubbed, so an error should be raised if we do try
     upload_server_certificate.call_local("4321")
-    operation = Operation.query.get("4321")
+    operation = db.session.get(Operation, "4321")
     assert updated_at != operation.updated_at.timestamp()

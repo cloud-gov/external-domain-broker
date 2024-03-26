@@ -102,14 +102,16 @@ def subtest_provision_creates_provision_operation(client, dns):
     assert "operation" in client.response.json
 
     operation_id = client.response.json["operation"]
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
 
     assert operation is not None
     assert operation.state == "in progress"
     assert operation.action == "Provision"
     assert operation.service_instance_id == "4321"
 
-    instance = DedicatedALBServiceInstance.query.get(operation.service_instance_id)
+    instance = db.session.get(
+        DedicatedALBServiceInstance, operation.service_instance_id
+    )
     assert instance is not None
     assert instance.domain_names == ["example.com", "foo.com"]
 
@@ -120,7 +122,7 @@ def subtest_provision_creates_LE_user(tasks):
     db.session.expunge_all()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     acme_user = service_instance.acme_user
     assert acme_user
     assert "RSA" in acme_user.private_key_pem
@@ -133,7 +135,7 @@ def subtest_provision_creates_private_key_and_csr(tasks):
     db.session.expunge_all()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     certificate = service_instance.new_certificate
     assert "BEGIN PRIVATE KEY" in certificate.private_key_pem
     assert "BEGIN CERTIFICATE REQUEST" in certificate.csr_pem
@@ -143,7 +145,7 @@ def subtest_provision_initiates_LE_challenge(tasks):
     db.session.expunge_all()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     certificate = service_instance.new_certificate
 
     assert certificate.challenges.count() == 2
@@ -162,7 +164,7 @@ def subtest_provision_updates_TXT_records(tasks, route53):
 
     route53.assert_no_pending_responses()
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     assert service_instance.route53_change_ids == [
         example_com_change_id,
         foo_com_change_id,
@@ -171,7 +173,7 @@ def subtest_provision_updates_TXT_records(tasks, route53):
 
 def subtest_provision_waits_for_route53_changes(tasks, route53):
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
 
     for change_id in service_instance.route53_change_ids:
         route53.expect_wait_for_change_insync(change_id)
@@ -179,14 +181,14 @@ def subtest_provision_waits_for_route53_changes(tasks, route53):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     assert service_instance.route53_change_ids == []
     route53.assert_no_pending_responses()
 
 
 def subtest_provision_answers_challenges(tasks, dns):
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     certificate = service_instance.new_certificate
 
     example_com_challenge = certificate.challenges.filter(
@@ -210,7 +212,7 @@ def subtest_provision_answers_challenges(tasks, dns):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     certificate = service_instance.new_certificate
     answered = [c.answered for c in certificate.challenges]
     assert answered == [True, True]
@@ -220,7 +222,7 @@ def subtest_provision_retrieves_certificate(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     certificate = service_instance.new_certificate
 
     assert certificate.fullchain_pem.count("BEGIN CERTIFICATE") == 1
@@ -231,7 +233,7 @@ def subtest_provision_retrieves_certificate(tasks):
 
 def subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_regex):
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     certificate = service_instance.new_certificate
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
@@ -247,7 +249,7 @@ def subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_reg
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     certificate = service_instance.new_certificate
     assert certificate.iam_server_certificate_name
     assert certificate.iam_server_certificate_name.startswith("4321")
@@ -289,13 +291,13 @@ def subtest_provision_selects_dedicated_alb(tasks, alb):
     alb.expect_get_listeners("our-arn-0")
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     assert service_instance.alb_arn.startswith("alb-our-arn-0")
 
 
 def subtest_provision_adds_certificate_to_alb(tasks, alb):
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     certificate = service_instance.new_certificate
     id_ = certificate.id
     alb.expect_add_certificate_to_listener(
@@ -305,7 +307,7 @@ def subtest_provision_adds_certificate_to_alb(tasks, alb):
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     assert service_instance.new_certificate is None
     assert service_instance.current_certificate is not None
     assert service_instance.current_certificate.id == id_
@@ -313,7 +315,7 @@ def subtest_provision_adds_certificate_to_alb(tasks, alb):
 
 def subtest_provision_provisions_ALIAS_records(tasks, route53, alb):
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     example_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
         "example.com.domains.cloud.test", "alb.cloud.test", "ALBHOSTEDZONEID"
     )
@@ -326,7 +328,7 @@ def subtest_provision_provisions_ALIAS_records(tasks, route53, alb):
 def subtest_provision_marks_operation_as_succeeded(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     operation = service_instance.operations.first()
     assert operation
     assert "succeeded" == operation.state

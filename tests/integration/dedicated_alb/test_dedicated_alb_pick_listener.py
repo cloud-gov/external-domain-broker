@@ -47,7 +47,7 @@ def test_selects_existing_dedicated_alb(clean_db, alb, service_instance):
     clean_db.session.commit()
 
     clean_db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
     alb.expect_get_certificates_for_listener("our-arn-0", 1)
     alb.expect_get_certificates_for_listener("our-arn-1", 5)
     alb.expect_get_listeners("our-arn-0")
@@ -55,7 +55,7 @@ def test_selects_existing_dedicated_alb(clean_db, alb, service_instance):
     alb.assert_no_pending_responses()
     clean_db.session.expunge_all()
 
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
     assert service_instance.alb_arn.startswith("alb-our-arn-0")
 
 
@@ -75,7 +75,7 @@ def test_selects_unassigned_alb(clean_db, alb, service_instance):
     clean_db.session.commit()
 
     clean_db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
     alb.expect_get_certificates_for_listener("our-arn-0", 1)
     alb.expect_get_certificates_for_listener("our-arn-1", 5)
     alb.expect_get_listeners("our-arn-0")
@@ -86,7 +86,7 @@ def test_selects_unassigned_alb(clean_db, alb, service_instance):
     listener = DedicatedALBListener.query.filter(
         DedicatedALBListener.listener_arn == "our-arn-0"
     ).first()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
     assert service_instance.alb_arn.startswith("alb-our-arn-0")
     assert listener.dedicated_org == "our-org"
     assert listener.alb_arn.startswith("alb-our-arn-0")

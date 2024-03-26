@@ -5,6 +5,7 @@ Revises: 395d9a0460cb
 Create Date: 2020-07-31 18:13:45.886519
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import orm
@@ -14,7 +15,7 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import (
     AesGcmEngine,
     StringEncryptedType,
 )
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from broker.config import config_from_env
 

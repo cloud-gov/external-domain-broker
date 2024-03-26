@@ -78,6 +78,6 @@ def test_migration_to_cdn(migration_instance, clean_db):
         migration_instance, CDNServiceInstance, clean_db.session
     )
     clean_db.session.expunge_all()
-    instance = CDNServiceInstance.query.get("started-as-migration-instance")
+    instance = db.session.get(CDNServiceInstance, "started-as-migration-instance")
     assert instance is not None
     assert instance.domain_names == ["example.com", "foo.com"]

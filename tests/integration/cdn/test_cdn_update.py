@@ -208,7 +208,7 @@ def test_provision_sets_default_origin_if_provided_as_none(
 
     assert client.response.status_code == 202, client.response.body
 
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert config.DEFAULT_CLOUDFRONT_ORIGIN == "cloud.local"
     assert instance.cloudfront_origin_hostname == "cloud.local"
 
@@ -226,7 +226,7 @@ def test_provision_sets_default_origin_path_if_provided_as_none(
 
     assert client.response.status_code == 202, client.response.body
 
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.cloudfront_origin_path == ""
 
     # make sure nothing else got changed
@@ -244,7 +244,7 @@ def test_update_sets_default_cookie_policy_if_provided_as_none(
 
     client.update_cdn_instance("4321", params={"forward_cookies": None})
     db.session.expunge_all()
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forward_cookie_policy == "all"
     assert instance.forwarded_cookies == []
 
@@ -256,7 +256,7 @@ def test_update_sets_none_cookie_policy(client, dns, service_instance):
     db.session.commit()
     client.update_cdn_instance("4321", params={"forward_cookies": ""})
     db.session.expunge_all()
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forward_cookie_policy == "none"
     assert instance.forwarded_cookies == []
 
@@ -265,7 +265,7 @@ def test_update_sets_forward_cookie_policy_with_cookies(client, dns, service_ins
     client.update_cdn_instance(
         "4321", params={"forward_cookies": "my_cookie , my_other_cookie"}
     )
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forward_cookie_policy == "whitelist"
     assert instance.forwarded_cookies == ["my_cookie", "my_other_cookie"]
 
@@ -280,7 +280,7 @@ def test_update_sets_forward_cookie_policy_with_star(client, dns, service_instan
         "4321", params={"domains": "example.com", "forward_cookies": "*"}
     )
     db.session.expunge_all()
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forward_cookie_policy == "all"
     assert instance.forwarded_cookies == []
 
@@ -296,7 +296,7 @@ def test_update_sets_forward_headers_to_host_when_specified_as_none(
 
     dns.add_cname("_acme-challenge.example.com")
     client.update_cdn_instance("4321", params={"forward_headers": None})
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forwarded_headers == ["HOST"]
 
 
@@ -313,7 +313,7 @@ def test_update_sets_forward_headers_plus_host_when_some_specified(
     client.update_cdn_instance(
         "4321", params={"forward_headers": "x-my-header,x-your-header"}
     )
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert sorted(instance.forwarded_headers) == sorted(
         ["HOST", "X-MY-HEADER", "X-YOUR-HEADER"]
     )
@@ -328,7 +328,7 @@ def test_update_does_not_set_host_header_when_using_custom_origin(
     db.session.commit()
 
     client.update_cdn_instance("4321", params={"forward_headers": None})
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.forwarded_headers == []
 
 
@@ -337,7 +337,7 @@ def test_update_sets_http_when_set(client, dns, service_instance):
     client.update_cdn_instance(
         "4321", params={"origin": "origin.gov", "insecure_origin": True}
     )
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert instance.origin_protocol_policy == "http-only"
 
 
@@ -375,7 +375,7 @@ def subtest_update_creates_private_key_and_csr(tasks):
     db.session.expunge_all()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
     assert "BEGIN PRIVATE KEY" in certificate.private_key_pem
     assert "BEGIN CERTIFICATE REQUEST" in certificate.csr_pem
@@ -407,14 +407,14 @@ def subtest_update_creates_update_operation(client, dns):
     assert "operation" in client.response.json
 
     operation_id = client.response.json["operation"]
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
 
     assert operation is not None
     assert operation.state == "in progress"
     assert operation.action == "Update"
     assert operation.service_instance_id == "4321"
 
-    instance = CDNServiceInstance.query.get(operation.service_instance_id)
+    instance = db.session.get(CDNServiceInstance, operation.service_instance_id)
     assert instance is not None
     assert instance.domain_names == ["bar.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "new-origin.com"
@@ -426,7 +426,7 @@ def subtest_gets_new_challenges(tasks):
     db.session.expunge_all()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
 
     assert len(certificate.challenges.all()) == 2
@@ -447,13 +447,13 @@ def subtest_update_updates_TXT_records(tasks, route53):
 
     route53.assert_no_pending_responses()
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     assert service_instance.route53_change_ids == [bar_com_change_id, foo_com_change_id]
 
 
 def subtest_update_answers_challenges(tasks, dns):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
 
     bar_com_challenge = certificate.challenges.filter(
@@ -477,7 +477,7 @@ def subtest_update_answers_challenges(tasks, dns):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
     answered = [c.answered for c in certificate.challenges]
     assert answered == [True, True]
@@ -485,7 +485,7 @@ def subtest_update_answers_challenges(tasks, dns):
 
 def subtest_waits_for_dns_changes(tasks, route53):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
 
     for change_id in service_instance.route53_change_ids:
         route53.expect_wait_for_change_insync(change_id)
@@ -493,7 +493,7 @@ def subtest_waits_for_dns_changes(tasks, route53):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     assert service_instance.route53_change_ids == []
     route53.assert_no_pending_responses()
 
@@ -502,7 +502,7 @@ def subtest_update_retrieves_new_cert(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
 
     assert certificate.fullchain_pem.count("BEGIN CERTIFICATE") == 1
@@ -512,7 +512,7 @@ def subtest_update_retrieves_new_cert(tasks):
 
 def subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
@@ -528,7 +528,7 @@ def subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
     assert certificate.iam_server_certificate_name
     assert certificate.iam_server_certificate_name.startswith("4321")
@@ -540,7 +540,7 @@ def subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex):
 
 def subtest_updates_cloudfront(tasks, cloudfront):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
     id_ = certificate.id
     cloudfront.expect_get_distribution_config(
@@ -604,7 +604,7 @@ def subtest_updates_cloudfront(tasks, cloudfront):
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
 
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     cloudfront.assert_no_pending_responses()
     assert service_instance.new_certificate is None
     assert service_instance.current_certificate.id == id_
@@ -612,7 +612,7 @@ def subtest_updates_cloudfront(tasks, cloudfront):
 
 def subtest_update_waits_for_cloudfront_update(tasks, cloudfront):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.current_certificate
 
     cloudfront.expect_get_distribution(
@@ -640,7 +640,7 @@ def subtest_update_waits_for_cloudfront_update(tasks, cloudfront):
 def subtest_update_marks_update_complete(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     operation = service_instance.operations.first()
     assert operation
     assert "succeeded" == operation.state
@@ -654,7 +654,7 @@ def subtest_update_removes_certificate_from_iam(tasks, iam_commercial):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     iam_commercial.assert_no_pending_responses()
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert len(instance.certificates) == 1
 
 
@@ -692,14 +692,14 @@ def subtest_update_same_domains_creates_update_operation(client, dns):
     assert "operation" in client.response.json
 
     operation_id = client.response.json["operation"]
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
 
     assert operation is not None
     assert operation.state == "in progress"
     assert operation.action == "Update"
     assert operation.service_instance_id == "4321"
 
-    instance = CDNServiceInstance.query.get(operation.service_instance_id)
+    instance = db.session.get(CDNServiceInstance, operation.service_instance_id)
     assert instance is not None
     assert instance.domain_names == ["bar.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "newer-origin.com"
@@ -708,13 +708,13 @@ def subtest_update_same_domains_creates_update_operation(client, dns):
 
 def subtest_update_same_domains_does_not_create_new_certificate(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert len(instance.certificates) == 1
 
 
 def subtest_update_same_domains_does_not_create_new_challenges(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     certificate = instance.new_certificate
     assert len(certificate.challenges.all()) == 2
     assert all([c.answered for c in certificate.challenges])
@@ -722,7 +722,7 @@ def subtest_update_same_domains_does_not_create_new_challenges(tasks):
 
 def subtest_update_same_domains_does_not_update_route53(tasks, route53):
     tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert not instance.route53_change_ids
     # should run wait for changes, which should do nothing
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -743,7 +743,7 @@ def subtest_update_same_domains_does_not_update_iam(tasks):
 
 def subtest_update_same_domains_updates_cloudfront(tasks, cloudfront):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     certificate = service_instance.new_certificate
     id_ = certificate.id
     cloudfront.expect_get_distribution_config(
@@ -791,7 +791,7 @@ def subtest_update_same_domains_updates_cloudfront(tasks, cloudfront):
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
 
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     cloudfront.assert_no_pending_responses()
     assert service_instance.new_certificate is None
     assert service_instance.current_certificate.id == id_
@@ -799,7 +799,7 @@ def subtest_update_same_domains_updates_cloudfront(tasks, cloudfront):
 
 def subtest_update_same_domains_does_not_delete_server_certificate(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert len(instance.certificates) == 1
 
 
@@ -814,5 +814,5 @@ def subtest_update_updates_ALIAS_records(tasks, route53):
     tasks.run_queued_tasks_and_enqueue_dependents()
     route53.assert_no_pending_responses()
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
     assert service_instance.route53_change_ids == [bar_com_change_id, foo_com_change_id]

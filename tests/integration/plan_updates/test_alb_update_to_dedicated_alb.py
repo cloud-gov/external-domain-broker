@@ -58,7 +58,7 @@ def test_update_alb_to_dedicated_alb_happy_path(
     client.update_instance_to_dedicated_alb("4321")
     assert client.response.status_code == 202, client.response.json
     clean_db.session.expunge_all()
-    instance = DedicatedALBServiceInstance.query.get("4321")
+    instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
     assert instance.org_id == "our-org"
     assert instance is not None
     assert instance.new_certificate is not None
@@ -75,7 +75,7 @@ def test_update_alb_to_dedicated_alb_happy_path(
     subtest_provision_waits_for_route53_changes(tasks, route53)
     subtest_renewal_removes_certificate_from_alb(tasks, alb)
     clean_db.session.expunge_all()
-    instance = DedicatedALBServiceInstance.query.get("4321")
+    instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
     assert instance.new_certificate is None
     assert instance.current_certificate is not None
     subtest_provision_marks_operation_as_succeeded(tasks)

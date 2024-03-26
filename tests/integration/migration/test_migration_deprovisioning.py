@@ -50,7 +50,7 @@ def test_deprovision_happy_path(client, service_instance, tasks):
 
 
 def subtest_deprovision_creates_deprovision_operation(client, service_instance):
-    service_instance = MigrationServiceInstance.query.get("4321")
+    service_instance = db.session.get(MigrationServiceInstance, "4321")
     client.deprovision_migration_instance(
         service_instance.id, accepts_incomplete="true"
     )
@@ -59,7 +59,7 @@ def subtest_deprovision_creates_deprovision_operation(client, service_instance):
     assert "operation" in client.response.json
 
     operation_id = client.response.json["operation"]
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
 
     assert operation is not None
     assert operation.state == Operation.States.IN_PROGRESS.value
@@ -71,13 +71,13 @@ def subtest_deprovision_creates_deprovision_operation(client, service_instance):
 
 def subtest_deprovision_marks_operation_as_succeeded(tasks):
     db.session.expunge_all()
-    service_instance = MigrationServiceInstance.query.get("4321")
+    service_instance = db.session.get(MigrationServiceInstance, "4321")
     assert not service_instance.deactivated_at
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = MigrationServiceInstance.query.get("4321")
+    service_instance = db.session.get(MigrationServiceInstance, "4321")
     assert service_instance.deactivated_at
 
     assert all([o.state == "succeeded" for o in service_instance.operations])

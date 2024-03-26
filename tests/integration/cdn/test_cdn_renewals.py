@@ -128,7 +128,7 @@ def test_scan_for_expiring_certs_cdn_happy_path(
 
 def subtest_queues_tasks():
     assert scan_for_expiring_certs.call_local() == ["4321"]
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
 
     assert len(list(service_instance.operations)) == 1
     operation = service_instance.operations[0]
@@ -165,7 +165,7 @@ def subtest_renew_retrieves_certificate(tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("4321")
+    service_instance = db.session.get(CDNServiceInstance, "4321")
 
     assert len(service_instance.certificates) == 2
     certificate = service_instance.new_certificate
@@ -181,5 +181,5 @@ def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     iam_govcloud.assert_no_pending_responses()
-    instance = CDNServiceInstance.query.get("4321")
+    instance = db.session.get(CDNServiceInstance, "4321")
     assert len(instance.certificates) == 1

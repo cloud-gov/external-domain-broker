@@ -1,6 +1,7 @@
 from enum import Enum
 from sqlalchemy.dialects import postgresql
 import sqlalchemy as sa
+from sqlalchemy.orm import mapped_column
 
 from typing import List
 
@@ -20,69 +21,72 @@ def db_encryption_key():
 class Base(db.Model):
     __abstract__ = True
 
-    created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.now())
-    updated_at = db.Column(db.TIMESTAMP(timezone=True), onupdate=db.func.now())
+    created_at = mapped_column(
+        db.TIMESTAMP(timezone=True), server_default=db.func.now()
+    )
+    updated_at = mapped_column(db.TIMESTAMP(timezone=True), onupdate=db.func.now())
 
 
 class ACMEUser(Base):
     __tablename__ = "acme_user"
 
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String, nullable=False)
-    uri = db.Column(db.String, nullable=False)
-    private_key_pem = db.Column(
+    id = mapped_column(db.Integer, primary_key=True)
+    email = mapped_column(db.String, nullable=False)
+    uri = mapped_column(db.String, nullable=False)
+    private_key_pem = mapped_column(
         StringEncryptedType(db.Text, db_encryption_key, AesGcmEngine, "pkcs5"),
         nullable=False,
     )
 
-    registration_json = db.Column(db.Text)
+    registration_json = mapped_column(db.Text)
     service_instances = db.relation(
         "ServiceInstance", backref="acme_user", lazy="dynamic"
     )
 
 
 class Certificate(Base):
-    id = db.Column(db.Integer, primary_key=True)
-    service_instance_id = db.Column(
+    __tablename__ = "certificate"
+    id = mapped_column(db.Integer, primary_key=True)
+    service_instance_id = mapped_column(
         db.String, db.ForeignKey("service_instance.id"), nullable=False
     )
-    subject_alternative_names = db.Column(postgresql.JSONB, default=[])
-    leaf_pem = db.Column(db.Text)
-    expires_at = db.Column(db.TIMESTAMP(timezone=True))
-    private_key_pem = db.Column(
+    subject_alternative_names = mapped_column(postgresql.JSONB, default=[])
+    leaf_pem = mapped_column(db.Text)
+    expires_at = mapped_column(db.TIMESTAMP(timezone=True))
+    private_key_pem = mapped_column(
         StringEncryptedType(db.Text, db_encryption_key, AesGcmEngine, "pkcs5")
     )
-    csr_pem = db.Column(db.Text)
-    fullchain_pem = db.Column(db.Text)
-    iam_server_certificate_id = db.Column(db.String)
-    iam_server_certificate_name = db.Column(db.String)
-    iam_server_certificate_arn = db.Column(db.String)
+    csr_pem = mapped_column(db.Text)
+    fullchain_pem = mapped_column(db.Text)
+    iam_server_certificate_id = mapped_column(db.String)
+    iam_server_certificate_name = mapped_column(db.String)
+    iam_server_certificate_arn = mapped_column(db.String)
     challenges = db.relation(
         "Challenge", backref="certificate", lazy="dynamic", cascade="all, delete-orphan"
     )
-    order_json = db.Column(db.Text)
+    order_json = mapped_column(db.Text)
 
 
 class ServiceInstance(Base):
     __tablename__ = "service_instance"
-    id = db.Column(db.String(36), primary_key=True)
+    id = mapped_column(db.String(36), primary_key=True)
     operations = db.relation("Operation", backref="service_instance", lazy="dynamic")
-    acme_user_id = db.Column(db.Integer, db.ForeignKey("acme_user.id"))
-    domain_names = db.Column(postgresql.JSONB, default=[])
-    instance_type = db.Column(db.Text)
+    acme_user_id = mapped_column(db.Integer, db.ForeignKey("acme_user.id"))
+    domain_names = mapped_column(postgresql.JSONB, default=[])
+    instance_type = mapped_column(db.Text)
 
-    domain_internal = db.Column(db.String)
+    domain_internal = mapped_column(db.String)
 
-    route53_alias_hosted_zone = db.Column(db.String)
-    route53_change_ids = db.Column(postgresql.JSONB, default=[])
+    route53_alias_hosted_zone = mapped_column(db.String)
+    route53_change_ids = mapped_column(postgresql.JSONB, default=[])
 
-    deactivated_at = db.Column(db.TIMESTAMP(timezone=True))
+    deactivated_at = mapped_column(db.TIMESTAMP(timezone=True))
     certificates = db.relation(
         "Certificate",
         backref="service_instance",
         foreign_keys=Certificate.service_instance_id,
     )
-    current_certificate_id = db.Column(
+    current_certificate_id = mapped_column(
         db.Integer,
         db.ForeignKey(
             "certificate.id",
@@ -95,7 +99,7 @@ class ServiceInstance(Base):
         foreign_keys=current_certificate_id,
         post_update=True,
     )
-    new_certificate_id = db.Column(
+    new_certificate_id = mapped_column(
         db.Integer,
         db.ForeignKey(
             "certificate.id",
@@ -144,15 +148,17 @@ class CDNServiceInstance(ServiceInstance):
         HTTPS = "https-only"
         HTTP = "http-only"
 
-    cloudfront_distribution_arn = db.Column(db.String)
-    cloudfront_distribution_id = db.Column(db.String)
-    cloudfront_origin_hostname = db.Column(db.String)
-    cloudfront_origin_path = db.Column(db.String)
-    forward_cookie_policy = db.Column(db.String, default=ForwardCookiePolicy.ALL.value)
-    forwarded_cookies = db.Column(postgresql.JSONB, default=[])
-    forwarded_headers = db.Column(postgresql.JSONB, default=[])
-    error_responses = db.Column(postgresql.JSONB, default=[])
-    origin_protocol_policy = db.Column(db.String)
+    cloudfront_distribution_arn = mapped_column(db.String)
+    cloudfront_distribution_id = mapped_column(db.String)
+    cloudfront_origin_hostname = mapped_column(db.String)
+    cloudfront_origin_path = mapped_column(db.String)
+    forward_cookie_policy = mapped_column(
+        db.String, default=ForwardCookiePolicy.ALL.value
+    )
+    forwarded_cookies = mapped_column(postgresql.JSONB, default=[])
+    forwarded_headers = mapped_column(postgresql.JSONB, default=[])
+    error_responses = mapped_column(postgresql.JSONB, default=[])
+    origin_protocol_policy = mapped_column(db.String)
 
     __mapper_args__ = {"polymorphic_identity": "cdn_service_instance"}
 
@@ -167,11 +173,12 @@ class AbstractALBServiceInstance(ServiceInstance):
     making one an instance of the other.
     """
 
-    alb_arn = db.Column(db.String)
-    alb_listener_arn = db.Column(db.String)
+    __abstract__ = True
+    alb_arn = mapped_column(db.String, use_existing_column=True)
+    alb_listener_arn = mapped_column(db.String, use_existing_column=True)
 
-    previous_alb_arn = db.Column(db.String)
-    previous_alb_listener_arn = db.Column(db.String)
+    previous_alb_arn = mapped_column(db.String, use_existing_column=True)
+    previous_alb_listener_arn = mapped_column(db.String, use_existing_column=True)
 
 
 class ALBServiceInstance(AbstractALBServiceInstance):
@@ -187,7 +194,7 @@ class ALBServiceInstance(AbstractALBServiceInstance):
 
 
 class DedicatedALBServiceInstance(AbstractALBServiceInstance):
-    org_id = db.Column(db.String)
+    org_id = mapped_column(db.String)
 
     __mapper_args__ = {"polymorphic_identity": "dedicated_alb_service_instance"}
 
@@ -211,6 +218,7 @@ class MigrationServiceInstance(ServiceInstance):
 
 
 class Operation(Base):
+    __tablename__ = "operation"
     # operation.state = Operation.States.IN_PROGRESS.value
     States = OperationState
 
@@ -222,44 +230,46 @@ class Operation(Base):
         UPDATE = "Update"
         MIGRATE_TO_BROKER = "Migrate to broker"
 
-    id = db.Column(db.Integer, primary_key=True)
-    service_instance_id = db.Column(
+    id = mapped_column(db.Integer, primary_key=True)
+    service_instance_id = mapped_column(
         db.String, db.ForeignKey("service_instance.id"), nullable=False
     )
-    state = db.Column(
+    state = mapped_column(
         db.String,
         default=States.IN_PROGRESS.value,
         server_default=States.IN_PROGRESS.value,
         nullable=False,
     )
-    action = db.Column(db.String, nullable=False)
-    canceled_at = db.Column(db.TIMESTAMP(timezone=True))
-    step_description = db.Column(db.String)
+    action = mapped_column(db.String, nullable=False)
+    canceled_at = mapped_column(db.TIMESTAMP(timezone=True))
+    step_description = mapped_column(db.String)
 
     def __repr__(self):
         return f"<Operation {self.id} {self.state}>"
 
 
 class Challenge(Base):
-    id = db.Column(db.Integer, primary_key=True)
-    certificate_id = db.Column(
+    __tablename__ = "challenge"
+    id = mapped_column(db.Integer, primary_key=True)
+    certificate_id = mapped_column(
         db.Integer, db.ForeignKey("certificate.id"), nullable=False
     )
-    domain = db.Column(db.String, nullable=False)
-    validation_domain = db.Column(db.String, nullable=False)
-    validation_contents = db.Column(db.Text, nullable=False)
-    body_json = db.Column(db.Text)
-    answered = db.Column(db.Boolean, default=False)
+    domain = mapped_column(db.String, nullable=False)
+    validation_domain = mapped_column(db.String, nullable=False)
+    validation_contents = mapped_column(db.Text, nullable=False)
+    body_json = mapped_column(db.Text)
+    answered = mapped_column(db.Boolean, default=False)
 
     def __repr__(self):
         return f"<Challenge {self.id} {self.domain}>"
 
 
 class DedicatedALBListener(Base):
-    id = db.Column(db.Integer, primary_key=True)
-    listener_arn = db.Column(db.String, nullable=False, unique=True)
-    alb_arn = db.Column(db.String, nullable=True)
-    dedicated_org = db.Column(db.String, nullable=True)
+    __tablename__ = "dedicated_alb_listener"
+    id = mapped_column(db.Integer, primary_key=True)
+    listener_arn = mapped_column(db.String, nullable=False, unique=True)
+    alb_arn = mapped_column(db.String, nullable=True)
+    dedicated_org = mapped_column(db.String, nullable=True)
 
 
 def change_instance_type(
@@ -281,5 +291,5 @@ def change_instance_type(
     ).bindparams(instance_id=id_, type_id=new_type_identity)
     session.execute(t)
     session.expunge_all()
-    service_instance = new_type.query.get(id_)
+    service_instance = db.session.get(new_type, id_)
     return service_instance
