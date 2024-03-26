@@ -114,7 +114,7 @@ def test_create_distribution_referencing_nonexistent_distribution(
     create_distribution.call_local(provision_operation.id)
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
 
     assert service_instance.cloudfront_distribution_arn
     assert service_instance.cloudfront_distribution_arn.startswith("arn:aws:cloudfront")

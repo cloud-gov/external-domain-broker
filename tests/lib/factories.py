@@ -17,7 +17,7 @@ from broker.models import (
 class BaseFactory(SQLAlchemyModelFactory):
     class Meta(object):
         sqlalchemy_session = db.session  # the SQLAlchemy session object
-        sqlalchemy_session_persistence = "flush"
+        sqlalchemy_session_persistence = "commit"
 
 
 class CDNServiceInstanceFactory(BaseFactory):

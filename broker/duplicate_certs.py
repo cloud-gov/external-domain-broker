@@ -22,7 +22,7 @@ def find_duplicate_alb_certs():
         .having(func.count(Certificate.id) > 0)
         .order_by(desc("cert_count"))
     )
-    return db.engine.execute(query).fetchall()
+    return db.session.execute(query).fetchall()
 
 
 def get_service_duplicate_alb_cert_count(service_instance_id):
@@ -40,7 +40,7 @@ def get_service_duplicate_alb_cert_count(service_instance_id):
             & (Certificate.service_instance_id == service_instance_id)
         )
     )
-    results = db.engine.execute(query).fetchall()
+    results = db.session.execute(query).fetchall()
     return len(results)
 
 
@@ -170,7 +170,7 @@ def remove_duplicate_alb_certs(listener_arns=config.ALB_LISTENER_ARNS, logger=lo
     for duplicate_result in find_duplicate_alb_certs():
         [service_instance_id, num_duplicates] = duplicate_result
 
-        service_instance = ALBServiceInstance.query.get(service_instance_id)
+        service_instance = db.session.get(ALBServiceInstance, service_instance_id)
         if service_instance.has_active_operations():
             logger.info(
                 f"Instance {service_instance_id} has an active operation in progress, so duplicate certificates cannot be removed. Try again in a few minutes."

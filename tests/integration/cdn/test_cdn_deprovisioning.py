@@ -170,7 +170,7 @@ def subtest_deprovision_creates_deprovision_operation(client, service_instance):
     assert "operation" in client.response.json
 
     operation_id = client.response.json["operation"]
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
 
     assert operation is not None
     assert operation.state == Operation.States.IN_PROGRESS.value
@@ -235,7 +235,7 @@ def subtest_deprovision_removes_TXT_records(tasks, route53):
 def subtest_deprovision_disables_cloudfront_distribution(
     tasks, service_instance, cloudfront
 ):
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     cloudfront.expect_get_distribution_config(
         caller_reference=service_instance.id,
         domains=service_instance.domain_names,
@@ -260,7 +260,7 @@ def subtest_deprovision_disables_cloudfront_distribution(
 def subtest_deprovision_waits_for_cloudfront_distribution_disabled(
     tasks, service_instance, cloudfront
 ):
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     cloudfront.expect_get_distribution(
         caller_reference=service_instance.id,
         domains=service_instance.domain_names,
@@ -289,7 +289,7 @@ def subtest_deprovision_waits_for_cloudfront_distribution_disabled(
 def subtest_deprovision_removes_cloudfront_distribution(
     tasks, service_instance, cloudfront
 ):
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     cloudfront.expect_get_distribution(
         caller_reference=service_instance.id,
         domains=service_instance.domain_names,
@@ -310,7 +310,7 @@ def subtest_deprovision_removes_cloudfront_distribution(
 def subtest_deprovision_disables_cloudfront_distribution_when_missing(
     tasks, service_instance, cloudfront
 ):
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     cloudfront.expect_get_distribution_config_returning_no_such_distribution(
         distribution_id=service_instance.cloudfront_distribution_id
     )
@@ -321,7 +321,7 @@ def subtest_deprovision_disables_cloudfront_distribution_when_missing(
 def subtest_deprovision_waits_for_cloudfront_distribution_disabled_when_missing(
     tasks, service_instance, cloudfront
 ):
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     cloudfront.expect_get_distribution_returning_no_such_distribution(
         distribution_id=service_instance.cloudfront_distribution_id
     )
@@ -333,7 +333,7 @@ def subtest_deprovision_waits_for_cloudfront_distribution_disabled_when_missing(
 def subtest_deprovision_removes_cloudfront_distribution_when_missing(
     tasks, service_instance, cloudfront
 ):
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     cloudfront.expect_get_distribution_returning_no_such_distribution(
         distribution_id=service_instance.cloudfront_distribution_id
     )
@@ -344,7 +344,7 @@ def subtest_deprovision_removes_cloudfront_distribution_when_missing(
 def subtest_deprovision_removes_certificate_from_iam(
     tasks, service_instance, iam_commercial
 ):
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     iam_commercial.expects_delete_server_certificate(
         service_instance.new_certificate.iam_server_certificate_name
     )
@@ -358,7 +358,7 @@ def subtest_deprovision_removes_certificate_from_iam(
 def subtest_deprovision_removes_certificate_from_iam_when_missing(
     tasks, service_instance, iam_commercial
 ):
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     iam_commercial.expects_delete_server_certificate_returning_no_such_entity(
         name=service_instance.new_certificate.iam_server_certificate_name
     )
@@ -371,13 +371,13 @@ def subtest_deprovision_removes_certificate_from_iam_when_missing(
 
 def subtest_deprovision_marks_operation_as_succeeded(tasks):
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     assert not service_instance.deactivated_at
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     assert service_instance.deactivated_at
 
     operation = service_instance.operations.first()

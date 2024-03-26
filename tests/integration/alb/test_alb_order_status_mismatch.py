@@ -4,7 +4,7 @@ I _think_ this can be any of these:
 - timing issue
 - issue on Let's Encrypt (e.g. timeout error)
 - our app crashes/errors/is stopped after finalizing but before persisting certificate
-It doesn't matter that this test is on ALB - the same issue occurs for the same reason on either 
+It doesn't matter that this test is on ALB - the same issue occurs for the same reason on either
 instance type, but there's no need to test both cases.
 """
 
@@ -37,7 +37,7 @@ def test_stuff(client, dns, tasks, route53):
     subtest_provision_retrieves_certificate(tasks)
     # at this point, the order should be valid.
     # modify the service instance to sidestep idempotency checks
-    instance = ALBServiceInstance.query.get("4321")
+    instance = db.session.get(ALBServiceInstance, "4321")
     instance.new_certificate.leaf_pem = None
     instance.new_certificate.fullchain_pem = None
     instance.new_certificate.expires_at = None

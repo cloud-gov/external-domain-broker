@@ -17,7 +17,7 @@ def cancel_canceled_operations(task):
         op = None
         try:
             # big assumption here: the first arg will always be the operation id.
-            op = Operation.query.get(args[0])
+            op = db.session.get(Operation, args[0])
         except:
             return
         finally:
@@ -28,7 +28,7 @@ def cancel_canceled_operations(task):
 
 @huey.retriable_task
 def provision(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     operation.state = Operation.States.SUCCEEDED.value
     operation.step_description = "Complete!"
     db.session.add(operation)
@@ -37,7 +37,7 @@ def provision(operation_id: str, **kwargs):
 
 @huey.retriable_task
 def update_complete(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     operation.state = Operation.States.SUCCEEDED.value
     operation.step_description = "Complete!"
     db.session.add(operation)
@@ -46,7 +46,7 @@ def update_complete(operation_id: str, **kwargs):
 
 @huey.retriable_task
 def deprovision(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     operation.state = Operation.States.SUCCEEDED.value
     operation.step_description = "Complete!"
     db.session.add(operation)
@@ -61,7 +61,7 @@ def deprovision(operation_id: str, **kwargs):
 
 @huey.retriable_task
 def cancel_pending_provisioning(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     for op in service_instance.operations:
         if (

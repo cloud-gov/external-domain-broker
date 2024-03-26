@@ -87,7 +87,7 @@ def test_refuses_to_deprovision_synchronously_by_default(client, service_instanc
 def test_deprovision_happy_path(
     client, service_instance, dns, tasks, route53, iam_govcloud, simple_regex, alb
 ):
-    service_instance = ALBServiceInstance.query.get("1234")
+    service_instance = db.session.get(ALBServiceInstance, "1234")
     operation_id = subtest_deprovision_creates_deprovision_operation(
         client, service_instance
     )
@@ -115,14 +115,14 @@ def test_deprovision_happy_path(
 
 
 def subtest_deprovision_creates_deprovision_operation(client, service_instance):
-    service_instance = ALBServiceInstance.query.get("1234")
+    service_instance = db.session.get(ALBServiceInstance, "1234")
     client.deprovision_alb_instance(service_instance.id, accepts_incomplete="true")
 
     assert client.response.status_code == 202, client.response.body
     assert "operation" in client.response.json
 
     operation_id = client.response.json["operation"]
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
 
     assert operation is not None
     assert operation.state == Operation.States.IN_PROGRESS.value
@@ -159,7 +159,7 @@ def subtest_deprovision_removes_TXT_records(tasks, route53):
 
 
 def subtest_deprovision_removes_cert_from_alb(tasks, service_instance, alb):
-    service_instance = ALBServiceInstance.query.get("1234")
+    service_instance = db.session.get(ALBServiceInstance, "1234")
     alb.expect_remove_certificate_from_listener(
         service_instance.alb_listener_arn,
         service_instance.current_certificate.iam_server_certificate_arn,
@@ -171,7 +171,7 @@ def subtest_deprovision_removes_cert_from_alb(tasks, service_instance, alb):
 def subtest_deprovision_removes_certificate_from_iam(
     tasks, service_instance, iam_govcloud
 ):
-    service_instance = ALBServiceInstance.query.get("1234")
+    service_instance = db.session.get(ALBServiceInstance, "1234")
     iam_govcloud.expects_delete_server_certificate(
         service_instance.new_certificate.iam_server_certificate_name
     )
@@ -185,7 +185,7 @@ def subtest_deprovision_removes_certificate_from_iam(
 def subtest_deprovision_removes_certificate_from_iam_when_missing(
     tasks, service_instance, iam_govcloud
 ):
-    service_instance = ALBServiceInstance.query.get("1234")
+    service_instance = db.session.get(ALBServiceInstance, "1234")
     iam_govcloud.expects_delete_server_certificate_returning_no_such_entity(
         name=service_instance.iam_server_certificate_name
     )
@@ -195,13 +195,13 @@ def subtest_deprovision_removes_certificate_from_iam_when_missing(
 
 def subtest_deprovision_marks_operation_as_succeeded(tasks):
     db.session.expunge_all()
-    service_instance = ALBServiceInstance.query.get("1234")
+    service_instance = db.session.get(ALBServiceInstance, "1234")
     assert not service_instance.deactivated_at
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = ALBServiceInstance.query.get("1234")
+    service_instance = db.session.get(ALBServiceInstance, "1234")
     assert service_instance.deactivated_at
 
     operation = service_instance.operations.first()

@@ -10,7 +10,7 @@ pp-ez
 pprintpp
 pytest
 pytest-profiling
-pytest-watch
+pytest-watcher
 python-language-server
 requests
 rope

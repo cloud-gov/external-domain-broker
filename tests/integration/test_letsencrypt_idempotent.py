@@ -42,17 +42,18 @@ def provision_operation(service_instance):
 def test_create_user_idempotent(clean_db, service_instance, provision_operation):
 
     # sanity check: the instance shouldn't yet have an acme user
-    instance = CDNServiceInstance.query.get("1234")
+    instance = db.session.get(CDNServiceInstance, "1234")
     assert instance.acme_user_id is None
     create_user.call_local(4321)
-    instance = CDNServiceInstance.query.get("1234")
+    db.session.expunge_all()
+    instance = db.session.get(CDNServiceInstance, "1234")
 
     # ok, now it should have an acme user
     assert instance.acme_user_id is not None
     acme_id_before = instance.acme_user_id
 
     create_user.call_local(4321)
-    instance_after = CDNServiceInstance.query.get("1234")
+    instance_after = db.session.get(CDNServiceInstance, "1234")
     acme_id_after = instance_after.acme_user_id
     # make sure it's the same user now
     assert acme_id_before == acme_id_after
@@ -65,19 +66,20 @@ def test_generate_private_key_is_idempotent(
     # make sure we have a user
     create_user.call_local(4321)
 
-    instance = CDNServiceInstance.query.get("1234")
+    instance = db.session.get(CDNServiceInstance, "1234")
     assert instance.acme_user is not None
     assert instance.new_certificate is None
 
     generate_private_key.call_local(4321)
 
-    instance = CDNServiceInstance.query.get("1234")
+    db.session.expunge_all()
+    instance = db.session.get(CDNServiceInstance, "1234")
     assert instance.new_certificate.private_key_pem is not None
     stashed_key = instance.new_certificate.private_key_pem
 
     generate_private_key.call_local(4321)
 
-    instance = CDNServiceInstance.query.get("1234")
+    instance = db.session.get(CDNServiceInstance, "1234")
     assert stashed_key == instance.new_certificate.private_key_pem
 
 
@@ -88,19 +90,19 @@ def test_initiate_challenges_idempotent(
     # make sure we have a user
     create_user.call_local(4321)
     generate_private_key.call_local(4321)
-    instance = CDNServiceInstance.query.get("1234")
+    instance = db.session.get(CDNServiceInstance, "1234")
     certificate = instance.new_certificate
     assert certificate.challenges.all() == []
 
     initiate_challenges.call_local(4321)
-    instance = CDNServiceInstance.query.get("1234")
+    instance = db.session.get(CDNServiceInstance, "1234")
     certificate = instance.new_certificate
     challenges = certificate.challenges.all()
     assert len(challenges) > 0
     db.session.expunge_all()
 
     initiate_challenges.call_local(4321)
-    instance = CDNServiceInstance.query.get("1234")
+    instance = db.session.get(CDNServiceInstance, "1234")
     certificate = instance.new_certificate
     challenges_after = certificate.challenges.all()
     assert len(challenges_after) == len(challenges)
@@ -120,7 +122,7 @@ def test_answer_challenges_idempotent(
     generate_private_key.call_local(4321)
     initiate_challenges.call_local(4321)
 
-    instance = CDNServiceInstance.query.get("1234")
+    instance = db.session.get(CDNServiceInstance, "1234")
     certificate = instance.new_certificate
     challenges_before = certificate.challenges.all()
     for challenge in challenges_before:
@@ -128,7 +130,7 @@ def test_answer_challenges_idempotent(
     db.session.expunge_all()
 
     answer_challenges.call_local(4321)
-    instance = CDNServiceInstance.query.get("1234")
+    instance = db.session.get(CDNServiceInstance, "1234")
     certificate = instance.new_certificate
     challenges_before = certificate.challenges.all()
     example_com_challenge = certificate.challenges.filter(
@@ -141,7 +143,7 @@ def test_answer_challenges_idempotent(
     db.session.expunge_all()
     answer_challenges.call_local(4321)
     answer_challenges.call_local(4321)
-    instance = CDNServiceInstance.query.get("1234")
+    instance = db.session.get(CDNServiceInstance, "1234")
     certificate = instance.new_certificate
     challenges_after = certificate.challenges.all()
     for i in range(len(challenges_after)):
@@ -157,7 +159,7 @@ def test_retrieve_certificate_idempotent(
     create_user.call_local(4321)
     generate_private_key.call_local(4321)
     initiate_challenges.call_local(4321)
-    service_instance = CDNServiceInstance.query.get("1234")
+    service_instance = db.session.get(CDNServiceInstance, "1234")
     certificate = service_instance.new_certificate
     example_com_challenge = certificate.challenges.filter(
         Challenge.domain.like("%example.com")

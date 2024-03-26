@@ -53,7 +53,7 @@ def dns_challenge(order, domain):
 
 @huey.retriable_task
 def create_user(operation_id: int, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
 
     operation.step_description = "Registering user for Lets Encrypt"
     flag_modified(operation, "step_description")
@@ -98,7 +98,7 @@ def create_user(operation_id: int, **kwargs):
 
 @huey.nonretriable_task
 def generate_private_key(operation_id: int, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Creating credentials for Lets Encrypt"
@@ -140,7 +140,7 @@ def generate_private_key(operation_id: int, **kwargs):
 
 @huey.retriable_task
 def initiate_challenges(operation_id: int, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
     certificate = service_instance.new_certificate
@@ -193,7 +193,7 @@ def initiate_challenges(operation_id: int, **kwargs):
 @huey.retriable_task
 def answer_challenges(operation_id: int, **kwargs):
 
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
 
@@ -279,7 +279,7 @@ def retrieve_certificate(operation_id: int, **kwargs):
 
         return certs_normalized[0], "".join(certs_normalized[1:])
 
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
     certificate = service_instance.new_certificate

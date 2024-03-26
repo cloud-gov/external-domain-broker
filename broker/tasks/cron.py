@@ -89,7 +89,7 @@ def scan_for_stalled_pipelines():
 
 
 def reschedule_operation(operation_id):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     logger.info(
         f"Restarting {operation.action} operation {operation.id} for service instance {service_instance.id}"

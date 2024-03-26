@@ -67,7 +67,7 @@ def mark_operation_failed(signal, task, exc=None):
         return
     with huey.flask_app.app_context():
         try:
-            operation = Operation.query.get(args[0])
+            operation = db.session.get(Operation, args[0])
         except BaseException as e:
             logger.exception(
                 msg=f"exception loading operation for args {args}", exc_info=e

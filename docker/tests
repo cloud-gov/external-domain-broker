@@ -12,7 +12,7 @@ if [[ "$#" -ge 1 ]] && [[ "$1" == "watch" ]]; then
   # --poll makes this work better for folks using podman
   # `tests` and `broker` tell this to only recurse tests and broker directories
   # very important if you have a virtual environment in this directory.
-  ptw --spool=200 --nobeep --clear --poll tests broker -- -Werror -vv "$@"
+  ptw . --now --clear --delay 0.2 -- -Werror -vv "$@"
 else
   python -m pytest -Werror -vv "$@"
 fi

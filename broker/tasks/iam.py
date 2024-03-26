@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @huey.retriable_task
 def upload_server_certificate(operation_id: int, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
 
@@ -74,7 +74,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
 
 @huey.retriable_task
 def delete_server_certificate(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Removing SSL certificate from AWS"
@@ -112,7 +112,7 @@ def delete_server_certificate(operation_id: str, **kwargs):
 
 @huey.retriable_task
 def delete_previous_server_certificate(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Removing SSL certificate from AWS"

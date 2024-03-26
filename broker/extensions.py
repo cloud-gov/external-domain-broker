@@ -4,5 +4,5 @@ from flask_sqlalchemy import SQLAlchemy
 from broker.config import config_from_env
 
 config = config_from_env()
-db = SQLAlchemy()
+db = SQLAlchemy(disable_autonaming=True)
 migrate = Migrate()

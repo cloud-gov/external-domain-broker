@@ -1,4 +1,4 @@
-FROM python:3.8-slim as base
+FROM python:3.11-slim as base
 
 # When building locally, these should be set to your UID/GID.  That way, any
 # files written to the $PWD mount will be owned by you.  This is not
@@ -32,7 +32,7 @@ RUN apt update \
       procps \
       git \
       lsb-release
-      
+
 # Install Fake Pebble LE server
 COPY --from=letsencrypt/pebble /usr/bin/pebble /usr/bin/pebble
 COPY --from=letsencrypt/pebble /test/ /test/

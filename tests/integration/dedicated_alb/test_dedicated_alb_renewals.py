@@ -137,7 +137,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
 
 def subtest_queues_tasks():
     assert scan_for_expiring_certs.call_local() == ["4321"]
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
 
     assert len(list(service_instance.operations)) == 1
     operation = service_instance.operations[0]
@@ -156,11 +156,11 @@ def test_does_queues_renewal_for_instance_with_canceled_operations(
     )
     db.session.add(operation)
     db.session.commit()
-    instance = DedicatedALBServiceInstance.query.get("4321")
+    instance = db.session.get(DedicatedALBServiceInstance, "4321")
     assert not instance.has_active_operations()
     # this will queue an operation
     assert scan_for_expiring_certs.call_local() == ["4321"]
-    instance = DedicatedALBServiceInstance.query.get("4321")
+    instance = db.session.get(DedicatedALBServiceInstance, "4321")
     assert instance.has_active_operations()
     assert scan_for_expiring_certs.call_local() == []
 
@@ -176,11 +176,11 @@ def test_queues_renewal_operations_not_in_progress(
     )
     db.session.add(operation)
     db.session.commit()
-    instance = DedicatedALBServiceInstance.query.get("4321")
+    instance = db.session.get(DedicatedALBServiceInstance, "4321")
     assert not instance.has_active_operations()
     # this will queue an operation
     assert scan_for_expiring_certs.call_local() == ["4321"]
-    instance = DedicatedALBServiceInstance.query.get("4321")
+    instance = db.session.get(DedicatedALBServiceInstance, "4321")
     assert instance.has_active_operations()
     assert scan_for_expiring_certs.call_local() == []
 
@@ -203,7 +203,7 @@ def test_does_not_queue_for_in_progress_actions(
     )
     db.session.add(operation)
     db.session.commit()
-    instance = DedicatedALBServiceInstance.query.get("4321")
+    instance = db.session.get(DedicatedALBServiceInstance, "4321")
     assert instance.has_active_operations()
     assert scan_for_expiring_certs.call_local() == []
 
@@ -222,7 +222,7 @@ def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     iam_govcloud.assert_no_pending_responses()
-    instance = DedicatedALBServiceInstance.query.get("4321")
+    instance = db.session.get(DedicatedALBServiceInstance, "4321")
     assert len(instance.certificates) == 1
 
 
@@ -265,6 +265,6 @@ def test_cleanup_on_failed_challenges(
         tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = DedicatedALBServiceInstance.query.get("4321")
+    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     certificate = service_instance.new_certificate
     assert certificate is None

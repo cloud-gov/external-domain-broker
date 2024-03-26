@@ -75,7 +75,7 @@ def load_albs_from_config():
 
 @huey.retriable_task
 def select_dedicated_alb(operation_id, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Selecting load balancer"
@@ -95,7 +95,7 @@ def select_dedicated_alb(operation_id, **kwargs):
 
 @huey.retriable_task
 def select_alb(operation_id, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Selecting load balancer"
@@ -120,7 +120,7 @@ def select_alb(operation_id, **kwargs):
 
 @huey.retriable_task
 def add_certificate_to_alb(operation_id, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
 
@@ -148,7 +148,7 @@ def add_certificate_to_alb(operation_id, **kwargs):
 
 @huey.retriable_task
 def remove_certificate_from_alb(operation_id, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Removing SSL certificate from load balancer"
@@ -172,7 +172,7 @@ def remove_certificate_from_alb(operation_id, **kwargs):
 
 @huey.retriable_task
 def remove_certificate_from_previous_alb(operation_id, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     remove_certificate = Certificate.query.filter(
         and_(
@@ -205,7 +205,7 @@ def remove_certificate_from_previous_alb(operation_id, **kwargs):
 def remove_certificate_from_previous_alb_during_update_to_dedicated(
     operation_id, **kwargs
 ):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     remove_certificate = service_instance.current_certificate
 

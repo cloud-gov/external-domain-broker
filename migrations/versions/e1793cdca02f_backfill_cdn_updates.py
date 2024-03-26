@@ -10,7 +10,7 @@ import sqlalchemy as sa
 import sqlalchemy_utils
 from sqlalchemy import orm
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 
 # revision identifiers, used by Alembic.

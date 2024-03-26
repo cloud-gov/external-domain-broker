@@ -115,7 +115,7 @@ class API(ServiceBroker):
         :rtype: LastOperation
         """
 
-        instance = ServiceInstance.query.get(instance_id)
+        instance = db.session.get(ServiceInstance, instance_id)
 
         if not instance:
             raise errors.ErrInstanceDoesNotExist
@@ -208,7 +208,7 @@ class API(ServiceBroker):
     ) -> DeprovisionServiceSpec:
         if not async_allowed:
             raise errors.ErrAsyncRequired()
-        instance = ServiceInstance.query.get(instance_id)
+        instance = db.session.get(ServiceInstance, instance_id)
 
         if not instance:
             raise errors.ErrInstanceDoesNotExist
@@ -251,7 +251,7 @@ class API(ServiceBroker):
 
         params = details.parameters or {}
 
-        instance = ServiceInstance.query.get(instance_id)
+        instance = db.session.get(ServiceInstance, instance_id)
 
         if not instance:
             raise errors.ErrBadRequest("Service instance does not exist")

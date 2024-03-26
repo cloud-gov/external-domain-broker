@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 @huey.retriable_task
 def create_TXT_records(operation_id: int, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Updating DNS TXT records"
@@ -53,7 +53,7 @@ def create_TXT_records(operation_id: int, **kwargs):
 
 @huey.nonretriable_task
 def remove_TXT_records(operation_id: int, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Removing DNS TXT records"
@@ -93,7 +93,7 @@ def remove_TXT_records(operation_id: int, **kwargs):
 
 @huey.retriable_task
 def wait_for_changes(operation_id: int, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Waiting for DNS changes"
@@ -121,7 +121,7 @@ def wait_for_changes(operation_id: int, **kwargs):
 
 @huey.retriable_task
 def create_ALIAS_records(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Creating DNS ALIAS records"
@@ -176,7 +176,7 @@ def create_ALIAS_records(operation_id: str, **kwargs):
 
 @huey.nonretriable_task
 def remove_ALIAS_records(operation_id: str, **kwargs):
-    operation = Operation.query.get(operation_id)
+    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     operation.step_description = "Removing DNS ALIAS records"
