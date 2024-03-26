@@ -1,7 +1,5 @@
 Flask-Migrate
-# updating flasksqlalchemy to 3+ hits this bug: https://github.com/pallets-eco/flask-sqlalchemy/issues/1268
-Flask-SQLAlchemy>3
-# flask-sqlalchemy<3 calls apis deprecated in flask 2.3
+Flask-SQLAlchemy
 flask
 sqlalchemy
 # pin acme/pyopenssl until https://github.com/certbot/certbot/issues/9828 is fixed
