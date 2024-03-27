@@ -73,10 +73,13 @@ build_image() {
 }
 
 run_docker() {
+  # the unnamed volume at `/app/venv/` is just to shadow the local
+  # virtual environment. This is a silly hack so ptw will be a bit faster
   docker run \
     --rm \
     -it \
     -v "$PWD:/app" \
+    -v "/app/venv/" \
     "${built_image_name}" \
     "$*"
 }
