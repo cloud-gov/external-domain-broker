@@ -17,3 +17,12 @@ exclude = '''
   | dist
 )
 '''
+
+[tool.pytest-watcher]
+now = true
+clear = true
+delay = 0.2
+runner = "pytest"
+runner_args = ["-Werror", "-vv"]
+patterns = ["broker/*.py", "tests/*.py"]
+ignore_patterns = ["venv/*", ".venv/*"]
