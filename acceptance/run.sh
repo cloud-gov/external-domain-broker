@@ -10,7 +10,7 @@
 # ($DNS_ROOT_DOMAIN is the value the broker is configured with)
 
 DATESTAMP=$(date +"%Y%m%d%H%M%S")
-INSTANCE="edb-test-${DATESTAMP}"
+INSTANCE="edb-test-${PLAN_NAME}-${DATESTAMP}"
 TTL=120
 
 required_vars=(
