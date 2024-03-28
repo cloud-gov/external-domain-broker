@@ -353,7 +353,7 @@ jobs:
   - task: register-broker-dedicated
     file: pipeline-tasks/register-service-broker.yml
     params:
-      <<: *cf-creds-staging
+      <<: *cf-creds-dev
       <<: *broker-register-params-dedicated
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((dev-dedicated-alb-org-names))
