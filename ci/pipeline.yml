@@ -9,6 +9,14 @@ broker-register-params: &broker-register-params
   AUTH_PASS: ((broker-auth-password))
   SERVICES: ((visible-services))
 
+broker-register-params-dedicated: &broker-register-params-dedicated
+  CF_ORGANIZATION: ((broker-organization))
+  CF_SPACE: ((broker-space))
+  BROKER_NAME: ((name))
+  AUTH_USER: ((broker-auth-username))
+  AUTH_PASS: ((broker-auth-password))
+  SERVICES: domain-with-org-lb
+
 cf-creds-dev: &cf-creds-dev
   CF_API_URL: ((dev-cf-api-url))
   CF_USERNAME: ((dev-cf-username))
@@ -135,6 +143,18 @@ cf-manifest-env-production: &cf-manifest-env-production
     SMTP_CERT: ((smtp-cert))
     CDN_LOG_BUCKET: ((production-log-bucket))
 
+acceptance-tests-params-staging-dedicated: &acceptance-tests-params-staging-dedicated
+  PLAN_NAME: "domain-with-org-lb"
+  SERVICE_NAME: "external-domain"
+  DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
+  HOSTED_ZONE_ID_0: ((staging-test-hosted-zone-id-2))
+  TEST_DOMAIN_0: ((staging-test-domain-2))
+  HOSTED_ZONE_ID_1: ((staging-test-hosted-zone-id-3))
+  TEST_DOMAIN_1: ((staging-test-domain-3))
+  AWS_ACCESS_KEY_ID: ((staging-test-user-aws-access-key-id))
+  AWS_SECRET_ACCESS_KEY: ((staging-test-user-aws-secret-access-key))
+  AWS_REGION: ((staging-aws-commercial-region))
+
 acceptance-tests-params-staging-alb: &acceptance-tests-params-staging-alb
   PLAN_NAME: "domain"
   SERVICE_NAME: "external-domain"
@@ -173,6 +193,18 @@ acceptance-tests-params-production-cdn: &acceptance-tests-params-production-cdn
 
 acceptance-tests-params-production-alb: &acceptance-tests-params-production-alb
   PLAN_NAME: "domain"
+  SERVICE_NAME: "external-domain"
+  DNS_ROOT_DOMAIN: ((production-dns-root-domain))
+  AWS_ACCESS_KEY_ID: ((production-test-user-aws-access-key-id))
+  AWS_SECRET_ACCESS_KEY: ((production-test-user-aws-secret-access-key))
+  AWS_REGION: ((production-aws-commercial-region))
+  HOSTED_ZONE_ID_0: ((production-test-hosted-zone-id-2))
+  TEST_DOMAIN_0: ((production-test-domain-2))
+  HOSTED_ZONE_ID_1: ((production-test-hosted-zone-id-3))
+  TEST_DOMAIN_1: ((production-test-domain-3))
+
+acceptance-tests-params-production-dedicated: &acceptance-tests-params-production-dedicated
+  PLAN_NAME: "domain-with-org-lb"
   SERVICE_NAME: "external-domain"
   DNS_ROOT_DOMAIN: ((production-dns-root-domain))
   AWS_ACCESS_KEY_ID: ((production-test-user-aws-access-key-id))
@@ -318,6 +350,13 @@ jobs:
     params:
       <<: *cf-creds-dev
       <<: *broker-register-params
+  - task: register-broker-dedicated
+    file: pipeline-tasks/register-service-broker.yml
+    params:
+      <<: *cf-creds-staging
+      <<: *broker-register-params-dedicated
+      # space-separated list of org names that should have the dedicated alb plan
+      SERVICE_ORGANIZATION: ((dev-dedicated-alb-org-names))
   on_failure:
     put: slack
     params:
@@ -387,6 +426,13 @@ jobs:
     params:
       <<: *cf-creds-staging
       <<: *broker-register-params
+  - task: register-broker-dedicated
+    file: pipeline-tasks/register-service-broker.yml
+    params:
+      <<: *cf-creds-staging
+      <<: *broker-register-params-dedicated
+      # space-separated list of org names that should have the dedicated alb plan
+      SERVICE_ORGANIZATION: ((staging-dedicated-alb-org-names))
   on_failure:
     put: slack
     params:
@@ -435,6 +481,16 @@ jobs:
         params:
           <<: *cf-creds-staging
           <<: *acceptance-tests-params-staging-alb
+        run:
+          path: /app/acceptance/run.sh
+    - task: acceptance-dedicated
+      image: dev-docker-image
+      timeout: 6h
+      config:
+        platform: linux
+        params:
+          <<: *cf-creds-staging
+          <<: *acceptance-tests-params-staging-dedicated
         run:
           path: /app/acceptance/run.sh
   on_failure:
@@ -507,6 +563,13 @@ jobs:
     params:
       <<: *cf-creds-production
       <<: *broker-register-params
+  - task: register-broker-dedicated
+    file: pipeline-tasks/register-service-broker.yml
+    params:
+      <<: *cf-creds-staging
+      <<: *broker-register-params-dedicated
+      # space-separated list of org names that should have the dedicated alb plan
+      SERVICE_ORGANIZATION: ((production-dedicated-alb-org-names))
   on_failure:
     put: slack
     params:
@@ -555,6 +618,16 @@ jobs:
         params:
           <<: *cf-creds-production
           <<: *acceptance-tests-params-production-alb
+        run:
+          path: /app/acceptance/run.sh
+    - task: acceptance-dedicated
+      image: dev-docker-image
+      timeout: 6h
+      config:
+        platform: linux
+        params:
+          <<: *cf-creds-production
+          <<: *acceptance-tests-params-production-dedicated
         run:
           path: /app/acceptance/run.sh
   on_failure:
