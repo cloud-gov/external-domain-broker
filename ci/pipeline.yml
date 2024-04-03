@@ -354,7 +354,7 @@ jobs:
     file: pipeline-tasks/register-service-broker.yml
     params:
       <<: *cf-creds-dev
-      <<: *broker-register-params-dedicated
+      <<: *dedicated-plan-visibility-params
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((dev-dedicated-alb-org-names))
   on_failure:
@@ -430,7 +430,7 @@ jobs:
     file: pipeline-tasks/register-service-broker.yml
     params:
       <<: *cf-creds-staging
-      <<: *broker-register-params-dedicated
+      <<: *dedicated-plan-visibility-params
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((staging-dedicated-alb-org-names))
   on_failure:
@@ -567,7 +567,7 @@ jobs:
     file: pipeline-tasks/register-service-broker.yml
     params:
       <<: *cf-creds-staging
-      <<: *broker-register-params-dedicated
+      <<: *dedicated-plan-visibility-params
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((production-dedicated-alb-org-names))
   on_failure:
