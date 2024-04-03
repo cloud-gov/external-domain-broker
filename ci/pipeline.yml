@@ -9,7 +9,7 @@ broker-register-params: &broker-register-params
   AUTH_PASS: ((broker-auth-password))
   SERVICES: ((visible-services))
 
-dedicated-plan-visibility-params: &broker-register-params-dedicated
+dedicated-plan-visibility-params: &dedicated-plan-visibility-params
   CF_ORGANIZATION: ((broker-organization))
   CF_SPACE: ((broker-space))
   BROKER_NAME: ((name))
