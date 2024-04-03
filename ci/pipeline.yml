@@ -15,7 +15,7 @@ dedicated-plan-visibility-params: &dedicated-plan-visibility-params
   BROKER_NAME: ((name))
   AUTH_USER: ((broker-auth-username))
   AUTH_PASS: ((broker-auth-password))
-  SERVICES: domain-with-org-lb
+  SERVICES: external-domain:domain-with-org-lb
 
 cf-creds-dev: &cf-creds-dev
   CF_API_URL: ((dev-cf-api-url))
@@ -346,15 +346,15 @@ jobs:
         <<: *cf-manifest-vars
         <<: *cf-manifest-env-dev
   - task: register-broker
-    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
+    file: pipeline-tasks/register-service-broker.yml
     params:
       <<: *cf-creds-dev
       <<: *broker-register-params
-  - task: set-plan-visibility-dedicated
-    file: pipeline-tasks/set-plan-visibility.yml
+  - task: register-broker-dedicated
+    file: pipeline-tasks/register-service-broker.yml
     params:
       <<: *cf-creds-dev
-      <<: *dedicated-plan-visibility-params
+      <<: *broker-register-params-dedicated
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((dev-dedicated-alb-org-names))
   on_failure:
@@ -422,15 +422,15 @@ jobs:
         <<: *cf-manifest-vars
         <<: *cf-manifest-env-staging
   - task: register-broker
-    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
+    file: pipeline-tasks/register-service-broker.yml
     params:
       <<: *cf-creds-staging
       <<: *broker-register-params
-  - task: set-plan-visibility-dedicated
-    file: pipeline-tasks/set-plan-visibility.yml
+  - task: register-broker-dedicated
+    file: pipeline-tasks/register-service-broker.yml
     params:
       <<: *cf-creds-staging
-      <<: *dedicated-plan-visibility-params
+      <<: *broker-register-params-dedicated
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((staging-dedicated-alb-org-names))
   on_failure:
@@ -559,15 +559,15 @@ jobs:
         <<: *cf-manifest-vars
         <<: *cf-manifest-env-production
   - task: register-broker
-    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
+    file: pipeline-tasks/register-service-broker.yml
     params:
       <<: *cf-creds-production
       <<: *broker-register-params
-  - task: set-plan-visibility-dedicated
-    file: pipeline-tasks/set-plan-visibility.yml
+  - task: register-broker-dedicated
+    file: pipeline-tasks/register-service-broker.yml
     params:
       <<: *cf-creds-staging
-      <<: *dedicated-plan-visibility-params
+      <<: *broker-register-params-dedicated
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((production-dedicated-alb-org-names))
   on_failure:
