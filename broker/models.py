@@ -128,7 +128,7 @@ class ServiceInstance(Base):
         return False
 
     def can_update_to_type(self, new_type) -> bool:
-        return type(self) == new_type or new_type in self.update_targets()
+        return type(self) is new_type or new_type in self.update_targets()
 
     @classmethod
     def update_targets(self) -> List[type]:
@@ -278,7 +278,7 @@ def change_instance_type(
     """
     Convert `service_instance` to `new_type` and return the converted instance
     """
-    if type(service_instance) == new_type:
+    if type(service_instance) is new_type:
         return service_instance
     if not service_instance.can_update_to_type(new_type):
         raise NotImplementedError()

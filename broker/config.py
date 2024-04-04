@@ -1,6 +1,5 @@
 """Flask config class."""
 
-import os
 import re
 from typing import Type
 

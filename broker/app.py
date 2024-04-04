@@ -55,7 +55,7 @@ def create_app():
         return (to_json_response(response), HTTPStatus.INTERNAL_SERVER_ERROR)
 
     @app.errorhandler(ClientError)
-    def handle_not_implemented(e):
+    def handle_not_implementedClientError(e):
         logger.exception(e)
         return (
             to_json_response(ErrorResponse(description=str(e))),

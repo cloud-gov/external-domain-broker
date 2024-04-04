@@ -18,7 +18,7 @@ def cancel_canceled_operations(task):
         try:
             # big assumption here: the first arg will always be the operation id.
             op = db.session.get(Operation, args[0])
-        except:
+        except:  # noqa E722
             return
         finally:
             db.session.close()

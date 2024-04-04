@@ -67,8 +67,6 @@ def create_distribution(operation_id: int, **kwargs):
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
 
-    domains = service_instance.domain_names
-
     operation.step_description = "Creating CloudFront distribution"
     flag_modified(operation, "step_description")
     db.session.add(operation)

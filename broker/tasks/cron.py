@@ -3,8 +3,8 @@ import logging
 
 from huey import crontab
 
-from broker.extensions import config, db
-from broker.models import Certificate, ServiceInstance, Operation
+from broker.extensions import db
+from broker.models import Certificate, Operation
 from broker.tasks import huey
 from broker.tasks.pipelines import (
     queue_all_alb_deprovision_tasks_for_operation,

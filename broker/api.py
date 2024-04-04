@@ -20,8 +20,6 @@ from openbrokerapi.service_broker import (
     UpdateDetails,
     UpdateServiceSpec,
 )
-from openbrokerapi.helper import to_json_response
-from openbrokerapi.response import ErrorResponse
 from sap import cf_logging
 
 
@@ -243,7 +241,7 @@ class API(ServiceBroker):
 
         return DeprovisionServiceSpec(is_async=True, operation=str(operation.id))
 
-    def update(
+    def update(  # noqa C901 # TODO: simplify this function
         self, instance_id: str, details: UpdateDetails, async_allowed: bool, **kwargs
     ) -> UpdateServiceSpec:
         if not async_allowed:
@@ -459,7 +457,6 @@ def parse_domain_options(params):
 
 def provision_cdn_instance(instance_id: str, domain_names: list, params: dict):
     instance = CDNServiceInstance(id=instance_id, domain_names=domain_names)
-    queue = queue_all_cdn_provision_tasks_for_operation
     instance.cloudfront_origin_hostname = params.get(
         "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
     )
@@ -507,7 +504,7 @@ def validate_migration_to_cdn_params(params):
     for param in required:
         # since this should only be hit by another app, it seems
         # fair and smart to require all params
-        if not param in params:
+        if param not in params:
             raise ClientError(f"Missing parameter {param}")
 
 
@@ -524,7 +521,7 @@ def validate_migration_to_alb_params(params):
     for param in required:
         # since this should only be hit by another app, it seems
         # fair and smart to require all params
-        if not param in params:
+        if param not in params:
             raise ClientError(f"Missing parameter {param}")
 
 
