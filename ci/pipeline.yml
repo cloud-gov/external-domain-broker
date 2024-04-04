@@ -346,12 +346,12 @@ jobs:
         <<: *cf-manifest-vars
         <<: *cf-manifest-env-dev
   - task: register-broker
-    file: pipeline-tasks/register-service-broker.yml
+    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
       <<: *cf-creds-dev
       <<: *broker-register-params
   - task: register-broker-dedicated
-    file: pipeline-tasks/register-service-broker.yml
+    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
       <<: *cf-creds-dev
       <<: *dedicated-plan-visibility-params
@@ -422,12 +422,12 @@ jobs:
         <<: *cf-manifest-vars
         <<: *cf-manifest-env-staging
   - task: register-broker
-    file: pipeline-tasks/register-service-broker.yml
+    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
       <<: *cf-creds-staging
       <<: *broker-register-params
   - task: register-broker-dedicated
-    file: pipeline-tasks/register-service-broker.yml
+    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
       <<: *cf-creds-staging
       <<: *dedicated-plan-visibility-params
@@ -559,12 +559,12 @@ jobs:
         <<: *cf-manifest-vars
         <<: *cf-manifest-env-production
   - task: register-broker
-    file: pipeline-tasks/register-service-broker.yml
+    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
       <<: *cf-creds-production
       <<: *broker-register-params
   - task: register-broker-dedicated
-    file: pipeline-tasks/register-service-broker.yml
+    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
       <<: *cf-creds-staging
       <<: *dedicated-plan-visibility-params
