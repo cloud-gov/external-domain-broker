@@ -84,7 +84,7 @@ def remove_TXT_records(operation_id: int, **kwargs):
                     },
                     HostedZoneId=config.ROUTE53_ZONE_ID,
                 )
-            except:
+            except:  # noqa E722
                 logger.info("Ignoring error because we don't care")
             else:
                 change_id = route53_response["ChangeInfo"]["Id"]
@@ -222,7 +222,7 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
                 },
                 HostedZoneId=config.ROUTE53_ZONE_ID,
             )
-        except:
+        except:  # noqa E722
             logger.info("Ignoring error because we don't care")
         else:
             change_id = route53_response["ChangeInfo"]["Id"]

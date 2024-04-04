@@ -8,7 +8,6 @@ from sqlalchemy.dialects.postgresql import insert
 from broker.aws import alb
 from broker.extensions import config, db
 from broker.models import (
-    ALBServiceInstance,
     DedicatedALBListener,
     Certificate,
     Operation,
@@ -47,7 +46,8 @@ def get_lowest_dedicated_alb(service_instance, db):
     ).all()
     if len(potential_listeners) == 0:
         potential_listeners = DedicatedALBListener.query.filter(
-            DedicatedALBListener.dedicated_org == None
+            DedicatedALBListener.dedicated_org
+            == None  # noqa E711 # == None is what sqlalchemy wants, despite flake8's complaints
         ).all()
     arns = [listener.listener_arn for listener in potential_listeners]
     arns.sort()  # this just makes testing easier

@@ -1,5 +1,4 @@
 import boto3
-import botocore
 
 from broker.extensions import config
 
