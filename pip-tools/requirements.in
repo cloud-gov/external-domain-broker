@@ -2,15 +2,11 @@ Flask-Migrate
 Flask-SQLAlchemy>3
 flask
 sqlalchemy
-# pin acme/pyopenssl until https://github.com/certbot/certbot/issues/9828 is fixed
-acme<2
-pyopenssl<23.3.0
+acme
 boto3
 cfenv
-cryptography>=3.3.2
 dnspython
 environs
-jinja2>=2.11.3
 openbrokerapi
 gunicorn
 huey
