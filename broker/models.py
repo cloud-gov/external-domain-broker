@@ -2,6 +2,7 @@ from enum import Enum
 from sqlalchemy.dialects import postgresql
 import sqlalchemy as sa
 from sqlalchemy.orm import mapped_column
+from sqlalchemy.dialects.postgresql import insert
 
 from typing import List
 
@@ -270,6 +271,15 @@ class DedicatedALBListener(Base):
     listener_arn = mapped_column(db.String, nullable=False, unique=True)
     alb_arn = mapped_column(db.String, nullable=True)
     dedicated_org = mapped_column(db.String, nullable=True)
+
+    @classmethod
+    def load_albs(cls, listener_arns: list[str]):
+        if listener_arns:
+            stmt = insert(DedicatedALBListener).values(
+                [dict(listener_arn=arn) for arn in listener_arns]
+            )
+            stmt = stmt.on_conflict_do_nothing(index_elements=["listener_arn"])
+            db.session.execute(stmt)
 
 
 def change_instance_type(
