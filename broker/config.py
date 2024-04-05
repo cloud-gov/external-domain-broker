@@ -242,6 +242,7 @@ class TestConfig(DockerConfig):
         # if you need to see what sqlalchemy is doing
         # self.SQLALCHEMY_ECHO = True
         self.IAM_CERTIFICATE_PROPAGATION_TIME = 0
+        self.DEDICATED_ALB_LISTENER_ARNS = []
 
 
 class MissingRedisError(RuntimeError):

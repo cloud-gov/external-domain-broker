@@ -1,7 +1,6 @@
 import pytest
 
 from broker.models import DedicatedALBListener
-from broker.tasks.alb import load_albs
 
 
 def test_server_runs(client):
@@ -13,7 +12,7 @@ def test_server_runs(client):
 def test_load_albs_on_startup(clean_db):
     listeners = DedicatedALBListener.query.all()
     assert len(listeners) == 0
-    load_albs(["arn-1", "arn-2", "arn-3"])
+    DedicatedALBListener.load_albs(["arn-1", "arn-2", "arn-3"])
     listeners = DedicatedALBListener.query.all()
     assert len(listeners) == 3
 
@@ -21,7 +20,7 @@ def test_load_albs_on_startup(clean_db):
 def test_load_albs_on_startup_doesnt_modify_assigned_instances(clean_db):
     listeners = DedicatedALBListener.query.all()
     assert len(listeners) == 0
-    load_albs(["arn-1", "arn-2"])
+    DedicatedALBListener.load_albs(["arn-1", "arn-2"])
     listeners = DedicatedALBListener.query.all()
     assert len(listeners) == 2
     dedicated_listener = DedicatedALBListener.query.filter(
@@ -32,7 +31,7 @@ def test_load_albs_on_startup_doesnt_modify_assigned_instances(clean_db):
     clean_db.session.commit()
     clean_db.session.expunge_all()
 
-    load_albs(["arn-1", "arn-2", "arn-3"])
+    DedicatedALBListener.load_albs(["arn-1", "arn-2", "arn-3"])
     listeners = DedicatedALBListener.query.all()
     assert len(listeners) == 3
     dedicated_listener = DedicatedALBListener.query.filter(

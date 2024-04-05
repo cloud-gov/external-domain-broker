@@ -3,7 +3,7 @@ import time
 
 from sqlalchemy import and_
 from sqlalchemy.orm.attributes import flag_modified
-from sqlalchemy.dialects.postgresql import insert
+
 
 from broker.aws import alb
 from broker.extensions import config, db
@@ -29,14 +29,6 @@ def get_lowest_used_alb(listener_arns):
     listener_data = alb.describe_listeners(ListenerArns=[selected_arn])
     listener_data = listener_data["Listeners"][0]
     return listener_data["LoadBalancerArn"], listener_data["ListenerArn"]
-
-
-def load_albs(dedicated_listener_arns):
-    stmt = insert(DedicatedALBListener).values(
-        [dict(listener_arn=arn) for arn in dedicated_listener_arns]
-    )
-    stmt = stmt.on_conflict_do_nothing(index_elements=["listener_arn"])
-    db.session.execute(stmt)
 
 
 def get_lowest_dedicated_alb(service_instance, db):
@@ -66,11 +58,6 @@ def get_lowest_dedicated_alb(service_instance, db):
     db.session.add(service_instance)
     db.session.add(selected_listener)
     db.session.commit()
-
-
-@huey.nonretriable_task
-def load_albs_from_config():
-    load_albs(config.DEDICATED_ALB_LISTENER_ARNS)
 
 
 @huey.retriable_task

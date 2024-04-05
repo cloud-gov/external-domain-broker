@@ -6,7 +6,7 @@ from huey import RedisHuey, signals
 
 from sap import cf_logging
 from broker.extensions import config, db
-from broker.models import Operation
+from broker.models import Operation, DedicatedALBListener
 from broker.smtp import send_failed_operation_alert
 
 logger = logging.getLogger(__name__)
@@ -46,6 +46,7 @@ def create_app():
     app.config.from_object(config)
     huey.flask_app = app
     db.init_app(app)
+    DedicatedALBListener.load_albs(config.DEDICATED_ALB_LISTENER_ARNS)
 
 
 @huey.on_startup()
