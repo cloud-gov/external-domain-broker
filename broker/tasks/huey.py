@@ -40,16 +40,21 @@ retriable_task = huey.context_task(
 )
 
 
-@huey.on_startup()
+@huey.on_startup(name="get_flask")
 def create_app():
     app = Flask(__name__)
     app.config.from_object(config)
     huey.flask_app = app
     db.init_app(app)
-    DedicatedALBListener.load_albs(config.DEDICATED_ALB_LISTENER_ARNS)
 
 
-@huey.on_startup()
+@huey.on_startup(name="load_albs")
+def load_albs():
+    with huey.flask_app.app_context():
+        DedicatedALBListener.load_albs(config.DEDICATED_ALB_LISTENER_ARNS)
+
+
+@huey.on_startup(name="logging")
 def initialize_logging():
     cf_logging.init()
 
