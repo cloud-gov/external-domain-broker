@@ -1,18 +1,22 @@
 from enum import Enum
+from typing import List
+import logging
+
+
 from sqlalchemy.dialects import postgresql
 import sqlalchemy as sa
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.dialects.postgresql import insert
-
-from typing import List
-
-from openbrokerapi.service_broker import OperationState
 from sqlalchemy_utils.types.encrypted.encrypted_type import (
     AesGcmEngine,
     StringEncryptedType,
 )
+from openbrokerapi.service_broker import OperationState
 
 from broker.extensions import config, db
+
+
+logger = logging.getLogger(__name__)
 
 
 def db_encryption_key():
@@ -274,7 +278,9 @@ class DedicatedALBListener(Base):
 
     @classmethod
     def load_albs(cls, listener_arns: list[str]):
+        logger.info(f"Starting load_albs with {listener_arns}")
         if listener_arns:
+            logger.info(f"Loading dedicated albs {listener_arns}")
             stmt = insert(DedicatedALBListener).values(
                 [dict(listener_arn=arn) for arn in listener_arns]
             )
