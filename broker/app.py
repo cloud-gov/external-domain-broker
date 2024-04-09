@@ -29,6 +29,7 @@ def create_app():
 
     db.init_app(app)
     migrate.init_app(app, db)
+    models.DedicatedALBListener.load_albs(config.DEDICATED_ALB_LISTENER_ARNS)
 
     credentials = openbrokerapi.BrokerCredentials(
         app.config["BROKER_USERNAME"], app.config["BROKER_PASSWORD"]
