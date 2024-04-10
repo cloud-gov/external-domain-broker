@@ -286,6 +286,7 @@ class DedicatedALBListener(Base):
             )
             stmt = stmt.on_conflict_do_nothing(index_elements=["listener_arn"])
             db.session.execute(stmt)
+            db.session.commit()
 
 
 def change_instance_type(
