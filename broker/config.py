@@ -149,6 +149,7 @@ class UpgradeSchemaConfig(Config):
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = "NONE"
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
         self.ALB_LISTENER_ARNS = []
+        self.DEDICATED_ALB_LISTENER_ARNS = []
 
 
 class CheckDuplicateCertsConfig(UpgradeSchemaConfig):
