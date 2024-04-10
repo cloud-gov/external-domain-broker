@@ -3,8 +3,8 @@ import logging
 
 from huey import crontab
 
-from broker.extensions import db
-from broker.models import Certificate, Operation
+from broker.extensions import db, config
+from broker.models import Certificate, Operation, DedicatedALBListener
 from broker.tasks import huey
 from broker.tasks.pipelines import (
     queue_all_alb_deprovision_tasks_for_operation,
@@ -75,6 +75,12 @@ def restart_stalled_pipelines():
     with huey.huey.flask_app.app_context():
         for operation in scan_for_stalled_pipelines():
             reschedule_operation(operation)
+
+
+@huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="*"))
+def load_albs():
+    with huey.huey.flask_app.app_context():
+        DedicatedALBListener.load_albs(config.DEDICATED_ALB_LISTENER_ARNS)
 
 
 def scan_for_stalled_pipelines():
