@@ -66,6 +66,7 @@ class API(ServiceBroker):
             name="external-domain",
             description="Assign a custom domain to your application with TLS and an optional CDN.",
             bindable=False,
+            plan_updateable=True,
             metadata=ServiceMetadata(
                 displayName="AWS ALB (or CloudFront CDN) with SSL for custom domains",
                 imageUrl="TODO",
