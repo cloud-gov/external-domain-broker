@@ -55,7 +55,7 @@ gunicorn==21.2.0
     # via -r pip-tools/requirements.in
 huey==2.5.0
     # via -r pip-tools/requirements.in
-idna==3.6
+idna==3.7
     # via requests
 itsdangerous==2.1.2
     # via flask
