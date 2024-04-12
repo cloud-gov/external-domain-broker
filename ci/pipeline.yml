@@ -566,7 +566,7 @@ jobs:
   - task: register-broker-dedicated
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-staging
+      <<: *cf-creds-production
       <<: *dedicated-plan-visibility-params
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((production-dedicated-alb-org-names))
