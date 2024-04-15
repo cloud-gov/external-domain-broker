@@ -33,12 +33,20 @@ class Config:
         self.cfenv = AppEnv()
         self.FLASK_ENV = self.env("FLASK_ENV")
         self.TMPDIR = self.env("TMPDIR", "/app/tmp/")
-        self.DNS_PROPAGATION_SLEEP_TIME = self.env("DNS_PROPAGATION_SLEEP_TIME", "300")
+        # how long we wait for DNS before trying an acme challenge
+        self.DNS_PROPAGATION_SLEEP_TIME = self.env.int(
+            "DNS_PROPAGATION_SLEEP_TIME", 300
+        )
+        # how long we wait between updating DNS to point to a new ALB and removing the
+        # certificate from an old ALB
+        self.ALB_OVERLAP_SLEEP_TIME = self.env.int("ALB_OVERLAP_SLEEP_TIME", 900)
         self.CLOUDFRONT_PROPAGATION_SLEEP_TIME = 60  # Seconds
         self.SQLALCHEMY_TRACK_MODIFICATIONS = False
         self.TESTING = True
         self.DEBUG = True
-        self.ACME_POLL_TIMEOUT_IN_SECONDS = self.env("ACME_POLL_TIMEOUT_IN_SECONDS", 90)
+        self.ACME_POLL_TIMEOUT_IN_SECONDS = self.env.int(
+            "ACME_POLL_TIMEOUT_IN_SECONDS", 90
+        )
         self.AWS_POLL_WAIT_TIME_IN_SECONDS = 60
         self.AWS_POLL_MAX_ATTEMPTS = 10
         self.IGNORE_DUPLICATE_DOMAINS = self.env.bool("IGNORE_DUPLICATE_DOMAINS", False)
@@ -236,6 +244,7 @@ class TestConfig(DockerConfig):
     def __init__(self):
         super().__init__()
         self.DNS_PROPAGATION_SLEEP_TIME = 0
+        self.ALB_OVERLAP_SLEEP_TIME = 0
         self.CLOUDFRONT_PROPAGATION_SLEEP_TIME = 0
         self.ACME_POLL_TIMEOUT_IN_SECONDS = 10
         self.AWS_POLL_WAIT_TIME_IN_SECONDS = 1

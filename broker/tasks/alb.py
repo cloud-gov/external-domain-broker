@@ -174,7 +174,7 @@ def remove_certificate_from_previous_alb(operation_id, **kwargs):
     db.session.commit()
 
     if service_instance.previous_alb_listener_arn is not None:
-        time.sleep(int(config.DNS_PROPAGATION_SLEEP_TIME))
+        time.sleep(config.ALB_OVERLAP_SLEEP_TIME)
         alb.remove_listener_certificates(
             ListenerArn=service_instance.previous_alb_listener_arn,
             Certificates=[
@@ -202,7 +202,7 @@ def remove_certificate_from_previous_alb_during_update_to_dedicated(
     db.session.commit()
 
     if service_instance.previous_alb_listener_arn is not None:
-        time.sleep(int(config.DNS_PROPAGATION_SLEEP_TIME))
+        time.sleep(config.ALB_OVERLAP_SLEEP_TIME)
         alb.remove_listener_certificates(
             ListenerArn=service_instance.previous_alb_listener_arn,
             Certificates=[

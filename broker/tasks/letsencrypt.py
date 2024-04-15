@@ -207,7 +207,7 @@ def answer_challenges(operation_id: int, **kwargs):
     if not unanswered:
         return
 
-    time.sleep(int(config.DNS_PROPAGATION_SLEEP_TIME))
+    time.sleep(config.DNS_PROPAGATION_SLEEP_TIME)
 
     account_key = serialization.load_pem_private_key(
         acme_user.private_key_pem.encode(), password=None, backend=default_backend()

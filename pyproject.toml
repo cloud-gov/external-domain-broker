@@ -23,11 +23,12 @@ now = true
 clear = true
 delay = 0.2
 runner = "pytest"
-runner_args = ["-Werror", "-vv"]
+runner_args = []
 patterns = ["broker/*.py", "tests/*.py"]
 ignore_patterns = ["venv/*", ".venv/*"]
 
 [tool.pytest.ini_options]
+addopts = ["-vv"]
 filterwarnings = [
   'error',
   'ignore:X509Extension support in pyOpenSSL is deprecated. You should use the APIs in cryptography.:DeprecationWarning'
