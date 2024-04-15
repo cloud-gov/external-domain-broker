@@ -11,7 +11,7 @@ if [[ "$#" -ge 1 ]] && [[ "$1" == "watch" ]]; then
   shift
   ptw .
 else
-  python -m pytest -vv "$@"
+  python -m pytest "$@"
 fi
 
 ./docker/stop-servers.sh
