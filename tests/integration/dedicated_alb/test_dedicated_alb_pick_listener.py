@@ -109,7 +109,7 @@ def test_adds_new_alb_when_assigned_is_near_full(clean_db, alb, service_instance
         [our_listener_0, available_listener_0, other_listener_0, other_listener_1]
     )
     clean_db.session.commit()
-    for i in range(17):
+    for i in range(19):
         instance = factories.DedicatedALBServiceInstanceFactory.create(
             domain_names=[f"random{i}.example.com"], alb_listener_arn="our-arn-0"
         )

@@ -54,8 +54,8 @@ class Config:
         # https://docs.aws.amazon.com/Route53/latest/APIReference/API_AliasTarget.html
         self.CLOUDFRONT_HOSTED_ZONE_ID = "Z2FDTNDATAQYW2"
 
-        # the maximum from AWS is 20, and we alert when we have 18 on a given alb
-        self.MAX_CERTS_PER_ALB = 17
+        # the maximum from AWS is 25, and we alert when we have 20 on a given alb
+        self.MAX_CERTS_PER_ALB = 19
 
 
 class AppConfig(Config):
