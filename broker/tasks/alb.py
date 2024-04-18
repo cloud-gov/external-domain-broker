@@ -1,7 +1,7 @@
 import logging
 import time
 
-from sqlalchemy import and_
+from sqlalchemy import and_, select, func, null
 from sqlalchemy.orm.attributes import flag_modified
 
 
@@ -9,6 +9,7 @@ from broker.aws import alb
 from broker.extensions import config, db
 from broker.models import (
     DedicatedALBListener,
+    DedicatedALBServiceInstance,
     Certificate,
     Operation,
 )
@@ -17,7 +18,9 @@ from broker.tasks import huey
 logger = logging.getLogger(__name__)
 
 
-def get_lowest_used_alb(listener_arns):
+def get_lowest_used_alb(listener_arns) -> tuple[str, str]:
+    # given a list of listener arns, find the listener with the least certificates associated
+    # return a tuple of the load balancer arn and listener arn
     https_listeners = []
     for listener_arn in listener_arns:
         certificates = alb.describe_listener_certificates(ListenerArn=listener_arn)
@@ -25,22 +28,44 @@ def get_lowest_used_alb(listener_arns):
             dict(listener_arn=listener_arn, certificates=certificates["Certificates"])
         )
     https_listeners.sort(key=lambda x: len(x["certificates"]))
-    selected_arn = https_listeners[0]["listener_arn"]
+    selected_listener = https_listeners[0]
+    selected_arn = selected_listener["listener_arn"]
     listener_data = alb.describe_listeners(ListenerArns=[selected_arn])
     listener_data = listener_data["Listeners"][0]
     return listener_data["LoadBalancerArn"], listener_data["ListenerArn"]
 
 
 def get_lowest_dedicated_alb(service_instance, db):
-    # TODO: handle grabbing the next available ALB when ours are full, or nearly so
-    potential_listeners = DedicatedALBListener.query.filter(
-        DedicatedALBListener.dedicated_org == service_instance.org_id
+    # n.b. we're counting on our db count here
+    # and elsewhere we rely on AWS's count.
+    potential_listener_ids = db.session.execute(
+        select(
+            DedicatedALBListener.id,
+            func.count(DedicatedALBServiceInstance.id).label("count"),
+        )
+        .join_from(
+            DedicatedALBListener,
+            DedicatedALBServiceInstance,
+            DedicatedALBListener.listener_arn
+            == DedicatedALBServiceInstance.alb_listener_arn,
+            isouter=True,
+        )
+        .where(DedicatedALBListener.dedicated_org == service_instance.org_id)
+        .where(DedicatedALBServiceInstance.deactivated_at == null())
+        .group_by(DedicatedALBListener.id)
+        .having(func.count(DedicatedALBServiceInstance.id) < config.MAX_CERTS_PER_ALB)
     ).all()
-    if len(potential_listeners) == 0:
+
+    if potential_listener_ids:
+        potential_listeners = [
+            db.session.get(DedicatedALBListener, listener_id[0])
+            for listener_id in potential_listener_ids
+        ]
+    else:
         potential_listeners = DedicatedALBListener.query.filter(
-            DedicatedALBListener.dedicated_org
-            == None  # noqa E711 # == None is what sqlalchemy wants, despite flake8's complaints
+            DedicatedALBListener.dedicated_org == null()
         ).all()
+
     arns = [listener.listener_arn for listener in potential_listeners]
     arns.sort()  # this just makes testing easier
     alb_arn, alb_listener_arn = get_lowest_used_alb(arns)
