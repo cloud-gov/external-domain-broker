@@ -245,3 +245,10 @@ def test_config_sets_ignore_duplicates_false_by_default(env, monkeypatch, mocked
     config = config_from_env()
 
     assert config.IGNORE_DUPLICATE_DOMAINS
+
+
+@pytest.mark.parametrize("env", ["production", "staging", "development"])
+def test_config_provides_max_alb_uses(env, monkeypatch, mocked_env):
+    config = config_from_env()
+
+    assert isinstance(config.MAX_CERTS_PER_ALB, int)

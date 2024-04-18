@@ -53,7 +53,7 @@ def get_lowest_dedicated_alb(service_instance, db):
         .where(DedicatedALBListener.dedicated_org == service_instance.org_id)
         .where(DedicatedALBServiceInstance.deactivated_at == null())
         .group_by(DedicatedALBListener.id)
-        .having(func.count(DedicatedALBServiceInstance.id) < 17)
+        .having(func.count(DedicatedALBServiceInstance.id) < config.MAX_CERTS_PER_ALB)
     ).all()
 
     if potential_listener_ids:
