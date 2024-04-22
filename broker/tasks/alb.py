@@ -60,9 +60,7 @@ def get_lowest_dedicated_alb(service_instance, db):
         .group_by(DedicatedALBListener.id)
         .having(func.count(instance_subquery.id) < config.MAX_CERTS_PER_ALB)
     )
-    print(query)
     potential_listener_ids = db.session.execute(query).all()
-    print(potential_listener_ids)
 
     if len(potential_listener_ids) > 0:
         potential_listeners = [
