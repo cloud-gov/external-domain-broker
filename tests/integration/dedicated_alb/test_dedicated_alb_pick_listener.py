@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 
 from broker.models import DedicatedALBListener, DedicatedALBServiceInstance
@@ -44,12 +46,21 @@ def test_selects_existing_dedicated_alb(clean_db, alb, service_instance):
             other_listener_1,
         ]
     )
+    for i in range(16):
+        instance = factories.DedicatedALBServiceInstanceFactory.create(
+            domain_names=[f"random{i}.example.com"], alb_listener_arn="our-arn-0"
+        )
+    for i in range(17):
+        instance = factories.DedicatedALBServiceInstanceFactory.create(
+            domain_names=[f"random{i}.example.com"], alb_listener_arn="our-arn-1"
+        )
+        clean_db.session.add(instance)
     clean_db.session.commit()
 
     clean_db.session.expunge_all()
     service_instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
-    alb.expect_get_certificates_for_listener("our-arn-0", 1)
-    alb.expect_get_certificates_for_listener("our-arn-1", 5)
+    alb.expect_get_certificates_for_listener("our-arn-0", 16)
+    alb.expect_get_certificates_for_listener("our-arn-1", 17)
     alb.expect_get_listeners("our-arn-0")
     get_lowest_dedicated_alb(service_instance, clean_db)
     alb.assert_no_pending_responses()
@@ -131,3 +142,36 @@ def test_adds_new_alb_when_assigned_is_near_full(clean_db, alb, service_instance
     assert service_instance.alb_arn.startswith("alb-available-arn-0")
     assert listener.dedicated_org == "our-org"
     assert listener.alb_arn.startswith("alb-available-arn-0")
+
+
+def test_selects_existing_dedicated_alb_when_it_has_deactivated_instances(
+    clean_db, alb, service_instance
+):
+    # this tests a bug where the filter clause on our join caused the query not to return listeners with only deactivated instances
+    our_listener_0 = DedicatedALBListener(
+        listener_arn="our-arn-0", dedicated_org="our-org"
+    )
+
+    clean_db.session.add_all(
+        [
+            our_listener_0,
+        ]
+    )
+    instance = factories.DedicatedALBServiceInstanceFactory.create(
+        domain_names=[f"random.example.com"],
+        alb_listener_arn="our-arn-0",
+        deactivated_at=datetime.datetime.now(),
+    )
+    clean_db.session.add(instance)
+    clean_db.session.commit()
+
+    clean_db.session.expunge_all()
+    service_instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
+    alb.expect_get_certificates_for_listener("our-arn-0", 0)
+    alb.expect_get_listeners("our-arn-0")
+    get_lowest_dedicated_alb(service_instance, clean_db)
+    alb.assert_no_pending_responses()
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
+    assert service_instance.alb_arn.startswith("alb-our-arn-0")

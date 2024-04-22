@@ -2,6 +2,7 @@ import logging
 import time
 
 from sqlalchemy import and_, select, func, null
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm.attributes import flag_modified
 
 
@@ -38,25 +39,32 @@ def get_lowest_used_alb(listener_arns) -> tuple[str, str]:
 def get_lowest_dedicated_alb(service_instance, db):
     # n.b. we're counting on our db count here
     # and elsewhere we rely on AWS's count.
-    potential_listener_ids = db.session.execute(
+    active_instances = (
+        select(DedicatedALBServiceInstance)
+        .where(DedicatedALBServiceInstance.deactivated_at == null())
+        .subquery()
+    )
+    instance_subquery = aliased(DedicatedALBServiceInstance, active_instances)
+    query = (
         select(
             DedicatedALBListener.id,
-            func.count(DedicatedALBServiceInstance.id).label("count"),
+            func.count(instance_subquery.id).label("count"),
         )
         .join_from(
             DedicatedALBListener,
-            DedicatedALBServiceInstance,
-            DedicatedALBListener.listener_arn
-            == DedicatedALBServiceInstance.alb_listener_arn,
+            instance_subquery,
+            DedicatedALBListener.listener_arn == instance_subquery.alb_listener_arn,
             isouter=True,
         )
         .where(DedicatedALBListener.dedicated_org == service_instance.org_id)
-        .where(DedicatedALBServiceInstance.deactivated_at == null())
         .group_by(DedicatedALBListener.id)
-        .having(func.count(DedicatedALBServiceInstance.id) < config.MAX_CERTS_PER_ALB)
-    ).all()
+        .having(func.count(instance_subquery.id) < config.MAX_CERTS_PER_ALB)
+    )
+    print(query)
+    potential_listener_ids = db.session.execute(query).all()
+    print(potential_listener_ids)
 
-    if potential_listener_ids:
+    if len(potential_listener_ids) > 0:
         potential_listeners = [
             db.session.get(DedicatedALBListener, listener_id[0])
             for listener_id in potential_listener_ids
