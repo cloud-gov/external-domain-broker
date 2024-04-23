@@ -144,6 +144,11 @@ cf-manifest-env-production: &cf-manifest-env-production
     CDN_LOG_BUCKET: ((production-log-bucket))
 
 acceptance-tests-params-staging-dedicated: &acceptance-tests-params-staging-dedicated
+  CF_API_URL: ((staging-cf-api-url))
+  CF_USERNAME: ((staging-cf-username))
+  CF_PASSWORD: ((staging-cf-password))
+  CF_ORGANIZATION: ((acceptance-tests-organization))
+  CF_SPACE: ((acceptance-tests-space))
   PLAN_NAME: "domain-with-org-lb"
   SERVICE_NAME: "external-domain"
   DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
@@ -156,6 +161,11 @@ acceptance-tests-params-staging-dedicated: &acceptance-tests-params-staging-dedi
   AWS_REGION: ((staging-aws-commercial-region))
 
 acceptance-tests-params-staging-alb: &acceptance-tests-params-staging-alb
+  CF_API_URL: ((staging-cf-api-url))
+  CF_USERNAME: ((staging-cf-username))
+  CF_PASSWORD: ((staging-cf-password))
+  CF_ORGANIZATION: ((acceptance-tests-organization))
+  CF_SPACE: ((acceptance-tests-space))
   PLAN_NAME: "domain"
   SERVICE_NAME: "external-domain"
   DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
@@ -168,6 +178,11 @@ acceptance-tests-params-staging-alb: &acceptance-tests-params-staging-alb
   AWS_REGION: ((staging-aws-commercial-region))
 
 acceptance-tests-params-staging-cdn: &acceptance-tests-params-staging-cdn
+  CF_API_URL: ((staging-cf-api-url))
+  CF_USERNAME: ((staging-cf-username))
+  CF_PASSWORD: ((staging-cf-password))
+  CF_ORGANIZATION: ((acceptance-tests-organization))
+  CF_SPACE: ((acceptance-tests-space))
   PLAN_NAME: "domain-with-cdn"
   SERVICE_NAME: "external-domain"
   DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
@@ -180,6 +195,11 @@ acceptance-tests-params-staging-cdn: &acceptance-tests-params-staging-cdn
   AWS_REGION: ((staging-aws-commercial-region))
 
 acceptance-tests-params-production-cdn: &acceptance-tests-params-production-cdn
+  CF_API_URL: ((production-cf-api-url))
+  CF_USERNAME: ((production-cf-username))
+  CF_PASSWORD: ((production-cf-password))
+  CF_ORGANIZATION: ((acceptance-tests-organization))
+  CF_SPACE: ((acceptance-tests-space))
   PLAN_NAME: "domain-with-cdn"
   SERVICE_NAME: "external-domain"
   DNS_ROOT_DOMAIN: ((production-dns-root-domain))
@@ -192,6 +212,11 @@ acceptance-tests-params-production-cdn: &acceptance-tests-params-production-cdn
   TEST_DOMAIN_1: ((production-test-domain-1))
 
 acceptance-tests-params-production-alb: &acceptance-tests-params-production-alb
+  CF_API_URL: ((production-cf-api-url))
+  CF_USERNAME: ((production-cf-username))
+  CF_PASSWORD: ((production-cf-password))
+  CF_ORGANIZATION: ((acceptance-tests-organization))
+  CF_SPACE: ((acceptance-tests-space))
   PLAN_NAME: "domain"
   SERVICE_NAME: "external-domain"
   DNS_ROOT_DOMAIN: ((production-dns-root-domain))
@@ -204,6 +229,11 @@ acceptance-tests-params-production-alb: &acceptance-tests-params-production-alb
   TEST_DOMAIN_1: ((production-test-domain-3))
 
 acceptance-tests-params-production-dedicated: &acceptance-tests-params-production-dedicated
+  CF_API_URL: ((production-cf-api-url))
+  CF_USERNAME: ((production-cf-username))
+  CF_PASSWORD: ((production-cf-password))
+  CF_ORGANIZATION: ((acceptance-tests-organization))
+  CF_SPACE: ((acceptance-tests-space))
   PLAN_NAME: "domain-with-org-lb"
   SERVICE_NAME: "external-domain"
   DNS_ROOT_DOMAIN: ((production-dns-root-domain))
@@ -469,7 +499,6 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *cf-creds-staging
           <<: *acceptance-tests-params-staging-cdn
         run:
           path: /app/acceptance/run.sh
@@ -479,7 +508,6 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *cf-creds-staging
           <<: *acceptance-tests-params-staging-alb
         run:
           path: /app/acceptance/run.sh
@@ -489,7 +517,6 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *cf-creds-staging
           <<: *acceptance-tests-params-staging-dedicated
         run:
           path: /app/acceptance/run.sh
@@ -606,7 +633,6 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *cf-creds-production
           <<: *acceptance-tests-params-production-cdn
         run:
           path: /app/acceptance/run.sh
@@ -616,7 +642,6 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *cf-creds-production
           <<: *acceptance-tests-params-production-alb
         run:
           path: /app/acceptance/run.sh
@@ -626,7 +651,6 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *cf-creds-production
           <<: *acceptance-tests-params-production-dedicated
         run:
           path: /app/acceptance/run.sh
