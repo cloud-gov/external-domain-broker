@@ -17,6 +17,8 @@ from broker.tasks.pipelines import (
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
     queue_all_cdn_renewal_tasks_for_operation,
+    queue_all_dedicated_alb_provision_tasks_for_operation,
+    queue_all_dedicated_alb_update_tasks_for_operation,
 )
 
 logger = logging.getLogger(__name__)
@@ -114,7 +116,17 @@ def reschedule_operation(operation_id):
         actions.RENEW.value: queue_all_cdn_renewal_tasks_for_operation,
         actions.UPDATE.value: queue_all_cdn_update_tasks_for_operation,
     }
-    queues = {"cdn_service_instance": cdn_queues, "alb_service_instance": alb_queues}
+    dedicated_alb_queues = {
+        actions.DEPROVISION.value: queue_all_alb_deprovision_tasks_for_operation,
+        actions.PROVISION.value: queue_all_dedicated_alb_provision_tasks_for_operation,
+        actions.RENEW.value: queue_all_dedicated_alb_renewal_tasks_for_operation,
+        actions.UPDATE.value: queue_all_dedicated_alb_update_tasks_for_operation,
+    }
+    queues = {
+        "cdn_service_instance": cdn_queues,
+        "alb_service_instance": alb_queues,
+        "dedicated_alb_service_instance": dedicated_alb_queues,
+    }
     queue = queues[service_instance.instance_type].get(operation.action)
     if not queue:
         raise RuntimeError(
