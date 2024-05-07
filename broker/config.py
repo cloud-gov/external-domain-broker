@@ -200,6 +200,7 @@ class DockerConfig(Config):
         self.DNS_ROOT_DOMAIN = "domains.cloud.test"
         self.DATABASE_ENCRYPTION_KEY = "Local Dev Encrytpion Key"
         self.DEFAULT_CLOUDFRONT_ORIGIN = "cloud.local"
+        self.DEDICATED_ALB_LISTENER_ARNS = []
         self.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX = (
             "/cloudfront/external-domains-test/"
         )

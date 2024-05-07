@@ -5,6 +5,7 @@ from redis import ConnectionPool, SSLConnection
 from huey import RedisHuey, signals
 
 from sap import cf_logging
+
 from broker.extensions import config, db
 from broker.models import Operation
 from broker.smtp import send_failed_operation_alert
@@ -46,11 +47,6 @@ def create_app():
     app.config.from_object(config)
     huey.flask_app = app
     db.init_app(app)
-
-
-@huey.on_startup(name="logging")
-def initialize_logging():
-    cf_logging.init()
 
 
 @huey.pre_execute(name="Set Correlation ID")

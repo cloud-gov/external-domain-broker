@@ -1,5 +1,6 @@
 from http import HTTPStatus
 import logging
+import sys
 
 from flask import Flask
 from openbrokerapi import api as openbrokerapi
@@ -18,6 +19,7 @@ from broker.duplicate_certs import (
     log_duplicate_alb_cert_metrics,
     remove_duplicate_alb_certs,
 )
+from broker.errors import handle_exception
 
 
 def create_app():
@@ -26,6 +28,8 @@ def create_app():
     flask_logging.init(app)
     logger = logging.getLogger(__name__)
     app.config.from_object(config)
+
+    sys.excepthook = handle_exception
 
     db.init_app(app)
     migrate.init_app(app, db)
