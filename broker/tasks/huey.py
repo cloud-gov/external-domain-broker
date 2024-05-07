@@ -12,6 +12,7 @@ from broker.smtp import send_failed_operation_alert
 
 logger = logging.getLogger(__name__)
 
+
 if config.REDIS_SSL:
     redis_kwargs = dict(connection_class=SSLConnection, ssl_cert_reqs=None)
 else:
