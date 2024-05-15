@@ -54,6 +54,7 @@ ALB_PLAN_ID = "6f60835c-8964-4f1f-a19a-579fb27ce694"
 CDN_PLAN_ID = "1cc78b0c-c296-48f5-9182-0b38404f79ef"
 MIGRATION_PLAN_ID = "739e78F5-a919-46ef-9193-1293cc086c17"
 DEDICATED_ALB_PLAN_ID = "fcde69c6-077b-4edd-8d12-7b95bbc2595f"
+CDN_DEDICATED_WAF_PLAN_ID = "129c8332-02ce-460a-bd6d-bde10110c654"
 
 
 class API(ServiceBroker):
@@ -96,6 +97,11 @@ class API(ServiceBroker):
                     id=DEDICATED_ALB_PLAN_ID,
                     name="domain-with-org-lb",
                     description="Basic custom domain with TLS, on org-scoped load balanacers.",
+                ),
+                ServicePlan(
+                    id=CDN_DEDICATED_WAF_PLAN_ID,
+                    name="domain-with-cdn-dedicated-waf",
+                    description="Custom domain with TLS, CloudFront, and dedicated WAF.",
                 ),
             ],
         )
