@@ -37,12 +37,12 @@ from broker.models import (
 )
 from broker.tasks.pipelines import (
     queue_all_alb_deprovision_tasks_for_operation,
-    queue_all_alb_provision_tasks_for_operation,
     queue_all_alb_update_tasks_for_operation,
     queue_all_alb_to_dedicated_alb_update_tasks_for_operation,
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
+    queue_all_cdn_dedicated_waf_provision_tasks_for_operation,
     queue_all_cdn_broker_migration_tasks_for_operation,
     queue_all_dedicated_alb_provision_tasks_for_operation,
     queue_all_dedicated_alb_update_tasks_for_operation,
@@ -162,9 +162,12 @@ class API(ServiceBroker):
         if details.plan_id == CDN_PLAN_ID:
             instance = provision_cdn_instance(instance_id, domain_names, params)
             queue = queue_all_cdn_provision_tasks_for_operation
+        elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
+            instance = provision_cdn_instance(instance_id, domain_names, params)
+            queue = queue_all_cdn_provision_tasks_for_operation
         elif details.plan_id == ALB_PLAN_ID:
             instance = ALBServiceInstance(id=instance_id, domain_names=domain_names)
-            queue = queue_all_alb_provision_tasks_for_operation
+            queue = queue_all_cdn_dedicated_waf_provision_tasks_for_operation
         elif details.plan_id == MIGRATION_PLAN_ID:
             instance = MigrationServiceInstance(
                 id=instance_id, domain_names=domain_names
