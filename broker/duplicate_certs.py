@@ -122,13 +122,19 @@ def remove_certificate_from_listener_and_verify_removal(
     )
 
 
-def delete_cert_record_and_resource(certificate, listener_arn, db=db):
+def delete_cert_record_and_resource(
+    certificate,
+    listener_arn,
+    alb=alb,
+    db=db,
+    logger=logger,
+):
     try:
         delete_duplicate_cert_db_record(certificate)
 
         if listener_arn:
             remove_certificate_from_listener_and_verify_removal(
-                listener_arn, certificate.iam_server_certificate_arn
+                listener_arn, certificate.iam_server_certificate_arn, alb=alb
             )
 
         if certificate.iam_server_certificate_name:
@@ -201,7 +207,7 @@ def remove_duplicate_alb_certs(
                 listener_arn = listener_arns_dict.get(
                     duplicate_cert.iam_server_certificate_arn
                 )
-                delete_cert_record_and_resource(duplicate_cert, listener_arn)
+                delete_cert_record_and_resource(duplicate_cert, listener_arn, logger=logger)
 
             # Get and log metric of remaining count of duplicates so Prometheus is updated
             get_and_log_service_duplicate_alb_cert_metric(
