@@ -179,13 +179,15 @@ def remove_duplicate_alb_certs(
     logger=logger
 ):
     service_instance_models = [ALBServiceInstance, DedicatedALBServiceInstance]
-    
+
     for service_instance_model in service_instance_models:
         if service_instance_model == ALBServiceInstance:
             listener_arns = alb_listener_arns
         elif service_instance_model == DedicatedALBServiceInstance:
             listener_arns = dedicated_listener_arns
         else:
+            # It is not really possible for this condition to be reached, but adding belt/suspenders
+            # in case of later code refactoring
             raise Exception(f"Could not find listener ARNs for model {service_instance_model}")
 
         for duplicate_result in find_duplicate_alb_certs(service_instance_model):

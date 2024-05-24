@@ -351,7 +351,6 @@ def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app,
         results = get_duplicate_certs_for_service(service_instance.id, DedicatedALBServiceInstance)
         assert len(results) == 0
 
-
 def test_remove_certificate_from_listener_and_verify_removal_correctly_breaks():
     class FakeALBTest:
         def __init__(self):
