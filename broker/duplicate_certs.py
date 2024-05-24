@@ -174,11 +174,20 @@ def get_matching_alb_listener_arns_for_cert_arns(
 
 
 def remove_duplicate_alb_certs(
-    listener_arns=config.ALB_LISTENER_ARNS,
+    alb_listener_arns=[config.ALB_LISTENER_ARNS],
+    dedicated_listener_arns=[config.DEDICATED_ALB_LISTENER_ARNS],
     logger=logger
 ):
     service_instance_models = [ALBServiceInstance, DedicatedALBServiceInstance]
+    
     for service_instance_model in service_instance_models:
+        if service_instance_model == ALBServiceInstance:
+            listener_arns = alb_listener_arns
+        elif service_instance_model == DedicatedALBServiceInstance:
+            listener_arns = dedicated_listener_arns
+        else:
+            raise Exception(f"Could not find listener ARNs for model {service_instance_model}")
+
         for duplicate_result in find_duplicate_alb_certs(service_instance_model):
             [service_instance_id, num_duplicates] = duplicate_result
 

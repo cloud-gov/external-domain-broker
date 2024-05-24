@@ -300,7 +300,7 @@ def test_remove_duplicate_certs_with_active_operations(
         results = get_duplicate_certs_for_service(service_instance.id, DedicatedALBServiceInstance)
         assert len(results) == 1
 
-        remove_duplicate_alb_certs(listener_arns=[service_instance.id])
+        remove_duplicate_alb_certs(dedicated_listener_arns=[service_instance.id])
 
         # nothing should get deleted if there are active operations for a service instance
         results = get_duplicate_certs_for_service(service_instance.id, DedicatedALBServiceInstance)
@@ -340,7 +340,7 @@ def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app,
         fakeLogger = FakeLogger()
 
         remove_duplicate_alb_certs(
-            listener_arns=[service_instance.id], logger=fakeLogger
+          dedicated_listener_arns=[service_instance.id], logger=fakeLogger
         )
 
         assert (
