@@ -1,7 +1,7 @@
 import pytest  # noqa F401
 
 from botocore.exceptions import ClientError
-from broker.models import Operation
+from broker.models import ALBServiceInstance, Operation
 from tests.lib.factories import (
     CertificateFactory,
     ChallengeFactory,
@@ -20,6 +20,16 @@ from broker.duplicate_certs import (
 )
 from broker.models import Certificate
 
+class FakeLogger:
+    def __init__(self):
+        self.output = []
+        self.error_output = []
+
+    def info(self, input):
+        self.output.append(input)
+
+    def error(self, input):
+        self.error_output.append(input)
 
 def test_get_duplicate_certs_for_service(no_context_clean_db, no_context_app):
     with no_context_app.app_context():
@@ -37,7 +47,7 @@ def test_get_duplicate_certs_for_service(no_context_clean_db, no_context_app):
 
         no_context_clean_db.session.commit()
 
-        results = get_duplicate_certs_for_service(service_instance.id)
+        results = get_duplicate_certs_for_service(service_instance.id, ALBServiceInstance)
 
         assert len(results) == 2
         assert results == [certificate2, certificate3]
@@ -143,7 +153,7 @@ def test_delete_duplicate_cert_record_commit(no_context_app, no_context_clean_db
         certificate = CertificateFactory.create(
             service_instance=service_instance, iam_server_certificate_arn="arn1"
         )
-        challenge = ChallengeFactory.create(certificate_id=certificate.id)
+        ChallengeFactory.create(certificate_id=certificate.id)
         no_context_clean_db.session.commit()
 
         assert len(Certificate.query.all()) == 1
@@ -190,12 +200,18 @@ def test_delete_cert_record_and_resource_handle_exception(
 
         class FakeALBTest:
             def remove_listener_certificates(self, ListenerArn="", Certificates=[]):
-                raise Exception("fail")
+                raise Exception("remove_listener_certificates fail")
 
         fakeAlbTest = FakeALBTest()
-        delete_cert_record_and_resource(certificate, "1234", alb=fakeAlbTest)
+        fakeLogger = FakeLogger()
+
+        delete_cert_record_and_resource(certificate, "1234", alb=fakeAlbTest, logger=fakeLogger)
 
         assert len(Certificate.query.all()) == 1
+        assert(
+            fakeLogger.error_output[-1].strip()
+            == "Exception while deleting certificate: remove_listener_certificates fail"
+        )
 
 
 def test_delete_cert_record_and_resource_success(
@@ -281,13 +297,13 @@ def test_remove_duplicate_certs_with_active_operations(
         service_instance.current_certificate_id = certificate1.id
         no_context_clean_db.session.commit()
 
-        results = get_duplicate_certs_for_service(service_instance.id)
+        results = get_duplicate_certs_for_service(service_instance.id, ALBServiceInstance)
         assert len(results) == 1
 
         remove_duplicate_alb_certs(listener_arns=[service_instance.id])
 
         # nothing should get deleted if there are active operations for a service instance
-        results = get_duplicate_certs_for_service(service_instance.id)
+        results = get_duplicate_certs_for_service(service_instance.id, ALBServiceInstance)
         assert len(results) == 1
 
 
@@ -313,20 +329,13 @@ def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app,
 
         no_context_clean_db.session.commit()
 
-        results = get_duplicate_certs_for_service(service_instance.id)
+        results = get_duplicate_certs_for_service(service_instance.id, ALBServiceInstance)
         assert len(results) == 2
 
         alb.expect_remove_certificate_from_listener(service_instance.id, "arn2")
         alb.expect_get_certificates_for_listener(service_instance.id)
         alb.expect_remove_certificate_from_listener(service_instance.id, "arn3")
         alb.expect_get_certificates_for_listener(service_instance.id)
-
-        class FakeLogger:
-            def __init__(self):
-                self.output = []
-
-            def info(self, input):
-                self.output.append(input)
 
         fakeLogger = FakeLogger()
 
@@ -339,7 +348,7 @@ def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app,
             == 'service_instance_duplicate_cert_count{service_instance_id="1234"} 0'
         )
 
-        results = get_duplicate_certs_for_service(service_instance.id)
+        results = get_duplicate_certs_for_service(service_instance.id, ALBServiceInstance)
         assert len(results) == 0
 
 
