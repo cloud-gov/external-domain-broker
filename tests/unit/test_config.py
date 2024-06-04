@@ -102,6 +102,7 @@ def mocked_env(monkeypatch, vcap_application, vcap_services):
     monkeypatch.setenv("SMTP_TO", "alerts@example.com")
     monkeypatch.setenv("SMTP_CERT", "A_REAL_CERT_WOULD_BE_LONGER_THAN_THIS")
     monkeypatch.setenv("CDN_LOG_BUCKET", "my-bucket.s3.amazonaws.com")
+    monkeypatch.setenv("WAF_RATE_LIMIT_RULE_GROUP_ARN", "fake-rate-limit-group-arn")
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
@@ -252,3 +253,12 @@ def test_config_provides_max_alb_uses(env, monkeypatch, mocked_env):
     config = config_from_env()
 
     assert isinstance(config.MAX_CERTS_PER_ALB, int)
+
+
+@pytest.mark.parametrize("env", ["production", "staging", "development"])
+def test_config_sets_waf_rate_limit_rule_group_arn(env, monkeypatch, mocked_env):
+    monkeypatch.setenv("FLASK_ENV", env)
+
+    config = config_from_env()
+
+    assert config.WAF_RATE_LIMIT_RULE_GROUP_ARN == "fake-rate-limit-group-arn"
