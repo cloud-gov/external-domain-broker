@@ -29,6 +29,7 @@ from broker.models import (
     Operation,
     ALBServiceInstance,
     CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
     DedicatedALBServiceInstance,
     MigrationServiceInstance,
     ServiceInstance,
@@ -36,6 +37,7 @@ from broker.models import (
     Certificate,
 )
 from broker.tasks.pipelines import (
+    queue_all_alb_provision_tasks_for_operation,
     queue_all_alb_deprovision_tasks_for_operation,
     queue_all_alb_update_tasks_for_operation,
     queue_all_alb_to_dedicated_alb_update_tasks_for_operation,
@@ -163,11 +165,16 @@ class API(ServiceBroker):
             instance = provision_cdn_instance(instance_id, domain_names, params)
             queue = queue_all_cdn_provision_tasks_for_operation
         elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
-            instance = provision_cdn_instance(instance_id, domain_names, params)
-            queue = queue_all_cdn_provision_tasks_for_operation
+            instance = provision_cdn_instance(
+                instance_id,
+                domain_names,
+                params,
+                instance_type=CDNDedicatedWAFServiceInstance,
+            )
+            queue = queue_all_cdn_dedicated_waf_provision_tasks_for_operation
         elif details.plan_id == ALB_PLAN_ID:
             instance = ALBServiceInstance(id=instance_id, domain_names=domain_names)
-            queue = queue_all_cdn_dedicated_waf_provision_tasks_for_operation
+            queue = queue_all_alb_provision_tasks_for_operation
         elif details.plan_id == MIGRATION_PLAN_ID:
             instance = MigrationServiceInstance(
                 id=instance_id, domain_names=domain_names
@@ -465,8 +472,15 @@ def parse_domain_options(params):
         return [d.strip().lower() for d in domains]
 
 
-def provision_cdn_instance(instance_id: str, domain_names: list, params: dict):
-    instance = CDNServiceInstance(id=instance_id, domain_names=domain_names)
+def provision_cdn_instance(
+    instance_id: str,
+    domain_names: list,
+    params: dict,
+    instance_type_model: (
+        CDNServiceInstance | CDNDedicatedWAFServiceInstance
+    ) = CDNServiceInstance,
+):
+    instance = instance_type_model(id=instance_id, domain_names=domain_names)
     instance.cloudfront_origin_hostname = params.get(
         "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
     )
@@ -489,9 +503,9 @@ def provision_cdn_instance(instance_id: str, domain_names: list, params: dict):
             raise errors.ErrBadRequest(
                 "'insecure_origin' cannot be set when using the default origin."
             )
-        instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTP.value
+        instance.origin_protocol_policy = instance_type_model.ProtocolPolicy.HTTP.value
     else:
-        instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTPS.value
+        instance.origin_protocol_policy = instance_type_model.ProtocolPolicy.HTTPS.value
     return instance
 
 
