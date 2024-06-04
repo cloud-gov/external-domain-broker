@@ -114,6 +114,8 @@ class AppConfig(Config):
         self.SMTP_TLS = True
         self.IAM_CERTIFICATE_PROPAGATION_TIME = 30
 
+        self.WAF_RATE_LIMIT_RULE_GROUP_ARN = self.env("WAF_RATE_LIMIT_RULE_GROUP_ARN")
+
 
 class ProductionConfig(AppConfig):
     def __init__(self):

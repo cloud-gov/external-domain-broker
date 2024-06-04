@@ -24,6 +24,15 @@ def create_web_acl(operation_id: str, **kwargs):
     response = wafv2.create_web_acl(
         Name=f"{service_instance.cloudfront_distribution_id}-dedicated-waf",
         Scope="CLOUDFRONT",
+        Rules=[
+            {
+                "Statement": {
+                    "RuleGroupReferenceStatement": {
+                        "ARN": config.WAF_RATE_LIMIT_RULE_GROUP_ARN
+                    }
+                }
+            }
+        ],
     )
 
     service_instance.dedicated_waf_web_acl_arn = response["Summary"]["ARN"]
