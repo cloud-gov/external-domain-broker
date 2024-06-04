@@ -1,6 +1,14 @@
 import logging
 
-from broker.tasks import alb, cloudfront, update_operations, iam, letsencrypt, route53
+from broker.tasks import (
+    alb,
+    cloudfront,
+    update_operations,
+    iam,
+    letsencrypt,
+    route53,
+    waf,
+)
 from broker.tasks.huey import huey
 
 logger = logging.getLogger(__name__)
@@ -110,7 +118,10 @@ def queue_all_cdn_provision_tasks_for_operation(operation_id: int, correlation_i
     )
     huey.enqueue(task_pipeline)
 
-def queue_all_cdn_dedicated_waf_provision_tasks_for_operation(operation_id: int, correlation_id: str):
+
+def queue_all_cdn_dedicated_waf_provision_tasks_for_operation(
+    operation_id: int, correlation_id: str
+):
     if correlation_id is None:
         raise RuntimeError("correlation_id must be set")
     if operation_id is None:
@@ -129,6 +140,7 @@ def queue_all_cdn_dedicated_waf_provision_tasks_for_operation(operation_id: int,
         .then(cloudfront.wait_for_distribution, operation_id, **correlation)
         .then(route53.create_ALIAS_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
+        .then(waf.create_web_acl, operation_id, **correlation)
         .then(update_operations.provision, operation_id, **correlation)
     )
     huey.enqueue(task_pipeline)
