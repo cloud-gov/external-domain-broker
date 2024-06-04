@@ -171,6 +171,15 @@ class CDNServiceInstance(ServiceInstance):
         return f"<CDNServiceInstance {self.id} {self.domain_names}>"
 
 
+class CDNDedicatedWAFServiceInstance(CDNServiceInstance):
+    dedicated_waf_web_acl_arn = mapped_column(db.String)
+
+    __mapper_args__ = {"polymorphic_identity": "cdn_dedicated_waf_service_instance"}
+
+    def __repr__(self):
+        return f"<CDNDedicatedWAFServiceInstance {self.id} {self.domain_names}>"
+
+
 class AbstractALBServiceInstance(ServiceInstance):
     """
     This allows us to have ALBServiceInstance and
