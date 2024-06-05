@@ -1,4 +1,3 @@
-version: '3'
 services:
   postgresql:
     build:
@@ -11,3 +10,38 @@ services:
       - 5432:5432
     expose:
       - "5432"
+  redis:
+    image: redis:5.0
+    container_name: redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - ../tests/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - 6379:6379
+    expose:
+      - "6379"
+  pebble:
+    image: letsencrypt/pebble:latest
+    container_name: pebble
+    environment:
+      # https://github.com/letsencrypt/pebble#testing-at-full-speed
+      - PEBBLE_VA_SLEEPTIME=3
+    ports:
+      - 14000:14000
+    expose:
+      - "14000"
+  pebble-challtestsrv :
+    image: letsencrypt/pebble-challtestsrv:latest
+    container_name: pebble-challtestsrv
+    ports:
+      - 5001:5001
+      - 5002:5002
+      - 5003:5003
+      - 8053:8053
+      - 8055:8055
+    expose:
+      - "5001"
+      - "5002"
+      - "5003"
+      - "8053"
+      - "8055"
