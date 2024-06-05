@@ -10,6 +10,7 @@ from sap import cf_logging
 from werkzeug.datastructures import Headers
 
 from broker.app import create_app, db
+from broker.api import CDN_DEDICATED_WAF_PLAN_ID
 from broker.tasks.huey import huey
 
 
@@ -68,6 +69,8 @@ class CFAPIClient(FlaskClient):
             method = self.provision_migration_instance
         elif instance_type == "dedicated_alb":
             method = self.provision_dedicated_alb_instance
+        elif instance_type == "cdn_dedicated_waf":
+            method = self.provision_cdn_dedicated_waf_instance
         return method(*args, **kwargs)
 
     def provision_cdn_instance(
@@ -76,6 +79,25 @@ class CFAPIClient(FlaskClient):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "1cc78b0c-c296-48f5-9182-0b38404f79ef",
+            "organization_guid": "abc",
+            "space_guid": "123",
+        }
+
+        if params is not None:
+            json["parameters"] = params
+
+        self.put(
+            f"/v2/service_instances/{id}",
+            json=json,
+            query_string={"accepts_incomplete": accepts_incomplete},
+        )
+
+    def provision_cdn_dedicated_waf_instance(
+        self, id: str, accepts_incomplete: str = "true", params: dict = None
+    ):
+        json = {
+            "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
+            "plan_id": CDN_DEDICATED_WAF_PLAN_ID,
             "organization_guid": "abc",
             "space_guid": "123",
         }
