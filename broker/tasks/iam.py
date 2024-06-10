@@ -26,7 +26,10 @@ def upload_server_certificate(operation_id: int, **kwargs):
     db.session.commit()
 
     today = date.today().isoformat()
-    if service_instance.instance_type == "cdn_service_instance":
+    if service_instance.instance_type in [
+        "cdn_service_instance",
+        "cdn_dedicated_waf_service_instance",
+    ]:
         iam = iam_commercial
         iam_server_certificate_prefix = config.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX
         propagation_time = 0
