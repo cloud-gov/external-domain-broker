@@ -23,7 +23,7 @@ services:
   pebble:
     image: ghcr.io/letsencrypt/pebble:latest
     container_name: pebble
-    command: -config /test/config/pebble-config.json -strict -dnsserver pebble-challtestsrv:8053
+    command: -config /test/config/pebble-config.json -strict -dnsserver "pebble-challtestsrv:8053"
     environment:
       # https://github.com/letsencrypt/pebble#testing-at-full-speed
       - PEBBLE_VA_SLEEPTIME=3
@@ -37,10 +37,10 @@ services:
       - "14000"
   pebble-challtestsrv:
     image: ghcr.io/letsencrypt/pebble-challtestsrv:latest
-    command: -defaultIPv6 "" -defaultIPv4 0.0.0.0
+    command: -defaultIPv6 "" -defaultIPv4 "0.0.0.0"
     container_name: pebble-challtestsrv
     ports:
-      - 8053:8053
+      - 8053:8053/udp
       - 8055:8055
     expose:
       - "8053"
