@@ -169,7 +169,7 @@ class API(ServiceBroker):
                 instance_id,
                 domain_names,
                 params,
-                instance_type=CDNDedicatedWAFServiceInstance,
+                instance_type_model=CDNDedicatedWAFServiceInstance,
             )
             queue = queue_all_cdn_dedicated_waf_provision_tasks_for_operation
         elif details.plan_id == ALB_PLAN_ID:
