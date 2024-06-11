@@ -20,9 +20,10 @@ def create_web_acl(operation_id: str, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
+    waf_name = f"{service_instance.cloudfront_distribution_id}-dedicated-waf"
     # TODO: not sure how errors should be handled here?
     response = wafv2.create_web_acl(
-        Name=f"{service_instance.cloudfront_distribution_id}-dedicated-waf",
+        Name=waf_name,
         Scope="CLOUDFRONT",
         DefaultAction={"Allow": {}},
         Rules=[
@@ -44,7 +45,7 @@ def create_web_acl(operation_id: str, **kwargs):
         VisibilityConfig={
             "SampledRequestsEnabled": True,
             "CloudWatchMetricsEnabled": True,
-            "MetricName": f"{service_instance.cloudfront_distribution_id}-dedicated-waf",
+            "MetricName": waf_name,
         },
     )
 
