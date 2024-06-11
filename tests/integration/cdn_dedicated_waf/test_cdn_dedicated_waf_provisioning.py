@@ -7,7 +7,7 @@ from broker.extensions import config, db
 from broker.models import Challenge, Operation, CDNDedicatedWAFServiceInstance
 from tests.lib.client import check_last_operation_description
 
-from tests.integration.cdn.test_cdn_update import (
+from tests.lib.cdn.update import (
     subtest_update_happy_path,
     subtest_update_same_domains,
 )
@@ -160,7 +160,7 @@ def test_provision_sets_custom_error_responses(client, dns):
 
 
 def test_provision_happy_path(
-    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront, wafv2
 ):
     operation_id = subtest_provision_creates_provision_operation(client, dns)
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
@@ -212,13 +212,29 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Waiting for DNS changes"
     )
+    subtest_provision_create_web_acl(tasks, wafv2)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating custom WAFv2 web ACL"
+    )
     subtest_provision_marks_operation_as_succeeded(tasks)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
     subtest_update_happy_path(
-        client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+        client,
+        dns,
+        tasks,
+        route53,
+        iam_commercial,
+        simple_regex,
+        cloudfront,
+        CDNDedicatedWAFServiceInstance,
     )
     subtest_update_same_domains(
-        client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+        client,
+        dns,
+        tasks,
+        route53,
+        cloudfront,
+        CDNDedicatedWAFServiceInstance,
     )
 
 
@@ -504,6 +520,26 @@ def subtest_provision_provisions_ALIAS_records(tasks, route53):
         example_com_change_id,
         foo_com_change_id,
     ]
+
+
+def subtest_provision_create_web_acl(tasks, wafv2):
+    db.session.expunge_all()
+    service_instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
+
+    wafv2.expect_create_web_acl(
+        distribution_id=service_instance.cloudfront_distribution_id,
+        rule_group_arn=config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
+    assert service_instance.dedicated_waf_web_acl_arn
+    assert (
+        service_instance.dedicated_waf_web_acl_arn
+        == f"arn:aws:wafv2::000000000000:global/webacl/{service_instance.cloudfront_distribution_id}-dedicated-waf"
+    )
 
 
 def subtest_provision_marks_operation_as_succeeded(tasks):
