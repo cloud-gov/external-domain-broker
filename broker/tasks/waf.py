@@ -24,15 +24,28 @@ def create_web_acl(operation_id: str, **kwargs):
     response = wafv2.create_web_acl(
         Name=f"{service_instance.cloudfront_distribution_id}-dedicated-waf",
         Scope="CLOUDFRONT",
+        DefaultAction={"Allow": {}},
         Rules=[
             {
+                "Name": "RateLimit",
+                "Priority": 1000,
                 "Statement": {
                     "RuleGroupReferenceStatement": {
                         "ARN": config.WAF_RATE_LIMIT_RULE_GROUP_ARN
-                    }
-                }
+                    },
+                },
+                "VisibilityConfig": {
+                    "SampledRequestsEnabled": True,
+                    "CloudWatchMetricsEnabled": True,
+                    "MetricName": f"{service_instance.cloudfront_distribution_id}-rate-limit-rule-group",
+                },
             }
         ],
+        VisibilityConfig={
+            "SampledRequestsEnabled": True,
+            "CloudWatchMetricsEnabled": True,
+            "MetricName": f"{service_instance.cloudfront_distribution_id}-dedicated-waf",
+        },
     )
 
     service_instance.dedicated_waf_web_acl_arn = response["Summary"]["ARN"]
