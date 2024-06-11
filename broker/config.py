@@ -233,7 +233,7 @@ class DockerConfig(Config):
         self.SMTP_USER = None
         self.SMTP_PASS = None
 
-        self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "fake"
+        self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "rate-limit-rule-group-fake-arn"
 
 
 class LocalDevelopmentConfig(DockerConfig):
