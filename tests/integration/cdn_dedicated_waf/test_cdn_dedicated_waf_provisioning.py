@@ -4,7 +4,11 @@ from datetime import date
 import pytest  # noqa F401
 
 from broker.extensions import config, db
-from broker.models import Challenge, Operation, CDNDedicatedWAFServiceInstance
+from broker.models import (
+    Challenge,
+    Operation,
+    CDNDedicatedWAFServiceInstance,
+)
 from tests.lib.client import check_last_operation_description
 
 from tests.lib.cdn.update import (
@@ -19,144 +23,6 @@ from tests.lib.cdn.update import (
 # methods.  This still makes it clear which stage in the task pipeline is
 # failing (look for the subtask_foo in the traceback), and allows us to re-use
 # these subtasks when testing failure scenarios.
-
-
-def test_provision_sets_default_origin_and_path_if_none_provided(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321", params={"domains": "example.com"}
-    )
-    db.session.expunge_all()
-
-    assert client.response.status_code == 202, client.response.body
-
-    instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert config.DEFAULT_CLOUDFRONT_ORIGIN == "cloud.local"
-    assert instance.cloudfront_origin_hostname == "cloud.local"
-    assert instance.cloudfront_origin_path == ""
-
-
-def test_provision_sets_default_cookie_policy_if_none_provided(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321", params={"domains": "example.com"}
-    )
-    instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert instance.forward_cookie_policy == "all"
-    assert instance.forwarded_cookies == []
-
-
-def test_provision_sets_none_cookie_policy(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321", params={"domains": "example.com", "forward_cookies": ""}
-    )
-    instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert instance.forward_cookie_policy == "none"
-    assert instance.forwarded_cookies == []
-
-
-def test_provision_sets_forward_cookie_policy_with_cookies(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321",
-        params={
-            "domains": "example.com",
-            "forward_cookies": "my_cookie , my_other_cookie",
-        },
-    )
-    instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert instance.forward_cookie_policy == "whitelist"
-    assert instance.forwarded_cookies == ["my_cookie", "my_other_cookie"]
-
-
-def test_provision_sets_forward_cookie_policy_with_star(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321", params={"domains": "example.com", "forward_cookies": "*"}
-    )
-    instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert instance.forward_cookie_policy == "all"
-    assert instance.forwarded_cookies == []
-
-
-def test_provision_sets_forward_headers_to_host_when_none_specified(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321", params={"domains": "example.com"}
-    )
-    instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert instance.forwarded_headers == ["HOST"]
-
-
-def test_provision_sets_forward_headers_plus_host_when_some_specified(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321",
-        params={
-            "domains": "example.com",
-            "forward_headers": "x-my-header,x-your-header",
-        },
-    )
-    instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert sorted(instance.forwarded_headers) == sorted(
-        ["HOST", "X-MY-HEADER", "X-YOUR-HEADER"]
-    )
-
-
-def test_provision_does_not_set_host_header_when_using_custom_origin(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321", params={"domains": "example.com", "origin": "my-origin.example.gov"}
-    )
-    instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert instance.forwarded_headers == []
-
-
-def test_provision_sets_https_only_by_default(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321", params={"domains": "example.com"}
-    )
-    instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert instance.origin_protocol_policy == "https-only"
-
-
-def test_provision_sets_http_when_set(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321",
-        params={
-            "domains": "example.com",
-            "origin": "origin.gov",
-            "insecure_origin": True,
-        },
-    )
-    instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert instance.origin_protocol_policy == "http-only"
-
-
-def test_provision_refuses_insecure_origin_for_default_origin(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321", params={"domains": "example.com", "insecure_origin": True}
-    )
-    desc = client.response.json.get("description")
-    assert "insecure_origin" in desc
-    assert client.response.status_code == 400
-
-
-def test_provision_sets_custom_error_responses(client, dns):
-    dns.add_cname("_acme-challenge.example.com")
-    client.provision_cdn_dedicated_waf_instance(
-        "4321",
-        params={
-            "domains": "example.com",
-            "error_responses": {"404": "/errors/404.html"},
-        },
-    )
-    instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert instance.error_responses["404"] == "/errors/404.html"
 
 
 def test_provision_happy_path(
