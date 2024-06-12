@@ -9,17 +9,14 @@ from broker.models import (
 
 
 @pytest.mark.parametrize(
-    "instance_type, instance_model",
-    [
-        ("cdn", CDNServiceInstance),
-        ("cdn_dedicated_waf", CDNDedicatedWAFServiceInstance),
-    ],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_default_origin_and_path_if_none_provided(
-    instance_type, instance_model, client, dns
+    instance_model, client, dns
 ):
     dns.add_cname("_acme-challenge.example.com")
-    client.provision_instance(instance_type, "4321", params={"domains": "example.com"})
+    client.provision_instance(instance_model, "4321", params={"domains": "example.com"})
     db.session.expunge_all()
 
     assert client.response.status_code == 202, client.response.body
@@ -31,33 +28,27 @@ def test_provision_sets_default_origin_and_path_if_none_provided(
 
 
 @pytest.mark.parametrize(
-    "instance_type, instance_model",
-    [
-        ("cdn", CDNServiceInstance),
-        ("cdn_dedicated_waf", CDNDedicatedWAFServiceInstance),
-    ],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_default_cookie_policy_if_none_provided(
-    instance_type, instance_model, client, dns
+    instance_model, client, dns
 ):
     dns.add_cname("_acme-challenge.example.com")
-    client.provision_instance(instance_type, "4321", params={"domains": "example.com"})
+    client.provision_instance(instance_model, "4321", params={"domains": "example.com"})
     instance = db.session.get(instance_model, "4321")
     assert instance.forward_cookie_policy == "all"
     assert instance.forwarded_cookies == []
 
 
 @pytest.mark.parametrize(
-    "instance_type, instance_model",
-    [
-        ("cdn", CDNServiceInstance),
-        ("cdn_dedicated_waf", CDNDedicatedWAFServiceInstance),
-    ],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
-def test_provision_sets_none_cookie_policy(instance_type, instance_model, client, dns):
+def test_provision_sets_none_cookie_policy(instance_model, client, dns):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
-        instance_type, "4321", params={"domains": "example.com", "forward_cookies": ""}
+        instance_model, "4321", params={"domains": "example.com", "forward_cookies": ""}
     )
     instance = db.session.get(instance_model, "4321")
     assert instance.forward_cookie_policy == "none"
@@ -65,18 +56,13 @@ def test_provision_sets_none_cookie_policy(instance_type, instance_model, client
 
 
 @pytest.mark.parametrize(
-    "instance_type, instance_model",
-    [
-        ("cdn", CDNServiceInstance),
-        ("cdn_dedicated_waf", CDNDedicatedWAFServiceInstance),
-    ],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
-def test_provision_sets_forward_cookie_policy_with_cookies(
-    instance_type, instance_model, client, dns
-):
+def test_provision_sets_forward_cookie_policy_with_cookies(instance_model, client, dns):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
-        instance_type,
+        instance_model,
         "4321",
         params={
             "domains": "example.com",
@@ -89,18 +75,15 @@ def test_provision_sets_forward_cookie_policy_with_cookies(
 
 
 @pytest.mark.parametrize(
-    "instance_type, instance_model",
-    [
-        ("cdn", CDNServiceInstance),
-        ("cdn_dedicated_waf", CDNDedicatedWAFServiceInstance),
-    ],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
-def test_provision_sets_forward_cookie_policy_with_star(
-    instance_type, instance_model, client, dns
-):
+def test_provision_sets_forward_cookie_policy_with_star(instance_model, client, dns):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
-        instance_type, "4321", params={"domains": "example.com", "forward_cookies": "*"}
+        instance_model,
+        "4321",
+        params={"domains": "example.com", "forward_cookies": "*"},
     )
     instance = db.session.get(instance_model, "4321")
     assert instance.forward_cookie_policy == "all"
@@ -108,34 +91,28 @@ def test_provision_sets_forward_cookie_policy_with_star(
 
 
 @pytest.mark.parametrize(
-    "instance_type, instance_model",
-    [
-        ("cdn", CDNServiceInstance),
-        ("cdn_dedicated_waf", CDNDedicatedWAFServiceInstance),
-    ],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_forward_headers_to_host_when_none_specified(
-    instance_type, instance_model, client, dns
+    instance_model, client, dns
 ):
     dns.add_cname("_acme-challenge.example.com")
-    client.provision_instance(instance_type, "4321", params={"domains": "example.com"})
+    client.provision_instance(instance_model, "4321", params={"domains": "example.com"})
     instance = db.session.get(instance_model, "4321")
     assert instance.forwarded_headers == ["HOST"]
 
 
 @pytest.mark.parametrize(
-    "instance_type, instance_model",
-    [
-        ("cdn", CDNServiceInstance),
-        ("cdn_dedicated_waf", CDNDedicatedWAFServiceInstance),
-    ],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_forward_headers_plus_host_when_some_specified(
-    instance_type, instance_model, client, dns
+    instance_model, client, dns
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
-        instance_type,
+        instance_model,
         "4321",
         params={
             "domains": "example.com",
@@ -149,18 +126,15 @@ def test_provision_sets_forward_headers_plus_host_when_some_specified(
 
 
 @pytest.mark.parametrize(
-    "instance_type, instance_model",
-    [
-        ("cdn", CDNServiceInstance),
-        ("cdn_dedicated_waf", CDNDedicatedWAFServiceInstance),
-    ],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_does_not_set_host_header_when_using_custom_origin(
-    instance_type, instance_model, client, dns
+    instance_model, client, dns
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
-        instance_type,
+        instance_model,
         "4321",
         params={"domains": "example.com", "origin": "my-origin.example.gov"},
     )
@@ -169,32 +143,24 @@ def test_provision_does_not_set_host_header_when_using_custom_origin(
 
 
 @pytest.mark.parametrize(
-    "instance_type, instance_model",
-    [
-        ("cdn", CDNServiceInstance),
-        ("cdn_dedicated_waf", CDNDedicatedWAFServiceInstance),
-    ],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
-def test_provision_sets_https_only_by_default(
-    instance_type, instance_model, client, dns
-):
+def test_provision_sets_https_only_by_default(instance_model, client, dns):
     dns.add_cname("_acme-challenge.example.com")
-    client.provision_instance(instance_type, "4321", params={"domains": "example.com"})
+    client.provision_instance(instance_model, "4321", params={"domains": "example.com"})
     instance = db.session.get(instance_model, "4321")
     assert instance.origin_protocol_policy == "https-only"
 
 
 @pytest.mark.parametrize(
-    "instance_type, instance_model",
-    [
-        ("cdn", CDNServiceInstance),
-        ("cdn_dedicated_waf", CDNDedicatedWAFServiceInstance),
-    ],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
-def test_provision_sets_http_when_set(instance_type, instance_model, client, dns):
+def test_provision_sets_http_when_set(instance_model, client, dns):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
-        instance_type,
+        instance_model,
         "4321",
         params={
             "domains": "example.com",
@@ -207,15 +173,15 @@ def test_provision_sets_http_when_set(instance_type, instance_model, client, dns
 
 
 @pytest.mark.parametrize(
-    "instance_type",
-    ["cdn", "cdn_dedicated_waf"],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_refuses_insecure_origin_for_default_origin(
-    instance_type, client, dns
+    instance_model, client, dns
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
-        instance_type,
+        instance_model,
         "4321",
         params={"domains": "example.com", "insecure_origin": True},
     )
@@ -225,18 +191,13 @@ def test_provision_refuses_insecure_origin_for_default_origin(
 
 
 @pytest.mark.parametrize(
-    "instance_type, instance_model",
-    [
-        ("cdn", CDNServiceInstance),
-        ("cdn_dedicated_waf", CDNDedicatedWAFServiceInstance),
-    ],
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
-def test_provision_sets_custom_error_responses(
-    instance_type, instance_model, client, dns
-):
+def test_provision_sets_custom_error_responses(instance_model, client, dns):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
-        instance_type,
+        instance_model,
         "4321",
         params={
             "domains": "example.com",

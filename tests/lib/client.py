@@ -10,7 +10,13 @@ from werkzeug.datastructures import Headers
 
 from broker.app import create_app, db
 from broker.api import CDN_DEDICATED_WAF_PLAN_ID
-from broker.models import CDNServiceInstance, CDNDedicatedWAFServiceInstance
+from broker.models import (
+    ALBServiceInstance,
+    MigrationServiceInstance,
+    DedicatedALBServiceInstance,
+    CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
+)
 from broker.tasks.huey import huey
 
 
@@ -60,16 +66,21 @@ class CFAPIClient(FlaskClient):
 
         return self.response
 
-    def provision_instance(self, instance_type: str, *args, **kwargs):
-        if instance_type == "cdn":
+    def provision_instance(
+        self,
+        instance_model: CDNServiceInstance | CDNDedicatedWAFServiceInstance,
+        *args,
+        **kwargs,
+    ):
+        if instance_model == CDNServiceInstance:
             method = self.provision_cdn_instance
-        elif instance_type == "alb":
+        elif instance_model == ALBServiceInstance:
             method = self.provision_alb_instance
-        elif instance_type == "migration":
+        elif instance_model == MigrationServiceInstance:
             method = self.provision_migration_instance
-        elif instance_type == "dedicated_alb":
+        elif instance_model == DedicatedALBServiceInstance:
             method = self.provision_dedicated_alb_instance
-        elif instance_type == "cdn_dedicated_waf":
+        elif instance_model == CDNDedicatedWAFServiceInstance:
             method = self.provision_cdn_dedicated_waf_instance
         return method(*args, **kwargs)
 
