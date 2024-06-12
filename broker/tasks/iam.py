@@ -26,10 +26,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
     db.session.commit()
 
     today = date.today().isoformat()
-    if service_instance.instance_type in [
-        "cdn_service_instance",
-        "cdn_dedicated_waf_service_instance",
-    ]:
+    if is_cdn_instance(service_instance):
         iam = iam_commercial
         iam_server_certificate_prefix = config.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX
         propagation_time = 0
@@ -85,7 +82,7 @@ def delete_server_certificate(operation_id: str, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    if service_instance.instance_type == "cdn_service_instance":
+    if is_cdn_instance(service_instance):
         iam = iam_commercial
     else:
         iam = iam_govcloud
@@ -123,7 +120,7 @@ def delete_previous_server_certificate(operation_id: str, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    if service_instance.instance_type == "cdn_service_instance":
+    if is_cdn_instance(service_instance):
         iam = iam_commercial
     else:
         iam = iam_govcloud
@@ -143,3 +140,10 @@ def delete_previous_server_certificate(operation_id: str, **kwargs):
         db.session.delete(certificate)
 
     db.session.commit()
+
+
+def is_cdn_instance(service_instance):
+    return service_instance.instance_type in [
+        "cdn_service_instance",
+        "cdn_dedicated_waf_service_instance",
+    ]
