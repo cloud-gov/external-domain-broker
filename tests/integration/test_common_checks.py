@@ -7,7 +7,9 @@ from broker.extensions import config, db
 from tests.lib.factories import ALBServiceInstanceFactory
 
 
-@pytest.mark.parametrize("instance_type", ["alb", "dedicated_alb", "cdn", "migration"])
+@pytest.mark.parametrize(
+    "instance_type", ["alb", "dedicated_alb", "cdn", "migration", "cdn_dedicated_waf"]
+)
 def test_refuses_to_provision_synchronously(client, instance_type):
     client.provision_instance(instance_type, "4321", accepts_incomplete="false")
 
@@ -15,7 +17,9 @@ def test_refuses_to_provision_synchronously(client, instance_type):
     assert client.response.status_code == 422
 
 
-@pytest.mark.parametrize("instance_type", ["alb", "dedicated_alb", "cdn", "migration"])
+@pytest.mark.parametrize(
+    "instance_type", ["alb", "dedicated_alb", "cdn", "migration", "cdn_dedicated_waf"]
+)
 def test_refuses_to_provision_synchronously_by_default(client, instance_type):
     client.provision_instance(instance_type, "4321", accepts_incomplete="")
 
@@ -23,7 +27,9 @@ def test_refuses_to_provision_synchronously_by_default(client, instance_type):
     assert client.response.status_code == 422
 
 
-@pytest.mark.parametrize("instance_type", ["alb", "dedicated_alb", "cdn", "migration"])
+@pytest.mark.parametrize(
+    "instance_type", ["alb", "dedicated_alb", "cdn", "migration", "cdn_dedicated_waf"]
+)
 def test_refuses_to_provision_without_domains(client, instance_type):
     client.provision_instance(instance_type, "4321")
 
@@ -31,7 +37,9 @@ def test_refuses_to_provision_without_domains(client, instance_type):
     assert client.response.status_code == 400
 
 
-@pytest.mark.parametrize("instance_type", ["alb", "dedicated_alb", "cdn", "migration"])
+@pytest.mark.parametrize(
+    "instance_type", ["alb", "dedicated_alb", "cdn", "migration", "cdn_dedicated_waf"]
+)
 def test_refuses_to_provision_with_duplicate_domains(client, dns, instance_type):
     ALBServiceInstanceFactory.create(domain_names=["foo.com", "bar.com"])
     dns.add_cname("_acme-challenge.example.com")
@@ -83,7 +91,9 @@ def test_duplicate_domain_check_ignores_deactivated(
     assert client.response.status_code == expected_status, client.response.body
 
 
-@pytest.mark.parametrize("instance_type", ["alb", "dedicated_alb", "cdn", "migration"])
+@pytest.mark.parametrize(
+    "instance_type", ["alb", "dedicated_alb", "cdn", "migration", "cdn_dedicated_waf"]
+)
 def test_refuses_to_provision_without_any_acme_challenge_CNAMEs(client, instance_type):
     client.provision_instance(
         instance_type, "4321", params={"domains": "bar.com,foo.com"}
@@ -98,12 +108,16 @@ def test_refuses_to_provision_without_any_acme_challenge_CNAMEs(client, instance
     assert client.response.status_code == 400
 
 
-@pytest.mark.parametrize("instance_type", ["alb", "dedicated_alb", "cdn", "migration"])
+@pytest.mark.parametrize(
+    "instance_type", ["alb", "dedicated_alb", "cdn", "migration", "cdn_dedicated_waf"]
+)
 def test_refuses_to_provision_without_one_acme_challenge_CNAME(
     client, dns, instance_type
 ):
     dns.add_cname("_acme-challenge.foo.com")
-    client.provision_cdn_instance("4321", params={"domains": "bar.com,foo.com"})
+    client.provision_instance(
+        instance_type, "4321", params={"domains": "bar.com,foo.com"}
+    )
 
     desc = client.response.json.get("description")
     assert "CNAME" in desc
@@ -113,13 +127,17 @@ def test_refuses_to_provision_without_one_acme_challenge_CNAME(
     assert client.response.status_code == 400
 
 
-@pytest.mark.parametrize("instance_type", ["alb", "dedicated_alb", "cdn", "migration"])
+@pytest.mark.parametrize(
+    "instance_type", ["alb", "dedicated_alb", "cdn", "migration", "cdn_dedicated_waf"]
+)
 def test_refuses_to_provision_with_incorrect_acme_challenge_CNAME(
     client, dns, instance_type
 ):
     dns.add_cname("_acme-challenge.bar.com")
     dns.add_cname("_acme-challenge.foo.com", target="INCORRECT")
-    client.provision_cdn_instance("4321", params={"domains": "bar.com,foo.com"})
+    client.provision_instance(
+        instance_type, "4321", params={"domains": "bar.com,foo.com"}
+    )
 
     desc = client.response.json.get("description")
 
