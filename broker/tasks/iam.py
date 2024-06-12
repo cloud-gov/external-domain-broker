@@ -8,6 +8,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import iam_commercial, iam_govcloud
 from broker.extensions import config, db
+from broker.lib.cdn import is_cdn_instance
 from broker.models import Certificate, Operation
 from broker.tasks import huey
 
@@ -37,6 +38,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
 
     if service_instance.new_certificate.iam_server_certificate_arn is not None:
         return
+
     certificate.iam_server_certificate_name = (
         f"{service_instance.id}-{today}-{certificate.id}"
     )
@@ -140,10 +142,3 @@ def delete_previous_server_certificate(operation_id: str, **kwargs):
         db.session.delete(certificate)
 
     db.session.commit()
-
-
-def is_cdn_instance(service_instance):
-    return service_instance.instance_type in [
-        "cdn_service_instance",
-        "cdn_dedicated_waf_service_instance",
-    ]

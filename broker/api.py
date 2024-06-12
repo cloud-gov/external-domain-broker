@@ -25,6 +25,7 @@ from sap import cf_logging
 
 from broker import validators
 from broker.extensions import config, db
+from broker.lib.cdn import is_cdn_instance
 from broker.models import (
     Operation,
     ALBServiceInstance,
@@ -288,7 +289,7 @@ class API(ServiceBroker):
             self.logger.info("validating unique domains")
             validators.UniqueDomains(domain_names).validate(instance)
             noop = noop and (sorted(domain_names) == sorted(instance.domain_names))
-            if instance.instance_type == "cdn_service_instance" and noop:
+            if is_cdn_instance(instance) and noop:
                 instance.new_certificate = instance.current_certificate
             instance.domain_names = domain_names
 
