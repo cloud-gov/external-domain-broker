@@ -8,7 +8,7 @@ from broker.models import ALBServiceInstance
 from tests.lib import factories
 from tests.lib.client import check_last_operation_description
 
-from tests.lib.cdn.update import (
+from tests.lib.update import (
     subtest_update_creates_update_operation,
     subtest_update_creates_private_key_and_csr,
     subtest_gets_new_challenges,
