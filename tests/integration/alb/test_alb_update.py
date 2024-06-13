@@ -1,11 +1,8 @@
-from datetime import date, datetime
-
 import pytest  # noqa F401
 
 from broker.extensions import db
 from broker.models import ALBServiceInstance
 
-from tests.lib import factories
 from tests.lib.client import check_last_operation_description
 
 from tests.lib.update import (

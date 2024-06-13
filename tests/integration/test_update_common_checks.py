@@ -218,9 +218,14 @@ def test_duplicate_domain_check_ignores_self(
 
 @pytest.mark.parametrize(
     "instance_model",
-    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
+    [
+        ALBServiceInstance,
+        CDNServiceInstance,
+        CDNDedicatedWAFServiceInstance,
+        DedicatedALBServiceInstance,
+    ],
 )
-def test_duplicate_domain_check_ignores_deactivated(
+def test_update_duplicate_domain_check_ignores_deactivated(
     instance_model, client, dns, service_instance
 ):
     factories.CDNServiceInstanceFactory.create(
@@ -235,7 +240,12 @@ def test_duplicate_domain_check_ignores_deactivated(
 
 @pytest.mark.parametrize(
     "instance_model",
-    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
+    [
+        ALBServiceInstance,
+        CDNServiceInstance,
+        CDNDedicatedWAFServiceInstance,
+        DedicatedALBServiceInstance,
+    ],
 )
 def test_refuses_to_update_without_any_acme_challenge_CNAMEs(
     instance_model, client, service_instance
@@ -255,7 +265,12 @@ def test_refuses_to_update_without_any_acme_challenge_CNAMEs(
 
 @pytest.mark.parametrize(
     "instance_model",
-    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
+    [
+        ALBServiceInstance,
+        CDNServiceInstance,
+        CDNDedicatedWAFServiceInstance,
+        DedicatedALBServiceInstance,
+    ],
 )
 def test_refuses_to_update_without_one_acme_challenge_CNAME(
     instance_model, client, dns, service_instance
@@ -275,7 +290,12 @@ def test_refuses_to_update_without_one_acme_challenge_CNAME(
 
 @pytest.mark.parametrize(
     "instance_model",
-    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
+    [
+        ALBServiceInstance,
+        CDNServiceInstance,
+        CDNDedicatedWAFServiceInstance,
+        DedicatedALBServiceInstance,
+    ],
 )
 def test_refuses_to_update_with_incorrect_acme_challenge_CNAME(
     instance_model, client, dns, service_instance
@@ -300,7 +320,12 @@ def test_refuses_to_update_with_incorrect_acme_challenge_CNAME(
 
 @pytest.mark.parametrize(
     "instance_model",
-    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
+    [
+        ALBServiceInstance,
+        CDNServiceInstance,
+        CDNDedicatedWAFServiceInstance,
+        DedicatedALBServiceInstance,
+    ],
 )
 def test_refuses_update_for_canceled_instance(
     instance_model, client, dns, service_instance
@@ -322,7 +347,12 @@ def test_refuses_update_for_canceled_instance(
 
 @pytest.mark.parametrize(
     "instance_model",
-    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
+    [
+        ALBServiceInstance,
+        CDNServiceInstance,
+        CDNDedicatedWAFServiceInstance,
+        DedicatedALBServiceInstance,
+    ],
 )
 def test_refuses_update_for_nonexistent_instance(instance_model, client, dns):
     dns.add_cname("_acme-challenge.bar.com")
@@ -337,7 +367,12 @@ def test_refuses_update_for_nonexistent_instance(instance_model, client, dns):
 
 @pytest.mark.parametrize(
     "instance_model",
-    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
+    [
+        ALBServiceInstance,
+        CDNServiceInstance,
+        CDNDedicatedWAFServiceInstance,
+        DedicatedALBServiceInstance,
+    ],
 )
 def test_refuses_update_for_instance_with_operation(
     instance_model, client, dns, service_instance

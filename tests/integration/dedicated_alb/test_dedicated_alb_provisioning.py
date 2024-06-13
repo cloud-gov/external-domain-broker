@@ -12,7 +12,6 @@ from broker.models import (
 )
 from broker.tasks.alb import get_lowest_used_alb
 
-from tests.lib.factories import ALBServiceInstanceFactory
 from tests.lib.client import check_last_operation_description
 
 from tests.integration.dedicated_alb.test_dedicated_alb_update import (
