@@ -22,10 +22,12 @@ from tests.lib.alb.provision import (
     subtest_provision_uploads_certificate_to_iam,
     subtest_provision_provisions_ALIAS_records,
 )
+from tests.lib.alb.update import (
+    subtest_update_noop,
+)
 
 from tests.integration.dedicated_alb.test_dedicated_alb_update import (
     subtest_update_happy_path,
-    subtest_update_noop,
 )
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we
