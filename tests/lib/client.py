@@ -143,14 +143,23 @@ class CFAPIClient(FlaskClient):
 
     def update_instance(
         self,
-        instance_model: CDNServiceInstance | CDNDedicatedWAFServiceInstance,
+        instance_model: (
+            ALBServiceInstance
+            | CDNServiceInstance
+            | CDNDedicatedWAFServiceInstance
+            | DedicatedALBServiceInstance
+        ),
         *args,
         **kwargs,
     ):
-        if instance_model == CDNServiceInstance:
+        if instance_model == ALBServiceInstance:
+            method = self.update_alb_instance
+        elif instance_model == CDNServiceInstance:
             method = self.update_cdn_instance
         elif instance_model == CDNDedicatedWAFServiceInstance:
             method = self.update_cdn_dedicated_waf_instance
+        elif instance_model == DedicatedALBServiceInstance:
+            method = self.update_dedicated_alb_instance
         return method(*args, **kwargs)
 
     def update_cdn_instance(
