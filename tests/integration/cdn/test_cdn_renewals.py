@@ -13,11 +13,10 @@ from tests.integration.cdn.test_cdn_provisioning import (
     subtest_provision_updates_TXT_records,
     subtest_provision_answers_challenges,
     subtest_provision_waits_for_route53_changes,
-    subtest_provision_creates_private_key_and_csr,
     subtest_provision_uploads_certificate_to_iam,
     subtest_provision_marks_operation_as_succeeded,
 )
-from tests.integration.cdn.test_cdn_update import (
+from tests.lib.cdn.update import (
     subtest_update_creates_private_key_and_csr,
 )
 from tests.lib.factories import (
@@ -113,17 +112,21 @@ def test_scan_for_expiring_certs_cdn_happy_path(
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
+    instance_model = CDNServiceInstance
+
     subtest_queues_tasks()
-    subtest_update_creates_private_key_and_csr(tasks)
-    subtest_provision_initiates_LE_challenge(tasks)
-    subtest_provision_updates_TXT_records(tasks, route53)
-    subtest_provision_waits_for_route53_changes(tasks, route53)
-    subtest_provision_answers_challenges(tasks, dns)
+    subtest_update_creates_private_key_and_csr(tasks, instance_model)
+    subtest_provision_initiates_LE_challenge(tasks, instance_model)
+    subtest_provision_updates_TXT_records(tasks, route53, instance_model)
+    subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
+    subtest_provision_answers_challenges(tasks, dns, instance_model)
     subtest_renew_retrieves_certificate(tasks)
-    subtest_provision_uploads_certificate_to_iam(tasks, iam_commercial, simple_regex)
+    subtest_provision_uploads_certificate_to_iam(
+        tasks, iam_commercial, simple_regex, instance_model
+    )
     subtest_updates_certificate_in_cloudfront(tasks, cloudfront)
     subtest_renewal_removes_certificate_from_iam(tasks, iam_commercial)
-    subtest_provision_marks_operation_as_succeeded(tasks)
+    subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
 
 
 def subtest_queues_tasks():
