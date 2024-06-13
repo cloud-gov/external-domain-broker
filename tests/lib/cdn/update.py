@@ -47,6 +47,42 @@ def subtest_update_happy_path(
     subtest_update_marks_update_complete(tasks, instance_model)
 
 
+def subtest_update_creates_update_operation(client, dns, instance_model):
+    dns.add_cname("_acme-challenge.foo.com")
+    dns.add_cname("_acme-challenge.bar.com")
+    client.update_instance(
+        instance_model,
+        "4321",
+        params={
+            "domains": "bar.com, Foo.com",
+            "origin": "new-origin.com",
+            "path": "/somewhere-else",
+            "forward_cookies": "mycookie,myothercookie, anewcookie",
+            "forward_headers": "x-my-header, x-your-header   ",
+            "insecure_origin": True,
+        },
+    )
+    db.session.expunge_all()
+
+    assert client.response.status_code == 202, client.response.body
+    assert "operation" in client.response.json
+
+    operation_id = client.response.json["operation"]
+    operation = db.session.get(Operation, operation_id)
+
+    assert operation is not None
+    assert operation.state == "in progress"
+    assert operation.action == "Update"
+    assert operation.service_instance_id == "4321"
+
+    instance = db.session.get(instance_model, operation.service_instance_id)
+    assert instance is not None
+    assert instance.domain_names == ["bar.com", "foo.com"]
+    assert instance.cloudfront_origin_hostname == "new-origin.com"
+    assert instance.cloudfront_origin_path == "/somewhere-else"
+    return operation_id
+
+
 def subtest_updates_cloudfront(tasks, cloudfront, instance_model):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
@@ -311,3 +347,33 @@ def subtest_update_updates_ALIAS_records(tasks, route53, instance_model):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
     assert service_instance.route53_change_ids == [bar_com_change_id, foo_com_change_id]
+
+
+def subtest_update_uploads_new_cert(
+    tasks, iam_commercial, simple_regex, instance_model
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    certificate = service_instance.new_certificate
+    today = date.today().isoformat()
+    assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
+
+    iam_commercial.expect_upload_server_certificate(
+        name=f"{service_instance.id}-{today}-{certificate.id}",
+        cert=certificate.leaf_pem,
+        private_key=certificate.private_key_pem,
+        chain=certificate.fullchain_pem,
+        path="/cloudfront/external-domains-test/",
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    certificate = service_instance.new_certificate
+    assert certificate.iam_server_certificate_name
+    assert certificate.iam_server_certificate_name.startswith("4321")
+    assert certificate.iam_server_certificate_id
+    assert certificate.iam_server_certificate_id.startswith("FAKE_CERT_ID")
+    assert certificate.iam_server_certificate_arn
+    assert certificate.iam_server_certificate_arn.startswith("arn:aws:iam")

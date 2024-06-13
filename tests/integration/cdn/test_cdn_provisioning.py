@@ -6,8 +6,7 @@ from broker.models import (
 
 from tests.lib.client import check_last_operation_description
 
-from tests.lib.cdn.provision import (
-    subtest_provision_creates_provision_operation,
+from tests.lib.provision import (
     subtest_provision_creates_LE_user,
     subtest_provision_creates_private_key_and_csr,
     subtest_provision_initiates_LE_challenge,
@@ -15,11 +14,14 @@ from tests.lib.cdn.provision import (
     subtest_provision_waits_for_route53_changes,
     subtest_provision_answers_challenges,
     subtest_provision_retrieves_certificate,
+    subtest_provision_marks_operation_as_succeeded,
+)
+from tests.lib.cdn.provision import (
+    subtest_provision_creates_provision_operation,
     subtest_provision_uploads_certificate_to_iam,
     subtest_provision_creates_cloudfront_distribution,
     subtest_provision_waits_for_cloudfront_distribution,
     subtest_provision_provisions_ALIAS_records,
-    subtest_provision_marks_operation_as_succeeded,
 )
 from tests.lib.cdn.update import (
     subtest_update_happy_path,

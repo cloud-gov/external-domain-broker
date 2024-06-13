@@ -1,3 +1,4 @@
+from datetime import date
 import pytest  # noqa F401
 
 from broker.extensions import db
@@ -6,8 +7,7 @@ from broker.tasks.alb import get_lowest_used_alb
 from tests.lib.client import check_last_operation_description
 
 
-from tests.lib.cdn.provision import (
-    subtest_provision_creates_provision_operation,
+from tests.lib.provision import (
     subtest_provision_creates_LE_user,
     subtest_provision_creates_private_key_and_csr,
     subtest_provision_initiates_LE_challenge,
@@ -15,8 +15,6 @@ from tests.lib.cdn.provision import (
     subtest_provision_waits_for_route53_changes,
     subtest_provision_answers_challenges,
     subtest_provision_retrieves_certificate,
-    subtest_provision_uploads_certificate_to_iam,
-    subtest_provision_provisions_ALIAS_records,
     subtest_provision_marks_operation_as_succeeded,
 )
 
@@ -83,7 +81,9 @@ def test_provision_happy_path(
     client, dns, tasks, route53, iam_govcloud, simple_regex, alb
 ):
     instance_model = ALBServiceInstance
-    operation_id = subtest_provision_creates_provision_operation(client, dns)
+    operation_id = subtest_provision_creates_provision_operation(
+        client, dns, instance_model
+    )
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_provision_creates_LE_user(tasks, instance_model)
     check_last_operation_description(
@@ -143,7 +143,37 @@ def test_provision_happy_path(
     subtest_update_noop(client)
 
 
-def subtest_provision_creates_provision_operation(client, dns):
+def subtest_provision_uploads_certificate_to_iam(
+    tasks, iam_govcloud, simple_regex, instance_model
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    certificate = service_instance.new_certificate
+    today = date.today().isoformat()
+    assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
+
+    iam_govcloud.expect_upload_server_certificate(
+        name=f"{service_instance.id}-{today}-{certificate.id}",
+        cert=certificate.leaf_pem,
+        private_key=certificate.private_key_pem,
+        chain=certificate.fullchain_pem,
+        path="/alb/external-domains-test/",
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    certificate = service_instance.new_certificate
+    assert certificate.iam_server_certificate_name
+    assert certificate.iam_server_certificate_name.startswith("4321")
+    assert certificate.iam_server_certificate_id
+    assert certificate.iam_server_certificate_id.startswith("FAKE_CERT_ID")
+    assert certificate.iam_server_certificate_arn
+    assert certificate.iam_server_certificate_arn.startswith("arn:aws:iam")
+
+
+def subtest_provision_creates_provision_operation(client, dns, instance_model):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
     client.provision_alb_instance("4321", params={"domains": "example.com, Foo.com"})
@@ -160,11 +190,23 @@ def subtest_provision_creates_provision_operation(client, dns):
     assert operation.action == "Provision"
     assert operation.service_instance_id == "4321"
 
-    instance = db.session.get(ALBServiceInstance, operation.service_instance_id)
+    instance = db.session.get(instance_model, operation.service_instance_id)
     assert instance is not None
     assert instance.domain_names == ["example.com", "foo.com"]
 
     return operation_id
+
+
+def subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    example_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
+        "example.com.domains.cloud.test", "alb.cloud.test", "ALBHOSTEDZONEID"
+    )
+    foo_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
+        "foo.com.domains.cloud.test", "alb.cloud.test", "ALBHOSTEDZONEID"
+    )
+    tasks.run_queued_tasks_and_enqueue_dependents()
 
 
 def subtest_provision_selects_alb(tasks, alb):
