@@ -3,18 +3,16 @@ from datetime import date
 import pytest  # noqa F401
 
 from broker.extensions import db
-from broker.models import Challenge, Operation
+from broker.models import Operation
 
 from tests.lib.client import check_last_operation_description
 from tests.lib.update import (
-    subtest_update_creates_update_operation,
     subtest_update_creates_private_key_and_csr,
     subtest_gets_new_challenges,
     subtest_update_updates_TXT_records,
     subtest_update_answers_challenges,
     subtest_waits_for_dns_changes,
     subtest_update_retrieves_new_cert,
-    subtest_update_uploads_new_cert,
     subtest_update_marks_update_complete,
     subtest_update_removes_certificate_from_iam,
 )

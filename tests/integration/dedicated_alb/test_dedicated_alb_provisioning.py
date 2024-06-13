@@ -1,19 +1,13 @@
-import json
-from datetime import date
-
 import pytest  # noqa F401
 
-from broker.extensions import config, db
+from broker.extensions import db
 from broker.models import (
-    Challenge,
-    Operation,
     DedicatedALBServiceInstance,
     DedicatedALBListener,
 )
 
 from tests.lib.client import check_last_operation_description
 from tests.lib.provision import (
-    subtest_provision_creates_provision_operation,
     subtest_provision_creates_LE_user,
     subtest_provision_creates_private_key_and_csr,
     subtest_provision_initiates_LE_challenge,
@@ -21,9 +15,12 @@ from tests.lib.provision import (
     subtest_provision_waits_for_route53_changes,
     subtest_provision_answers_challenges,
     subtest_provision_retrieves_certificate,
+    subtest_provision_marks_operation_as_succeeded,
+)
+from tests.lib.alb.provision import (
+    subtest_provision_creates_provision_operation,
     subtest_provision_uploads_certificate_to_iam,
     subtest_provision_provisions_ALIAS_records,
-    subtest_provision_marks_operation_as_succeeded,
 )
 
 from tests.integration.dedicated_alb.test_dedicated_alb_update import (
@@ -43,37 +40,42 @@ from tests.integration.dedicated_alb.test_dedicated_alb_update import (
 def test_provision_happy_path(
     client, dns, tasks, route53, iam_govcloud, simple_regex, alb
 ):
-    operation_id = subtest_provision_creates_provision_operation(client, dns)
+    instance_model = DedicatedALBServiceInstance
+    operation_id = subtest_provision_creates_provision_operation(
+        client, dns, instance_model
+    )
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
-    subtest_provision_creates_LE_user(tasks)
+    subtest_provision_creates_LE_user(tasks, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Registering user for Lets Encrypt"
     )
-    subtest_provision_creates_private_key_and_csr(tasks)
+    subtest_provision_creates_private_key_and_csr(tasks, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Creating credentials for Lets Encrypt"
     )
-    subtest_provision_initiates_LE_challenge(tasks)
+    subtest_provision_initiates_LE_challenge(tasks, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Initiating Lets Encrypt challenges"
     )
-    subtest_provision_updates_TXT_records(tasks, route53)
+    subtest_provision_updates_TXT_records(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Updating DNS TXT records"
     )
-    subtest_provision_waits_for_route53_changes(tasks, route53)
+    subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Waiting for DNS changes"
     )
-    subtest_provision_answers_challenges(tasks, dns)
+    subtest_provision_answers_challenges(tasks, dns, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Answering Lets Encrypt challenges"
     )
-    subtest_provision_retrieves_certificate(tasks)
+    subtest_provision_retrieves_certificate(tasks, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Retrieving SSL certificate from Lets Encrypt"
     )
-    subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_regex)
+    subtest_provision_uploads_certificate_to_iam(
+        tasks, iam_govcloud, simple_regex, instance_model
+    )
     check_last_operation_description(
         client, "4321", operation_id, "Uploading SSL certificate to AWS"
     )
@@ -85,15 +87,15 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Adding SSL certificate to load balancer"
     )
-    subtest_provision_provisions_ALIAS_records(tasks, route53, alb)
+    subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Creating DNS ALIAS records"
     )
-    subtest_provision_waits_for_route53_changes(tasks, route53)
+    subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Waiting for DNS changes"
     )
-    subtest_provision_marks_operation_as_succeeded(tasks)
+    subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
     subtest_update_happy_path(
         client, dns, tasks, route53, iam_govcloud, simple_regex, alb
