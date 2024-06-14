@@ -25,10 +25,12 @@ from sap import cf_logging
 
 from broker import validators
 from broker.extensions import config, db
+from broker.lib.cdn import is_cdn_instance
 from broker.models import (
     Operation,
     ALBServiceInstance,
     CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
     DedicatedALBServiceInstance,
     MigrationServiceInstance,
     ServiceInstance,
@@ -36,13 +38,14 @@ from broker.models import (
     Certificate,
 )
 from broker.tasks.pipelines import (
-    queue_all_alb_deprovision_tasks_for_operation,
     queue_all_alb_provision_tasks_for_operation,
+    queue_all_alb_deprovision_tasks_for_operation,
     queue_all_alb_update_tasks_for_operation,
     queue_all_alb_to_dedicated_alb_update_tasks_for_operation,
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
+    queue_all_cdn_dedicated_waf_provision_tasks_for_operation,
     queue_all_cdn_broker_migration_tasks_for_operation,
     queue_all_dedicated_alb_provision_tasks_for_operation,
     queue_all_dedicated_alb_update_tasks_for_operation,
@@ -54,6 +57,7 @@ ALB_PLAN_ID = "6f60835c-8964-4f1f-a19a-579fb27ce694"
 CDN_PLAN_ID = "1cc78b0c-c296-48f5-9182-0b38404f79ef"
 MIGRATION_PLAN_ID = "739e78F5-a919-46ef-9193-1293cc086c17"
 DEDICATED_ALB_PLAN_ID = "fcde69c6-077b-4edd-8d12-7b95bbc2595f"
+CDN_DEDICATED_WAF_PLAN_ID = "129c8332-02ce-460a-bd6d-bde10110c654"
 
 
 class API(ServiceBroker):
@@ -96,6 +100,11 @@ class API(ServiceBroker):
                     id=DEDICATED_ALB_PLAN_ID,
                     name="domain-with-org-lb",
                     description="Basic custom domain with TLS, on org-scoped load balanacers.",
+                ),
+                ServicePlan(
+                    id=CDN_DEDICATED_WAF_PLAN_ID,
+                    name="domain-with-cdn-dedicated-waf",
+                    description="Custom domain with TLS, CloudFront, and dedicated WAF.",
                 ),
             ],
         )
@@ -156,6 +165,14 @@ class API(ServiceBroker):
         if details.plan_id == CDN_PLAN_ID:
             instance = provision_cdn_instance(instance_id, domain_names, params)
             queue = queue_all_cdn_provision_tasks_for_operation
+        elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
+            instance = provision_cdn_instance(
+                instance_id,
+                domain_names,
+                params,
+                instance_type_model=CDNDedicatedWAFServiceInstance,
+            )
+            queue = queue_all_cdn_dedicated_waf_provision_tasks_for_operation
         elif details.plan_id == ALB_PLAN_ID:
             instance = ALBServiceInstance(id=instance_id, domain_names=domain_names)
             queue = queue_all_alb_provision_tasks_for_operation
@@ -272,63 +289,26 @@ class API(ServiceBroker):
             self.logger.info("validating unique domains")
             validators.UniqueDomains(domain_names).validate(instance)
             noop = noop and (sorted(domain_names) == sorted(instance.domain_names))
-            if instance.instance_type == "cdn_service_instance" and noop:
+            if is_cdn_instance(instance) and noop:
                 instance.new_certificate = instance.current_certificate
             instance.domain_names = domain_names
 
         if instance.instance_type == "cdn_service_instance":
-            # N.B. we're using "param" in params rather than
-            # params.get("param") because the OSBAPI spec
-            # requires we do not mess with params that were not
-            # specified, so unset and set to None have different meanings
             noop = False
 
             if details.plan_id != CDN_PLAN_ID:
                 raise ClientError("Updating service plan is not supported")
 
-            if "origin" in params:
-                if params["origin"]:
-                    origin_hostname = params["origin"]
-                    validators.Hostname(origin_hostname).validate()
-                else:
-                    origin_hostname = config.DEFAULT_CLOUDFRONT_ORIGIN
-                instance.cloudfront_origin_hostname = origin_hostname
+            instance = update_cdn_instance(params, instance)
 
-            if "path" in params:
-                if params["path"]:
-                    cloudfront_origin_path = params["path"]
-                else:
-                    cloudfront_origin_path = ""
-                instance.cloudfront_origin_path = cloudfront_origin_path
-            if "forward_cookies" in params:
-                forward_cookie_policy, forwarded_cookies = parse_cookie_options(params)
-                instance.forward_cookie_policy = forward_cookie_policy
-                instance.forwarded_cookies = forwarded_cookies
+            queue = queue_all_cdn_update_tasks_for_operation
+        elif instance.instance_type == "cdn_dedicated_waf_service_instance":
+            noop = False
 
-            if "forward_headers" in params:
-                forwarded_headers = parse_header_options(params)
-            else:
-                # .copy() so sqlalchemy recognizes the field has changed
-                forwarded_headers = instance.forwarded_headers.copy()
-            if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
-                forwarded_headers.append("HOST")
-            forwarded_headers = normalize_header_list(forwarded_headers)
-            instance.forwarded_headers = forwarded_headers
-            if "insecure_origin" in params:
-                origin_protocol_policy = "https-only"
-                if params["insecure_origin"]:
-                    if (
-                        instance.cloudfront_origin_hostname
-                        == config.DEFAULT_CLOUDFRONT_ORIGIN
-                    ):
-                        raise errors.ErrBadRequest(
-                            "Cannot use insecure_origin with default origin"
-                        )
-                    origin_protocol_policy = "http-only"
-                instance.origin_protocol_policy = origin_protocol_policy
-            if "error_responses" in params:
-                instance.error_responses = params["error_responses"]
-                validators.ErrorResponseConfig(instance.error_responses).validate()
+            if details.plan_id != CDN_DEDICATED_WAF_PLAN_ID:
+                raise ClientError("Updating service plan is not supported")
+
+            instance = update_cdn_instance(params, instance)
 
             queue = queue_all_cdn_update_tasks_for_operation
         elif instance.instance_type == "alb_service_instance":
@@ -456,8 +436,15 @@ def parse_domain_options(params):
         return [d.strip().lower() for d in domains]
 
 
-def provision_cdn_instance(instance_id: str, domain_names: list, params: dict):
-    instance = CDNServiceInstance(id=instance_id, domain_names=domain_names)
+def provision_cdn_instance(
+    instance_id: str,
+    domain_names: list,
+    params: dict,
+    instance_type_model: (
+        CDNServiceInstance | CDNDedicatedWAFServiceInstance
+    ) = CDNServiceInstance,
+):
+    instance = instance_type_model(id=instance_id, domain_names=domain_names)
     instance.cloudfront_origin_hostname = params.get(
         "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
     )
@@ -480,9 +467,58 @@ def provision_cdn_instance(instance_id: str, domain_names: list, params: dict):
             raise errors.ErrBadRequest(
                 "'insecure_origin' cannot be set when using the default origin."
             )
-        instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTP.value
+        instance.origin_protocol_policy = instance_type_model.ProtocolPolicy.HTTP.value
     else:
-        instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTPS.value
+        instance.origin_protocol_policy = instance_type_model.ProtocolPolicy.HTTPS.value
+    return instance
+
+
+def update_cdn_instance(params, instance):
+    # N.B. we're using "param" in params rather than
+    # params.get("param") because the OSBAPI spec
+    # requires we do not mess with params that were not
+    # specified, so unset and set to None have different meanings
+    if "origin" in params:
+        if params["origin"]:
+            origin_hostname = params["origin"]
+            validators.Hostname(origin_hostname).validate()
+        else:
+            origin_hostname = config.DEFAULT_CLOUDFRONT_ORIGIN
+        instance.cloudfront_origin_hostname = origin_hostname
+
+    if "path" in params:
+        if params["path"]:
+            cloudfront_origin_path = params["path"]
+        else:
+            cloudfront_origin_path = ""
+        instance.cloudfront_origin_path = cloudfront_origin_path
+    if "forward_cookies" in params:
+        forward_cookie_policy, forwarded_cookies = parse_cookie_options(params)
+        instance.forward_cookie_policy = forward_cookie_policy
+        instance.forwarded_cookies = forwarded_cookies
+
+    if "forward_headers" in params:
+        forwarded_headers = parse_header_options(params)
+    else:
+        # .copy() so sqlalchemy recognizes the field has changed
+        forwarded_headers = instance.forwarded_headers.copy()
+    if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
+        forwarded_headers.append("HOST")
+    forwarded_headers = normalize_header_list(forwarded_headers)
+    instance.forwarded_headers = forwarded_headers
+    if "insecure_origin" in params:
+        origin_protocol_policy = "https-only"
+        if params["insecure_origin"]:
+            if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
+                raise errors.ErrBadRequest(
+                    "Cannot use insecure_origin with default origin"
+                )
+            origin_protocol_policy = "http-only"
+        instance.origin_protocol_policy = origin_protocol_policy
+    if "error_responses" in params:
+        instance.error_responses = params["error_responses"]
+        validators.ErrorResponseConfig(instance.error_responses).validate()
+
     return instance
 
 

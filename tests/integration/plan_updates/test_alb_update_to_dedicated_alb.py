@@ -6,10 +6,12 @@ from tests.lib import factories
 from tests.integration.dedicated_alb.test_dedicated_alb_provisioning import (
     subtest_provision_selects_dedicated_alb,
     subtest_provision_adds_certificate_to_alb,
-    subtest_provision_provisions_ALIAS_records,
-    subtest_provision_waits_for_route53_changes,
-    subtest_provision_marks_operation_as_succeeded,
 )
+from tests.lib.provision import (
+    subtest_provision_marks_operation_as_succeeded,
+    subtest_provision_waits_for_route53_changes,
+)
+from tests.lib.alb.provision import subtest_provision_provisions_ALIAS_records
 
 
 @pytest.fixture
@@ -71,14 +73,15 @@ def test_update_alb_to_dedicated_alb_happy_path(
     # - remove certificate from old ALB
     subtest_provision_selects_dedicated_alb(tasks, alb)
     subtest_provision_adds_certificate_to_alb(tasks, alb)
-    subtest_provision_provisions_ALIAS_records(tasks, route53, alb)
-    subtest_provision_waits_for_route53_changes(tasks, route53)
+    instance_model = DedicatedALBServiceInstance
+    subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
+    subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
     subtest_renewal_removes_certificate_from_alb(tasks, alb)
     clean_db.session.expunge_all()
     instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
     assert instance.new_certificate is None
     assert instance.current_certificate is not None
-    subtest_provision_marks_operation_as_succeeded(tasks)
+    subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
 
 
 def subtest_renewal_removes_certificate_from_alb(tasks, alb):

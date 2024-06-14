@@ -1,9 +1,9 @@
 import pytest  # noqa F401
 
+from broker.extensions import config, db
 from broker.models import (
-    CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
 )
-
 from tests.lib.client import check_last_operation_description
 
 from tests.lib.provision import (
@@ -17,11 +17,11 @@ from tests.lib.provision import (
 )
 from tests.lib.cdn.provision import (
     subtest_provision_creates_provision_operation,
+    subtest_provision_retrieves_certificate,
     subtest_provision_uploads_certificate_to_iam,
     subtest_provision_creates_cloudfront_distribution,
     subtest_provision_waits_for_cloudfront_distribution,
     subtest_provision_provisions_ALIAS_records,
-    subtest_provision_retrieves_certificate,
 )
 from tests.lib.cdn.update import (
     subtest_update_happy_path,
@@ -38,9 +38,9 @@ from tests.lib.cdn.update import (
 
 
 def test_provision_happy_path(
-    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront, wafv2
 ):
-    instance_model = CDNServiceInstance
+    instance_model = CDNDedicatedWAFServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
         client, dns, instance_model
     )
@@ -97,6 +97,10 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Waiting for DNS changes"
     )
+    subtest_provision_create_web_acl(tasks, wafv2)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating custom WAFv2 web ACL"
+    )
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
     subtest_update_happy_path(
@@ -109,11 +113,24 @@ def test_provision_happy_path(
         cloudfront,
         instance_model,
     )
-    subtest_update_same_domains(
-        client,
-        dns,
-        tasks,
-        route53,
-        cloudfront,
-        instance_model,
+    subtest_update_same_domains(client, dns, tasks, route53, cloudfront, instance_model)
+
+
+def subtest_provision_create_web_acl(tasks, wafv2):
+    db.session.expunge_all()
+    service_instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
+
+    wafv2.expect_create_web_acl(
+        distribution_id=service_instance.cloudfront_distribution_id,
+        rule_group_arn=config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
+    assert service_instance.dedicated_waf_web_acl_arn
+    assert (
+        service_instance.dedicated_waf_web_acl_arn
+        == f"arn:aws:wafv2::000000000000:global/webacl/{service_instance.cloudfront_distribution_id}-dedicated-waf"
     )

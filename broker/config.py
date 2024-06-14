@@ -114,6 +114,8 @@ class AppConfig(Config):
         self.SMTP_TLS = True
         self.IAM_CERTIFICATE_PROPAGATION_TIME = 30
 
+        self.WAF_RATE_LIMIT_RULE_GROUP_ARN = self.env("WAF_RATE_LIMIT_RULE_GROUP_ARN")
+
 
 class ProductionConfig(AppConfig):
     def __init__(self):
@@ -161,6 +163,7 @@ class UpgradeSchemaConfig(Config):
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
         self.ALB_LISTENER_ARNS = []
         self.DEDICATED_ALB_LISTENER_ARNS = []
+        self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "NONE"
 
 
 class CheckDuplicateCertsConfig(UpgradeSchemaConfig):
@@ -229,6 +232,8 @@ class DockerConfig(Config):
         self.SMTP_TLS = False
         self.SMTP_USER = None
         self.SMTP_PASS = None
+
+        self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "rate-limit-rule-group-fake-arn"
 
 
 class LocalDevelopmentConfig(DockerConfig):

@@ -1,5 +1,4 @@
 import base64
-import os
 
 import flask_migrate
 import pytest
@@ -10,6 +9,14 @@ from sap import cf_logging
 from werkzeug.datastructures import Headers
 
 from broker.app import create_app, db
+from broker.api import CDN_DEDICATED_WAF_PLAN_ID
+from broker.models import (
+    ALBServiceInstance,
+    MigrationServiceInstance,
+    DedicatedALBServiceInstance,
+    CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
+)
 from broker.tasks.huey import huey
 
 
@@ -59,15 +66,22 @@ class CFAPIClient(FlaskClient):
 
         return self.response
 
-    def provision_instance(self, instance_type: str, *args, **kwargs):
-        if instance_type == "cdn":
+    def provision_instance(
+        self,
+        instance_model: CDNServiceInstance | CDNDedicatedWAFServiceInstance,
+        *args,
+        **kwargs,
+    ):
+        if instance_model == CDNServiceInstance:
             method = self.provision_cdn_instance
-        elif instance_type == "alb":
+        elif instance_model == ALBServiceInstance:
             method = self.provision_alb_instance
-        elif instance_type == "migration":
+        elif instance_model == MigrationServiceInstance:
             method = self.provision_migration_instance
-        elif instance_type == "dedicated_alb":
+        elif instance_model == DedicatedALBServiceInstance:
             method = self.provision_dedicated_alb_instance
+        elif instance_model == CDNDedicatedWAFServiceInstance:
+            method = self.provision_cdn_dedicated_waf_instance
         return method(*args, **kwargs)
 
     def provision_cdn_instance(
@@ -76,6 +90,25 @@ class CFAPIClient(FlaskClient):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "1cc78b0c-c296-48f5-9182-0b38404f79ef",
+            "organization_guid": "abc",
+            "space_guid": "123",
+        }
+
+        if params is not None:
+            json["parameters"] = params
+
+        self.put(
+            f"/v2/service_instances/{id}",
+            json=json,
+            query_string={"accepts_incomplete": accepts_incomplete},
+        )
+
+    def provision_cdn_dedicated_waf_instance(
+        self, id: str, accepts_incomplete: str = "true", params: dict = None
+    ):
+        json = {
+            "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
+            "plan_id": CDN_DEDICATED_WAF_PLAN_ID,
             "organization_guid": "abc",
             "space_guid": "123",
         }
@@ -108,12 +141,54 @@ class CFAPIClient(FlaskClient):
             query_string={"accepts_incomplete": accepts_incomplete},
         )
 
+    def update_instance(
+        self,
+        instance_model: (
+            ALBServiceInstance
+            | CDNServiceInstance
+            | CDNDedicatedWAFServiceInstance
+            | DedicatedALBServiceInstance
+        ),
+        *args,
+        **kwargs,
+    ):
+        if instance_model == ALBServiceInstance:
+            method = self.update_alb_instance
+        elif instance_model == CDNServiceInstance:
+            method = self.update_cdn_instance
+        elif instance_model == CDNDedicatedWAFServiceInstance:
+            method = self.update_cdn_dedicated_waf_instance
+        elif instance_model == DedicatedALBServiceInstance:
+            method = self.update_dedicated_alb_instance
+        return method(*args, **kwargs)
+
     def update_cdn_instance(
         self, id: str, accepts_incomplete: str = "true", params: dict = None
     ):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "1cc78b0c-c296-48f5-9182-0b38404f79ef",
+            "context": {
+                "organization_guid": "abc",
+                "space_guid": "123",
+            },
+        }
+
+        if params is not None:
+            json["parameters"] = params
+
+        self.patch(
+            f"/v2/service_instances/{id}",
+            json=json,
+            query_string={"accepts_incomplete": accepts_incomplete},
+        )
+
+    def update_cdn_dedicated_waf_instance(
+        self, id: str, accepts_incomplete: str = "true", params: dict = None
+    ):
+        json = {
+            "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
+            "plan_id": CDN_DEDICATED_WAF_PLAN_ID,
             "context": {
                 "organization_guid": "abc",
                 "space_guid": "123",

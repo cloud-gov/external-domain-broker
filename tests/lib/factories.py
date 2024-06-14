@@ -8,6 +8,7 @@ from broker.models import (
     Challenge,
     Operation,
     CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
     ALBServiceInstance,
     DedicatedALBServiceInstance,
     MigrationServiceInstance,
@@ -23,6 +24,14 @@ class BaseFactory(SQLAlchemyModelFactory):
 class CDNServiceInstanceFactory(BaseFactory):
     class Meta(object):
         model = CDNServiceInstance
+
+    id = Sequence(lambda n: "UUID {}".format(n))
+    error_responses = {}
+
+
+class CDNDedicatedWAFServiceInstanceFactory(BaseFactory):
+    class Meta(object):
+        model = CDNDedicatedWAFServiceInstance
 
     id = Sequence(lambda n: "UUID {}".format(n))
     error_responses = {}

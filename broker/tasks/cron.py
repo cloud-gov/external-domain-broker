@@ -4,6 +4,7 @@ import logging
 from huey import crontab
 
 from broker.extensions import db, config
+from broker.lib.cdn import is_cdn_instance
 from broker.models import Certificate, Operation, DedicatedALBListener
 from broker.tasks import huey
 from broker.tasks.pipelines import (
@@ -53,7 +54,7 @@ def scan_for_expiring_certs():
                 step_description="Queuing tasks",
             )
             db.session.add(renewal)
-            if instance.instance_type == "cdn_service_instance":
+            if is_cdn_instance(instance):
                 cdn_renewals.append(renewal)
             elif instance.instance_type == "alb_service_instance":
                 alb_renewals.append(renewal)

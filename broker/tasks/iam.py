@@ -8,6 +8,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import iam_commercial, iam_govcloud
 from broker.extensions import config, db
+from broker.lib.cdn import is_cdn_instance
 from broker.models import Certificate, Operation
 from broker.tasks import huey
 
@@ -26,7 +27,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
     db.session.commit()
 
     today = date.today().isoformat()
-    if service_instance.instance_type == "cdn_service_instance":
+    if is_cdn_instance(service_instance):
         iam = iam_commercial
         iam_server_certificate_prefix = config.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX
         propagation_time = 0
@@ -37,6 +38,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
 
     if service_instance.new_certificate.iam_server_certificate_arn is not None:
         return
+
     certificate.iam_server_certificate_name = (
         f"{service_instance.id}-{today}-{certificate.id}"
     )
@@ -82,7 +84,7 @@ def delete_server_certificate(operation_id: str, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    if service_instance.instance_type == "cdn_service_instance":
+    if is_cdn_instance(service_instance):
         iam = iam_commercial
     else:
         iam = iam_govcloud
@@ -120,7 +122,7 @@ def delete_previous_server_certificate(operation_id: str, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    if service_instance.instance_type == "cdn_service_instance":
+    if is_cdn_instance(service_instance):
         iam = iam_commercial
     else:
         iam = iam_govcloud
