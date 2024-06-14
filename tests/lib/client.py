@@ -11,6 +11,7 @@ from werkzeug.datastructures import Headers
 from broker.app import create_app, db
 from broker.api import CDN_DEDICATED_WAF_PLAN_ID
 from broker.models import (
+    ServiceInstance,
     ALBServiceInstance,
     MigrationServiceInstance,
     DedicatedALBServiceInstance,
@@ -36,6 +37,9 @@ def check_last_operation_description(
     client.get_last_operation(instance_id, operation_id)
     assert "description" in client.response.json
     assert client.response.json.get("description") == expected_message
+
+
+InstanceModel = type[ServiceInstance]
 
 
 class CFAPIClient(FlaskClient):
@@ -68,7 +72,7 @@ class CFAPIClient(FlaskClient):
 
     def provision_instance(
         self,
-        instance_model: CDNServiceInstance | CDNDedicatedWAFServiceInstance,
+        instance_model: InstanceModel,
         *args,
         **kwargs,
     ):
@@ -143,12 +147,7 @@ class CFAPIClient(FlaskClient):
 
     def update_instance(
         self,
-        instance_model: (
-            ALBServiceInstance
-            | CDNServiceInstance
-            | CDNDedicatedWAFServiceInstance
-            | DedicatedALBServiceInstance
-        ),
+        instance_model: InstanceModel,
         *args,
         **kwargs,
     ):
