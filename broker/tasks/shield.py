@@ -2,7 +2,7 @@ from broker.aws import shield
 from broker.tasks import huey
 
 
-protected_cloudfront_resources: dict[str, str] = {}
+protected_cloudfront_ids: dict[str, str] = {}
 
 
 @huey.retriable_task
@@ -13,5 +13,5 @@ def list_cloudfront_protections(operation_id: int, **kwargs):
             InclusionFilters={"ResourceTypes": ["CLOUDFRONT_DISTRIBUTION"]}
         )
         for protection in response["Protections"]:
-            protected_cloudfront_resources[protection["ResourceArn"]] = protection["Id"]
+            protected_cloudfront_ids[protection["ResourceArn"]] = protection["Id"]
         next_token = response["NextToken"]
