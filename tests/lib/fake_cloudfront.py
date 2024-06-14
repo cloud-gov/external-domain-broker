@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 import pytest
 
 from broker.aws import cloudfront as real_cloudfront
-from broker.lib.cdn import add_cdn_tag
+from broker.lib.tags import add_tag
 from tests.lib.fake_aws import FakeAWS
 
 

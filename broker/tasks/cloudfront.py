@@ -5,7 +5,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import cloudfront
 from broker.extensions import config, db
-from broker.lib.cdn import add_cdn_tag
+from broker.lib.tags import add_tag
 from broker.models import Operation, CDNServiceInstance
 from broker.tasks import huey
 
