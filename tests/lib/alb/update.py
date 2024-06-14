@@ -42,6 +42,8 @@ def subtest_update_uploads_new_cert(tasks, iam_govcloud, simple_regex, instance_
     assert certificate.iam_server_certificate_arn.startswith("arn:aws:iam")
 
 
-def subtest_update_noop(client):
-    client.update_alb_instance("4321", params={"domains": "bar.com, Foo.com"})
+def subtest_update_noop(client, instance_model):
+    client.update_instance(
+        instance_model, "4321", params={"domains": "bar.com, Foo.com"}
+    )
     assert client.response.status_code == 200

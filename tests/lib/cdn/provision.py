@@ -180,3 +180,17 @@ def subtest_provision_waits_for_cloudfront_distribution(
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
+
+
+def subtest_provision_retrieves_certificate(tasks, instance_model):
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+
+    assert len(service_instance.certificates) == 1
+    certificate = service_instance.new_certificate
+
+    assert certificate.fullchain_pem.count("BEGIN CERTIFICATE") == 1
+    assert certificate.leaf_pem.count("BEGIN CERTIFICATE") == 1
+    assert certificate.expires_at is not None

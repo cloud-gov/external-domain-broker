@@ -108,20 +108,6 @@ def subtest_provision_answers_challenges(tasks, dns, instance_model):
     assert answered == [True, True]
 
 
-def subtest_provision_retrieves_certificate(tasks, instance_model):
-    tasks.run_queued_tasks_and_enqueue_dependents()
-
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
-
-    assert len(service_instance.certificates) == 1
-    certificate = service_instance.new_certificate
-
-    assert certificate.fullchain_pem.count("BEGIN CERTIFICATE") == 1
-    assert certificate.leaf_pem.count("BEGIN CERTIFICATE") == 1
-    assert certificate.expires_at is not None
-
-
 def subtest_provision_marks_operation_as_succeeded(tasks, instance_model):
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()

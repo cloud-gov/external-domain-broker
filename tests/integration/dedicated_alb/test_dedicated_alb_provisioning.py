@@ -14,13 +14,13 @@ from tests.lib.provision import (
     subtest_provision_updates_TXT_records,
     subtest_provision_waits_for_route53_changes,
     subtest_provision_answers_challenges,
-    subtest_provision_retrieves_certificate,
     subtest_provision_marks_operation_as_succeeded,
 )
 from tests.lib.alb.provision import (
     subtest_provision_creates_provision_operation,
     subtest_provision_uploads_certificate_to_iam,
     subtest_provision_provisions_ALIAS_records,
+    subtest_provision_retrieves_certificate,
 )
 from tests.lib.alb.update import (
     subtest_update_noop,
@@ -102,7 +102,7 @@ def test_provision_happy_path(
     subtest_update_happy_path(
         client, dns, tasks, route53, iam_govcloud, simple_regex, alb
     )
-    subtest_update_noop(client)
+    subtest_update_noop(client, instance_model)
 
 
 def subtest_provision_selects_dedicated_alb(tasks, alb):

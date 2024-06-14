@@ -40,11 +40,11 @@ def subtest_update_happy_path(
     subtest_update_answers_challenges(tasks, dns, instance_model)
     subtest_update_retrieves_new_cert(tasks, instance_model)
     subtest_update_uploads_new_cert(tasks, iam_govcloud, simple_regex, instance_model)
-    subtest_update_selects_alb(tasks, alb, instance_model)
-    subtest_update_adds_certificate_to_alb(tasks, alb, instance_model)
-    subtest_update_provisions_ALIAS_records(tasks, route53, alb, instance_model)
+    subtest_update_selects_alb(tasks, alb)
+    subtest_update_adds_certificate_to_alb(tasks, alb)
+    subtest_update_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
-    subtest_update_removes_certificate_from_alb(tasks, alb, instance_model)
+    subtest_update_removes_certificate_from_alb(tasks, alb)
     subtest_update_removes_certificate_from_iam(tasks, iam_govcloud, instance_model)
     subtest_update_marks_update_complete(tasks, instance_model)
 
@@ -102,13 +102,6 @@ def subtest_update_adds_certificate_to_alb(tasks, alb):
     assert service_instance.new_certificate is None
     assert service_instance.current_certificate is not None
     assert service_instance.current_certificate.id == id_
-
-    tasks.run_queued_tasks_and_enqueue_dependents()
-    db.session.expunge_all()
-    service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
-    operation = service_instance.operations.first()
-    assert operation
-    assert "succeeded" == operation.state
 
 
 def subtest_update_removes_certificate_from_alb(tasks, alb):

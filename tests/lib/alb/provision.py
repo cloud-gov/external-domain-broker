@@ -1,4 +1,5 @@
 from datetime import date
+import json
 
 import pytest  # noqa F401
 
@@ -74,3 +75,18 @@ def subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model):
         "foo.com.domains.cloud.test", "alb.cloud.test", "ALBHOSTEDZONEID"
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
+
+
+def subtest_provision_retrieves_certificate(tasks, instance_model):
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+
+    assert len(service_instance.certificates) == 1
+    certificate = service_instance.new_certificate
+
+    assert certificate.fullchain_pem.count("BEGIN CERTIFICATE") == 1
+    assert certificate.leaf_pem.count("BEGIN CERTIFICATE") == 1
+    assert certificate.expires_at is not None
+    assert json.loads(certificate.order_json)["body"]["status"] == "valid"
