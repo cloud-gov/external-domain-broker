@@ -65,6 +65,62 @@ class FakeCloudFront(FakeAWS):
             },
         )
 
+    def expect_create_distribution_with_tags(
+        self,
+        caller_reference: str,
+        domains: List[str],
+        certificate_id: str,
+        origin_hostname: str,
+        origin_path: str,
+        distribution_id: str,
+        distribution_hostname: str,
+        forward_cookie_policy: str = "all",
+        forwarded_cookies: list = None,
+        forwarded_headers: list = None,
+        origin_protocol_policy: str = "https-only",
+        bucket_prefix: str = "",
+        custom_error_responses: dict = None,
+        dedicated_waf_web_acl_arn: str = "",
+    ):
+        if custom_error_responses is None:
+            custom_error_responses = {"Quantity": 0}
+        if forwarded_headers is None:
+            forwarded_headers = ["HOST"]
+        self.stubber.add_response(
+            "create_distribution_with_tags",
+            self._distribution_response(
+                caller_reference,
+                domains,
+                certificate_id,
+                origin_hostname,
+                origin_path,
+                distribution_id,
+                distribution_hostname,
+                forward_cookie_policy=forward_cookie_policy,
+                forwarded_cookies=forwarded_cookies,
+                forwarded_headers=forwarded_headers,
+                origin_protocol_policy=origin_protocol_policy,
+                bucket_prefix=bucket_prefix,
+                custom_error_responses=custom_error_responses,
+            ),
+            {
+                "DistributionConfigWithTags": self._distribution_config_with_tags(
+                    caller_reference,
+                    domains,
+                    certificate_id,
+                    origin_hostname,
+                    origin_path,
+                    forward_cookie_policy=forward_cookie_policy,
+                    forwarded_cookies=forwarded_cookies,
+                    forwarded_headers=forwarded_headers,
+                    origin_protocol_policy=origin_protocol_policy,
+                    bucket_prefix=bucket_prefix,
+                    custom_error_responses=custom_error_responses,
+                    dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
+                ),
+            },
+        )
+
     def expect_get_distribution_config(
         self,
         caller_reference: str,
@@ -590,7 +646,11 @@ class FakeCloudFront(FakeAWS):
         tags = {}
         if dedicated_waf_web_acl_arn:
             distribution_config["WebACLId"] = dedicated_waf_web_acl_arn
+<<<<<<< HEAD
             tags = add_tag(tags, "has_dedicated_acl", "true")
+=======
+            tags = add_cdn_tag(tags, "has_dedicated_acl", "true")
+>>>>>>> 3a36849 (update integration test for provisioning CDN with dedicated WAF)
         distribution_config_with_tags = {
             "DistributionConfig": distribution_config,
             "Tags": tags,
