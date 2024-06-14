@@ -1,35 +1,39 @@
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 
 from acme.errors import ValidationError
 import pytest
 
 from broker.extensions import db
-from broker.models import Operation, DedicatedALBServiceInstance, Challenge
+from broker.models import Operation, DedicatedALBServiceInstance
 from broker.tasks.cron import scan_for_expiring_certs
 from broker.tasks.huey import huey
 from broker.tasks.letsencrypt import create_user, generate_private_key
 
 from tests.integration.dedicated_alb.test_dedicated_alb_provisioning import (
-    subtest_provision_initiates_LE_challenge,
-    subtest_provision_updates_TXT_records,
-    subtest_provision_answers_challenges,
-    subtest_provision_retrieves_certificate,
-    subtest_provision_waits_for_route53_changes,
-    subtest_provision_uploads_certificate_to_iam,
     subtest_provision_selects_dedicated_alb,
     subtest_provision_adds_certificate_to_alb,
-    subtest_provision_provisions_ALIAS_records,
+)
+from tests.lib.provision import (
+    subtest_provision_initiates_LE_challenge,
+    subtest_provision_updates_TXT_records,
+    subtest_provision_waits_for_route53_changes,
+    subtest_provision_answers_challenges,
     subtest_provision_marks_operation_as_succeeded,
 )
-from tests.integration.dedicated_alb.test_dedicated_alb_update import (
+from tests.lib.alb.provision import (
+    subtest_provision_uploads_certificate_to_iam,
+    subtest_provision_provisions_ALIAS_records,
+    subtest_provision_retrieves_certificate,
+)
+from tests.lib.update import (
     subtest_update_creates_private_key_and_csr,
 )
+
 from tests.lib.factories import (
     DedicatedALBServiceInstanceFactory,
     OperationFactory,
     CertificateFactory,
 )
-from tests.lib.fake_cloudfront import FakeCloudFront
 
 
 @pytest.fixture
@@ -118,21 +122,24 @@ def test_scan_for_expiring_certs_alb_happy_path(
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
+    instance_model = DedicatedALBServiceInstance
     subtest_queues_tasks()
-    subtest_update_creates_private_key_and_csr(tasks)
-    subtest_provision_initiates_LE_challenge(tasks)
-    subtest_provision_updates_TXT_records(tasks, route53)
-    subtest_provision_waits_for_route53_changes(tasks, route53)
-    subtest_provision_answers_challenges(tasks, dns)
-    subtest_provision_retrieves_certificate(tasks)
-    subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_regex)
+    subtest_update_creates_private_key_and_csr(tasks, instance_model)
+    subtest_provision_initiates_LE_challenge(tasks, instance_model)
+    subtest_provision_updates_TXT_records(tasks, route53, instance_model)
+    subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
+    subtest_provision_answers_challenges(tasks, dns, instance_model)
+    subtest_provision_retrieves_certificate(tasks, instance_model)
+    subtest_provision_uploads_certificate_to_iam(
+        tasks, iam_govcloud, simple_regex, instance_model
+    )
     subtest_provision_selects_dedicated_alb(tasks, alb)
     subtest_provision_adds_certificate_to_alb(tasks, alb)
-    subtest_provision_provisions_ALIAS_records(tasks, route53, alb)
-    subtest_provision_waits_for_route53_changes(tasks, route53)
+    subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
+    subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
     subtest_renewal_removes_certificate_from_alb(tasks, alb)
     subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud)
-    subtest_provision_marks_operation_as_succeeded(tasks)
+    subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
 
 
 def subtest_queues_tasks():
@@ -254,11 +261,12 @@ def test_cleanup_on_failed_challenges(
 
     # borrow subtests to get us to the right state
     subtest_queues_tasks()
-    subtest_update_creates_private_key_and_csr(tasks)
-    subtest_provision_initiates_LE_challenge(tasks)
-    subtest_provision_updates_TXT_records(tasks, route53)
-    subtest_provision_waits_for_route53_changes(tasks, route53)
-    subtest_provision_answers_challenges(tasks, dns)
+    instance_model = DedicatedALBServiceInstance
+    subtest_update_creates_private_key_and_csr(tasks, instance_model)
+    subtest_provision_initiates_LE_challenge(tasks, instance_model)
+    subtest_provision_updates_TXT_records(tasks, route53, instance_model)
+    subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
+    subtest_provision_answers_challenges(tasks, dns, instance_model)
 
     # now do the stuff
     with pytest.raises(ValidationError):

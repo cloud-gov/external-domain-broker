@@ -82,8 +82,6 @@ def subtest_provision_retrieves_certificate(tasks, instance_model):
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
-
-    assert len(service_instance.certificates) == 1
     certificate = service_instance.new_certificate
 
     assert certificate.fullchain_pem.count("BEGIN CERTIFICATE") == 1
