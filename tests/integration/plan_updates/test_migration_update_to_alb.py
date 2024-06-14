@@ -1,21 +1,24 @@
 import pytest
 
 from tests.lib import factories
-from tests.lib.client import check_last_operation_description
-from tests.integration.alb.test_alb_provisioning import (
-    subtest_provision_adds_certificate_to_alb,
+from tests.lib.provision import (
     subtest_provision_answers_challenges,
     subtest_provision_creates_LE_user,
     subtest_provision_initiates_LE_challenge,
     subtest_provision_marks_operation_as_succeeded,
-    subtest_provision_provisions_ALIAS_records,
-    subtest_provision_retrieves_certificate,
-    subtest_provision_selects_alb,
     subtest_provision_updates_TXT_records,
-    subtest_provision_uploads_certificate_to_iam,
     subtest_provision_waits_for_route53_changes,
 )
-from tests.integration.alb.test_alb_update import (
+from tests.lib.alb.provision import (
+    subtest_provision_provisions_ALIAS_records,
+    subtest_provision_retrieves_certificate,
+    subtest_provision_uploads_certificate_to_iam,
+)
+from tests.integration.alb.test_alb_provisioning import (
+    subtest_provision_adds_certificate_to_alb,
+    subtest_provision_selects_alb,
+)
+from tests.lib.update import (
     subtest_update_creates_private_key_and_csr,
 )
 from tests.integration.alb.test_alb_renewals import (
@@ -112,20 +115,23 @@ def test_migration_pipeline(
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
     client.update_instance_to_alb("4321", params=full_update_example)
-    subtest_provision_creates_LE_user(tasks)
-    subtest_update_creates_private_key_and_csr(tasks)
-    subtest_provision_initiates_LE_challenge(tasks)
-    subtest_provision_provisions_ALIAS_records(tasks, route53, alb)
-    subtest_provision_waits_for_route53_changes(tasks, route53)
-    subtest_provision_updates_TXT_records(tasks, route53)
-    subtest_provision_waits_for_route53_changes(tasks, route53)
-    subtest_provision_answers_challenges(tasks, dns)
-    subtest_provision_retrieves_certificate(tasks)
-    subtest_provision_uploads_certificate_to_iam(tasks, iam_govcloud, simple_regex)
+    instance_model = ALBServiceInstance
+    subtest_provision_creates_LE_user(tasks, instance_model)
+    subtest_update_creates_private_key_and_csr(tasks, instance_model)
+    subtest_provision_initiates_LE_challenge(tasks, instance_model)
+    subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
+    subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
+    subtest_provision_updates_TXT_records(tasks, route53, instance_model)
+    subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
+    subtest_provision_answers_challenges(tasks, dns, instance_model)
+    subtest_provision_retrieves_certificate(tasks, instance_model)
+    subtest_provision_uploads_certificate_to_iam(
+        tasks, iam_govcloud, simple_regex, instance_model
+    )
     subtest_provision_selects_alb(tasks, alb)
     subtest_provision_adds_certificate_to_alb(tasks, alb)
-    subtest_provision_provisions_ALIAS_records(tasks, route53, alb)
-    subtest_provision_waits_for_route53_changes(tasks, route53)
+    subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
+    subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
     subtest_renewal_removes_certificate_from_alb(tasks, alb)
     subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud)
-    subtest_provision_marks_operation_as_succeeded(tasks)
+    subtest_provision_marks_operation_as_succeeded(tasks, instance_model)

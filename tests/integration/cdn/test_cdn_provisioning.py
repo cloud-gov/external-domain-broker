@@ -13,7 +13,6 @@ from tests.lib.provision import (
     subtest_provision_updates_TXT_records,
     subtest_provision_waits_for_route53_changes,
     subtest_provision_answers_challenges,
-    subtest_provision_retrieves_certificate,
     subtest_provision_marks_operation_as_succeeded,
 )
 from tests.lib.cdn.provision import (
@@ -22,6 +21,7 @@ from tests.lib.cdn.provision import (
     subtest_provision_creates_cloudfront_distribution,
     subtest_provision_waits_for_cloudfront_distribution,
     subtest_provision_provisions_ALIAS_records,
+    subtest_provision_retrieves_certificate,
 )
 from tests.lib.cdn.update import (
     subtest_update_happy_path,
