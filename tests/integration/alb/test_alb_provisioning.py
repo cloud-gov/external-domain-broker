@@ -147,7 +147,7 @@ def test_provision_happy_path(
     subtest_update_happy_path(
         client, dns, tasks, route53, iam_govcloud, simple_regex, alb
     )
-    subtest_update_noop(client)
+    subtest_update_noop(client, instance_model)
 
 
 def subtest_provision_selects_alb(tasks, alb):
