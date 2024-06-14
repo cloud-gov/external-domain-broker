@@ -13,16 +13,6 @@ from broker.extensions import config, db
 from broker.models import ALBServiceInstance
 from broker.tasks.letsencrypt import retrieve_certificate
 
-# from tests.integration.alb.test_alb_provisioning import (
-#     subtest_provision_creates_LE_user,
-#     subtest_provision_creates_private_key_and_csr,
-#     subtest_provision_answers_challenges,
-#     subtest_provision_retrieves_certificate,
-#     subtest_provision_updates_TXT_records,
-#     subtest_provision_waits_for_route53_changes,
-#     subtest_provision_creates_provision_operation,
-#     subtest_provision_initiates_LE_challenge,
-# )
 from tests.lib.provision import (
     subtest_provision_creates_LE_user,
     subtest_provision_creates_private_key_and_csr,
