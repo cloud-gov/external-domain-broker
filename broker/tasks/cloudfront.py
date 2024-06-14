@@ -5,13 +5,9 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import cloudfront
 from broker.extensions import config, db
-<<<<<<< HEAD
+
 from broker.lib.tags import add_tag
 from broker.models import Operation, CDNServiceInstance, CDNDedicatedWAFServiceInstance
-=======
-from broker.lib.cdn import add_cdn_tag
-from broker.models import Operation, CDNServiceInstance
->>>>>>> 3a36849 (update integration test for provisioning CDN with dedicated WAF)
 from broker.tasks import huey
 
 logger = logging.getLogger(__name__)
