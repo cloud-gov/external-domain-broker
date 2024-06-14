@@ -5,6 +5,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import cloudfront
 from broker.extensions import config, db
+from broker.lib.cdn import add_cdn_tag
 from broker.models import Operation, CDNServiceInstance
 from broker.tasks import huey
 
@@ -186,6 +187,7 @@ def create_distribution_with_tags(operation_id: int, **kwargs):
         else:
             return
     cookies = get_cookie_policy(service_instance)
+
     distribution_config = {
         "CallerReference": service_instance.id,
         "Aliases": get_aliases(service_instance),
@@ -258,15 +260,20 @@ def create_distribution_with_tags(operation_id: int, **kwargs):
         },
         "IsIPV6Enabled": True,
     }
-    tags = distribution_config["Tags"] if "Tags" in distribution_config else {}
+    tags = {}
 
     if service_instance.dedicated_waf_web_acl_arn:
         distribution_config["WebACLId"] = service_instance.dedicated_waf_web_acl_arn
-        tags["has_dedicated_acl"] = "true"
+        tags = add_cdn_tag(tags, "has_dedicated_acl", "true")
 
-    distribution_config["Tags"] = tags
+    distribution_config_with_tags = {
+        "DistributionConfig": distribution_config,
+        "Tags": tags,
+    }
 
-    response = cloudfront.create_distribution(DistributionConfig=distribution_config)
+    response = cloudfront.create_distribution_with_tags(
+        DistributionConfigWithTags=distribution_config_with_tags
+    )
 
     service_instance.cloudfront_distribution_arn = response["Distribution"]["ARN"]
     service_instance.cloudfront_distribution_id = response["Distribution"]["Id"]

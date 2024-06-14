@@ -19,7 +19,7 @@ from tests.lib.cdn.provision import (
     subtest_provision_creates_provision_operation,
     subtest_provision_retrieves_certificate,
     subtest_provision_uploads_certificate_to_iam,
-    subtest_provision_creates_cloudfront_distribution,
+    subtest_provision_creates_cloudfront_distribution_with_tags,
     subtest_provision_waits_for_cloudfront_distribution,
     subtest_provision_provisions_ALIAS_records,
 )
@@ -79,7 +79,13 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Uploading SSL certificate to AWS"
     )
-    subtest_provision_creates_cloudfront_distribution(tasks, cloudfront, instance_model)
+    subtest_provision_create_web_acl(tasks, wafv2)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating custom WAFv2 web ACL"
+    )
+    subtest_provision_creates_cloudfront_distribution_with_tags(
+        tasks, cloudfront, instance_model
+    )
     check_last_operation_description(
         client, "4321", operation_id, "Creating CloudFront distribution"
     )
@@ -96,10 +102,6 @@ def test_provision_happy_path(
     subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Waiting for DNS changes"
-    )
-    subtest_provision_create_web_acl(tasks, wafv2)
-    check_last_operation_description(
-        client, "4321", operation_id, "Creating custom WAFv2 web ACL"
     )
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
