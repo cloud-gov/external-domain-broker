@@ -227,3 +227,31 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
         else:
             change_id = route53_response["ChangeInfo"]["Id"]
             logger.info(f"Not tracking change ID: {change_id}")
+
+
+@huey.retriable_task
+def create_health_checks(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    service_instance = operation.service_instance
+
+    operation.step_description = "Creating health checks"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    logger.info(f'Creating health check for "{service_instance.domain_names}"')
+
+    for domain_name in service_instance.domain_names:
+        route53_response = route53.create_health_check(
+            CallerReference=f"create_health_check-{service_instance.id}-{domain_name}",
+            HealthCheckConfig={
+                "Type": "HTTPS",
+                "FullyQualifiedDomainName": domain_name,
+            },
+        )
+        health_check_id = route53_response["HealthCheck"]["Id"]
+        logger.info(f"Saving Route53 health check ID: {health_check_id}")
+        service_instance.route53_health_check_ids.append(health_check_id)
+        flag_modified(service_instance, "route53_health_check_ids")
+        db.session.add(service_instance)
+        db.session.commit()

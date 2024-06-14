@@ -103,6 +103,10 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Waiting for DNS changes"
     )
+    subtest_provision_creates_health_checks(tasks, route53, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating health checks"
+    )
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
     subtest_update_happy_path(
@@ -136,3 +140,18 @@ def subtest_provision_create_web_acl(tasks, wafv2):
         service_instance.dedicated_waf_web_acl_arn
         == f"arn:aws:wafv2::000000000000:global/webacl/{service_instance.cloudfront_distribution_id}-dedicated-waf"
     )
+
+
+def subtest_provision_creates_health_checks(tasks, route53, instance_model):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+
+    for domain_name in service_instance.domain_names:
+        route53.expect_create_health_check(service_instance.id, domain_name)
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    assert service_instance.route53_health_check_ids == ["example.com ID", "foo.com ID"]
+    route53.assert_no_pending_responses()

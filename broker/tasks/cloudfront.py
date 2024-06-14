@@ -264,7 +264,7 @@ def create_distribution_with_tags(operation_id: int, **kwargs):
 
     if service_instance.dedicated_waf_web_acl_arn:
         distribution_config["WebACLId"] = service_instance.dedicated_waf_web_acl_arn
-        tags = add_cdn_tag(tags, "has_dedicated_acl", "true")
+        tags = add_tag(tags, "has_dedicated_acl", "true")
 
     distribution_config_with_tags = {
         "DistributionConfig": distribution_config,
