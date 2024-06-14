@@ -644,13 +644,11 @@ class FakeCloudFront(FakeAWS):
                 "Prefix": "",
             }
         tags = {}
+
         if dedicated_waf_web_acl_arn:
             distribution_config["WebACLId"] = dedicated_waf_web_acl_arn
-<<<<<<< HEAD
             tags = add_tag(tags, "has_dedicated_acl", "true")
-=======
-            tags = add_cdn_tag(tags, "has_dedicated_acl", "true")
->>>>>>> 3a36849 (update integration test for provisioning CDN with dedicated WAF)
+
         distribution_config_with_tags = {
             "DistributionConfig": distribution_config,
             "Tags": tags,
