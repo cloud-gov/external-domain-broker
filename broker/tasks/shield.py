@@ -1,12 +1,13 @@
 from broker.aws import shield
-from broker.tasks import huey
 
 
 protected_cloudfront_ids: dict[str, str] = {}
 
 
-@huey.retriable_task
-def list_cloudfront_protections(operation_id: int, **kwargs):
+def list_cloudfront_protections():
+    if protected_cloudfront_ids:
+        return protected_cloudfront_ids
+
     next_token = True
     while next_token:
         response = shield.list_protections(
@@ -14,4 +15,5 @@ def list_cloudfront_protections(operation_id: int, **kwargs):
         )
         for protection in response["Protections"]:
             protected_cloudfront_ids[protection["ResourceArn"]] = protection["Id"]
-        next_token = response["NextToken"]
+        next_token = response["NextToken"] if "NextToken" in response else False
+    return protected_cloudfront_ids
