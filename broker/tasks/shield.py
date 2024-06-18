@@ -3,9 +3,12 @@ import logging
 from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import shield
+<<<<<<< HEAD
 from broker.extensions import db
 from broker.models import Operation
 from broker.tasks import huey
+=======
+>>>>>>> 3b25993 (add unit test for shield list_cloudfront_protections)
 
 logger = logging.getLogger(__name__)
 
