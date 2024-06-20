@@ -203,17 +203,16 @@ class DockerConfig(Config):
         self.DNS_ROOT_DOMAIN = "domains.cloud.test"
         self.DATABASE_ENCRYPTION_KEY = "Local Dev Encrytpion Key"
         self.DEFAULT_CLOUDFRONT_ORIGIN = "cloud.local"
-        self.DEDICATED_ALB_LISTENER_ARNS = []
+        self.DEDICATED_ALB_LISTENER_ARNS = [
+            "dedicated-listener-arn-0",
+            "dedicated-listener-arn-1",
+        ]
         self.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX = (
             "/cloudfront/external-domains-test/"
         )
         self.ALB_IAM_SERVER_CERTIFICATE_PREFIX = "/alb/external-domains-test/"
         self.REDIS_SSL = False
         self.ALB_LISTENER_ARNS = ["listener-arn-0", "listener-arn-1"]
-        self.ALB_DEDICATED_LISTENER_ARNS = [
-            "dedicated-listener-arn-0",
-            "dedicated-listener-arn-1",
-        ]
         self.AWS_COMMERCIAL_REGION = "us-west-1"
         self.AWS_COMMERCIAL_ACCESS_KEY_ID = "COMMERCIAL_FAKE_KEY_ID"
         self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = "COMMERCIAL_FAKE_ACCESS_KEY"
@@ -261,7 +260,6 @@ class TestConfig(DockerConfig):
         # if you need to see what sqlalchemy is doing
         # self.SQLALCHEMY_ECHO = True
         self.IAM_CERTIFICATE_PROPAGATION_TIME = 0
-        self.DEDICATED_ALB_LISTENER_ARNS = []
 
 
 class MissingRedisError(RuntimeError):

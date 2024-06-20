@@ -320,7 +320,7 @@ def test_remove_duplicate_certs_with_active_operations(
 
 def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app, alb):
     with no_context_app.app_context():
-        alb_listener_arns = config.ALB_LISTENER_ARNS
+        alb_listener_arns = config.DEDICATED_ALB_LISTENER_ARNS
         service_instance = DedicatedALBServiceInstanceFactory.create(
             id="1234", alb_listener_arn=alb_listener_arns[0]
         )
