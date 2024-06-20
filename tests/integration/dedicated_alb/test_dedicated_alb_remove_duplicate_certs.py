@@ -1,6 +1,7 @@
 import pytest  # noqa F401
 
 from botocore.exceptions import ClientError
+from broker.extensions import config
 from broker.models import DedicatedALBServiceInstance, Operation
 from tests.lib.factories import (
     CertificateFactory,
@@ -20,6 +21,7 @@ from broker.duplicate_certs import (
 )
 from broker.models import Certificate
 
+
 class FakeLogger:
     def __init__(self):
         self.output = []
@@ -30,6 +32,7 @@ class FakeLogger:
 
     def error(self, input):
         self.error_output.append(input)
+
 
 def test_get_duplicate_certs_for_service(no_context_clean_db, no_context_app):
     with no_context_app.app_context():
@@ -47,7 +50,9 @@ def test_get_duplicate_certs_for_service(no_context_clean_db, no_context_app):
 
         no_context_clean_db.session.commit()
 
-        results = get_duplicate_certs_for_service(service_instance.id, DedicatedALBServiceInstance)
+        results = get_duplicate_certs_for_service(
+            service_instance.id, DedicatedALBServiceInstance
+        )
 
         assert len(results) == 2
         assert results == [certificate2, certificate3]
@@ -205,10 +210,12 @@ def test_delete_cert_record_and_resource_handle_exception(
         fakeAlbTest = FakeALBTest()
         fakeLogger = FakeLogger()
 
-        delete_cert_record_and_resource(certificate, "1234", alb=fakeAlbTest, logger=fakeLogger)
+        delete_cert_record_and_resource(
+            certificate, "1234", alb=fakeAlbTest, logger=fakeLogger
+        )
 
         assert len(Certificate.query.all()) == 1
-        assert(
+        assert (
             fakeLogger.error_output[-1].strip()
             == "Exception while deleting certificate: remove_listener_certificates fail"
         )
@@ -297,19 +304,26 @@ def test_remove_duplicate_certs_with_active_operations(
         service_instance.current_certificate_id = certificate1.id
         no_context_clean_db.session.commit()
 
-        results = get_duplicate_certs_for_service(service_instance.id, DedicatedALBServiceInstance)
+        results = get_duplicate_certs_for_service(
+            service_instance.id, DedicatedALBServiceInstance
+        )
         assert len(results) == 1
 
         remove_duplicate_alb_certs(dedicated_listener_arns=[service_instance.id])
 
         # nothing should get deleted if there are active operations for a service instance
-        results = get_duplicate_certs_for_service(service_instance.id, DedicatedALBServiceInstance)
+        results = get_duplicate_certs_for_service(
+            service_instance.id, DedicatedALBServiceInstance
+        )
         assert len(results) == 1
 
 
 def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app, alb):
     with no_context_app.app_context():
-        service_instance = DedicatedALBServiceInstanceFactory.create(id="1234")
+        alb_listener_arns = config.ALB_LISTENER_ARNS
+        service_instance = DedicatedALBServiceInstanceFactory.create(
+            id="1234", alb_listener_arn=alb_listener_arns[0]
+        )
         certificate1 = CertificateFactory.create(
             service_instance=service_instance, iam_server_certificate_arn="arn1"
         )
@@ -323,33 +337,36 @@ def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app,
         no_context_clean_db.session.commit()
 
         alb.expect_get_certificates_for_listener(
-            service_instance.id,
+            alb_listener_arns[0],
             certificates=[{"CertificateArn": "arn2"}, {"CertificateArn": "arn3"}],
         )
 
         no_context_clean_db.session.commit()
 
-        results = get_duplicate_certs_for_service(service_instance.id, DedicatedALBServiceInstance)
+        results = get_duplicate_certs_for_service(
+            service_instance.id, DedicatedALBServiceInstance
+        )
         assert len(results) == 2
 
-        alb.expect_remove_certificate_from_listener(service_instance.id, "arn2")
-        alb.expect_get_certificates_for_listener(service_instance.id)
-        alb.expect_remove_certificate_from_listener(service_instance.id, "arn3")
-        alb.expect_get_certificates_for_listener(service_instance.id)
+        alb.expect_remove_certificate_from_listener(alb_listener_arns[0], "arn2")
+        alb.expect_get_certificates_for_listener(alb_listener_arns[0])
+        alb.expect_remove_certificate_from_listener(alb_listener_arns[0], "arn3")
+        alb.expect_get_certificates_for_listener(alb_listener_arns[0])
 
         fakeLogger = FakeLogger()
 
-        remove_duplicate_alb_certs(
-          dedicated_listener_arns=[service_instance.id], logger=fakeLogger
-        )
+        remove_duplicate_alb_certs(logger=fakeLogger)
 
         assert (
             fakeLogger.output[-1].strip()
             == 'service_instance_duplicate_cert_count{service_instance_id="1234"} 0'
         )
 
-        results = get_duplicate_certs_for_service(service_instance.id, DedicatedALBServiceInstance)
+        results = get_duplicate_certs_for_service(
+            service_instance.id, DedicatedALBServiceInstance
+        )
         assert len(results) == 0
+
 
 def test_remove_certificate_from_listener_and_verify_removal_correctly_breaks():
     class FakeALBTest:
