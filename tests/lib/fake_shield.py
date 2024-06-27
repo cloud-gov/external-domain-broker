@@ -1,24 +1,66 @@
 import pytest
+from typing import Dict, List, TypedDict, NotRequired
 
 from broker.aws import shield as real_shield
 from tests.lib.fake_aws import FakeAWS
 
 
+class Protection(TypedDict):
+    ResourceArn: str
+    Id: str
+
+
+class ListProtectionRequest(TypedDict):
+    InclusionFilters: Dict
+    NextToken: NotRequired[str]
+
+
+class ListProtectionResponse(TypedDict):
+    Protections: List[Protection]
+    NextToken: NotRequired[str]
+
+
 class FakeShield(FakeAWS):
-    def expect_list_protections(self, protection_id: str, cloudfront_arn: str):
+    def expect_list_protections(self, *protections_list: List[Protection]):
         method = "list_protections"
-        request = {
-            "InclusionFilters": {"ResourceTypes": ["CLOUDFRONT_DISTRIBUTION"]},
-        }
-        response = {
-            "Protections": [
-                {
-                    "ResourceArn": cloudfront_arn,
-                    "Id": protection_id,
-                }
-            ]
-        }
-        self.stubber.add_response(method, response, request)
+
+        # response_number = 0
+        # if len(more_protections_list) > 0:
+
+        #     next_token = f"next-{response_number}"
+        #     response["NextToken"] = next_token
+
+        # self.stubber.add_response(method, response, request)
+
+        response_number = 0
+        next_token = ""
+
+        for protections in protections_list:
+            request: ListProtectionRequest = {
+                "InclusionFilters": {"ResourceTypes": ["CLOUDFRONT_DISTRIBUTION"]},
+            }
+            response: ListProtectionResponse = {"Protections": protections}
+
+            if response_number < len(protections_list):
+                if next_token:
+                    request["NextToken"] = next_token
+                next_token = f"next-{response_number}"
+                response["NextToken"] = next_token
+                response_number += 1
+
+            self.stubber.add_response(method, response, request)
+
+    # def _stub_list_response(response_number: str) {
+    #     method = "list_protections"
+    #     request: ListProtectionRequest = {
+    #         "InclusionFilters": {"ResourceTypes": ["CLOUDFRONT_DISTRIBUTION"]},
+    #     }
+    #     response: ListProtectionResponse = {"Protections": protections}
+
+    #     if response_number < len(more_protections_list):
+    #         next_token = f"next-{response_number}"
+    #         more_protections_response["NextToken"] = next_token
+    # }
 
 
 @pytest.fixture(autouse=True)
