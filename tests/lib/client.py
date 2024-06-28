@@ -238,7 +238,7 @@ class CFAPIClient(FlaskClient):
             f"/v2/service_instances/{id}",
             query_string={
                 "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
-                "plan_id": "1cc78b0c-c296-48f5-9182-0b38404f79ef",
+                "plan_id": CDN_DEDICATED_WAF_PLAN_ID,
                 "accepts_incomplete": accepts_incomplete,
             },
         )
