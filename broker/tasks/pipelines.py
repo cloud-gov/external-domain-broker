@@ -170,6 +170,28 @@ def queue_all_cdn_deprovision_tasks_for_operation(
     huey.enqueue(task_pipeline)
 
 
+def queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation(
+    operation_id: int, correlation_id: str
+):
+    if correlation_id is None:
+        raise RuntimeError("correlation_id must be set")
+    if operation_id is None:
+        raise RuntimeError("operation_id must be set")
+    correlation = {"correlation_id": correlation_id}
+    task_pipeline = (
+        update_operations.cancel_pending_provisioning.s(operation_id, **correlation)
+        .then(route53.remove_ALIAS_records, operation_id, **correlation)
+        .then(route53.remove_TXT_records, operation_id, **correlation)
+        .then(cloudfront.disable_distribution, operation_id, **correlation)
+        .then(cloudfront.wait_for_distribution_disabled, operation_id, **correlation)
+        .then(cloudfront.delete_distribution, operation_id=operation_id, **correlation)
+        .then(iam.delete_server_certificate, operation_id, **correlation)
+        .then(shield.disassociate_health_checks, operation_id, **correlation)
+        .then(update_operations.deprovision, operation_id, **correlation)
+    )
+    huey.enqueue(task_pipeline)
+
+
 def queue_all_dedicated_alb_renewal_tasks_for_operation(operation_id, **kwargs):
     correlation = {"correlation_id": "Renewal"}
     task_pipeline = (

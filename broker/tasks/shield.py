@@ -91,6 +91,39 @@ def associate_health_checks(operation_id: int, **kwargs):
     db.session.commit()
 
 
+@huey.retriable_task
+def disassociate_health_checks(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    if not operation:
+        raise Exception(f'Could not load operation "{operation_id}" successfully')
+
+    service_instance = operation.service_instance
+
+    operation.step_description = "Disassociating health checks with Shield"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    logger.info(f'Disassociating health check(s) for "{service_instance.domain_names}"')
+
+    for associated_health_check in service_instance.shield_associated_health_checks:
+        health_check_id = associated_health_check["health_check_id"]
+        shield.disassociate_health_check(
+            ProtectionId=associated_health_check["protection_id"],
+            HealthCheckArn=get_health_check_arn(health_check_id),
+        )
+        logger.info(f"Removing associated Route53 health check ID: {health_check_id}")
+        service_instance.shield_associated_health_checks = [
+            check
+            for check in service_instance.shield_associated_health_checks
+            if check["health_check_id"] != associated_health_check["health_check_id"]
+        ]
+        flag_modified(service_instance, "shield_associated_health_checks")
+
+    db.session.add(service_instance)
+    db.session.commit()
+
+
 def get_health_check_arn(health_check_id):
     # Only the ID, not the ARN is returned by the CreateHealthCheck and
     # GetHealthCheck endpoints. So manually construct the ARN
