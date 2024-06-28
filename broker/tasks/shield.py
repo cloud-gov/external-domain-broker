@@ -38,11 +38,10 @@ shield_protections = ShieldProtections()
 
 
 @huey.retriable_task
-def associate_health_check(operation_id: int, **kwargs):
+def associate_health_checks(operation_id: int, **kwargs):
     operation = db.session.get(Operation, operation_id)
     if not operation:
-        logger.info(f'Could not load operation "{operation_id}" successfully')
-        return
+        raise Exception(f'Could not load operation "{operation_id}" successfully')
 
     service_instance = operation.service_instance
 
@@ -60,6 +59,7 @@ def associate_health_check(operation_id: int, **kwargs):
         else None
     )
     if not protection_id:
+        # Do not raise exception here. The Shield protection may not have been created yet.
         logger.info(
             f'Could not find Shield protection for distribution ID "{service_instance.cloudfront_distribution_id}"'
         )

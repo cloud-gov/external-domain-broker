@@ -1,4 +1,5 @@
 import pytest  # noqa F401
+import uuid
 
 from broker.extensions import config, db
 from broker.models import (
@@ -38,7 +39,7 @@ from tests.lib.cdn.update import (
 
 
 def test_provision_happy_path(
-    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront, wafv2
+    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront, wafv2, shield
 ):
     instance_model = CDNDedicatedWAFServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
@@ -107,6 +108,10 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Creating health checks"
     )
+    subtest_provision_creates_health_checks(tasks, shield, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Associating health checks with Shield"
+    )
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
     subtest_update_happy_path(
@@ -155,3 +160,28 @@ def subtest_provision_creates_health_checks(tasks, route53, instance_model):
     service_instance = db.session.get(instance_model, "4321")
     assert service_instance.route53_health_check_ids == ["example.com ID", "foo.com ID"]
     route53.assert_no_pending_responses()
+
+
+def subtest_provision_associates_health_checks(tasks, shield, instance_model):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    if service_instance:
+        raise Exception("Could not load service instance")
+
+    protection_id = str(uuid.uuid4())
+    cloudfront_arn = "arn:aws:cloudfront::000000000:distribution/fake-arn"
+    protection = {"Id": protection_id, "ResourceArn": cloudfront_arn}
+    shield.expect_list_protections([protection])
+
+    for health_check_id in service_instance.route53_health_check_ids:
+        shield.expect_associate_health_check(protection_id, health_check_id)
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    assert service_instance.associated_health_check_ids == [
+        "example.com ID",
+        "foo.com ID",
+    ]
+    shield.assert_no_pending_responses()

@@ -8,6 +8,7 @@ from broker.tasks import (
     letsencrypt,
     route53,
     waf,
+    shield,
 )
 from broker.tasks.huey import huey
 
@@ -142,6 +143,7 @@ def queue_all_cdn_dedicated_waf_provision_tasks_for_operation(
         .then(route53.create_ALIAS_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
         .then(route53.create_health_checks, operation_id, **correlation)
+        .then(shield.associate_health_checks, operation_id, **correlation)
         .then(update_operations.provision, operation_id, **correlation)
     )
     huey.enqueue(task_pipeline)

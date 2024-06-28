@@ -43,6 +43,16 @@ class FakeShield(FakeAWS):
 
             self.stubber.add_response(method, response, request)
 
+    def expect_associate_health_check(self, protection_id: str, health_check_id: str):
+        self.stubber.add_response(
+            "associate_health_check",
+            {},
+            {
+                "ProtectionId": protection_id,
+                "HealthCheckArn": f"arn:aws:route53:::healthcheck/{health_check_id}",
+            },
+        )
+
 
 @pytest.fixture(autouse=True)
 def shield():
