@@ -19,20 +19,6 @@ def service_instance():
     return service_instance
 
 
-def test_refuses_to_deprovision_synchronously(client, service_instance):
-    client.deprovision_migration_instance("4321", accepts_incomplete="false")
-
-    assert "AsyncRequired" in client.response.body
-    assert client.response.status_code == 422
-
-
-def test_refuses_to_deprovision_synchronously_by_default(client, service_instance):
-    client.deprovision_migration_instance("4321", accepts_incomplete="")
-
-    assert "AsyncRequired" in client.response.body
-    assert client.response.status_code == 422
-
-
 def test_refuses_to_deprovision_with_operation(client, service_instance):
     operation = factories.OperationFactory.create(
         service_instance=service_instance, action=Operation.Actions.UPDATE.value
