@@ -108,7 +108,7 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Creating health checks"
     )
-    subtest_provision_creates_health_checks(tasks, shield, instance_model)
+    subtest_provision_associates_health_checks(tasks, shield, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Associating health checks with Shield"
     )
@@ -165,12 +165,14 @@ def subtest_provision_creates_health_checks(tasks, route53, instance_model):
 def subtest_provision_associates_health_checks(tasks, shield, instance_model):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
-    if service_instance:
+    if not service_instance:
         raise Exception("Could not load service instance")
 
     protection_id = str(uuid.uuid4())
-    cloudfront_arn = "arn:aws:cloudfront::000000000:distribution/fake-arn"
-    protection = {"Id": protection_id, "ResourceArn": cloudfront_arn}
+    protection = {
+        "Id": protection_id,
+        "ResourceArn": service_instance.cloudfront_distribution_arn,
+    }
     shield.expect_list_protections([protection])
 
     for health_check_id in service_instance.route53_health_check_ids:
@@ -180,8 +182,14 @@ def subtest_provision_associates_health_checks(tasks, shield, instance_model):
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
-    assert service_instance.associated_health_check_ids == [
-        "example.com ID",
-        "foo.com ID",
+    assert service_instance.shield_associated_health_check_ids == [
+        {
+            "health_check_id": "example.com ID",
+            "protection_id": protection_id,
+        },
+        {
+            "health_check_id": "foo.com ID",
+            "protection_id": protection_id,
+        },
     ]
     shield.assert_no_pending_responses()

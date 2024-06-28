@@ -68,12 +68,22 @@ def associate_health_checks(operation_id: int, **kwargs):
     for health_check_id in service_instance.route53_health_check_ids:
         shield.associate_health_check(
             ProtectionId=protection_id,
-            # Only the ID, not the ARN is returned by the CreateHealthCheck and
-            # GetHealthCheck endpoints. So manually construct the ARN
-            HealthCheckArn=f"arn:aws:route53:::healthcheck/{health_check_id}",
+            HealthCheckArn=get_health_check_arn(health_check_id),
         )
         logger.info(f"Saving associated Route53 health check ID: {health_check_id}")
-        service_instance.shield_associated_health_check_ids.append(health_check_id)
+        service_instance.shield_associated_health_check_ids.append(
+            {
+                "health_check_id": health_check_id,
+                "protection_id": protection_id,
+            }
+        )
         flag_modified(service_instance, "shield_associated_health_check_ids")
-        db.session.add(service_instance)
-        db.session.commit()
+
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+def get_health_check_arn(health_check_id):
+    # Only the ID, not the ARN is returned by the CreateHealthCheck and
+    # GetHealthCheck endpoints. So manually construct the ARN
+    return f"arn:aws:route53:::healthcheck/{health_check_id}"

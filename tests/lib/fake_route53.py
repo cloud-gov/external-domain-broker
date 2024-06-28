@@ -206,7 +206,7 @@ class FakeRoute53(FakeAWS):
             "get_change", self._change_info(change_id, "INSYNC"), {"Id": change_id}
         )
 
-    def expect_create_health_check(self, id, domain_name) -> str:
+    def expect_create_health_check(self, id, domain_name):
         health_check_id = f"{domain_name} ID"
         self.stubber.add_response(
             "create_health_check",
