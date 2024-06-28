@@ -9,7 +9,7 @@ from sap import cf_logging
 from werkzeug.datastructures import Headers
 
 from broker.app import create_app, db
-from broker.api import CDN_DEDICATED_WAF_PLAN_ID
+from broker.api import CDN_PLAN_ID, CDN_DEDICATED_WAF_PLAN_ID
 from broker.models import (
     ServiceInstance,
     ALBServiceInstance,
@@ -226,7 +226,7 @@ class CFAPIClient(FlaskClient):
             f"/v2/service_instances/{id}",
             query_string={
                 "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
-                "plan_id": CDN_DEDICATED_WAF_PLAN_ID,
+                "plan_id": CDN_PLAN_ID,
                 "accepts_incomplete": accepts_incomplete,
             },
         )

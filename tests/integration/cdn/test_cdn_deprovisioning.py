@@ -74,11 +74,9 @@ def service_instance():
 def test_deprovision_continues_when_resources_dont_exist(
     client,
     service_instance,
-    dns,
     tasks,
     route53,
     iam_commercial,
-    simple_regex,
     cloudfront,
 ):
     subtest_deprovision_creates_deprovision_operation(client, service_instance)
@@ -102,11 +100,9 @@ def test_deprovision_continues_when_resources_dont_exist(
 def test_deprovision_happy_path(
     client,
     service_instance,
-    dns,
     tasks,
     route53,
     iam_commercial,
-    simple_regex,
     cloudfront,
 ):
     operation_id = subtest_deprovision_creates_deprovision_operation(
