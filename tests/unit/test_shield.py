@@ -1,21 +1,36 @@
 import uuid
-from broker.tasks import shield as shield_tasks
+from broker.tasks.shield import ShieldProtections
 from tests.lib.fake_shield import Protection
 
 
-def test_cloudfront_list_protections(shield):
+def test_cloudfront_get_already_set_protections(shield):
     protection_id = str(uuid.uuid4())
     cloudfront_arn = "arn:aws:cloudfront::000000000:distribution/fake-arn"
-    protection: Protection = {"Id": protection_id, "ResourceArn": cloudfront_arn}
-    shield.expect_list_protections([protection])
 
-    protections = shield_tasks.list_cloudfront_protections()
+    shield_protections = ShieldProtections()
+    shield_protections.protected_cloudfront_ids = {
+        cloudfront_arn: protection_id,
+    }
+    protections = shield_protections.get_cloudfront_protections()
     assert protections == {
         cloudfront_arn: protection_id,
     }
 
 
-def test_cloudfront_list_protections_paged_results(shield):
+def test_cloudfront_get_protections(shield):
+    protection_id = str(uuid.uuid4())
+    cloudfront_arn = "arn:aws:cloudfront::000000000:distribution/fake-arn"
+    protection: Protection = {"Id": protection_id, "ResourceArn": cloudfront_arn}
+    shield.expect_list_protections([protection])
+
+    shield_protections = ShieldProtections()
+    protections = shield_protections.get_cloudfront_protections()
+    assert protections == {
+        cloudfront_arn: protection_id,
+    }
+
+
+def test_cloudfront_get_protections_paged_results(shield):
     protection_id = str(uuid.uuid4())
     cloudfront_arn = "arn:aws:cloudfront::000000000:distribution/fake-arn"
     protection: Protection = {"Id": protection_id, "ResourceArn": cloudfront_arn}
@@ -30,7 +45,8 @@ def test_cloudfront_list_protections_paged_results(shield):
 
     shield.expect_list_protections([protection], [protection2], [protection3])
 
-    protections = shield_tasks.list_cloudfront_protections()
+    shield_protections = ShieldProtections()
+    protections = shield_protections.get_cloudfront_protections()
     assert protections == {
         cloudfront_arn: protection_id,
         cloudfront_arn2: protection_id2,
