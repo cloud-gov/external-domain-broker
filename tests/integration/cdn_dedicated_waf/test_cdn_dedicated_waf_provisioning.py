@@ -182,7 +182,7 @@ def subtest_provision_associates_health_checks(tasks, shield, instance_model):
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
-    assert service_instance.shield_associated_health_check_ids == [
+    assert service_instance.shield_associated_health_checks == [
         {
             "health_check_id": "example.com ID",
             "protection_id": protection_id,

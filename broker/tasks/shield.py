@@ -71,13 +71,13 @@ def associate_health_checks(operation_id: int, **kwargs):
             HealthCheckArn=get_health_check_arn(health_check_id),
         )
         logger.info(f"Saving associated Route53 health check ID: {health_check_id}")
-        service_instance.shield_associated_health_check_ids.append(
+        service_instance.shield_associated_health_checks.append(
             {
                 "health_check_id": health_check_id,
                 "protection_id": protection_id,
             }
         )
-        flag_modified(service_instance, "shield_associated_health_check_ids")
+        flag_modified(service_instance, "shield_associated_health_checks")
 
     db.session.add(service_instance)
     db.session.commit()
