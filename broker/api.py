@@ -45,6 +45,7 @@ from broker.tasks.pipelines import (
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
+    queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation,
     queue_all_cdn_dedicated_waf_provision_tasks_for_operation,
     queue_all_cdn_broker_migration_tasks_for_operation,
     queue_all_dedicated_alb_provision_tasks_for_operation,
@@ -239,6 +240,10 @@ class API(ServiceBroker):
         db.session.commit()
         if details.plan_id == CDN_PLAN_ID:
             queue_all_cdn_deprovision_tasks_for_operation(
+                operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
+            )
+        elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
+            queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation(
                 operation.id, cf_logging.FRAMEWORK.context.get_correlation_id()
             )
         elif details.plan_id in (ALB_PLAN_ID, DEDICATED_ALB_PLAN_ID):
