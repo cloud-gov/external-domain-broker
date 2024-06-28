@@ -203,7 +203,37 @@ class CFAPIClient(FlaskClient):
             query_string={"accepts_incomplete": accepts_incomplete},
         )
 
+    def deprovision_instance(
+        self,
+        instance_model: InstanceModel,
+        *args,
+        **kwargs,
+    ):
+        if instance_model == CDNServiceInstance:
+            method = self.deprovision_cdn_instance
+        elif instance_model == ALBServiceInstance:
+            method = self.deprovision_alb_instance
+        elif instance_model == MigrationServiceInstance:
+            method = self.deprovision_migration_instance
+        elif instance_model == DedicatedALBServiceInstance:
+            method = self.deprovision_dedicated_alb_instance
+        elif instance_model == CDNDedicatedWAFServiceInstance:
+            method = self.provision_cdn_dedicated_waf_instance
+        return method(*args, **kwargs)
+
     def deprovision_cdn_instance(self, id: str, accepts_incomplete: str = "true"):
+        self.delete(
+            f"/v2/service_instances/{id}",
+            query_string={
+                "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
+                "plan_id": CDN_DEDICATED_WAF_PLAN_ID,
+                "accepts_incomplete": accepts_incomplete,
+            },
+        )
+
+    def deprovision_cdn_dedicated_waf_instance(
+        self, id: str, accepts_incomplete: str = "true"
+    ):
         self.delete(
             f"/v2/service_instances/{id}",
             query_string={

@@ -71,20 +71,6 @@ def service_instance():
     return service_instance
 
 
-def test_refuses_to_deprovision_synchronously(client, service_instance):
-    client.deprovision_cdn_instance("1234", accepts_incomplete="false")
-
-    assert "AsyncRequired" in client.response.body
-    assert client.response.status_code == 422
-
-
-def test_refuses_to_deprovision_synchronously_by_default(client, service_instance):
-    client.deprovision_cdn_instance("1234", accepts_incomplete="")
-
-    assert "AsyncRequired" in client.response.body
-    assert client.response.status_code == 422
-
-
 def test_deprovision_continues_when_resources_dont_exist(
     client,
     service_instance,
