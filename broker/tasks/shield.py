@@ -31,6 +31,18 @@ class ShieldProtections:
             self._list_cloudfront_protections()
         return self.protected_cloudfront_ids
 
+    def _list_cloudfront_protections(self):
+        paginator = shield.get_paginator("list_protections")
+        response_iterator = paginator.paginate(
+            InclusionFilters={"ResourceTypes": ["CLOUDFRONT_DISTRIBUTION"]},
+        )
+        for response in response_iterator:
+            for protection in response["Protections"]:
+                if "ResourceArn" in protection and "Id" in protection:
+                    self.protected_cloudfront_ids[protection["ResourceArn"]] = (
+                        protection["Id"]
+                    )
+
 
 shield_protections = ShieldProtections()
 
