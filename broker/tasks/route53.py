@@ -232,6 +232,9 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
 @huey.retriable_task
 def create_health_checks(operation_id: int, **kwargs):
     operation = db.session.get(Operation, operation_id)
+    if not operation:
+        return
+
     service_instance = operation.service_instance
 
     operation.step_description = "Creating health checks"
@@ -239,7 +242,7 @@ def create_health_checks(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    logger.info(f'Creating health check for "{service_instance.domain_names}"')
+    logger.info(f'Creating health check(s) for "{service_instance.domain_names}"')
 
     for domain_name in service_instance.domain_names:
         route53_response = route53.create_health_check(
