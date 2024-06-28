@@ -23,15 +23,6 @@ class ListProtectionResponse(TypedDict):
 class FakeShield(FakeAWS):
     def expect_list_protections(self, *protections_list: List[Protection]):
         method = "list_protections"
-
-        # response_number = 0
-        # if len(more_protections_list) > 0:
-
-        #     next_token = f"next-{response_number}"
-        #     response["NextToken"] = next_token
-
-        # self.stubber.add_response(method, response, request)
-
         response_number = 0
         next_token = ""
 
@@ -45,22 +36,12 @@ class FakeShield(FakeAWS):
                 if next_token:
                     request["NextToken"] = next_token
                 next_token = f"next-{response_number}"
+
+            if response_number < (len(protections_list) - 1):
                 response["NextToken"] = next_token
                 response_number += 1
 
             self.stubber.add_response(method, response, request)
-
-    # def _stub_list_response(response_number: str) {
-    #     method = "list_protections"
-    #     request: ListProtectionRequest = {
-    #         "InclusionFilters": {"ResourceTypes": ["CLOUDFRONT_DISTRIBUTION"]},
-    #     }
-    #     response: ListProtectionResponse = {"Protections": protections}
-
-    #     if response_number < len(more_protections_list):
-    #         next_token = f"next-{response_number}"
-    #         more_protections_response["NextToken"] = next_token
-    # }
 
 
 @pytest.fixture(autouse=True)
