@@ -66,10 +66,16 @@ def delete_web_acl(operation_id: str, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
+    if (
+        not service_instance.dedicated_waf_web_acl_name
+        or not service_instance.dedicated_waf_web_acl_id
+    ):
+        return
+
     notDeleted = True
     num_times = 0
-    # 500 ms = half a second
-    delete_sleep_time_ms = 500
+    # half a second
+    delete_sleep_time_sec = 0.5
 
     while notDeleted:
         num_times += 1
@@ -82,7 +88,7 @@ def delete_web_acl(operation_id: str, **kwargs):
                 },
             )
             raise RuntimeError("Failed to delete WAFv2 web ACL")
-        time.sleep(delete_sleep_time_ms)
+        time.sleep(delete_sleep_time_sec)
         try:
             response = wafv2.get_web_acl(
                 Name=service_instance.dedicated_waf_web_acl_name,

@@ -41,6 +41,26 @@ class FakeWAFV2(FakeAWS):
         }
         self.stubber.add_response(method, response, request)
 
+    def expect_get_web_acl(self, id: str, name: str):
+        self.stubber.add_response(
+            "get_web_acl",
+            {
+                "LockToken": "fake-token",
+            },
+            {
+                "Name": name,
+                "Id": id,
+                "Scope": "CLOUDFRONT",
+            },
+        )
+
+    def expect_delete_web_acl(self, id: str, name: str):
+        self.stubber.add_response(
+            "delete_web_acl",
+            {},
+            {"Name": name, "Id": id, "Scope": "CLOUDFRONT", "LockToken": "fake-token"},
+        )
+
 
 @pytest.fixture(autouse=True)
 def wafv2():

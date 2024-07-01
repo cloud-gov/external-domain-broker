@@ -45,6 +45,9 @@ def service_instance(protection_id):
             }
         ],
         route53_health_check_ids=["fake-health-check-id"],
+        dedicated_waf_web_acl_id="1234-dedicated-waf-id",
+        dedicated_waf_web_acl_name="1234-dedicated-waf",
+        dedicated_waf_web_acl_arn="1234-dedicated-waf-arn",
     )
     new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
@@ -108,12 +111,16 @@ def test_deprovision_continues_when_resources_dont_exist(
     iam_commercial,
     cloudfront,
     shield,
+    wafv2,
 ):
     instance_model = CDNDedicatedWAFServiceInstance
 
     # simulate a service instance where health checks don't exist
     service_instance.shield_associated_health_checks = []
     service_instance.route53_health_check_ids = []
+    service_instance.dedicated_waf_web_acl_id = None
+    service_instance.dedicated_waf_web_acl_arn = None
+    service_instance.dedicated_waf_web_acl_name = None
     db.session.add(service_instance)
     db.session.commit()
 
@@ -135,19 +142,16 @@ def test_deprovision_continues_when_resources_dont_exist(
     subtest_deprovision_removes_cloudfront_distribution_when_missing(
         instance_model, tasks, service_instance, cloudfront
     )
+    subtest_deprovision_delete_web_acl_success_when_missing(
+        instance_model, tasks, service_instance, wafv2
+    )
     subtest_deprovision_removes_certificate_from_iam_when_missing(
         instance_model, tasks, service_instance, iam_commercial
     )
 
 
 def test_deprovision_happy_path(
-    client,
-    service_instance,
-    tasks,
-    route53,
-    iam_commercial,
-    cloudfront,
-    shield,
+    client, service_instance, tasks, route53, iam_commercial, cloudfront, shield, wafv2
 ):
     instance_model = CDNDedicatedWAFServiceInstance
     operation_id = subtest_deprovision_creates_deprovision_operation(
@@ -192,6 +196,10 @@ def test_deprovision_happy_path(
     check_last_operation_description(
         client, "1234", operation_id, "Deleting CloudFront distribution"
     )
+    subtest_deprovision_deletes_web_acl(instance_model, tasks, service_instance, wafv2)
+    check_last_operation_description(
+        client, "1234", operation_id, "Deleting custom WAFv2 web ACL"
+    )
     subtest_deprovision_removes_certificate_from_iam(
         instance_model, tasks, service_instance, iam_commercial
     )
@@ -220,26 +228,78 @@ def subtest_deprovision_deletes_health_checks_when_missing(
     route53.assert_no_pending_responses()
 
 
+def subtest_deprovision_delete_web_acl_success_when_missing(
+    instance_model, tasks, service_instance, wafv2
+):
+    service_instance = db.session.get(instance_model, "1234")
+    assert not service_instance.dedicated_waf_web_acl_id
+    assert not service_instance.dedicated_waf_web_acl_arn
+    assert not service_instance.dedicated_waf_web_acl_name
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    wafv2.assert_no_pending_responses()
+
+
 def subtest_deprovision_disassociates_health_checks(
     instance_model, tasks, service_instance, shield
 ):
+    db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
     assert len(service_instance.shield_associated_health_checks) == 1
     shield.expect_disassociate_health_check(
         service_instance.shield_associated_health_checks[0]["protection_id"],
         "fake-health-check-id",
     )
+
     tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "1234")
+    assert len(service_instance.shield_associated_health_checks) == 0
+
     shield.assert_no_pending_responses()
 
 
 def subtest_deprovision_deletes_health_checks(
     instance_model, tasks, service_instance, route53
 ):
+    db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
-    service_instance.route53_health_check_ids == ["fake-health-check-id"]
+    assert service_instance.route53_health_check_ids == ["fake-health-check-id"]
+
     route53.expect_delete_health_check(
         "fake-health-check-id",
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "1234")
+    assert service_instance.route53_health_check_ids == []
+
     route53.assert_no_pending_responses()
+
+
+def subtest_deprovision_deletes_web_acl(instance_model, tasks, service_instance, wafv2):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "1234")
+    assert service_instance.dedicated_waf_web_acl_arn == "1234-dedicated-waf-arn"
+    assert service_instance.dedicated_waf_web_acl_id == "1234-dedicated-waf-id"
+    assert service_instance.dedicated_waf_web_acl_name == "1234-dedicated-waf"
+
+    wafv2.expect_get_web_acl(
+        service_instance.dedicated_waf_web_acl_id,
+        service_instance.dedicated_waf_web_acl_name,
+    )
+    wafv2.expect_delete_web_acl(
+        service_instance.dedicated_waf_web_acl_id,
+        service_instance.dedicated_waf_web_acl_name,
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "1234")
+    assert not service_instance.dedicated_waf_web_acl_arn
+    assert not service_instance.dedicated_waf_web_acl_id
+    assert not service_instance.dedicated_waf_web_acl_name
+
+    wafv2.assert_no_pending_responses()
