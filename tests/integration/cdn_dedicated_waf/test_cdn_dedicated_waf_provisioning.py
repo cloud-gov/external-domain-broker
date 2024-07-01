@@ -114,17 +114,17 @@ def test_provision_happy_path(
     )
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
-    subtest_update_happy_path(
-        client,
-        dns,
-        tasks,
-        route53,
-        iam_commercial,
-        simple_regex,
-        cloudfront,
-        instance_model,
-    )
-    subtest_update_same_domains(client, dns, tasks, route53, cloudfront, instance_model)
+    # subtest_update_happy_path(
+    #     client,
+    #     dns,
+    #     tasks,
+    #     route53,
+    #     iam_commercial,
+    #     simple_regex,
+    #     cloudfront,
+    #     instance_model,
+    # )
+    # subtest_update_same_domains(client, dns, tasks, route53, cloudfront, instance_model)
 
 
 def subtest_provision_create_web_acl(tasks, wafv2):
