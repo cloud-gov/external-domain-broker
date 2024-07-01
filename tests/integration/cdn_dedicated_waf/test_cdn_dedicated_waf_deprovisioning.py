@@ -44,6 +44,7 @@ def service_instance(protection_id):
                 "health_check_id": "fake-health-check-id",
             }
         ],
+        route53_health_check_ids=["fake-health-check-id"],
     )
     new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
@@ -112,6 +113,7 @@ def test_deprovision_continues_when_resources_dont_exist(
 
     # simulate a service instance where health checks don't exist
     service_instance.shield_associated_health_checks = []
+    service_instance.route53_health_check_ids = []
     db.session.add(service_instance)
     db.session.commit()
 
@@ -120,6 +122,9 @@ def test_deprovision_continues_when_resources_dont_exist(
     subtest_deprovision_removes_TXT_records_when_missing(tasks, route53)
     subtest_deprovision_disassociates_health_checks_when_missing(
         instance_model, tasks, service_instance, shield
+    )
+    subtest_deprovision_deletes_health_checks_when_missing(
+        instance_model, tasks, service_instance, route53
     )
     subtest_deprovision_disables_cloudfront_distribution_when_missing(
         instance_model, tasks, service_instance, cloudfront
@@ -163,6 +168,12 @@ def test_deprovision_happy_path(
     check_last_operation_description(
         client, "1234", operation_id, "Disassociating health checks with Shield"
     )
+    subtest_deprovision_deletes_health_checks(
+        instance_model, tasks, service_instance, route53
+    )
+    check_last_operation_description(
+        client, "1234", operation_id, "Deleting health checks"
+    )
     subtest_deprovision_disables_cloudfront_distribution(
         instance_model, tasks, service_instance, cloudfront
     )
@@ -200,6 +211,15 @@ def subtest_deprovision_disassociates_health_checks_when_missing(
     shield.assert_no_pending_responses()
 
 
+def subtest_deprovision_deletes_health_checks_when_missing(
+    instance_model, tasks, service_instance, route53
+):
+    service_instance = db.session.get(instance_model, "1234")
+    assert service_instance.route53_health_check_ids == []
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    route53.assert_no_pending_responses()
+
+
 def subtest_deprovision_disassociates_health_checks(
     instance_model, tasks, service_instance, shield
 ):
@@ -211,3 +231,15 @@ def subtest_deprovision_disassociates_health_checks(
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
     shield.assert_no_pending_responses()
+
+
+def subtest_deprovision_deletes_health_checks(
+    instance_model, tasks, service_instance, route53
+):
+    service_instance = db.session.get(instance_model, "1234")
+    service_instance.route53_health_check_ids == ["fake-health-check-id"]
+    route53.expect_delete_health_check(
+        "fake-health-check-id",
+    )
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    route53.assert_no_pending_responses()

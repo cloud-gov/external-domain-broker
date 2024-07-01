@@ -183,6 +183,7 @@ def queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation(
         .then(route53.remove_ALIAS_records, operation_id, **correlation)
         .then(route53.remove_TXT_records, operation_id, **correlation)
         .then(shield.disassociate_health_checks, operation_id, **correlation)
+        .then(route53.delete_health_checks, operation_id, **correlation)
         .then(cloudfront.disable_distribution, operation_id, **correlation)
         .then(cloudfront.wait_for_distribution_disabled, operation_id, **correlation)
         .then(cloudfront.delete_distribution, operation_id=operation_id, **correlation)
