@@ -218,7 +218,7 @@ class CFAPIClient(FlaskClient):
         elif instance_model == DedicatedALBServiceInstance:
             method = self.deprovision_dedicated_alb_instance
         elif instance_model == CDNDedicatedWAFServiceInstance:
-            method = self.provision_cdn_dedicated_waf_instance
+            method = self.deprovision_cdn_dedicated_waf_instance
         return method(*args, **kwargs)
 
     def deprovision_cdn_instance(self, id: str, accepts_incomplete: str = "true"):

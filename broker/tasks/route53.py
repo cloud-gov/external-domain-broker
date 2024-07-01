@@ -258,3 +258,34 @@ def create_health_checks(operation_id: int, **kwargs):
         flag_modified(service_instance, "route53_health_check_ids")
         db.session.add(service_instance)
         db.session.commit()
+
+
+@huey.retriable_task
+def delete_health_checks(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    if not operation:
+        return
+
+    service_instance = operation.service_instance
+
+    operation.step_description = "Deleting health checks"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    logger.info(f'Deleting health check(s) for "{service_instance.domain_names}"')
+
+    for domain_name in service_instance.domain_names:
+        route53_response = route53.delete_health_check(
+            CallerReference=f"delete_health_check-{service_instance.id}-{domain_name}",
+            HealthCheckConfig={
+                "Type": "HTTPS",
+                "FullyQualifiedDomainName": domain_name,
+            },
+        )
+        health_check_id = route53_response["HealthCheck"]["Id"]
+        logger.info(f"Deleting Route53 health check ID: {health_check_id}")
+        service_instance.route53_health_check_ids.append(health_check_id)
+        flag_modified(service_instance, "route53_health_check_ids")
+        db.session.add(service_instance)
+        db.session.commit()
