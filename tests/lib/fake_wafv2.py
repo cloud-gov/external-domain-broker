@@ -5,9 +5,9 @@ from tests.lib.fake_aws import FakeAWS
 
 
 class FakeWAFV2(FakeAWS):
-    def expect_create_web_acl(self, distribution_id: str, rule_group_arn: str):
+    def expect_create_web_acl(self, id: str, rule_group_arn: str):
         method = "create_web_acl"
-        waf_name = f"{distribution_id}-dedicated-waf"
+        waf_name = f"{id}-dedicated-waf"
         request = {
             "Name": waf_name,
             "Scope": "CLOUDFRONT",
@@ -22,7 +22,7 @@ class FakeWAFV2(FakeAWS):
                     "VisibilityConfig": {
                         "SampledRequestsEnabled": True,
                         "CloudWatchMetricsEnabled": True,
-                        "MetricName": f"{distribution_id}-rate-limit-rule-group",
+                        "MetricName": f"{id}-rate-limit-rule-group",
                     },
                 }
             ],
@@ -34,6 +34,8 @@ class FakeWAFV2(FakeAWS):
         }
         response = {
             "Summary": {
+                "Id": f"{waf_name}-id",
+                "Name": waf_name,
                 "ARN": f"arn:aws:wafv2::000000000000:global/webacl/{waf_name}",
             }
         }
