@@ -187,6 +187,7 @@ def queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation(
         .then(cloudfront.disable_distribution, operation_id, **correlation)
         .then(cloudfront.wait_for_distribution_disabled, operation_id, **correlation)
         .then(cloudfront.delete_distribution, operation_id=operation_id, **correlation)
+        .then(waf.delete_web_acl, operation_id=operation_id, **correlation)
         .then(iam.delete_server_certificate, operation_id, **correlation)
         .then(update_operations.deprovision, operation_id, **correlation)
     )

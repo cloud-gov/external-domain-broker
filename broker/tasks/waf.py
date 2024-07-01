@@ -1,4 +1,5 @@
 import logging
+import time
 
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -65,11 +66,38 @@ def delete_web_acl(operation_id: str, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    wafv2.delete_web_acl(
-        Name=service_instance.dedicated_waf_web_acl_name,
-        Id=service_instance.dedicated_waf_web_acl_id,
-        Scope="CLOUDFRONT",
-    )
+    notDeleted = True
+    num_times = 0
+    # 500 ms = half a second
+    delete_sleep_time_ms = 500
+
+    while notDeleted:
+        num_times += 1
+        if num_times >= 10:
+            logger.info(
+                "Failed to delete web ACL",
+                extra={
+                    "operation_id": operation_id,
+                    "web_acl_name": service_instance.dedicated_waf_web_acl_name,
+                },
+            )
+            raise RuntimeError("Failed to delete WAFv2 web ACL")
+        time.sleep(delete_sleep_time_ms)
+        try:
+            response = wafv2.get_web_acl(
+                Name=service_instance.dedicated_waf_web_acl_name,
+                Id=service_instance.dedicated_waf_web_acl_id,
+                Scope="CLOUDFRONT",
+            )
+            wafv2.delete_web_acl(
+                Name=service_instance.dedicated_waf_web_acl_name,
+                Id=service_instance.dedicated_waf_web_acl_id,
+                Scope="CLOUDFRONT",
+                LockToken=response["LockToken"],
+            )
+            notDeleted = False
+        except wafv2.exceptions.WAFOptimisticLockException:
+            continue
 
     service_instance.dedicated_waf_web_acl_arn = None
     service_instance.dedicated_waf_web_acl_id = None
