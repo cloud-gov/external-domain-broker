@@ -231,6 +231,15 @@ class FakeRoute53(FakeAWS):
             },
         )
 
+    def expect_delete_health_check(self, health_check_id):
+        self.stubber.add_response(
+            "delete_health_check",
+            {},
+            {
+                "HealthCheckId": health_check_id,
+            },
+        )
+
     def _change_info(self, change_id: str, status: str = "PENDING"):
         now = datetime.now(timezone.utc)
         return {
