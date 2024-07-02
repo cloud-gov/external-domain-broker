@@ -104,6 +104,9 @@ def delete_web_acl(operation_id: str, **kwargs):
             notDeleted = False
         except wafv2.exceptions.WAFOptimisticLockException:
             continue
+        except wafv2.exceptions.WAFNonexistentItemException:
+            notDeleted = False
+            break
 
     service_instance.dedicated_waf_web_acl_arn = None
     service_instance.dedicated_waf_web_acl_id = None

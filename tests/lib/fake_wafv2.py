@@ -54,6 +54,19 @@ class FakeWAFV2(FakeAWS):
             },
         )
 
+    def expect_get_web_acl_not_found(self, id: str, name: str):
+        self.stubber.add_client_error(
+            "get_web_acl",
+            service_error_code="WAFNonexistentItemException",
+            service_message="Not found",
+            http_status_code=404,
+            expected_params={
+                "Name": name,
+                "Id": id,
+                "Scope": "CLOUDFRONT",
+            },
+        )
+
     def expect_delete_web_acl(self, id: str, name: str):
         self.stubber.add_response(
             "delete_web_acl",
