@@ -2,7 +2,8 @@ import pytest  # noqa F401
 import uuid
 
 from broker.extensions import db
-from broker.models import CDNDedicatedWAFServiceInstance
+from broker.models import CDNDedicatedWAFServiceInstance, Operation
+from broker.tasks import waf
 from tests.lib import factories
 from tests.lib.client import check_last_operation_description
 from tests.lib.cdn.deprovision import (
@@ -118,9 +119,9 @@ def test_deprovision_continues_when_resources_dont_exist(
     # simulate a service instance where health checks don't exist
     service_instance.shield_associated_health_checks = []
     service_instance.route53_health_check_ids = []
-    service_instance.dedicated_waf_web_acl_id = None
-    service_instance.dedicated_waf_web_acl_arn = None
-    service_instance.dedicated_waf_web_acl_name = None
+    # service_instance.dedicated_waf_web_acl_id = None
+    # service_instance.dedicated_waf_web_acl_arn = None
+    # service_instance.dedicated_waf_web_acl_name = None
     db.session.add(service_instance)
     db.session.commit()
 
@@ -231,11 +232,19 @@ def subtest_deprovision_deletes_health_checks_when_missing(
 def subtest_deprovision_delete_web_acl_success_when_missing(
     instance_model, tasks, service_instance, wafv2
 ):
+    wafv2.expect_get_web_acl_not_found(
+        service_instance.dedicated_waf_web_acl_id,
+        service_instance.dedicated_waf_web_acl_name,
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
     assert not service_instance.dedicated_waf_web_acl_id
     assert not service_instance.dedicated_waf_web_acl_arn
     assert not service_instance.dedicated_waf_web_acl_name
-    tasks.run_queued_tasks_and_enqueue_dependents()
+
     wafv2.assert_no_pending_responses()
 
 
