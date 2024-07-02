@@ -106,7 +106,7 @@ def subtest_provision_creates_cloudfront_distribution(
 
     id_ = certificate.id
 
-    cloudfront.expect_create_distribution(
+    cloudfront.expect_create_distribution_with_tags(
         caller_reference=service_instance.id,
         domains=service_instance.domain_names,
         certificate_id=certificate.iam_server_certificate_id,

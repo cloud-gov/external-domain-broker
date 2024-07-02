@@ -9,60 +9,6 @@ from tests.lib.fake_aws import FakeAWS
 
 
 class FakeCloudFront(FakeAWS):
-    def expect_create_distribution(
-        self,
-        caller_reference: str,
-        domains: List[str],
-        certificate_id: str,
-        origin_hostname: str,
-        origin_path: str,
-        distribution_id: str,
-        distribution_hostname: str,
-        forward_cookie_policy: str = "all",
-        forwarded_cookies: list = None,
-        forwarded_headers: list = None,
-        origin_protocol_policy: str = "https-only",
-        bucket_prefix: str = "",
-        custom_error_responses: dict = None,
-    ):
-        if custom_error_responses is None:
-            custom_error_responses = {"Quantity": 0}
-        if forwarded_headers is None:
-            forwarded_headers = ["HOST"]
-        self.stubber.add_response(
-            "create_distribution",
-            self._distribution_response(
-                caller_reference,
-                domains,
-                certificate_id,
-                origin_hostname,
-                origin_path,
-                distribution_id,
-                distribution_hostname,
-                forward_cookie_policy=forward_cookie_policy,
-                forwarded_cookies=forwarded_cookies,
-                forwarded_headers=forwarded_headers,
-                origin_protocol_policy=origin_protocol_policy,
-                bucket_prefix=bucket_prefix,
-                custom_error_responses=custom_error_responses,
-            ),
-            {
-                "DistributionConfig": self._distribution_config(
-                    caller_reference,
-                    domains,
-                    certificate_id,
-                    origin_hostname,
-                    origin_path,
-                    forward_cookie_policy=forward_cookie_policy,
-                    forwarded_cookies=forwarded_cookies,
-                    forwarded_headers=forwarded_headers,
-                    origin_protocol_policy=origin_protocol_policy,
-                    bucket_prefix=bucket_prefix,
-                    custom_error_responses=custom_error_responses,
-                )
-            },
-        )
-
     def expect_create_distribution_with_tags(
         self,
         caller_reference: str,
