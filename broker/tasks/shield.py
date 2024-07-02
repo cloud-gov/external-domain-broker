@@ -53,7 +53,7 @@ def associate_health_checks(operation_id: int, **kwargs):
     logger.info(f'Associating health check(s) for "{service_instance.domain_names}"')
 
     protected_cloudfront_ids = shield_protections.get_cloudfront_protections()
-    protection_id = (
+    protection_id = protected_cloudfront_ids.get(service_instance.cloudfront_distribution_arn)
         protected_cloudfront_ids[service_instance.cloudfront_distribution_arn]
         if service_instance.cloudfront_distribution_arn in protected_cloudfront_ids
         else None
