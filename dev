@@ -7,7 +7,7 @@ built_image_name="external-domain-broker-dev"
 
 main() {
   [[ $# -eq 0 ]] && usage "Expected command."
-  [[ -v DEBUG ]] && set -x
+  # [[ -v DEBUG ]] && set -x
 
   cd "$(git rev-parse --show-toplevel)"
 
@@ -17,6 +17,11 @@ main() {
   case $command in
     -h)
       usage
+      ;;
+    docker-compose-up | dkc-up)
+      source_env_vars
+      cd docker
+      docker-compose up
       ;;
     serve)
       build_image
@@ -54,6 +59,12 @@ main() {
       usage "Unknown command: $command"
       ;;
   esac
+}
+
+source_env_vars() {
+  set -o allexport
+  source ".env"
+  set +o allexport
 }
 
 build_image() {

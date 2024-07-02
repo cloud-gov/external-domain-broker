@@ -12,6 +12,7 @@ route53 = commercial_session.client("route53")
 iam_commercial = commercial_session.client("iam")
 cloudfront = commercial_session.client("cloudfront")
 wafv2 = commercial_session.client("wafv2")
+shield = commercial_session.client("shield")
 
 govcloud_session = boto3.Session(
     region_name=config.AWS_GOVCLOUD_REGION,
