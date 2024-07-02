@@ -109,10 +109,21 @@ def disassociate_health_checks(operation_id: int, **kwargs):
     for associated_health_check in service_instance.shield_associated_health_checks:
         health_check_id = associated_health_check["health_check_id"]
         logger.info(f"Removing associated Route53 health check ID: {health_check_id}")
-        shield.disassociate_health_check(
-            ProtectionId=associated_health_check["protection_id"],
-            HealthCheckArn=get_health_check_arn(health_check_id),
-        )
+
+        try:
+            shield.disassociate_health_check(
+                ProtectionId=associated_health_check["protection_id"],
+                HealthCheckArn=get_health_check_arn(health_check_id),
+            )
+        except shield.exceptions.ResourceNotFoundException:
+            logger.info(
+                "Associated health check not found",
+                extra={
+                    "protection_id": associated_health_check["protection_id"],
+                    "health_check_arn": get_health_check_arn(health_check_id),
+                },
+            )
+
         service_instance.shield_associated_health_checks = [
             check
             for check in service_instance.shield_associated_health_checks

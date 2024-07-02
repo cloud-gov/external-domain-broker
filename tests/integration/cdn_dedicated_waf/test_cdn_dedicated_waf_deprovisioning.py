@@ -116,15 +116,6 @@ def test_deprovision_continues_when_resources_dont_exist(
 ):
     instance_model = CDNDedicatedWAFServiceInstance
 
-    # simulate a service instance where health checks don't exist
-    service_instance.shield_associated_health_checks = []
-    service_instance.route53_health_check_ids = []
-    # service_instance.dedicated_waf_web_acl_id = None
-    # service_instance.dedicated_waf_web_acl_arn = None
-    # service_instance.dedicated_waf_web_acl_name = None
-    db.session.add(service_instance)
-    db.session.commit()
-
     subtest_deprovision_creates_deprovision_operation(instance_model, client)
     subtest_deprovision_removes_ALIAS_records_when_missing(tasks, route53)
     subtest_deprovision_removes_TXT_records_when_missing(tasks, route53)
@@ -214,24 +205,44 @@ def test_deprovision_happy_path(
 def subtest_deprovision_disassociates_health_checks_when_missing(
     instance_model, tasks, service_instance, shield
 ):
+    db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
-    assert service_instance.shield_associated_health_checks == []
+    shield.expect_disassociate_health_check_not_found(
+        service_instance.shield_associated_health_checks[0]["protection_id"],
+        "fake-health-check-id",
+    )
     tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "1234")
+
+    assert service_instance.shield_associated_health_checks == []
+
     shield.assert_no_pending_responses()
 
 
 def subtest_deprovision_deletes_health_checks_when_missing(
     instance_model, tasks, service_instance, route53
 ):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "1234")
+    route53.expect_delete_health_check_not_found(
+        service_instance.route53_health_check_ids[0]
+    )
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
     assert service_instance.route53_health_check_ids == []
-    tasks.run_queued_tasks_and_enqueue_dependents()
+
     route53.assert_no_pending_responses()
 
 
 def subtest_deprovision_delete_web_acl_success_when_missing(
     instance_model, tasks, service_instance, wafv2
 ):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "1234")
     wafv2.expect_get_web_acl_not_found(
         service_instance.dedicated_waf_web_acl_id,
         service_instance.dedicated_waf_web_acl_name,

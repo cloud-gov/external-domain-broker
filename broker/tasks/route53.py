@@ -278,9 +278,17 @@ def delete_health_checks(operation_id: int, **kwargs):
 
     for health_check_id in service_instance.route53_health_check_ids:
         logger.info(f"Deleting Route53 health check ID: {health_check_id}")
-        route53.delete_health_check(
-            HealthCheckId=health_check_id,
-        )
+
+        try:
+            route53.delete_health_check(
+                HealthCheckId=health_check_id,
+            )
+        except route53.exceptions.NoSuchHealthCheck:
+            logger.info(
+                "Associated health check not found",
+                extra={"health_check_id": health_check_id},
+            )
+
         service_instance.route53_health_check_ids.remove(health_check_id)
         flag_modified(service_instance, "route53_health_check_ids")
 
