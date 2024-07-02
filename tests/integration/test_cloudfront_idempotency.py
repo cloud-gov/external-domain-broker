@@ -100,7 +100,7 @@ def test_create_distribution_referencing_nonexistent_distribution(
     cloudfront.expect_get_distribution_returning_no_such_distribution(
         distribution_id=service_instance.cloudfront_distribution_id
     )
-    cloudfront.expect_create_distribution(
+    cloudfront.expect_create_distribution_with_tags(
         caller_reference=service_instance.id,
         domains=service_instance.domain_names,
         certificate_id=service_instance.new_certificate.iam_server_certificate_id,

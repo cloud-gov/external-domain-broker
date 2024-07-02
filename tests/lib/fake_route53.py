@@ -206,6 +206,31 @@ class FakeRoute53(FakeAWS):
             "get_change", self._change_info(change_id, "INSYNC"), {"Id": change_id}
         )
 
+    def expect_create_health_check(self, id, domain_name):
+        health_check_id = f"{domain_name} ID"
+        self.stubber.add_response(
+            "create_health_check",
+            {
+                "HealthCheck": {
+                    "Id": health_check_id,
+                    "CallerReference": f"create_health_check-{id}-{domain_name}",
+                    "HealthCheckConfig": {
+                        "Type": "HTTPS",
+                        "FullyQualifiedDomainName": domain_name,
+                    },
+                    "HealthCheckVersion": 1,
+                },
+                "Location": "fake-check-location",
+            },
+            {
+                "CallerReference": f"create_health_check-{id}-{domain_name}",
+                "HealthCheckConfig": {
+                    "Type": "HTTPS",
+                    "FullyQualifiedDomainName": domain_name,
+                },
+            },
+        )
+
     def _change_info(self, change_id: str, status: str = "PENDING"):
         now = datetime.now(timezone.utc)
         return {

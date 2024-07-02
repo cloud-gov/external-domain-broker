@@ -1,4 +1,5 @@
 import pytest  # noqa F401
+import uuid
 
 from broker.extensions import config, db
 from broker.models import (
@@ -19,7 +20,7 @@ from tests.lib.cdn.provision import (
     subtest_provision_creates_provision_operation,
     subtest_provision_retrieves_certificate,
     subtest_provision_uploads_certificate_to_iam,
-    subtest_provision_creates_cloudfront_distribution,
+    subtest_provision_creates_cloudfront_distribution_with_tags,
     subtest_provision_waits_for_cloudfront_distribution,
     subtest_provision_provisions_ALIAS_records,
 )
@@ -38,7 +39,7 @@ from tests.lib.cdn.update import (
 
 
 def test_provision_happy_path(
-    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront, wafv2
+    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront, wafv2, shield
 ):
     instance_model = CDNDedicatedWAFServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
@@ -79,7 +80,13 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Uploading SSL certificate to AWS"
     )
-    subtest_provision_creates_cloudfront_distribution(tasks, cloudfront, instance_model)
+    subtest_provision_create_web_acl(tasks, wafv2)
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating custom WAFv2 web ACL"
+    )
+    subtest_provision_creates_cloudfront_distribution_with_tags(
+        tasks, cloudfront, instance_model
+    )
     check_last_operation_description(
         client, "4321", operation_id, "Creating CloudFront distribution"
     )
@@ -97,9 +104,13 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Waiting for DNS changes"
     )
-    subtest_provision_create_web_acl(tasks, wafv2)
+    subtest_provision_creates_health_checks(tasks, route53, instance_model)
     check_last_operation_description(
-        client, "4321", operation_id, "Creating custom WAFv2 web ACL"
+        client, "4321", operation_id, "Creating health checks"
+    )
+    subtest_provision_associates_health_checks(tasks, shield, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Associating health checks with Shield"
     )
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
@@ -134,3 +145,51 @@ def subtest_provision_create_web_acl(tasks, wafv2):
         service_instance.dedicated_waf_web_acl_arn
         == f"arn:aws:wafv2::000000000000:global/webacl/{service_instance.cloudfront_distribution_id}-dedicated-waf"
     )
+
+
+def subtest_provision_creates_health_checks(tasks, route53, instance_model):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+
+    for domain_name in service_instance.domain_names:
+        route53.expect_create_health_check(service_instance.id, domain_name)
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    assert service_instance.route53_health_check_ids == ["example.com ID", "foo.com ID"]
+    route53.assert_no_pending_responses()
+
+
+def subtest_provision_associates_health_checks(tasks, shield, instance_model):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    if not service_instance:
+        raise Exception("Could not load service instance")
+
+    protection_id = str(uuid.uuid4())
+    protection = {
+        "Id": protection_id,
+        "ResourceArn": service_instance.cloudfront_distribution_arn,
+    }
+    shield.expect_list_protections([protection])
+
+    for health_check_id in service_instance.route53_health_check_ids:
+        shield.expect_associate_health_check(protection_id, health_check_id)
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    assert service_instance.shield_associated_health_checks == [
+        {
+            "health_check_id": "example.com ID",
+            "protection_id": protection_id,
+        },
+        {
+            "health_check_id": "foo.com ID",
+            "protection_id": protection_id,
+        },
+    ]
+    shield.assert_no_pending_responses()

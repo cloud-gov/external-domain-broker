@@ -5,7 +5,8 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import cloudfront
 from broker.extensions import config, db
-from broker.models import Operation, CDNServiceInstance
+from broker.lib.tags import add_tag
+from broker.models import Operation, CDNServiceInstance, CDNDedicatedWAFServiceInstance
 from broker.tasks import huey
 
 logger = logging.getLogger(__name__)
@@ -80,79 +81,95 @@ def create_distribution(operation_id: int, **kwargs):
         else:
             return
     cookies = get_cookie_policy(service_instance)
-    response = cloudfront.create_distribution(
-        DistributionConfig={
-            "CallerReference": service_instance.id,
-            "Aliases": get_aliases(service_instance),
-            "DefaultRootObject": "",
-            "Origins": {
-                "Quantity": 1,
+    distribution_config = {
+        "CallerReference": service_instance.id,
+        "Aliases": get_aliases(service_instance),
+        "DefaultRootObject": "",
+        "Origins": {
+            "Quantity": 1,
+            "Items": [
+                {
+                    "Id": "default-origin",
+                    "DomainName": service_instance.cloudfront_origin_hostname,
+                    "OriginPath": service_instance.cloudfront_origin_path,
+                    "CustomOriginConfig": {
+                        "HTTPPort": 80,
+                        "HTTPSPort": 443,
+                        "OriginProtocolPolicy": service_instance.origin_protocol_policy,
+                        "OriginSslProtocols": {"Quantity": 1, "Items": ["TLSv1.2"]},
+                        "OriginReadTimeout": 30,
+                        "OriginKeepaliveTimeout": 5,
+                    },
+                }
+            ],
+        },
+        "OriginGroups": {"Quantity": 0},
+        "DefaultCacheBehavior": {
+            "TargetOriginId": "default-origin",
+            "ForwardedValues": {
+                "QueryString": True,
+                "Cookies": cookies,
+                "Headers": get_header_policy(service_instance),
+                "QueryStringCacheKeys": {"Quantity": 0},
+            },
+            "TrustedSigners": {"Enabled": False, "Quantity": 0},
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "MinTTL": 0,
+            "AllowedMethods": {
+                "Quantity": 7,
                 "Items": [
-                    {
-                        "Id": "default-origin",
-                        "DomainName": service_instance.cloudfront_origin_hostname,
-                        "OriginPath": service_instance.cloudfront_origin_path,
-                        "CustomOriginConfig": {
-                            "HTTPPort": 80,
-                            "HTTPSPort": 443,
-                            "OriginProtocolPolicy": service_instance.origin_protocol_policy,
-                            "OriginSslProtocols": {"Quantity": 1, "Items": ["TLSv1.2"]},
-                            "OriginReadTimeout": 30,
-                            "OriginKeepaliveTimeout": 5,
-                        },
-                    }
+                    "GET",
+                    "HEAD",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "OPTIONS",
+                    "DELETE",
                 ],
+                "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
             },
-            "OriginGroups": {"Quantity": 0},
-            "DefaultCacheBehavior": {
-                "TargetOriginId": "default-origin",
-                "ForwardedValues": {
-                    "QueryString": True,
-                    "Cookies": cookies,
-                    "Headers": get_header_policy(service_instance),
-                    "QueryStringCacheKeys": {"Quantity": 0},
-                },
-                "TrustedSigners": {"Enabled": False, "Quantity": 0},
-                "ViewerProtocolPolicy": "redirect-to-https",
-                "MinTTL": 0,
-                "AllowedMethods": {
-                    "Quantity": 7,
-                    "Items": [
-                        "GET",
-                        "HEAD",
-                        "POST",
-                        "PUT",
-                        "PATCH",
-                        "OPTIONS",
-                        "DELETE",
-                    ],
-                    "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
-                },
-                "SmoothStreaming": False,
-                "DefaultTTL": 86400,
-                "MaxTTL": 31536000,
-                "Compress": False,
-                "LambdaFunctionAssociations": {"Quantity": 0},
-            },
-            "CacheBehaviors": {"Quantity": 0},
-            "CustomErrorResponses": get_custom_error_responses(service_instance),
-            "Comment": "external domain service https://cloud-gov/external-domain-broker",
-            "Logging": {
-                "Enabled": True,
-                "IncludeCookies": False,
-                "Bucket": config.CDN_LOG_BUCKET,
-                "Prefix": f"{service_instance.id}/",
-            },
-            "PriceClass": "PriceClass_100",
+            "SmoothStreaming": False,
+            "DefaultTTL": 86400,
+            "MaxTTL": 31536000,
+            "Compress": False,
+            "LambdaFunctionAssociations": {"Quantity": 0},
+        },
+        "CacheBehaviors": {"Quantity": 0},
+        "CustomErrorResponses": get_custom_error_responses(service_instance),
+        "Comment": "external domain service https://cloud-gov/external-domain-broker",
+        "Logging": {
             "Enabled": True,
-            "ViewerCertificate": {
-                "CloudFrontDefaultCertificate": False,
-                "IAMCertificateId": certificate.iam_server_certificate_id,
-                "SSLSupportMethod": "sni-only",
-                "MinimumProtocolVersion": "TLSv1.2_2018",
-            },
-            "IsIPV6Enabled": True,
-        }
+            "IncludeCookies": False,
+            "Bucket": config.CDN_LOG_BUCKET,
+            "Prefix": f"{service_instance.id}/",
+        },
+        "PriceClass": "PriceClass_100",
+        "Enabled": True,
+        "ViewerCertificate": {
+            "CloudFrontDefaultCertificate": False,
+            "IAMCertificateId": certificate.iam_server_certificate_id,
+            "SSLSupportMethod": "sni-only",
+            "MinimumProtocolVersion": "TLSv1.2_2018",
+        },
+        "IsIPV6Enabled": True,
+    }
+
+    tags = {}
+
+    if (
+        isinstance(service_instance, CDNDedicatedWAFServiceInstance)
+        and service_instance.dedicated_waf_web_acl_arn
+    ):
+        distribution_config["WebACLId"] = service_instance.dedicated_waf_web_acl_arn
+        tags = add_tag(tags, "has_dedicated_acl", "true")
+
+    distribution_config_with_tags = {
+        "DistributionConfig": distribution_config,
+        "Tags": tags,
+    }
+
+    response = cloudfront.create_distribution_with_tags(
+        DistributionConfigWithTags=distribution_config_with_tags
     )
 
     service_instance.cloudfront_distribution_arn = response["Distribution"]["ARN"]
