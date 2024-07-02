@@ -138,7 +138,7 @@ def queue_all_cdn_dedicated_waf_provision_tasks_for_operation(
         .then(letsencrypt.retrieve_certificate, operation_id, **correlation)
         .then(iam.upload_server_certificate, operation_id, **correlation)
         .then(waf.create_web_acl, operation_id, **correlation)
-        .then(cloudfront.create_distribution_with_tags, operation_id, **correlation)
+        .then(cloudfront.create_distribution, operation_id, **correlation)
         .then(cloudfront.wait_for_distribution, operation_id, **correlation)
         .then(route53.create_ALIAS_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
