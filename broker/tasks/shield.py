@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import shield
-from broker.extensions import db
+from broker.extensions import db, shield_protections
 from broker.models import Operation
 from broker.tasks import huey
 
@@ -32,11 +32,6 @@ class ShieldProtections:
         return self.protected_cloudfront_ids
 
 
-# Initialize here so that the class and its dictionary of mapped protections are
-# kept in memory for use by tasks
-shield_protections = ShieldProtections()
-
-
 @huey.retriable_task
 def associate_health_checks(operation_id: int, **kwargs):
     operation = db.session.get(Operation, operation_id)
@@ -53,10 +48,8 @@ def associate_health_checks(operation_id: int, **kwargs):
     logger.info(f'Associating health check(s) for "{service_instance.domain_names}"')
 
     protected_cloudfront_ids = shield_protections.get_cloudfront_protections()
-    protection_id = protected_cloudfront_ids.get(service_instance.cloudfront_distribution_arn)
-        protected_cloudfront_ids[service_instance.cloudfront_distribution_arn]
-        if service_instance.cloudfront_distribution_arn in protected_cloudfront_ids
-        else None
+    protection_id = protected_cloudfront_ids.get(
+        service_instance.cloudfront_distribution_arn
     )
     if not protection_id:
         # Do not raise exception here. The Shield protection may not have been created yet.
