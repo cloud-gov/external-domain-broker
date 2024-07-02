@@ -7,7 +7,9 @@ built_image_name="external-domain-broker-dev"
 
 main() {
   [[ $# -eq 0 ]] && usage "Expected command."
-  [[ -v DEBUG ]] && set -x
+  if [[ "${DEBUG+x}" ]] ; then
+    set -x
+  fi
 
   cd "$(git rev-parse --show-toplevel)"
 
