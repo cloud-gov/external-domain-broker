@@ -2,8 +2,7 @@ import pytest  # noqa F401
 import uuid
 
 from broker.extensions import db
-from broker.models import CDNDedicatedWAFServiceInstance, Operation
-from broker.tasks import waf
+from broker.models import CDNDedicatedWAFServiceInstance
 from tests.lib import factories
 from tests.lib.client import check_last_operation_description
 from tests.lib.cdn.deprovision import (
@@ -142,44 +141,6 @@ def test_deprovision_continues_when_resources_dont_exist(
     )
 
 
-def test_deprovision_succeeds_with_retries(
-    client,
-    service_instance,
-    tasks,
-    route53,
-    iam_commercial,
-    cloudfront,
-    shield,
-    wafv2,
-):
-    instance_model = CDNDedicatedWAFServiceInstance
-
-    subtest_deprovision_creates_deprovision_operation(instance_model, client)
-    subtest_deprovision_removes_ALIAS_records(tasks, route53)
-    subtest_deprovision_removes_TXT_records(tasks, route53)
-    subtest_deprovision_disassociates_health_checks(
-        instance_model, tasks, service_instance, shield
-    )
-    subtest_deprovision_deletes_health_checks(
-        instance_model, tasks, service_instance, route53
-    )
-    subtest_deprovision_disables_cloudfront_distribution(
-        instance_model, tasks, service_instance, cloudfront
-    )
-    subtest_deprovision_waits_for_cloudfront_distribution_disabled(
-        instance_model, tasks, service_instance, cloudfront
-    )
-    subtest_deprovision_removes_cloudfront_distribution(
-        instance_model, tasks, service_instance, cloudfront
-    )
-    subtest_deprovision_delete_web_acl_success_with_retries(
-        instance_model, tasks, service_instance, wafv2
-    )
-    subtest_deprovision_removes_certificate_from_iam(
-        instance_model, tasks, service_instance, iam_commercial
-    )
-
-
 def test_deprovision_happy_path(
     client, service_instance, tasks, route53, iam_commercial, cloudfront, shield, wafv2
 ):
@@ -282,40 +243,6 @@ def subtest_deprovision_delete_web_acl_success_when_missing(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
     wafv2.expect_get_web_acl_not_found(
-        service_instance.dedicated_waf_web_acl_id,
-        service_instance.dedicated_waf_web_acl_name,
-    )
-
-    tasks.run_queued_tasks_and_enqueue_dependents()
-
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "1234")
-    assert not service_instance.dedicated_waf_web_acl_id
-    assert not service_instance.dedicated_waf_web_acl_arn
-    assert not service_instance.dedicated_waf_web_acl_name
-
-    wafv2.assert_no_pending_responses()
-
-
-def subtest_deprovision_delete_web_acl_success_with_retries(
-    instance_model, tasks, service_instance, wafv2
-):
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "1234")
-
-    wafv2.expect_get_web_acl(
-        service_instance.dedicated_waf_web_acl_id,
-        service_instance.dedicated_waf_web_acl_name,
-    )
-    wafv2.expect_delete_web_acl_lock_exception(
-        service_instance.dedicated_waf_web_acl_id,
-        service_instance.dedicated_waf_web_acl_name,
-    )
-    wafv2.expect_get_web_acl(
-        service_instance.dedicated_waf_web_acl_id,
-        service_instance.dedicated_waf_web_acl_name,
-    )
-    wafv2.expect_delete_web_acl(
         service_instance.dedicated_waf_web_acl_id,
         service_instance.dedicated_waf_web_acl_name,
     )

@@ -72,10 +72,19 @@ def delete_web_acl(operation_id: str, **kwargs):
     ):
         return
 
+    _delete_web_acl_with_retries(operation_id, service_instance)
+
+    service_instance.dedicated_waf_web_acl_arn = None
+    service_instance.dedicated_waf_web_acl_id = None
+    service_instance.dedicated_waf_web_acl_name = None
+
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+def _delete_web_acl_with_retries(operation_id, service_instance):
     notDeleted = True
     num_times = 0
-    # half a second
-    delete_sleep_time_sec = 0.5
 
     while notDeleted:
         num_times += 1
@@ -88,7 +97,7 @@ def delete_web_acl(operation_id: str, **kwargs):
                 },
             )
             raise RuntimeError("Failed to delete WAFv2 web ACL")
-        time.sleep(delete_sleep_time_sec)
+        time.sleep(config.DELETE_WEB_ACL_WAIT_RETRY_TIME)
         try:
             response = wafv2.get_web_acl(
                 Name=service_instance.dedicated_waf_web_acl_name,
@@ -106,11 +115,4 @@ def delete_web_acl(operation_id: str, **kwargs):
             continue
         except wafv2.exceptions.WAFNonexistentItemException:
             notDeleted = False
-            break
-
-    service_instance.dedicated_waf_web_acl_arn = None
-    service_instance.dedicated_waf_web_acl_id = None
-    service_instance.dedicated_waf_web_acl_name = None
-
-    db.session.add(service_instance)
-    db.session.commit()
+            return
