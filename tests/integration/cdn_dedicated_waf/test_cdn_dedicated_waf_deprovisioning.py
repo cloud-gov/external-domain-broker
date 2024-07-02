@@ -2,7 +2,8 @@ import pytest  # noqa F401
 import uuid
 
 from broker.extensions import db
-from broker.models import CDNDedicatedWAFServiceInstance
+from broker.models import CDNDedicatedWAFServiceInstance, Operation
+from broker.tasks import waf
 from tests.lib import factories
 from tests.lib.client import check_last_operation_description
 from tests.lib.cdn.deprovision import (
