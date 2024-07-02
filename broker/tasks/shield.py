@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import shield
-from broker.extensions import db, shield_protections
+from broker.extensions import db
 from broker.models import Operation
 from broker.tasks import huey
 
@@ -30,6 +30,9 @@ class ShieldProtections:
         if not self.protected_cloudfront_ids:
             self._list_cloudfront_protections()
         return self.protected_cloudfront_ids
+
+
+shield_protections = ShieldProtections()
 
 
 @huey.retriable_task
