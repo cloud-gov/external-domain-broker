@@ -9,7 +9,7 @@ from sap import cf_logging
 from werkzeug.datastructures import Headers
 
 from broker.app import create_app, db
-from broker.api import CDN_DEDICATED_WAF_PLAN_ID
+from broker.api import CDN_PLAN_ID, CDN_DEDICATED_WAF_PLAN_ID
 from broker.models import (
     ServiceInstance,
     ALBServiceInstance,
@@ -93,7 +93,7 @@ class CFAPIClient(FlaskClient):
     ):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
-            "plan_id": "1cc78b0c-c296-48f5-9182-0b38404f79ef",
+            "plan_id": CDN_PLAN_ID,
             "organization_guid": "abc",
             "space_guid": "123",
         }
@@ -203,12 +203,42 @@ class CFAPIClient(FlaskClient):
             query_string={"accepts_incomplete": accepts_incomplete},
         )
 
+    def deprovision_instance(
+        self,
+        instance_model: InstanceModel,
+        *args,
+        **kwargs,
+    ):
+        if instance_model == CDNServiceInstance:
+            method = self.deprovision_cdn_instance
+        elif instance_model == ALBServiceInstance:
+            method = self.deprovision_alb_instance
+        elif instance_model == MigrationServiceInstance:
+            method = self.deprovision_migration_instance
+        elif instance_model == DedicatedALBServiceInstance:
+            method = self.deprovision_dedicated_alb_instance
+        elif instance_model == CDNDedicatedWAFServiceInstance:
+            method = self.deprovision_cdn_dedicated_waf_instance
+        return method(*args, **kwargs)
+
     def deprovision_cdn_instance(self, id: str, accepts_incomplete: str = "true"):
         self.delete(
             f"/v2/service_instances/{id}",
             query_string={
                 "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
-                "plan_id": "1cc78b0c-c296-48f5-9182-0b38404f79ef",
+                "plan_id": CDN_PLAN_ID,
+                "accepts_incomplete": accepts_incomplete,
+            },
+        )
+
+    def deprovision_cdn_dedicated_waf_instance(
+        self, id: str, accepts_incomplete: str = "true"
+    ):
+        self.delete(
+            f"/v2/service_instances/{id}",
+            query_string={
+                "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
+                "plan_id": CDN_DEDICATED_WAF_PLAN_ID,
                 "accepts_incomplete": accepts_incomplete,
             },
         )

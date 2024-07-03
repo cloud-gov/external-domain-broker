@@ -231,6 +231,26 @@ class FakeRoute53(FakeAWS):
             },
         )
 
+    def expect_delete_health_check(self, health_check_id):
+        self.stubber.add_response(
+            "delete_health_check",
+            {},
+            {
+                "HealthCheckId": health_check_id,
+            },
+        )
+
+    def expect_delete_health_check_not_found(self, health_check_id: str):
+        self.stubber.add_client_error(
+            "delete_health_check",
+            service_error_code="NoSuchHealthCheck",
+            service_message="Not found",
+            http_status_code=404,
+            expected_params={
+                "HealthCheckId": health_check_id,
+            },
+        )
+
     def _change_info(self, change_id: str, status: str = "PENDING"):
         now = datetime.now(timezone.utc)
         return {

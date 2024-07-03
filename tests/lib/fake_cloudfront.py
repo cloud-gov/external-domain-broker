@@ -588,9 +588,11 @@ class FakeCloudFront(FakeAWS):
                 "Prefix": "",
             }
         tags = {}
+
         if dedicated_waf_web_acl_arn:
             distribution_config["WebACLId"] = dedicated_waf_web_acl_arn
             tags = add_tag(tags, "has_dedicated_acl", "true")
+
         distribution_config_with_tags = {
             "DistributionConfig": distribution_config,
             "Tags": tags,

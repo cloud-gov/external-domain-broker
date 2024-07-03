@@ -31,6 +31,18 @@ class ShieldProtections:
             self._list_cloudfront_protections()
         return self.protected_cloudfront_ids
 
+    def _list_cloudfront_protections(self):
+        paginator = shield.get_paginator("list_protections")
+        response_iterator = paginator.paginate(
+            InclusionFilters={"ResourceTypes": ["CLOUDFRONT_DISTRIBUTION"]},
+        )
+        for response in response_iterator:
+            for protection in response["Protections"]:
+                if "ResourceArn" in protection and "Id" in protection:
+                    self.protected_cloudfront_ids[protection["ResourceArn"]] = (
+                        protection["Id"]
+                    )
+
 
 shield_protections = ShieldProtections()
 
@@ -73,6 +85,50 @@ def associate_health_checks(operation_id: int, **kwargs):
                 "protection_id": protection_id,
             }
         )
+        flag_modified(service_instance, "shield_associated_health_checks")
+
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+@huey.retriable_task
+def disassociate_health_checks(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    if not operation:
+        raise Exception(f'Could not load operation "{operation_id}" successfully')
+
+    service_instance = operation.service_instance
+
+    operation.step_description = "Disassociating health checks with Shield"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    logger.info(f'Disassociating health check(s) for "{service_instance.domain_names}"')
+
+    for associated_health_check in service_instance.shield_associated_health_checks:
+        health_check_id = associated_health_check["health_check_id"]
+        logger.info(f"Removing associated Route53 health check ID: {health_check_id}")
+
+        try:
+            shield.disassociate_health_check(
+                ProtectionId=associated_health_check["protection_id"],
+                HealthCheckArn=get_health_check_arn(health_check_id),
+            )
+        except shield.exceptions.ResourceNotFoundException:
+            logger.info(
+                "Associated health check not found",
+                extra={
+                    "protection_id": associated_health_check["protection_id"],
+                    "health_check_arn": get_health_check_arn(health_check_id),
+                },
+            )
+
+        service_instance.shield_associated_health_checks = [
+            check
+            for check in service_instance.shield_associated_health_checks
+            if check["health_check_id"] != associated_health_check["health_check_id"]
+        ]
         flag_modified(service_instance, "shield_associated_health_checks")
 
     db.session.add(service_instance)

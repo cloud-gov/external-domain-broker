@@ -115,6 +115,8 @@ class AppConfig(Config):
         self.IAM_CERTIFICATE_PROPAGATION_TIME = 30
 
         self.WAF_RATE_LIMIT_RULE_GROUP_ARN = self.env("WAF_RATE_LIMIT_RULE_GROUP_ARN")
+        # in seconds
+        self.DELETE_WEB_ACL_WAIT_RETRY_TIME = 5
 
 
 class ProductionConfig(AppConfig):
@@ -260,6 +262,8 @@ class TestConfig(DockerConfig):
         # if you need to see what sqlalchemy is doing
         # self.SQLALCHEMY_ECHO = True
         self.IAM_CERTIFICATE_PROPAGATION_TIME = 0
+        # in seconds
+        self.DELETE_WEB_ACL_WAIT_RETRY_TIME = 0
 
 
 class MissingRedisError(RuntimeError):

@@ -173,6 +173,8 @@ class CDNServiceInstance(ServiceInstance):
 
 class CDNDedicatedWAFServiceInstance(CDNServiceInstance):
     dedicated_waf_web_acl_arn = mapped_column(db.String)
+    dedicated_waf_web_acl_id = mapped_column(db.String)
+    dedicated_waf_web_acl_name = mapped_column(db.String)
     route53_health_check_ids = mapped_column(postgresql.JSONB, default=[])
     shield_associated_health_checks = mapped_column(postgresql.JSONB, default=[])
 

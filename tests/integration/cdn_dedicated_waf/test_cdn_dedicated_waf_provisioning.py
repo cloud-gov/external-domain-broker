@@ -132,18 +132,28 @@ def subtest_provision_create_web_acl(tasks, wafv2):
     service_instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
 
     wafv2.expect_create_web_acl(
-        distribution_id=service_instance.cloudfront_distribution_id,
-        rule_group_arn=config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
+        service_instance.id,
+        config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
     service_instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
+    assert service_instance.dedicated_waf_web_acl_id
+    assert (
+        service_instance.dedicated_waf_web_acl_id
+        == f"{service_instance.id}-dedicated-waf-id"
+    )
+    assert service_instance.dedicated_waf_web_acl_name
+    assert (
+        service_instance.dedicated_waf_web_acl_name
+        == f"{service_instance.id}-dedicated-waf"
+    )
     assert service_instance.dedicated_waf_web_acl_arn
     assert (
         service_instance.dedicated_waf_web_acl_arn
-        == f"arn:aws:wafv2::000000000000:global/webacl/{service_instance.cloudfront_distribution_id}-dedicated-waf"
+        == f"arn:aws:wafv2::000000000000:global/webacl/{service_instance.id}-dedicated-waf"
     )
 
 
