@@ -88,7 +88,7 @@ def _delete_web_acl_with_retries(operation_id, service_instance):
 
     while notDeleted:
         num_times += 1
-        if num_times >= 10:
+        if num_times > 10:
             logger.info(
                 "Failed to delete web ACL",
                 extra={

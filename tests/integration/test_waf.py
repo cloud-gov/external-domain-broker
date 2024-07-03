@@ -95,7 +95,7 @@ def test_waf_delete_web_acl_gives_up_after_max_retries(
     with no_context_app.app_context():
         operation = factories.OperationFactory.create(service_instance=service_instance)
 
-        for i in range(0, 10):
+        for i in range(10):
             wafv2.expect_get_web_acl(
                 service_instance.dedicated_waf_web_acl_id,
                 service_instance.dedicated_waf_web_acl_name,
