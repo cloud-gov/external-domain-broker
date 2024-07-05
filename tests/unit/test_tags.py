@@ -48,16 +48,16 @@ def details(plan, org_guid, space_guid):
     )
 
 
-def test_generate_instance_tags():
-    instance_id = str(uuid.uuid4())
-    plan = ServicePlan(uuid.uuid4(), "plan-1", "plan description")
-    catalog = Service(
-        uuid.uuid4(), "external-domain", "external domain plans", plans=[plan]
-    )
-    details = ProvisionDetails(
-        uuid.uuid4(), plan.id, organization_guid="org-1", space_guid="space-1"
+@pytest.fixture
+def catalog(plan):
+    return Service(
+        uuid.uuid4(), "external-domain", "external domain plans", False, plans=[plan]
     )
 
+
+def test_generate_instance_tags(
+    instance_id, org_guid, space_guid, plan, details, catalog
+):
     tags = generate_instance_tags(instance_id, details, catalog)
     assert tags == {
         "Items": [
@@ -65,7 +65,10 @@ def test_generate_instance_tags():
             {"Key": "broker", "Value": "External domain broker"},
             {"Key": "environment", "Value": "test"},
             {"Key": "Service offering name", "Value": "external-domain"},
-            {"Key": "Service plan name", "Value": "plan-1"},
+            {"Key": "Service plan name", "Value": plan.name},
+            {"Key": "Instance GUID", "Value": instance_id},
+            {"Key": "Organization GUID", "Value": org_guid},
+            {"Key": "Space GUID", "Value": space_guid},
         ]
     }
 
