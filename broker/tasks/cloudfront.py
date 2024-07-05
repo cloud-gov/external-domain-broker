@@ -154,7 +154,7 @@ def create_distribution(operation_id: int, **kwargs):
         "IsIPV6Enabled": True,
     }
 
-    tags = {}
+    tags = service_instance.tags if "tags" in service_instance else {}
 
     if (
         isinstance(service_instance, CDNDedicatedWAFServiceInstance)
