@@ -26,7 +26,7 @@ from sap import cf_logging
 from broker import validators
 from broker.extensions import config, db
 from broker.lib.cdn import is_cdn_instance
-from broker.lib.tags import generate_default_tags
+from broker.lib.tags import generate_instance_tags
 from broker.models import (
     Operation,
     ALBServiceInstance,
@@ -205,10 +205,16 @@ class API(ServiceBroker):
             step_description="Queuing tasks",
         )
 
+        self.logger.info("adding instance tags")
+        catalog = self.catalog()
+        tags = generate_instance_tags(instance_id, details, catalog)
+
         db.session.add(instance)
         db.session.add(operation)
+
         self.logger.info("committing db session")
         db.session.commit()
+
         self.logger.info("queueing tasks")
         queue(operation.id, cf_logging.FRAMEWORK.context.get_correlation_id())
         self.logger.info("all done. Returning provisioned service spec")
@@ -394,21 +400,6 @@ class API(ServiceBroker):
         **kwargs,
     ) -> UnbindSpec:
         pass
-
-
-def add_new_instance_tags(
-    instance_id: str, details: ProvisionDetails, catalog: Service
-):
-    plans = [plan for plan in catalog.plans if plan.id == details.plan_id]
-    if len(plans) == 0:
-        raise RuntimeError(
-            f"Could not find plan for the given plan ID {details.plan_id}"
-        )
-    if len(plans) > 1:
-        raise RuntimeError(
-            f"Found multiple plans for the given plan ID {details.plan_id}"
-        )
-    return generate_default_tags(instance_id, catalog.name, plans[0], details)
 
 
 def parse_cookie_options(params):

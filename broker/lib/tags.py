@@ -2,10 +2,17 @@ import typing
 
 from broker.extensions import config
 
+from enum import Enum
 from openbrokerapi.service_broker import (
     ProvisionDetails,
     ServicePlan,
+    Service,
 )
+
+
+class Action(Enum):
+    CREATE = "Create"
+    UPDATE = "Update"
 
 
 def add_tag(tags, tag_key: str, tag_value: str):
@@ -21,7 +28,32 @@ def add_tag(tags, tag_key: str, tag_value: str):
     return tags
 
 
-def generate_default_tags(
+def generate_instance_tags(
+    instance_id: str, details: ProvisionDetails, catalog: Service
+):
+    plans = [plan for plan in catalog.plans if plan.id == details.plan_id]
+    if len(plans) == 0:
+        raise RuntimeError(
+            f"Could not find plan for the given plan ID {details.plan_id}"
+        )
+    if len(plans) > 1:
+        raise RuntimeError(
+            f"Found multiple plans for the given plan ID {details.plan_id}"
+        )
+    return create_resource_tags(
+        generate_tags(instance_id, catalog.name, plans[0], details)
+    )
+
+
+def create_resource_tags(tags: typing.Dict[str, str]):
+    resource_tags = {}
+    for tag_key in tags:
+        tag_value = tags[tag_key]
+        resource_tags = add_tag(resource_tags, tag_key, tag_value)
+    return resource_tags
+
+
+def generate_tags(
     instance_id: str, offering_name: str, plan: ServicePlan, details: ProvisionDetails
 ) -> typing.Dict[str, str]:
     default_tags = {
