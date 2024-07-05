@@ -10,6 +10,28 @@ from tests.lib.factories import (
 from broker.tags import find_cdn_instances_without_tags
 
 
+@pytest.fixture
+def cloudfront_ids():
+    def _generate_ids(count):
+        ids = []
+        for i in range(count):
+            ids.append(str(uuid.uuid4()))
+        return ids
+
+    return _generate_ids
+
+
+@pytest.fixture
+def cloudfront_arns():
+    def _generate_arns(count):
+        arns = []
+        for i in range(count):
+            arns.append(f"arn-{random.choice(range(1000))}")
+        return arns
+
+    return _generate_arns
+
+
 def test_no_cdn_instances_without_tags(no_context_clean_db, no_context_app):
     with no_context_app.app_context():
         CDNServiceInstanceFactory.create(id=str(uuid.uuid4()), tags={"foo": "bar"})
@@ -24,24 +46,20 @@ def test_no_cdn_instances_without_tags(no_context_clean_db, no_context_app):
         assert len(results) == 0
 
 
-def test_finds_cdn_instances_without_tags(no_context_clean_db, no_context_app):
+def test_finds_cdn_instances_without_tags(
+    no_context_clean_db, no_context_app, cloudfront_ids, cloudfront_arns
+):
     with no_context_app.app_context():
-        CDNServiceInstanceFactory.create(id=str(uuid.uuid4()), tags={"foo": "bar"})
-        CDNDedicatedWAFServiceInstanceFactory.create(
-            id=str(uuid.uuid4()), tags={"foo": "bar"}
-        )
-        cloudfront_arn_1 = f"arn-{random.choice(range(1000))}"
-        cloudfront_arn_2 = f"arn-{random.choice(range(1000))}"
-        cloudfront_arn_3 = f"arn-{random.choice(range(1000))}"
+        arns = cloudfront_arns(3)
+        ids = cloudfront_ids(5)
 
-        CDNServiceInstanceFactory.create(
-            id=str(uuid.uuid4()), cloudfront_distribution_arn=cloudfront_arn_1
-        )
-        CDNServiceInstanceFactory.create(
-            id=str(uuid.uuid4()), cloudfront_distribution_arn=cloudfront_arn_2
-        )
+        CDNServiceInstanceFactory.create(id=ids[0], tags={"foo": "bar"})
+        CDNDedicatedWAFServiceInstanceFactory.create(id=ids[1], tags={"foo": "bar"})
+
+        CDNServiceInstanceFactory.create(id=ids[2], cloudfront_distribution_arn=arns[0])
+        CDNServiceInstanceFactory.create(id=ids[3], cloudfront_distribution_arn=arns[1])
         CDNDedicatedWAFServiceInstanceFactory.create(
-            id=str(uuid.uuid4()), cloudfront_distribution_arn=cloudfront_arn_3
+            id=ids[4], cloudfront_distribution_arn=arns[2]
         )
 
         no_context_clean_db.session.commit()
@@ -49,7 +67,7 @@ def test_finds_cdn_instances_without_tags(no_context_clean_db, no_context_app):
         results = find_cdn_instances_without_tags()
 
         assert results == [
-            (cloudfront_arn_1,),
-            (cloudfront_arn_2,),
-            (cloudfront_arn_3,),
+            (ids[2], arns[0]),
+            (ids[3], arns[1]),
+            (ids[4], arns[2]),
         ]
