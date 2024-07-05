@@ -63,6 +63,7 @@ def generate_tags(
         "Service offering name": offering_name,
         "Service plan name": plan.name,
         "Instance GUID": instance_id,
+        # TODO: add tags for org name, space name
         "Organization GUID": details.organization_guid,
         "Space GUID": details.space_guid,
     }
