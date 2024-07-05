@@ -73,6 +73,19 @@ def test_generate_instance_tags(
     }
 
 
+def test_generate_instance_tags_multiple_plans(instance_id, plan, details, catalog):
+    catalog.plans = [plan, plan]
+    with pytest.raises(RuntimeError):
+        generate_instance_tags(instance_id, details, catalog)
+
+
+def test_generate_instance_tags_no_matching_plans(instance_id, plan, details, catalog):
+    plan.id = str(uuid.uuid4())
+    catalog.plans = [plan]
+    with pytest.raises(RuntimeError):
+        generate_instance_tags(instance_id, details, catalog)
+
+
 def test_create_resource_tags():
     tags = {"foo": "bar", "moo": "cow"}
     assert create_resource_tags(tags) == {
