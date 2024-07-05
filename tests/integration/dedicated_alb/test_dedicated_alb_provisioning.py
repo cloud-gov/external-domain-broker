@@ -101,7 +101,7 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Uploading SSL certificate to AWS"
     )
-    subtest_provision_selects_dedicated_alb(tasks, alb)
+    subtest_provision_selects_dedicated_alb(tasks, alb, organization_guid)
     check_last_operation_description(
         client, "4321", operation_id, "Selecting load balancer"
     )
@@ -125,12 +125,14 @@ def test_provision_happy_path(
     subtest_update_noop(client, instance_model)
 
 
-def subtest_provision_selects_dedicated_alb(tasks, alb):
+def subtest_provision_selects_dedicated_alb(tasks, alb, organization_guid):
     our_listener_0 = DedicatedALBListener(
-        listener_arn="our-arn-0", dedicated_org="our-org"
+        listener_arn="our-arn-0",
+        dedicated_org=organization_guid,
     )
     our_listener_1 = DedicatedALBListener(
-        listener_arn="our-arn-1", dedicated_org="our-org"
+        listener_arn="our-arn-1",
+        dedicated_org=organization_guid,
     )
     empty_listener_0 = DedicatedALBListener(listener_arn="empty-arn-0")
     other_listener_0 = DedicatedALBListener(
