@@ -25,6 +25,7 @@ class FakeCloudFront(FakeAWS):
         bucket_prefix: str = "",
         custom_error_responses: dict = None,
         dedicated_waf_web_acl_arn: str = "",
+        tags: dict = {},
     ):
         if custom_error_responses is None:
             custom_error_responses = {"Quantity": 0}
@@ -61,6 +62,7 @@ class FakeCloudFront(FakeAWS):
                     bucket_prefix=bucket_prefix,
                     custom_error_responses=custom_error_responses,
                     dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
+                    tags=tags,
                 ),
             },
         )
@@ -455,6 +457,7 @@ class FakeCloudFront(FakeAWS):
         include_le_bucket: bool = False,
         include_log_bucket: bool = True,
         dedicated_waf_web_acl_arn: str = "",
+        tags: dict = {},
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -587,7 +590,6 @@ class FakeCloudFront(FakeAWS):
                 "Bucket": "",
                 "Prefix": "",
             }
-        tags = {}
 
         if dedicated_waf_web_acl_arn:
             distribution_config["WebACLId"] = dedicated_waf_web_acl_arn
@@ -654,15 +656,6 @@ class FakeCloudFront(FakeAWS):
                 ),
             }
         }
-
-    def _tags(
-        self,
-        dedicated_waf_web_acl_arn: str = "",
-    ) -> Dict[str, Any]:
-        tags = {}
-        if dedicated_waf_web_acl_arn:
-            tags["has_dedicated_acl"] = "true"
-        return tags
 
 
 @pytest.fixture(autouse=True)

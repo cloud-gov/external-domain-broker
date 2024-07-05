@@ -89,13 +89,20 @@ class CFAPIClient(FlaskClient):
         return method(*args, **kwargs)
 
     def provision_cdn_instance(
-        self, id: str, accepts_incomplete: str = "true", params: dict = None
+        self,
+        id: str,
+        accepts_incomplete: str = "true",
+        params: dict = None,
+        organization_guid: str = "",
+        space_guid: str = "",
     ):
+        organization_guid = organization_guid if organization_guid else "abc"
+        space_guid = space_guid if space_guid else "123"
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": CDN_PLAN_ID,
-            "organization_guid": "abc",
-            "space_guid": "123",
+            "organization_guid": organization_guid,
+            "space_guid": space_guid,
         }
 
         if params is not None:

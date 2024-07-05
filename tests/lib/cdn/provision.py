@@ -1,5 +1,6 @@
 from datetime import date
 import pytest  # noqa F401
+import uuid
 
 from broker.extensions import db
 from broker.models import (
@@ -7,7 +8,19 @@ from broker.models import (
 )
 
 
-def subtest_provision_creates_provision_operation(client, dns, instance_model):
+@pytest.fixture
+def organization_guid():
+    return str(uuid.uuid4())
+
+
+@pytest.fixture
+def space_guid():
+    return str(uuid.uuid4())
+
+
+def subtest_provision_creates_provision_operation(
+    client, dns, organization_guid, space_guid, instance_model
+):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
     client.provision_instance(
@@ -22,6 +35,8 @@ def subtest_provision_creates_provision_operation(client, dns, instance_model):
             "insecure_origin": True,
             "error_responses": {"404": "/errors/404.html", "405": "/errors/405.html"},
         },
+        organization_guid=organization_guid,
+        space_guid=space_guid,
     )
     db.session.expunge_all()
 
@@ -41,6 +56,18 @@ def subtest_provision_creates_provision_operation(client, dns, instance_model):
     assert instance.domain_names == ["example.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "origin.com"
     assert instance.cloudfront_origin_path == "/somewhere"
+    assert instance.tags == {
+        "Items": [
+            {"Key": "client", "Value": "Cloud Foundry"},
+            {"Key": "broker", "Value": "External domain broker"},
+            {"Key": "environment", "Value": "test"},
+            {"Key": "Service offering name", "Value": "external-domain"},
+            {"Key": "Service plan name", "Value": "domain-with-cdn"},
+            {"Key": "Instance GUID", "Value": "4321"},
+            {"Key": "Organization GUID", "Value": organization_guid},
+            {"Key": "Space GUID", "Value": space_guid},
+        ]
+    }
 
     client.get_last_operation("4321", operation_id)
     assert "description" in client.response.json
@@ -136,6 +163,7 @@ def subtest_provision_creates_cloudfront_distribution(
                 },
             ],
         },
+        tags=service_instance.tags,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

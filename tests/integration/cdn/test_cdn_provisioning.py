@@ -1,4 +1,5 @@
 import pytest  # noqa F401
+import uuid
 
 from broker.models import (
     CDNServiceInstance,
@@ -37,12 +38,30 @@ from tests.lib.cdn.update import (
 # these subtasks when testing failure scenarios.
 
 
+@pytest.fixture
+def organization_guid():
+    return str(uuid.uuid4())
+
+
+@pytest.fixture
+def space_guid():
+    return str(uuid.uuid4())
+
+
 def test_provision_happy_path(
-    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+    client,
+    dns,
+    tasks,
+    route53,
+    iam_commercial,
+    simple_regex,
+    cloudfront,
+    organization_guid,
+    space_guid,
 ):
     instance_model = CDNServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
-        client, dns, instance_model
+        client, dns, organization_guid, space_guid, instance_model
     )
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_provision_creates_LE_user(tasks, instance_model)
