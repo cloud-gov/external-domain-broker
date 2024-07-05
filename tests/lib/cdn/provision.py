@@ -5,6 +5,8 @@ import uuid
 from broker.extensions import db
 from broker.models import (
     Operation,
+    CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
 )
 
 
@@ -56,13 +58,18 @@ def subtest_provision_creates_provision_operation(
     assert instance.domain_names == ["example.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "origin.com"
     assert instance.cloudfront_origin_path == "/somewhere"
+
+    if instance_model == CDNServiceInstance:
+        service_plan_name = "domain-with-cdn"
+    elif instance_model == CDNDedicatedWAFServiceInstance:
+        service_plan_name = "domain-with-cdn-dedicated-waf"
     assert instance.tags == {
         "Items": [
             {"Key": "client", "Value": "Cloud Foundry"},
             {"Key": "broker", "Value": "External domain broker"},
             {"Key": "environment", "Value": "test"},
             {"Key": "Service offering name", "Value": "external-domain"},
-            {"Key": "Service plan name", "Value": "domain-with-cdn"},
+            {"Key": "Service plan name", "Value": service_plan_name},
             {"Key": "Instance GUID", "Value": "4321"},
             {"Key": "Organization GUID", "Value": organization_guid},
             {"Key": "Space GUID", "Value": space_guid},
@@ -133,6 +140,10 @@ def subtest_provision_creates_cloudfront_distribution(
 
     id_ = certificate.id
 
+    dedicated_waf_web_acl_arn = None
+    if instance_model == CDNDedicatedWAFServiceInstance:
+        dedicated_waf_web_acl_arn = service_instance.dedicated_waf_web_acl_arn
+
     cloudfront.expect_create_distribution_with_tags(
         caller_reference=service_instance.id,
         domains=service_instance.domain_names,
@@ -163,64 +174,8 @@ def subtest_provision_creates_cloudfront_distribution(
                 },
             ],
         },
+        dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
         tags=service_instance.tags,
-    )
-
-    tasks.run_queued_tasks_and_enqueue_dependents()
-
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
-
-    assert service_instance.cloudfront_distribution_arn
-    assert service_instance.cloudfront_distribution_arn.startswith("arn:aws:cloudfront")
-    assert service_instance.cloudfront_distribution_arn.endswith("FakeDistributionId")
-    assert service_instance.cloudfront_distribution_id == "FakeDistributionId"
-    assert service_instance.domain_internal == "fake1234.cloudfront.net"
-    assert service_instance.new_certificate is None
-    assert service_instance.current_certificate is not None
-    assert service_instance.current_certificate.id == id_
-
-
-def subtest_provision_creates_cloudfront_distribution_with_tags(
-    tasks, cloudfront, instance_model
-):
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
-    certificate = service_instance.new_certificate
-
-    id_ = certificate.id
-
-    cloudfront.expect_create_distribution_with_tags(
-        caller_reference=service_instance.id,
-        domains=service_instance.domain_names,
-        certificate_id=certificate.iam_server_certificate_id,
-        origin_hostname=service_instance.cloudfront_origin_hostname,
-        origin_path=service_instance.cloudfront_origin_path,
-        distribution_id="FakeDistributionId",
-        distribution_hostname="fake1234.cloudfront.net",
-        forward_cookie_policy="whitelist",
-        forwarded_cookies=["mycookie", "myothercookie"],
-        forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
-        origin_protocol_policy="http-only",
-        bucket_prefix="4321/",
-        custom_error_responses={
-            "Quantity": 2,
-            "Items": [
-                {
-                    "ErrorCode": 404,
-                    "ResponsePagePath": "/errors/404.html",
-                    "ResponseCode": "404",
-                    "ErrorCachingMinTTL": 300,
-                },
-                {
-                    "ErrorCode": 405,
-                    "ResponsePagePath": "/errors/405.html",
-                    "ResponseCode": "405",
-                    "ErrorCachingMinTTL": 300,
-                },
-            ],
-        },
-        dedicated_waf_web_acl_arn=service_instance.dedicated_waf_web_acl_arn,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

@@ -1,4 +1,5 @@
 import pytest  # noqa F401
+import uuid
 
 from broker.extensions import db
 from broker.models import ALBServiceInstance
@@ -29,6 +30,17 @@ from tests.lib.alb.update import (
 from tests.integration.alb.test_alb_update import (
     subtest_update_happy_path,
 )
+
+
+@pytest.fixture
+def organization_guid():
+    return str(uuid.uuid4())
+
+
+@pytest.fixture
+def space_guid():
+    return str(uuid.uuid4())
+
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we
 # had separate tests for each stage in the task pipeline.  But each test would
@@ -85,11 +97,19 @@ def test_gets_lowest_used_alb(alb):
 
 
 def test_provision_happy_path(
-    client, dns, tasks, route53, iam_govcloud, simple_regex, alb
+    client,
+    dns,
+    tasks,
+    route53,
+    iam_govcloud,
+    simple_regex,
+    alb,
+    organization_guid,
+    space_guid,
 ):
     instance_model = ALBServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
-        client, dns, instance_model
+        client, dns, organization_guid, space_guid, instance_model
     )
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_provision_creates_LE_user(tasks, instance_model)

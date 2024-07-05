@@ -1,11 +1,12 @@
 from datetime import date
 import json
-
 import pytest  # noqa F401
 
 from broker.extensions import db
 from broker.models import (
     Operation,
+    ALBServiceInstance,
+    DedicatedALBServiceInstance,
 )
 
 
@@ -39,11 +40,17 @@ def subtest_provision_uploads_certificate_to_iam(
     assert certificate.iam_server_certificate_arn.startswith("arn:aws:iam")
 
 
-def subtest_provision_creates_provision_operation(client, dns, instance_model):
+def subtest_provision_creates_provision_operation(
+    client, dns, organization_guid, space_guid, instance_model
+):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
     client.provision_instance(
-        instance_model, "4321", params={"domains": "example.com, Foo.com"}
+        instance_model,
+        "4321",
+        params={"domains": "example.com, Foo.com"},
+        organization_guid=organization_guid,
+        space_guid=space_guid,
     )
     db.session.expunge_all()
 
@@ -61,6 +68,23 @@ def subtest_provision_creates_provision_operation(client, dns, instance_model):
     instance = db.session.get(instance_model, operation.service_instance_id)
     assert instance is not None
     assert instance.domain_names == ["example.com", "foo.com"]
+
+    if instance_model == ALBServiceInstance:
+        service_plan_name = "domain"
+    elif instance_model == DedicatedALBServiceInstance:
+        service_plan_name = "domain-with-org-lb"
+    assert instance.tags == {
+        "Items": [
+            {"Key": "client", "Value": "Cloud Foundry"},
+            {"Key": "broker", "Value": "External domain broker"},
+            {"Key": "environment", "Value": "test"},
+            {"Key": "Service offering name", "Value": "external-domain"},
+            {"Key": "Service plan name", "Value": service_plan_name},
+            {"Key": "Instance GUID", "Value": "4321"},
+            {"Key": "Organization GUID", "Value": organization_guid},
+            {"Key": "Space GUID", "Value": space_guid},
+        ]
+    }
 
     return operation_id
 
