@@ -19,11 +19,12 @@ def test_catalog_has_top_level_values(catalog):
 
 
 def test_catalog_has_correct_plans(catalog):
-    assert catalog.plans is not []
+    assert len(catalog.plans) == 5
     alb_plan = catalog.plans[0]
     cloudfront_plan = catalog.plans[1]
     migration_plan = catalog.plans[2]
     dedicated_alb_plan = catalog.plans[3]
+    cdn_dedicated_waf_plan = catalog.plans[4]
 
     assert alb_plan.id is not None
     assert alb_plan.id != ""
@@ -44,8 +45,12 @@ def test_catalog_has_correct_plans(catalog):
     assert dedicated_alb_plan.id is not None
     assert dedicated_alb_plan.id != ""
     assert dedicated_alb_plan.name == "domain-with-org-lb"
-    assert "domain" in alb_plan.description
+    assert "org-scoped" in dedicated_alb_plan.description
 
-    assert cloudfront_plan.id != alb_plan.id
-    assert cloudfront_plan.id != migration_plan.id
-    assert migration_plan.id != alb_plan.id
+    assert cdn_dedicated_waf_plan.id is not None
+    assert cdn_dedicated_waf_plan.id != ""
+    assert cdn_dedicated_waf_plan.name == "domain-with-cdn-dedicated-waf"
+    assert "dedicated WAF" in cdn_dedicated_waf_plan.description
+
+    plan_ids = [plan.id for plan in catalog.plans]
+    assert len(set(plan_ids)) == len(plan_ids)
