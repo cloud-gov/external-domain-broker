@@ -277,7 +277,7 @@ jobs:
   - get: src
     params: {depth: 1}
     trigger: true
-  - set_pipeline: ((name))
+  - set_pipeline: self
     file: src/ci/pipeline.yml
 
 - name: test
