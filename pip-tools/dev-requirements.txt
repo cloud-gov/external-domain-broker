@@ -6,7 +6,7 @@
 #
 acme==2.11.0
     # via -r pip-tools/../requirements.txt
-alembic==1.13.1
+alembic==1.13.2
     # via
     #   -r pip-tools/../requirements.txt
     #   flask-migrate
@@ -16,16 +16,16 @@ blinker==1.8.2
     # via
     #   -r pip-tools/../requirements.txt
     #   flask
-boto3==1.34.123
+boto3==1.34.140
     # via -r pip-tools/../requirements.txt
-botocore==1.34.123
+botocore==1.34.140
     # via
     #   -r pip-tools/../requirements.txt
     #   boto3
     #   s3transfer
 build==1.2.1
     # via pip-tools
-certifi==2024.6.2
+certifi==2024.7.4
     # via
     #   -r pip-tools/../requirements.txt
     #   requests
@@ -57,9 +57,9 @@ environs==11.0.0
     # via -r pip-tools/../requirements.txt
 factory-boy==3.3.0
     # via -r pip-tools/dev-requirements.in
-faker==25.8.0
+faker==26.0.0
     # via factory-boy
-flake8==7.0.0
+flake8==7.1.0
     # via -r pip-tools/dev-requirements.in
 flask==3.0.3
     # via
@@ -131,7 +131,7 @@ marshmallow==3.21.3
     #   environs
 mccabe==0.7.0
     # via flake8
-mypy==1.10.0
+mypy==1.10.1
     # via -r pip-tools/dev-requirements.in
 mypy-extensions==1.0.0
     # via
@@ -172,7 +172,7 @@ pprintpp==0.4.0
     # via -r pip-tools/dev-requirements.in
 psycopg2==2.9.9
     # via -r pip-tools/../requirements.txt
-pycodestyle==2.11.1
+pycodestyle==2.12.0
     # via flake8
 pycparser==2.22
     # via
@@ -221,7 +221,7 @@ pytz==2024.1
     #   -r pip-tools/../requirements.txt
     #   acme
     #   pyrfc3339
-redis==5.0.5
+redis==5.0.7
     # via -r pip-tools/../requirements.txt
 requests==2.32.3
     # via
@@ -230,11 +230,11 @@ requests==2.32.3
     #   acme
 rope==1.13.0
     # via -r pip-tools/dev-requirements.in
-s3transfer==0.10.1
+s3transfer==0.10.2
     # via
     #   -r pip-tools/../requirements.txt
     #   boto3
-sap-cf-logging==4.2.6
+sap-cf-logging==4.2.7
     # via -r pip-tools/../requirements.txt
 six==1.16.0
     # via
@@ -243,7 +243,7 @@ six==1.16.0
     #   orderedmultidict
     #   pytest-profiling
     #   python-dateutil
-sqlalchemy==2.0.30
+sqlalchemy==2.0.31
     # via
     #   -r pip-tools/../requirements.txt
     #   alembic
@@ -261,7 +261,7 @@ ujson==5.10.0
     # via
     #   python-jsonrpc-server
     #   python-language-server
-urllib3==2.2.1
+urllib3==2.2.2
     # via
     #   -r pip-tools/../requirements.txt
     #   botocore
