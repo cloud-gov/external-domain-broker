@@ -6,13 +6,13 @@
 #
 acme==2.11.0
     # via -r pip-tools/requirements.in
-alembic==1.13.1
+alembic==1.13.2
     # via flask-migrate
 blinker==1.8.2
     # via flask
-boto3==1.34.123
+boto3==1.34.140
     # via -r pip-tools/requirements.in
-botocore==1.34.123
+botocore==1.34.140
     # via
     #   boto3
     #   s3transfer
@@ -102,20 +102,20 @@ pytz==2024.1
     # via
     #   acme
     #   pyrfc3339
-redis==5.0.5
+redis==5.0.7
     # via -r pip-tools/requirements.in
 requests==2.32.3
     # via acme
-s3transfer==0.10.1
+s3transfer==0.10.2
     # via boto3
-sap-cf-logging==4.2.6
+sap-cf-logging==4.2.7
     # via -r pip-tools/requirements.in
 six==1.16.0
     # via
     #   furl
     #   orderedmultidict
     #   python-dateutil
-sqlalchemy==2.0.30
+sqlalchemy==2.0.31
     # via
     #   -r pip-tools/requirements.in
     #   alembic
