@@ -47,6 +47,7 @@ from broker.tasks.pipelines import (
     queue_all_cdn_update_tasks_for_operation,
     queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation,
     queue_all_cdn_dedicated_waf_provision_tasks_for_operation,
+    queue_all_cdn_dedicated_waf_update_tasks_for_operation,
     queue_all_cdn_broker_migration_tasks_for_operation,
     queue_all_dedicated_alb_provision_tasks_for_operation,
     queue_all_dedicated_alb_update_tasks_for_operation,
@@ -315,7 +316,7 @@ class API(ServiceBroker):
 
             instance = update_cdn_instance(params, instance)
 
-            queue = queue_all_cdn_update_tasks_for_operation
+            queue = queue_all_cdn_dedicated_waf_update_tasks_for_operation
         elif instance.instance_type == "alb_service_instance":
             if details.plan_id == ALB_PLAN_ID:
                 queue = queue_all_alb_update_tasks_for_operation
