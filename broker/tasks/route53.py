@@ -254,7 +254,12 @@ def create_health_checks(operation_id: int, **kwargs):
         )
         health_check_id = route53_response["HealthCheck"]["Id"]
         logger.info(f"Saving Route53 health check ID: {health_check_id}")
-        service_instance.route53_health_check_ids.append(health_check_id)
+        service_instance.route53_health_check_ids.append(
+            {
+                "domain_name": domain_name,
+                "health_check_id": health_check_id,
+            }
+        )
         flag_modified(service_instance, "route53_health_check_ids")
 
     db.session.add(service_instance)

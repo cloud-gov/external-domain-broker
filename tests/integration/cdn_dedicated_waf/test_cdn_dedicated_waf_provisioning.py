@@ -168,7 +168,16 @@ def subtest_provision_creates_health_checks(tasks, route53, instance_model):
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
-    assert service_instance.route53_health_check_ids == ["example.com ID", "foo.com ID"]
+    assert sorted(
+        service_instance.route53_health_check_ids,
+        key=lambda check: check["domain_name"],
+    ) == [
+        {
+            "domain_name": "example.com",
+            "health_check_id": "example.com ID",
+        },
+        {"domain_name": "foo.com", "health_check_id": "foo.com ID"},
+    ]
     route53.assert_no_pending_responses()
 
 
