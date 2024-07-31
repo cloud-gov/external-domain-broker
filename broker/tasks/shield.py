@@ -139,7 +139,16 @@ def update_associated_health_checks(operation_id: int, **kwargs):
         flag_modified(service_instance, "shield_associated_health_checks")
 
     if len(health_checks_to_disassociate) > 0:
+        health_check_ids_to_disassociate = [
+            check["health_check_id"] for check in health_checks_to_disassociate
+        ]
+        domain_names_to_disassociate = [
+            check["domain_name"]
+            for check in service_instance.route53_health_checks
+            if check["health_check_id"] in health_check_ids_to_disassociate
+        ]
         updated_associated_health_checks = _disassociate_health_checks(
+            domain_names_to_disassociate,
             updated_associated_health_checks,
             health_checks_to_disassociate,
         )
@@ -166,6 +175,7 @@ def disassociate_health_checks(operation_id: int, **kwargs):
     db.session.commit()
 
     updated_associated_health_checks = _disassociate_health_checks(
+        service_instance.domain_names,
         service_instance.shield_associated_health_checks,
         service_instance.shield_associated_health_checks,
     )
@@ -206,10 +216,9 @@ def _associate_health_check(protection_id, health_check_id):
     logger.info(f"Saving associated Route53 health check ID: {health_check_id}")
 
 
-def _disassociate_health_checks(existing_checks, checks_to_disassociate):
-    domain_names_to_disassociate = [
-        check["domain_name"] for check in checks_to_disassociate
-    ]
+def _disassociate_health_checks(
+    domain_names_to_disassociate, existing_checks, checks_to_disassociate
+):
     logger.info(f'Disassociating health check(s) for "{domain_names_to_disassociate}"')
 
     updated_associated_health_checks = existing_checks
