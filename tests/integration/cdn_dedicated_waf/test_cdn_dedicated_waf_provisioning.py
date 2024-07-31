@@ -137,6 +137,7 @@ def test_provision_happy_path(
         simple_regex,
         cloudfront,
         wafv2,
+        shield,
         instance_model,
     )
     subtest_update_same_domains(client, dns, tasks, route53, cloudfront, instance_model)
@@ -151,6 +152,7 @@ def subtest_update_happy_path(
     simple_regex,
     cloudfront,
     wafv2,
+    shield,
     instance_model,
 ):
     operation_id = subtest_update_creates_update_operation(client, dns, instance_model)
@@ -168,11 +170,11 @@ def subtest_update_happy_path(
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_update_removes_certificate_from_iam(tasks, iam_commercial, instance_model)
-    subtest_provision_updates_health_checks(tasks, route53, instance_model)
+    subtest_updates_health_checks(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Updating health checks"
     )
-    subtest_provision_updates_associated_health_checks(tasks, route53, instance_model)
+    subtest_updates_associated_health_checks(tasks, shield, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Updating associated health checks with Shield"
     )
@@ -240,7 +242,7 @@ def subtest_provision_creates_health_checks(tasks, route53, instance_model):
     route53.assert_no_pending_responses()
 
 
-def subtest_provision_updates_health_checks(tasks, route53, instance_model):
+def subtest_updates_health_checks(tasks, route53, instance_model):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
 
@@ -305,7 +307,7 @@ def subtest_provision_associates_health_checks(tasks, shield, instance_model):
     shield.assert_no_pending_responses()
 
 
-def subtest_provision_updates_associated_health_checks(tasks, shield, instance_model):
+def subtest_updates_associated_health_checks(tasks, shield, instance_model):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
     if not service_instance:
@@ -316,23 +318,25 @@ def subtest_provision_updates_associated_health_checks(tasks, shield, instance_m
         "Id": protection_id,
         "ResourceArn": service_instance.cloudfront_distribution_arn,
     }
-    shield.expect_list_protections([protection])
 
-    for health_check in service_instance.route53_health_checks:
-        health_check_id = health_check["health_check_id"]
-        shield.expect_associate_health_check(protection_id, health_check_id)
+    shield.expect_list_protections([protection])
+    shield.expect_associate_health_check(protection_id, "bar.com ID")
+    shield.expect_disassociate_health_check(protection_id, "foo.com ID")
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
-    assert service_instance.shield_associated_health_checks == [
+    assert sorted(
+        service_instance.shield_associated_health_checks,
+        key=lambda check: check["health_check_id"],
+    ) == [
         {
             "health_check_id": "example.com ID",
             "protection_id": protection_id,
         },
         {
-            "health_check_id": "foo.com ID",
+            "health_check_id": "bar.com ID",
             "protection_id": protection_id,
         },
     ]
