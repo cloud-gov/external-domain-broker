@@ -221,6 +221,7 @@ def subtest_update_happy_path(
     simple_regex,
     cloudfront,
     wafv2,
+    shield,
     instance_model,
 ):
     operation_id = subtest_update_creates_update_operation(client, dns, instance_model)
@@ -238,11 +239,11 @@ def subtest_update_happy_path(
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_update_removes_certificate_from_iam(tasks, iam_commercial, instance_model)
-    subtest_provision_updates_health_checks(tasks, route53, instance_model)
+    subtest_updates_health_checks(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Updating health checks"
     )
-    subtest_provision_updates_associated_health_checks(tasks, route53, instance_model)
+    subtest_updates_associated_health_checks(tasks, shield, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Updating associated health checks with Shield"
     )
@@ -415,7 +416,7 @@ def subtest_updates_associated_health_checks(tasks, shield, instance_model):
             "protection_id": protection_id,
         },
         {
-            "health_check_id": "foo.com ID",
+            "health_check_id": "bar.com ID",
             "protection_id": protection_id,
         },
     ]
