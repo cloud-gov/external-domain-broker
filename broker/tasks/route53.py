@@ -254,13 +254,13 @@ def create_health_checks(operation_id: int, **kwargs):
         )
         health_check_id = route53_response["HealthCheck"]["Id"]
         logger.info(f"Saving Route53 health check ID: {health_check_id}")
-        service_instance.route53_health_check_ids.append(
+        service_instance.route53_health_checks.append(
             {
                 "domain_name": domain_name,
                 "health_check_id": health_check_id,
             }
         )
-        flag_modified(service_instance, "route53_health_check_ids")
+        flag_modified(service_instance, "route53_health_checks")
 
     db.session.add(service_instance)
     db.session.commit()
@@ -281,7 +281,7 @@ def delete_health_checks(operation_id: int, **kwargs):
 
     logger.info(f'Deleting health check(s) for "{service_instance.domain_names}"')
 
-    for health_check_id in service_instance.route53_health_check_ids:
+    for health_check_id in service_instance.route53_health_checks:
         logger.info(f"Deleting Route53 health check ID: {health_check_id}")
 
         try:
@@ -294,8 +294,8 @@ def delete_health_checks(operation_id: int, **kwargs):
                 extra={"health_check_id": health_check_id},
             )
 
-        service_instance.route53_health_check_ids.remove(health_check_id)
-        flag_modified(service_instance, "route53_health_check_ids")
+        service_instance.route53_health_checks.remove(health_check_id)
+        flag_modified(service_instance, "route53_health_checks")
 
     db.session.add(service_instance)
     db.session.commit()

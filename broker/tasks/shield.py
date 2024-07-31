@@ -73,7 +73,8 @@ def associate_health_checks(operation_id: int, **kwargs):
         )
         return
 
-    for health_check_id in service_instance.route53_health_check_ids:
+    for health_check in service_instance.route53_health_checks:
+        health_check_id = health_check["health_check_id"]
         shield.associate_health_check(
             ProtectionId=protection_id,
             HealthCheckArn=get_health_check_arn(health_check_id),

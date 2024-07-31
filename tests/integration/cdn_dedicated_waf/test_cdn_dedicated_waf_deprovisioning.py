@@ -44,7 +44,7 @@ def service_instance(protection_id):
                 "health_check_id": "fake-health-check-id",
             }
         ],
-        route53_health_check_ids=["fake-health-check-id"],
+        route53_health_checks=["fake-health-check-id"],
         dedicated_waf_web_acl_id="1234-dedicated-waf-id",
         dedicated_waf_web_acl_name="1234-dedicated-waf",
         dedicated_waf_web_acl_arn="1234-dedicated-waf-arn",
@@ -226,13 +226,13 @@ def subtest_deprovision_deletes_health_checks_when_missing(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
     route53.expect_delete_health_check_not_found(
-        service_instance.route53_health_check_ids[0]
+        service_instance.route53_health_checks[0]
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
-    assert service_instance.route53_health_check_ids == []
+    assert service_instance.route53_health_checks == []
 
     route53.assert_no_pending_responses()
 
@@ -283,7 +283,7 @@ def subtest_deprovision_deletes_health_checks(
 ):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
-    assert service_instance.route53_health_check_ids == ["fake-health-check-id"]
+    assert service_instance.route53_health_checks == ["fake-health-check-id"]
 
     route53.expect_delete_health_check(
         "fake-health-check-id",
@@ -292,7 +292,7 @@ def subtest_deprovision_deletes_health_checks(
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
-    assert service_instance.route53_health_check_ids == []
+    assert service_instance.route53_health_checks == []
 
     route53.assert_no_pending_responses()
 
