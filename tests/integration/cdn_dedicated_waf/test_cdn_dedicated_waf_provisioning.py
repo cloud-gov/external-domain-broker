@@ -24,8 +24,23 @@ from tests.lib.cdn.provision import (
     subtest_provision_waits_for_cloudfront_distribution,
     subtest_provision_provisions_ALIAS_records,
 )
+from tests.lib.update import (
+    subtest_update_creates_private_key_and_csr,
+    subtest_gets_new_challenges,
+    subtest_update_updates_TXT_records,
+    subtest_update_answers_challenges,
+    subtest_waits_for_dns_changes,
+    subtest_update_retrieves_new_cert,
+    subtest_update_marks_update_complete,
+    subtest_update_removes_certificate_from_iam,
+)
 from tests.lib.cdn.update import (
+    subtest_update_creates_update_operation,
     subtest_update_same_domains,
+    subtest_update_uploads_new_cert,
+    subtest_updates_cloudfront,
+    subtest_update_waits_for_cloudfront_update,
+    subtest_update_updates_ALIAS_records,
 )
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we
@@ -121,6 +136,7 @@ def test_provision_happy_path(
         iam_commercial,
         simple_regex,
         cloudfront,
+        wafv2,
         instance_model,
     )
     subtest_update_same_domains(client, dns, tasks, route53, cloudfront, instance_model)
@@ -134,6 +150,7 @@ def subtest_update_happy_path(
     iam_commercial,
     simple_regex,
     cloudfront,
+    wafv2,
     instance_model,
 ):
     operation_id = subtest_update_creates_update_operation(client, dns, instance_model)
@@ -145,11 +162,20 @@ def subtest_update_happy_path(
     subtest_update_answers_challenges(tasks, dns, instance_model)
     subtest_update_retrieves_new_cert(tasks, instance_model)
     subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex, instance_model)
+    subtest_provision_update_web_acl(tasks, wafv2)
     subtest_updates_cloudfront(tasks, cloudfront, instance_model)
     subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_update_removes_certificate_from_iam(tasks, iam_commercial, instance_model)
+    subtest_provision_updates_health_checks(tasks, route53, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Updating health checks"
+    )
+    subtest_provision_updates_associated_health_checks(tasks, route53, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Updating associated health checks with Shield"
+    )
     subtest_update_marks_update_complete(tasks, instance_model)
 
 
@@ -183,6 +209,13 @@ def subtest_provision_create_web_acl(tasks, wafv2):
     )
 
 
+def subtest_provision_update_web_acl(tasks, wafv2):
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    # Nothing should get updated since the domains have not changed
+    wafv2.assert_no_pending_responses()
+
+
 def subtest_provision_creates_health_checks(tasks, route53, instance_model):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
@@ -207,7 +240,72 @@ def subtest_provision_creates_health_checks(tasks, route53, instance_model):
     route53.assert_no_pending_responses()
 
 
+def subtest_provision_updates_health_checks(tasks, route53, instance_model):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+
+    route53.expect_create_health_check(service_instance.id, "bar.com")
+
+    delete_health_check = [
+        check
+        for check in service_instance.route53_health_checks
+        if check["domain_name"] == "example.com"
+    ][0]
+    route53.expect_delete_health_check(delete_health_check["health_check_id"])
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    assert sorted(
+        service_instance.route53_health_checks,
+        key=lambda check: check["domain_name"],
+    ) == [
+        {
+            "domain_name": "bar.com",
+            "health_check_id": "bar.com ID",
+        },
+        {"domain_name": "foo.com", "health_check_id": "foo.com ID"},
+    ]
+
+    route53.assert_no_pending_responses()
+
+
 def subtest_provision_associates_health_checks(tasks, shield, instance_model):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    if not service_instance:
+        raise Exception("Could not load service instance")
+
+    protection_id = str(uuid.uuid4())
+    protection = {
+        "Id": protection_id,
+        "ResourceArn": service_instance.cloudfront_distribution_arn,
+    }
+    shield.expect_list_protections([protection])
+
+    for health_check in service_instance.route53_health_checks:
+        health_check_id = health_check["health_check_id"]
+        shield.expect_associate_health_check(protection_id, health_check_id)
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "4321")
+    assert service_instance.shield_associated_health_checks == [
+        {
+            "health_check_id": "example.com ID",
+            "protection_id": protection_id,
+        },
+        {
+            "health_check_id": "foo.com ID",
+            "protection_id": protection_id,
+        },
+    ]
+    shield.assert_no_pending_responses()
+
+
+def subtest_provision_updates_associated_health_checks(tasks, shield, instance_model):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
     if not service_instance:

@@ -245,21 +245,70 @@ def create_health_checks(operation_id: int, **kwargs):
     logger.info(f'Creating health check(s) for "{service_instance.domain_names}"')
 
     for domain_name in service_instance.domain_names:
-        route53_response = route53.create_health_check(
-            CallerReference=f"create_health_check-{service_instance.id}-{domain_name}",
-            HealthCheckConfig={
-                "Type": "HTTPS",
-                "FullyQualifiedDomainName": domain_name,
-            },
-        )
-        health_check_id = route53_response["HealthCheck"]["Id"]
-        logger.info(f"Saving Route53 health check ID: {health_check_id}")
+        health_check_id = _create_health_check(service_instance, domain_name)
         service_instance.route53_health_checks.append(
             {
                 "domain_name": domain_name,
                 "health_check_id": health_check_id,
             }
         )
+        flag_modified(service_instance, "route53_health_checks")
+
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+@huey.retriable_task
+def update_health_checks(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    if not operation:
+        return
+
+    service_instance = operation.service_instance
+
+    operation.step_description = "Updating health checks"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    logger.info(f'Updating health check(s) for "{service_instance.domain_names}"')
+
+    existing_health_checks = service_instance.route53_health_checks
+    existing_health_check_domains = [
+        check["domain_name"] for check in service_instance.route53_health_checks
+    ]
+    # If domain is NOT IN current domains with health checks, it should be CREATED
+    health_check_domains_to_create = [
+        domain
+        for domain in service_instance.domain_names
+        if domain not in existing_health_check_domains
+    ]
+    # If health check domain is NOT IN updated list of domains, it should be DELETED
+    health_checks_to_delete = [
+        check
+        for check in existing_health_checks
+        if check["domain_name"] not in service_instance.domain_names
+    ]
+
+    for domain_name in health_check_domains_to_create:
+        health_check_id = _create_health_check(service_instance, domain_name)
+        service_instance.route53_health_checks.append(
+            {
+                "domain_name": domain_name,
+                "health_check_id": health_check_id,
+            }
+        )
+        flag_modified(service_instance, "route53_health_checks")
+
+    for health_check in health_checks_to_delete:
+        health_check_id = health_check["health_check_id"]
+        _delete_health_check(health_check_id)
+        updated_health_checks = [
+            check
+            for check in service_instance.route53_health_checks
+            if check["health_check_id"] != health_check_id
+        ]
+        service_instance.route53_health_checks = updated_health_checks
         flag_modified(service_instance, "route53_health_checks")
 
     db.session.add(service_instance)
@@ -281,21 +330,39 @@ def delete_health_checks(operation_id: int, **kwargs):
 
     logger.info(f'Deleting health check(s) for "{service_instance.domain_names}"')
 
-    for health_check_id in service_instance.route53_health_checks:
-        logger.info(f"Deleting Route53 health check ID: {health_check_id}")
-
-        try:
-            route53.delete_health_check(
-                HealthCheckId=health_check_id,
-            )
-        except route53.exceptions.NoSuchHealthCheck:
-            logger.info(
-                "Associated health check not found",
-                extra={"health_check_id": health_check_id},
-            )
+    for health_check in service_instance.route53_health_checks:
+        health_check_id = health_check["health_check_id"]
+        _delete_health_check(health_check_id)
 
         service_instance.route53_health_checks.remove(health_check_id)
         flag_modified(service_instance, "route53_health_checks")
 
     db.session.add(service_instance)
     db.session.commit()
+
+
+def _create_health_check(service_instance, domain_name):
+    route53_response = route53.create_health_check(
+        CallerReference=f"create_health_check-{service_instance.id}-{domain_name}",
+        HealthCheckConfig={
+            "Type": "HTTPS",
+            "FullyQualifiedDomainName": domain_name,
+        },
+    )
+    health_check_id = route53_response["HealthCheck"]["Id"]
+    logger.info(f"Saving Route53 health check ID: {health_check_id}")
+    return health_check_id
+
+
+def _delete_health_check(health_check_id):
+    logger.info(f"Deleting Route53 health check ID: {health_check_id}")
+
+    try:
+        route53.delete_health_check(
+            HealthCheckId=health_check_id,
+        )
+    except route53.exceptions.NoSuchHealthCheck:
+        logger.info(
+            "Associated health check not found",
+            extra={"health_check_id": health_check_id},
+        )
