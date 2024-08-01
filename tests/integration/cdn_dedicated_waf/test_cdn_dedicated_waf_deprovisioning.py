@@ -242,7 +242,7 @@ def subtest_deprovision_deletes_health_checks_when_missing(
 ):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
-    route53.expect_delete_health_check_not_found("exampe.com ID")
+    route53.expect_delete_health_check_not_found("example.com ID")
     route53.expect_delete_health_check_not_found("foo.com ID")
     tasks.run_queued_tasks_and_enqueue_dependents()
 
