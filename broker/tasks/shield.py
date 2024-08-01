@@ -14,8 +14,8 @@ class ShieldProtections:
     def __init__(self):
         self.protected_cloudfront_ids: dict[str, str] = {}
 
-    def get_cloudfront_protections(self):
-        if not self.protected_cloudfront_ids:
+    def get_cloudfront_protections(self, should_refresh: bool = False):
+        if not self.protected_cloudfront_ids or should_refresh:
             self._list_cloudfront_protections()
         return self.protected_cloudfront_ids
 
