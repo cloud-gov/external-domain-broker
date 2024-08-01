@@ -362,12 +362,6 @@ def subtest_updates_associated_health_checks(tasks, shield, instance_model):
     # get protection ID from initial creation
     protection_id = service_instance.shield_associated_health_checks[0]["protection_id"]
 
-    # protection = {
-    #     "Id": protection_id,
-    #     "ResourceArn": service_instance.cloudfront_distribution_arn,
-    # }
-    # shield.expect_list_protections([protection])
-
     shield.expect_associate_health_check(protection_id, "bar.com ID")
     shield.expect_disassociate_health_check(protection_id, "example.com ID")
 
