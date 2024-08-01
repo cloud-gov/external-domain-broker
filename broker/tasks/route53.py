@@ -244,15 +244,13 @@ def create_health_checks(operation_id: int, **kwargs):
 
     logger.info(f'Creating health check(s) for "{service_instance.domain_names}"')
 
-    for domain_name in service_instance.domain_names:
-        health_check_id = _create_health_check(service_instance, domain_name)
-        service_instance.route53_health_checks.append(
-            {
-                "domain_name": domain_name,
-                "health_check_id": health_check_id,
-            }
-        )
-        flag_modified(service_instance, "route53_health_checks")
+    updated_health_checks = _create_health_checks(
+        service_instance.id,
+        service_instance.domain_names,
+        service_instance.route53_health_checks,
+    )
+    service_instance.route53_health_checks = updated_health_checks
+    flag_modified(service_instance, "route53_health_checks")
 
     db.session.add(service_instance)
     db.session.commit()
