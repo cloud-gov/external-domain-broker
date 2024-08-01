@@ -21,6 +21,19 @@ def create_web_acl(operation_id: str, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
+    if (
+        service_instance.dedicated_waf_web_acl_arn
+        and service_instance.dedicated_waf_web_acl_id
+        and service_instance.dedicated_waf_web_acl_name
+    ):
+        logger.info(
+            "Web ACL already exists",
+            extra={
+                "web_acl_name": service_instance.dedicated_waf_web_acl_name,
+            },
+        )
+        return
+
     waf_name = f"{service_instance.id}-dedicated-waf"
     response = wafv2.create_web_acl(
         Name=waf_name,

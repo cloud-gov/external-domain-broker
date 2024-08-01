@@ -30,6 +30,26 @@ def test_cloudfront_get_protections(shield):
     }
 
 
+def test_cloudfront_get_protections_should_refresh(shield):
+    protection_id = str(uuid.uuid4())
+    cloudfront_arn = "arn:aws:cloudfront::000000000:distribution/fake-arn"
+    protection: Protection = {"Id": protection_id, "ResourceArn": cloudfront_arn}
+
+    shield.expect_list_protections([protection])
+
+    shield_protections = ShieldProtections()
+    protections = shield_protections.get_cloudfront_protections()
+
+    shield.expect_list_protections([protection])
+
+    protections = shield_protections.get_cloudfront_protections(should_refresh=True)
+
+    shield.assert_no_pending_responses()
+    assert protections == {
+        cloudfront_arn: protection_id,
+    }
+
+
 def test_cloudfront_get_protections_paged_results(shield):
     protection_id = str(uuid.uuid4())
     cloudfront_arn = "arn:aws:cloudfront::000000000:distribution/fake-arn"
