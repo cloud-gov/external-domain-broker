@@ -233,7 +233,7 @@ def subtest_update_happy_path(
     subtest_update_answers_challenges(tasks, dns, instance_model)
     subtest_update_retrieves_new_cert(tasks, instance_model)
     subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex, instance_model)
-    subtest_provision_update_web_acl(tasks, wafv2)
+    subtest_update_web_acl_does_not_update(tasks, wafv2)
     subtest_updates_cloudfront(tasks, cloudfront, instance_model)
     subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
@@ -247,6 +247,28 @@ def subtest_update_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Updating associated health checks with Shield"
     )
+    subtest_update_marks_update_complete(tasks, instance_model)
+
+
+def subtest_update_same_domains(
+    client, dns, tasks, route53, cloudfront, wafv2, shield, instance_model
+):
+    subtest_update_same_domains_creates_update_operation(client, dns, instance_model)
+    subtest_update_same_domains_does_not_create_new_certificate(tasks, instance_model)
+    subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model)
+    subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
+    subtest_update_same_domains_does_not_retrieve_new_certificate(tasks, instance_model)
+    subtest_update_same_domains_does_not_update_iam(tasks, instance_model)
+    subtest_update_web_acl_does_not_update(tasks, wafv2)
+    subtest_update_same_domains_updates_cloudfront(tasks, cloudfront, instance_model)
+    subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
+    subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
+    subtest_waits_for_dns_changes(tasks, route53, instance_model)
+    subtest_update_same_domains_does_not_delete_server_certificate(
+        tasks, instance_model
+    )
+    subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)
+    subtest_updates_associated_health_checks_no_change(tasks, shield, instance_model)
     subtest_update_marks_update_complete(tasks, instance_model)
 
 
@@ -416,7 +438,7 @@ def subtest_updates_associated_health_checks(tasks, shield, instance_model):
             "protection_id": protection_id,
         },
         {
-            "health_check_id": "bar.com ID",
+            "health_check_id": "foo.com ID",
             "protection_id": protection_id,
         },
     ]
