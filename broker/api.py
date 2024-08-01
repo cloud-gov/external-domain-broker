@@ -45,6 +45,7 @@ from broker.tasks.pipelines import (
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
+    queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation,
     queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation,
     queue_all_cdn_dedicated_waf_provision_tasks_for_operation,
     queue_all_cdn_dedicated_waf_update_tasks_for_operation,
@@ -302,12 +303,21 @@ class API(ServiceBroker):
         if instance.instance_type == "cdn_service_instance":
             noop = False
 
-            if details.plan_id != CDN_PLAN_ID:
+            if details.plan_id == CDN_PLAN_ID:
+                instance = update_cdn_instance(params, instance)
+                queue = queue_all_cdn_update_tasks_for_operation
+            elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
+                queue = queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation
+                instance = change_instance_type(
+                    instance, CDNDedicatedWAFServiceInstance, db.session
+                )
+                db.session.refresh(instance)
+                # this lets us reuse renewal logic for updates
+                # TODO: is this necessary?
+                instance.new_certificate_id = instance.current_certificate_id
+                noop = False
+            else:
                 raise ClientError("Updating service plan is not supported")
-
-            instance = update_cdn_instance(params, instance)
-
-            queue = queue_all_cdn_update_tasks_for_operation
         elif instance.instance_type == "cdn_dedicated_waf_service_instance":
             noop = False
 
@@ -358,6 +368,7 @@ class API(ServiceBroker):
                 queue = queue_all_domain_broker_migration_tasks_for_operation
             else:
                 raise ClientError("Updating to this service plan is not supported")
+        
         if noop:
             return UpdateServiceSpec(False)
 

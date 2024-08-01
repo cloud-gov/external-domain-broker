@@ -194,6 +194,27 @@ def queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation(
     huey.enqueue(task_pipeline)
 
 
+def queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation(
+    operation_id, correlation_id
+):
+    if correlation_id is None:
+        raise RuntimeError("correlation_id must be set")
+    if operation_id is None:
+        raise RuntimeError("operation_id must be set")
+    correlation = {"correlation_id": correlation_id}
+    task_pipeline = (
+        waf.create_web_acl(operation_id, **correlation)
+        .then(cloudfront.update_distribution, operation_id, **correlation)
+        .then(cloudfront.wait_for_distribution, operation_id, **correlation)
+        .then(route53.create_ALIAS_records, operation_id, **correlation)
+        .then(route53.wait_for_changes, operation_id, **correlation)
+        .then(route53.create_health_checks, operation_id, **correlation)
+        .then(shield.associate_health_checks, operation_id, **correlation)
+        .then(update_operations.provision, operation_id, **correlation)
+    )
+    huey.enqueue(task_pipeline)
+
+
 def queue_all_dedicated_alb_renewal_tasks_for_operation(operation_id, **kwargs):
     correlation = {"correlation_id": "Renewal"}
     task_pipeline = (
