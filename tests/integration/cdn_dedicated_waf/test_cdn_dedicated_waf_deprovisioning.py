@@ -41,10 +41,23 @@ def service_instance(protection_id):
         shield_associated_health_checks=[
             {
                 "protection_id": protection_id,
-                "health_check_id": "fake-health-check-id",
-            }
+                "health_check_id": "example.com ID",
+            },
+            {
+                "protection_id": protection_id,
+                "health_check_id": "foo.com ID",
+            },
         ],
-        route53_health_checks=["fake-health-check-id"],
+        route53_health_checks=[
+            {
+                "domain_name": "example.com",
+                "health_check_id": "example.com ID",
+            },
+            {
+                "domain_name": "foo.com",
+                "health_check_id": "foo.com ID",
+            },
+        ],
         dedicated_waf_web_acl_id="1234-dedicated-waf-id",
         dedicated_waf_web_acl_name="1234-dedicated-waf",
         dedicated_waf_web_acl_arn="1234-dedicated-waf-arn",
@@ -208,7 +221,11 @@ def subtest_deprovision_disassociates_health_checks_when_missing(
     service_instance = db.session.get(instance_model, "1234")
     shield.expect_disassociate_health_check_not_found(
         service_instance.shield_associated_health_checks[0]["protection_id"],
-        "fake-health-check-id",
+        "example.com ID",
+    )
+    shield.expect_disassociate_health_check_not_found(
+        service_instance.shield_associated_health_checks[1]["protection_id"],
+        "foo.com ID",
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
 
@@ -225,9 +242,8 @@ def subtest_deprovision_deletes_health_checks_when_missing(
 ):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
-    route53.expect_delete_health_check_not_found(
-        service_instance.route53_health_checks[0]
-    )
+    route53.expect_delete_health_check_not_found("exampe.com ID")
+    route53.expect_delete_health_check_not_found("foo.com ID")
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
@@ -263,10 +279,32 @@ def subtest_deprovision_disassociates_health_checks(
 ):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
-    assert len(service_instance.shield_associated_health_checks) == 1
+
+    assert sorted(
+        service_instance.shield_associated_health_checks,
+        key=lambda check: check["health_check_id"],
+    ) == [
+        {
+            "protection_id": service_instance.shield_associated_health_checks[0][
+                "protection_id"
+            ],
+            "health_check_id": "example.com ID",
+        },
+        {
+            "protection_id": service_instance.shield_associated_health_checks[0][
+                "protection_id"
+            ],
+            "health_check_id": "foo.com ID",
+        },
+    ]
+
     shield.expect_disassociate_health_check(
         service_instance.shield_associated_health_checks[0]["protection_id"],
-        "fake-health-check-id",
+        "example.com ID",
+    )
+    shield.expect_disassociate_health_check(
+        service_instance.shield_associated_health_checks[1]["protection_id"],
+        "foo.com ID",
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -283,10 +321,22 @@ def subtest_deprovision_deletes_health_checks(
 ):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
-    assert service_instance.route53_health_checks == ["fake-health-check-id"]
+    assert sorted(
+        service_instance.route53_health_checks,
+        key=lambda check: check["domain_name"],
+    ) == [
+        {
+            "domain_name": "example.com",
+            "health_check_id": "example.com ID",
+        },
+        {"domain_name": "foo.com", "health_check_id": "foo.com ID"},
+    ]
 
     route53.expect_delete_health_check(
-        "fake-health-check-id",
+        "example.com ID",
+    )
+    route53.expect_delete_health_check(
+        "foo.com ID",
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
 

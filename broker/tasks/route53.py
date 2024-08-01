@@ -290,24 +290,22 @@ def update_health_checks(operation_id: int, **kwargs):
         if check["domain_name"] not in service_instance.domain_names
     ]
 
-    for domain_name in health_check_domains_to_create:
-        health_check_id = _create_health_check(service_instance, domain_name)
-        service_instance.route53_health_checks.append(
-            {
-                "domain_name": domain_name,
-                "health_check_id": health_check_id,
-            }
+    updated_health_checks = existing_health_checks
+
+    if len(health_check_domains_to_create) > 0:
+        updated_health_checks = _create_health_checks(
+            service_instance.id,
+            health_check_domains_to_create,
+            updated_health_checks,
         )
+        service_instance.route53_health_checks = updated_health_checks
         flag_modified(service_instance, "route53_health_checks")
 
-    for health_check in health_checks_to_delete:
-        health_check_id = health_check["health_check_id"]
-        _delete_health_check(health_check_id)
-        updated_health_checks = [
-            check
-            for check in service_instance.route53_health_checks
-            if check["health_check_id"] != health_check_id
-        ]
+    if len(health_checks_to_delete) > 0:
+        updated_health_checks = _delete_health_checks(
+            health_checks_to_delete,
+            updated_health_checks,
+        )
         service_instance.route53_health_checks = updated_health_checks
         flag_modified(service_instance, "route53_health_checks")
 
@@ -330,20 +328,35 @@ def delete_health_checks(operation_id: int, **kwargs):
 
     logger.info(f'Deleting health check(s) for "{service_instance.domain_names}"')
 
-    for health_check in service_instance.route53_health_checks:
-        health_check_id = health_check["health_check_id"]
-        _delete_health_check(health_check_id)
+    updated_health_checks = _delete_health_checks(
+        service_instance.route53_health_checks, service_instance.route53_health_checks
+    )
 
-        service_instance.route53_health_checks.remove(health_check_id)
-        flag_modified(service_instance, "route53_health_checks")
+    service_instance.route53_health_checks = updated_health_checks
+    flag_modified(service_instance, "route53_health_checks")
 
     db.session.add(service_instance)
     db.session.commit()
 
 
-def _create_health_check(service_instance, domain_name):
+def _create_health_checks(
+    service_instance_id, health_check_domains_to_create, existing_health_checks
+):
+    updated_health_checks = existing_health_checks
+    for domain_name in health_check_domains_to_create:
+        health_check_id = _create_health_check(service_instance_id, domain_name)
+        updated_health_checks.append(
+            {
+                "domain_name": domain_name,
+                "health_check_id": health_check_id,
+            }
+        )
+    return updated_health_checks
+
+
+def _create_health_check(service_instance_id, domain_name):
     route53_response = route53.create_health_check(
-        CallerReference=f"create_health_check-{service_instance.id}-{domain_name}",
+        CallerReference=f"create_health_check-{service_instance_id}-{domain_name}",
         HealthCheckConfig={
             "Type": "HTTPS",
             "FullyQualifiedDomainName": domain_name,
@@ -352,6 +365,19 @@ def _create_health_check(service_instance, domain_name):
     health_check_id = route53_response["HealthCheck"]["Id"]
     logger.info(f"Saving Route53 health check ID: {health_check_id}")
     return health_check_id
+
+
+def _delete_health_checks(health_checks_to_delete, existing_health_checks):
+    updated_health_checks = existing_health_checks
+    for health_check in health_checks_to_delete:
+        health_check_id = health_check["health_check_id"]
+        _delete_health_check(health_check_id)
+        updated_health_checks = [
+            check
+            for check in updated_health_checks
+            if check["health_check_id"] != health_check_id
+        ]
+    return updated_health_checks
 
 
 def _delete_health_check(health_check_id):

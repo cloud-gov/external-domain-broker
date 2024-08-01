@@ -223,12 +223,10 @@ def _disassociate_health_checks(
 
     updated_associated_health_checks = existing_checks
     for health_check_to_disassociate in checks_to_disassociate:
-        updated_associated_health_checks = _disassociate_health_check(
-            health_check_to_disassociate
-        )
+        _disassociate_health_check(health_check_to_disassociate)
         updated_associated_health_checks = [
             check
-            for check in existing_checks
+            for check in updated_associated_health_checks
             if check["health_check_id"]
             != health_check_to_disassociate["health_check_id"]
         ]
