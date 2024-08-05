@@ -2,22 +2,26 @@ import pytest  # noqa F401
 import uuid
 
 from broker.extensions import db
-from broker.models import CDNServiceInstance, CDNDedicatedWAFServiceInstance, Operation
+from broker.models import CDNDedicatedWAFServiceInstance, Operation
 from tests.lib import factories
 from tests.lib.client import check_last_operation_description
 
 from tests.lib.cdn.update import (
-    subtest_update_creates_update_operation,
-    # subtest_update_uploads_new_cert,
-    # subtest_updates_cloudfront,
-    # subtest_update_waits_for_cloudfront_update,
-    # subtest_update_updates_ALIAS_records,
-    # subtest_update_same_domains_creates_update_operation,
-    # subtest_update_same_domains_does_not_create_new_certificate,
-    # subtest_update_same_domains_does_not_retrieve_new_certificate,
-    # subtest_update_same_domains_does_not_update_iam,
-    # subtest_update_same_domains_updates_cloudfront,
-    # subtest_update_same_domains_does_not_delete_server_certificate,
+    subtest_update_waits_for_cloudfront_update,
+    subtest_update_updates_ALIAS_records,
+    subtest_update_same_domains_creates_update_operation,
+    subtest_update_same_domains_does_not_create_new_certificate,
+    subtest_update_same_domains_does_not_retrieve_new_certificate,
+    subtest_update_same_domains_does_not_update_iam,
+    subtest_update_same_domains_updates_cloudfront,
+    subtest_update_same_domains_does_not_delete_server_certificate,
+    subtest_update_same_domains_does_not_create_new_challenges,
+    subtest_update_same_domains_does_not_update_route53,
+)
+
+from tests.lib.update import (
+    subtest_waits_for_dns_changes,
+    subtest_update_marks_update_complete,
 )
 
 
@@ -91,11 +95,28 @@ def service_instance(service_instance_id):
     return service_instance
 
 
-def test_update_plan_only(client, service_instance_id, service_instance):
+def test_update_plan_only(
+    client, service_instance_id, tasks, dns, route53, cloudfront, service_instance
+):
     operation_id = subtest_creates_update_plan_operation(client, service_instance_id)
     check_last_operation_description(
         client, service_instance_id, operation_id, "Queuing tasks"
     )
+    instance_model = CDNDedicatedWAFServiceInstance
+    subtest_update_same_domains_creates_update_operation(client, dns, instance_model)
+    subtest_update_same_domains_does_not_create_new_certificate(tasks, instance_model)
+    subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model)
+    subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
+    subtest_update_same_domains_does_not_retrieve_new_certificate(tasks, instance_model)
+    subtest_update_same_domains_does_not_update_iam(tasks, instance_model)
+    subtest_update_same_domains_updates_cloudfront(tasks, cloudfront, instance_model)
+    subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
+    subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
+    subtest_waits_for_dns_changes(tasks, route53, instance_model)
+    subtest_update_same_domains_does_not_delete_server_certificate(
+        tasks, instance_model
+    )
+    subtest_update_marks_update_complete(tasks, instance_model)
 
 
 def subtest_creates_update_plan_operation(client, service_instance_id):
