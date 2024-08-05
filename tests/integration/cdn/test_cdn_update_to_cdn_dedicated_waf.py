@@ -18,10 +18,14 @@ from tests.lib.cdn.update import (
     subtest_update_same_domains_does_not_create_new_challenges,
     subtest_update_same_domains_does_not_update_route53,
 )
-
 from tests.lib.update import (
     subtest_waits_for_dns_changes,
     subtest_update_marks_update_complete,
+)
+from tests.integration.cdn_dedicated_waf.provision import (
+    subtest_provision_create_web_acl,
+    subtest_provision_creates_health_checks,
+    subtest_provision_associates_health_checks,
 )
 
 
@@ -33,7 +37,7 @@ def service_instance_id():
 @pytest.fixture
 def service_instance(service_instance_id):
     service_instance = factories.CDNServiceInstanceFactory.create(
-        id=service_instance_id,
+        id="4321",
         domain_names=["example.com", "foo.com"],
         domain_internal="fake1234.cloudfront.net",
         route53_alias_hosted_zone="Z2FDTNDATAQYW2",
@@ -96,7 +100,15 @@ def service_instance(service_instance_id):
 
 
 def test_update_plan_only(
-    client, service_instance_id, tasks, dns, route53, cloudfront, service_instance
+    client,
+    service_instance_id,
+    tasks,
+    dns,
+    route53,
+    cloudfront,
+    wafv2,
+    shield,
+    service_instance,
 ):
     operation_id = subtest_creates_update_plan_operation(client, service_instance_id)
     check_last_operation_description(
@@ -109,12 +121,21 @@ def test_update_plan_only(
     subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
     subtest_update_same_domains_does_not_retrieve_new_certificate(tasks, instance_model)
     subtest_update_same_domains_does_not_update_iam(tasks, instance_model)
+    subtest_provision_create_web_acl(
+        tasks, wafv2, service_instance_id=service_instance_id
+    )
     subtest_update_same_domains_updates_cloudfront(tasks, cloudfront, instance_model)
     subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_update_same_domains_does_not_delete_server_certificate(
         tasks, instance_model
+    )
+    subtest_provision_creates_health_checks(
+        tasks, route53, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_provision_associates_health_checks(
+        tasks, shield, instance_model, service_instance_id=service_instance_id
     )
     subtest_update_marks_update_complete(tasks, instance_model)
 

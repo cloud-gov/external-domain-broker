@@ -7,9 +7,11 @@ from broker.models import (
 )
 
 
-def subtest_provision_create_web_acl(tasks, wafv2):
+def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
     db.session.expunge_all()
-    service_instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
+    service_instance = db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
 
     wafv2.expect_create_web_acl(
         service_instance.id,
@@ -19,7 +21,9 @@ def subtest_provision_create_web_acl(tasks, wafv2):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
+    service_instance = db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
     assert service_instance.dedicated_waf_web_acl_id
     assert (
         service_instance.dedicated_waf_web_acl_id
@@ -37,9 +41,11 @@ def subtest_provision_create_web_acl(tasks, wafv2):
     )
 
 
-def subtest_provision_creates_health_checks(tasks, route53, instance_model):
+def subtest_provision_creates_health_checks(
+    tasks, route53, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
 
     for domain_name in service_instance.domain_names:
         route53.expect_create_health_check(service_instance.id, domain_name)
@@ -47,7 +53,7 @@ def subtest_provision_creates_health_checks(tasks, route53, instance_model):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     assert sorted(
         service_instance.route53_health_checks,
         key=lambda check: check["domain_name"],
@@ -61,9 +67,11 @@ def subtest_provision_creates_health_checks(tasks, route53, instance_model):
     route53.assert_no_pending_responses()
 
 
-def subtest_provision_associates_health_checks(tasks, shield, instance_model):
+def subtest_provision_associates_health_checks(
+    tasks, shield, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     if not service_instance:
         raise Exception("Could not load service instance")
 
@@ -81,7 +89,7 @@ def subtest_provision_associates_health_checks(tasks, shield, instance_model):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     assert service_instance.shield_associated_health_checks == [
         {
             "health_check_id": "example.com ID",
