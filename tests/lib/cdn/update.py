@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest  # noqa F401
 
-from broker.extensions import db
+from broker.extensions import config, db
 from broker.models import Operation, CDNServiceInstance
 
 from tests.lib.client import check_last_operation_description
@@ -343,20 +343,25 @@ def subtest_update_same_domains_does_not_delete_server_certificate(
 
 
 def subtest_update_updates_ALIAS_records(
-    tasks, route53, instance_model, service_instance_id="4321"
+    tasks,
+    route53,
+    instance_model,
+    service_instance_id="4321",
+    expected_domains=["bar.com", "foo.com"],
+    hosted_zone_id="fake1234.cloudfront.net",
 ):
-    bar_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
-        "bar.com.domains.cloud.test", "fake1234.cloudfront.net"
-    )
-    foo_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
-        "foo.com.domains.cloud.test", "fake1234.cloudfront.net"
-    )
+    change_ids = []
+    for domain in expected_domains:
+        change_id = route53.expect_create_ALIAS_and_return_change_id(
+            f"{domain}.{config.DNS_ROOT_DOMAIN}", hosted_zone_id
+        )
+        change_ids.append(change_id)
 
     tasks.run_queued_tasks_and_enqueue_dependents()
     route53.assert_no_pending_responses()
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
-    assert service_instance.route53_change_ids == [bar_com_change_id, foo_com_change_id]
+    assert service_instance.route53_change_ids.sort() == change_ids.sort()
 
 
 def subtest_update_uploads_new_cert(

@@ -47,6 +47,7 @@ def service_instance(service_instance_id):
         domain_internal="fake1234.cloudfront.net",
         route53_alias_hosted_zone="Z2FDTNDATAQYW2",
         cloudfront_distribution_id="FakeDistributionId",
+        cloudfront_distribution_arn="fake-resource-arn",
         cloudfront_origin_hostname="origin_hostname",
         cloudfront_origin_path="origin_path",
         forward_cookie_policy=CDNServiceInstance.ForwardCookiePolicy.ALL.value,
@@ -64,18 +65,6 @@ def service_instance(service_instance_id):
         csr_pem="SOMECSRPEM",
         order_json=json.dumps({"foo": "bar"}),
     )
-    new_cert = factories.CertificateFactory.create(
-        service_instance=service_instance,
-        private_key_pem="SOMEPRIVATEKEY",
-        iam_server_certificate_id="certificate_id",
-        iam_server_certificate_arn="certificate_arn",
-        iam_server_certificate_name="certificate_name",
-        leaf_pem="SOMECERTPEM",
-        fullchain_pem="FULLCHAINOFSOMECERTPEM",
-        id=1002,
-        csr_pem="SOMECSRPEM",
-        order_json=json.dumps({"foo": "bar"}),
-    )
     factories.ChallengeFactory.create(
         domain="example.com",
         validation_contents="example txt",
@@ -87,30 +76,15 @@ def service_instance(service_instance_id):
         validation_contents="foo txt",
         certificate_id=1001,
         answered=True,
-    )
-    factories.ChallengeFactory.create(
-        domain="example.com",
-        validation_contents="example txt",
-        certificate_id=1002,
-        answered=False,
-    )
-    factories.ChallengeFactory.create(
-        domain="foo.com",
-        validation_contents="foo txt",
-        certificate_id=1002,
-        answered=False,
     )
 
     acme_user = _create_acme_user()
     service_instance.acme_user = acme_user
 
-    service_instance.new_certificate = new_cert
     service_instance.current_certificate = current_cert
 
     db.session.add(acme_user)
     db.session.add(current_cert)
-    db.session.add(new_cert)
-    # db.session.add(certificate)
     db.session.add(service_instance)
 
     db.session.commit()
@@ -137,7 +111,7 @@ def test_update_plan_only(
         tasks,
         instance_model,
         service_instance_id=service_instance_id,
-        expected_num_certificates=2,
+        expected_num_certificates=1,
     )
     subtest_update_same_domains_does_not_create_new_challenges(
         tasks, instance_model, service_instance_id=service_instance_id
@@ -167,7 +141,11 @@ def test_update_plan_only(
         tasks, cloudfront, instance_model, service_instance_id=service_instance_id
     )
     subtest_update_updates_ALIAS_records(
-        tasks, route53, instance_model, service_instance_id=service_instance_id
+        tasks,
+        route53,
+        instance_model,
+        service_instance_id=service_instance_id,
+        expected_domains=["example.com", "foo.com"],
     )
     subtest_waits_for_dns_changes(
         tasks, route53, instance_model, service_instance_id=service_instance_id
