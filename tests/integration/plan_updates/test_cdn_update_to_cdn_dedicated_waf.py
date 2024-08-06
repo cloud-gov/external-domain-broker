@@ -8,7 +8,6 @@ from broker.models import (
     CDNDedicatedWAFServiceInstance,
     Operation,
 )
-from broker.tasks.letsencrypt import _create_acme_user
 from tests.lib import factories
 from tests.lib.client import check_last_operation_description
 
@@ -78,12 +77,8 @@ def service_instance(service_instance_id):
         answered=True,
     )
 
-    acme_user = _create_acme_user()
-    service_instance.acme_user = acme_user
-
     service_instance.current_certificate = current_cert
 
-    db.session.add(acme_user)
     db.session.add(current_cert)
     db.session.add(service_instance)
 

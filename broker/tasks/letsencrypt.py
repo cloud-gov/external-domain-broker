@@ -363,8 +363,6 @@ def retrieve_certificate(operation_id: int, **kwargs):
     db.session.add(certificate)
     db.session.commit()
 
-
-def _create_acme_user():
     acme_user = ACMEUser()
     key = josepy.JWKRSA(
         key=rsa.generate_private_key(
