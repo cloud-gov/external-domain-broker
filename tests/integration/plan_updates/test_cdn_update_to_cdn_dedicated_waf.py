@@ -58,6 +58,12 @@ def service_instance_id():
 
 @pytest.fixture
 def service_instance(service_instance_id):
+    acme_user = factories.ACMEUserFactory.create(
+        private_key_pem="USERPRIVKEYPEM",
+        registration_json=json.dumps({"foo": "bar"}),
+        uri="fake-uri",
+        email="fake-email",
+    )
     service_instance = factories.CDNServiceInstanceFactory.create(
         id=service_instance_id,
         domain_names=["example.com", "foo.com"],
@@ -95,8 +101,10 @@ def service_instance(service_instance_id):
         answered=True,
     )
 
+    service_instance.acme_user = acme_user
     service_instance.current_certificate = current_cert
 
+    db.session.add(acme_user)
     db.session.add(current_cert)
     db.session.add(service_instance)
 

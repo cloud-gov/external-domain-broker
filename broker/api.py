@@ -322,7 +322,7 @@ class API(ServiceBroker):
 
                 # this lets us reuse renewal logic for updates
                 # TODO: is this necessary?
-                instance.new_certificate_id = instance.current_certificate_id
+                # instance.new_certificate_id = instance.current_certificate_id
                 noop = False
             else:
                 raise ClientError("Updating service plan is not supported")
