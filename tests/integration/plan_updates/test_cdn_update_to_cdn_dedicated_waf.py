@@ -21,7 +21,6 @@ from tests.lib.cdn.update import (
     subtest_update_same_domains_does_not_delete_server_certificate,
     subtest_update_same_domains_does_not_create_new_challenges,
     subtest_update_same_domains_does_not_update_route53,
-    subtest_update_creates_update_operation,
     subtest_update_creates_private_key_and_csr,
     subtest_gets_new_challenges,
     subtest_update_updates_TXT_records,
@@ -191,14 +190,13 @@ def test_update_plan_and_domains(
     simple_regex,
     service_instance,
 ):
-    instance_model = CDNServiceInstance
-    operation_id = subtest_update_creates_update_operation(
+    instance_model = CDNDedicatedWAFServiceInstance
+    operation_id = subtest_update_creates_update_plan_and_domains_operation(
         client, dns, instance_model, service_instance_id=service_instance_id
     )
     check_last_operation_description(
         client, service_instance_id, operation_id, "Queuing tasks"
     )
-    instance_model = CDNDedicatedWAFServiceInstance
     subtest_update_creates_private_key_and_csr(
         tasks, instance_model, service_instance_id=service_instance_id
     )
@@ -269,4 +267,41 @@ def subtest_creates_update_plan_operation(client, service_instance_id):
     assert operation.action == "Update"
     assert operation.service_instance_id == service_instance_id
 
+    return operation_id
+
+
+def subtest_update_creates_update_plan_and_domains_operation(
+    client, dns, instance_model, service_instance_id="4321"
+):
+    dns.add_cname("_acme-challenge.foo.com")
+    dns.add_cname("_acme-challenge.bar.com")
+    client.update_cdn_to_cdn_dedicated_waf_instance(
+        service_instance_id,
+        params={
+            "domains": "bar.com, Foo.com",
+            "origin": "new-origin.com",
+            "path": "/somewhere-else",
+            "forward_cookies": "mycookie,myothercookie, anewcookie",
+            "forward_headers": "x-my-header, x-your-header   ",
+            "insecure_origin": True,
+        },
+    )
+    db.session.expunge_all()
+
+    assert client.response.status_code == 202, client.response.body
+    assert "operation" in client.response.json
+
+    operation_id = client.response.json["operation"]
+    operation = db.session.get(Operation, operation_id)
+
+    assert operation is not None
+    assert operation.state == "in progress"
+    assert operation.action == "Update"
+    assert operation.service_instance_id == service_instance_id
+
+    instance = db.session.get(instance_model, operation.service_instance_id)
+    assert instance is not None
+    assert instance.domain_names == ["bar.com", "foo.com"]
+    assert instance.cloudfront_origin_hostname == "new-origin.com"
+    assert instance.cloudfront_origin_path == "/somewhere-else"
     return operation_id
