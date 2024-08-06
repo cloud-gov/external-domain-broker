@@ -21,6 +21,20 @@ from tests.lib.cdn.update import (
     subtest_update_same_domains_does_not_delete_server_certificate,
     subtest_update_same_domains_does_not_create_new_challenges,
     subtest_update_same_domains_does_not_update_route53,
+    subtest_update_creates_update_operation,
+    subtest_update_creates_private_key_and_csr,
+    subtest_gets_new_challenges,
+    subtest_update_updates_TXT_records,
+    subtest_waits_for_dns_changes,
+    subtest_update_answers_challenges,
+    subtest_update_retrieves_new_cert,
+    subtest_update_uploads_new_cert,
+    subtest_updates_cloudfront,
+    subtest_update_waits_for_cloudfront_update,
+    subtest_update_updates_ALIAS_records,
+    subtest_waits_for_dns_changes,
+    subtest_update_removes_certificate_from_iam,
+    subtest_update_marks_update_complete,
 )
 from tests.lib.update import (
     subtest_waits_for_dns_changes,
@@ -30,6 +44,11 @@ from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
     subtest_provision_creates_health_checks,
     subtest_provision_associates_health_checks,
+)
+from tests.integration.cdn_dedicated_waf.update import (
+    subtest_update_web_acl_does_not_update,
+    subtest_updates_health_checks,
+    subtest_updates_associated_health_checks,
 )
 
 
@@ -153,6 +172,82 @@ def test_update_plan_only(
     )
     subtest_provision_associates_health_checks(
         tasks, shield, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_update_marks_update_complete(
+        tasks, instance_model, service_instance_id=service_instance_id
+    )
+
+
+def test_update_plan_and_domains(
+    client,
+    service_instance_id,
+    tasks,
+    route53,
+    cloudfront,
+    wafv2,
+    shield,
+    dns,
+    iam_commercial,
+    simple_regex,
+    service_instance,
+):
+    instance_model = CDNServiceInstance
+    operation_id = subtest_update_creates_update_operation(
+        client, dns, instance_model, service_instance_id=service_instance_id
+    )
+    check_last_operation_description(
+        client, service_instance_id, operation_id, "Queuing tasks"
+    )
+    instance_model = CDNDedicatedWAFServiceInstance
+    subtest_update_creates_private_key_and_csr(
+        tasks, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_gets_new_challenges(
+        tasks, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_update_updates_TXT_records(
+        tasks, route53, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_waits_for_dns_changes(
+        tasks, route53, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_update_answers_challenges(
+        tasks, dns, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_update_retrieves_new_cert(
+        tasks, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex, instance_model)
+    subtest_update_web_acl_does_not_update(tasks, wafv2)
+    subtest_updates_cloudfront(
+        tasks, cloudfront, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_update_waits_for_cloudfront_update(
+        tasks, cloudfront, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_update_updates_ALIAS_records(
+        tasks, route53, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_waits_for_dns_changes(
+        tasks, route53, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_update_removes_certificate_from_iam(
+        tasks, iam_commercial, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_updates_health_checks(
+        tasks, route53, instance_model, service_instance_id=service_instance_id
+    )
+    check_last_operation_description(
+        client, service_instance_id, operation_id, "Updating health checks"
+    )
+    subtest_updates_associated_health_checks(
+        tasks, shield, instance_model, service_instance_id=service_instance_id
+    )
+    check_last_operation_description(
+        client,
+        service_instance_id,
+        operation_id,
+        "Updating associated health checks with Shield",
     )
     subtest_update_marks_update_complete(
         tasks, instance_model, service_instance_id=service_instance_id

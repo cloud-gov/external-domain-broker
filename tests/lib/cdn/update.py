@@ -47,12 +47,14 @@ def subtest_update_happy_path(
     subtest_update_marks_update_complete(tasks, instance_model)
 
 
-def subtest_update_creates_update_operation(client, dns, instance_model):
+def subtest_update_creates_update_operation(
+    client, dns, instance_model, service_instance_id="4321"
+):
     dns.add_cname("_acme-challenge.foo.com")
     dns.add_cname("_acme-challenge.bar.com")
     client.update_instance(
         instance_model,
-        "4321",
+        service_instance_id,
         params={
             "domains": "bar.com, Foo.com",
             "origin": "new-origin.com",
@@ -73,7 +75,7 @@ def subtest_update_creates_update_operation(client, dns, instance_model):
     assert operation is not None
     assert operation.state == "in progress"
     assert operation.action == "Update"
-    assert operation.service_instance_id == "4321"
+    assert operation.service_instance_id == service_instance_id
 
     instance = db.session.get(instance_model, operation.service_instance_id)
     assert instance is not None
@@ -83,13 +85,15 @@ def subtest_update_creates_update_operation(client, dns, instance_model):
     return operation_id
 
 
-def subtest_updates_cloudfront(tasks, cloudfront, instance_model):
+def subtest_updates_cloudfront(
+    tasks, cloudfront, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
     id_ = certificate.id
     cloudfront.expect_get_distribution_config(
-        caller_reference="4321",
+        caller_reference=service_instance_id,
         domains=["example.com", "foo.com"],
         certificate_id=service_instance.current_certificate.iam_server_certificate_id,
         origin_hostname="origin_hostname",
@@ -115,7 +119,7 @@ def subtest_updates_cloudfront(tasks, cloudfront, instance_model):
         },
     )
     cloudfront.expect_update_distribution(
-        caller_reference="4321",
+        caller_reference=service_instance_id,
         domains=["bar.com", "foo.com"],
         certificate_id=certificate.iam_server_certificate_id,
         origin_hostname="new-origin.com",
@@ -149,7 +153,7 @@ def subtest_updates_cloudfront(tasks, cloudfront, instance_model):
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
 
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     cloudfront.assert_no_pending_responses()
     assert service_instance.new_certificate is None
     assert service_instance.current_certificate.id == id_
@@ -365,10 +369,10 @@ def subtest_update_updates_ALIAS_records(
 
 
 def subtest_update_uploads_new_cert(
-    tasks, iam_commercial, simple_regex, instance_model
+    tasks, iam_commercial, simple_regex, instance_model, service_instance_id="4321"
 ):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
@@ -384,10 +388,10 @@ def subtest_update_uploads_new_cert(
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
     assert certificate.iam_server_certificate_name
-    assert certificate.iam_server_certificate_name.startswith("4321")
+    assert certificate.iam_server_certificate_name.startswith(service_instance_id)
     assert certificate.iam_server_certificate_id
     assert certificate.iam_server_certificate_id.startswith("FAKE_CERT_ID")
     assert certificate.iam_server_certificate_arn
