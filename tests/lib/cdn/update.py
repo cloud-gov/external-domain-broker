@@ -3,7 +3,7 @@ from datetime import date
 import pytest  # noqa F401
 
 from broker.extensions import db
-from broker.models import Operation
+from broker.models import Operation, CDNServiceInstance
 
 from tests.lib.client import check_last_operation_description
 from tests.lib.update import (
@@ -15,6 +15,8 @@ from tests.lib.update import (
     subtest_update_retrieves_new_cert,
     subtest_update_marks_update_complete,
     subtest_update_removes_certificate_from_iam,
+    subtest_update_same_domains_does_not_update_iam,
+    subtest_update_same_domains_does_not_retrieve_new_certificate,
 )
 
 
@@ -153,9 +155,11 @@ def subtest_updates_cloudfront(tasks, cloudfront, instance_model):
     assert service_instance.current_certificate.id == id_
 
 
-def subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model):
+def subtest_update_waits_for_cloudfront_update(
+    tasks, cloudfront, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.current_certificate
 
     cloudfront.expect_get_distribution(
@@ -187,8 +191,8 @@ def subtest_update_same_domains(
     subtest_update_same_domains_does_not_create_new_certificate(tasks, instance_model)
     subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model)
     subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
-    subtest_update_same_domains_does_not_retrieve_new_certificate(tasks, instance_model)
-    subtest_update_same_domains_does_not_update_iam(tasks, instance_model)
+    subtest_update_same_domains_does_not_retrieve_new_certificate(tasks)
+    subtest_update_same_domains_does_not_update_iam(tasks)
     subtest_update_same_domains_updates_cloudfront(tasks, cloudfront, instance_model)
     subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
@@ -199,12 +203,14 @@ def subtest_update_same_domains(
     subtest_update_marks_update_complete(tasks, instance_model)
 
 
-def subtest_update_same_domains_creates_update_operation(client, dns, instance_model):
+def subtest_update_same_domains_creates_update_operation(
+    client, dns, instance_model, service_instance_id="4321"
+):
     dns.add_cname("_acme-challenge.foo.com")
     dns.add_cname("_acme-challenge.bar.com")
     client.update_instance(
         instance_model,
-        "4321",
+        service_instance_id,
         params={
             "domains": "bar.com, Foo.com",
             "origin": "newer-origin.com",
@@ -222,7 +228,7 @@ def subtest_update_same_domains_creates_update_operation(client, dns, instance_m
     assert operation is not None
     assert operation.state == "in progress"
     assert operation.action == "Update"
-    assert operation.service_instance_id == "4321"
+    assert operation.service_instance_id == service_instance_id
 
     instance = db.session.get(instance_model, operation.service_instance_id)
     assert instance is not None
@@ -231,50 +237,54 @@ def subtest_update_same_domains_creates_update_operation(client, dns, instance_m
     return operation_id
 
 
-def subtest_update_same_domains_does_not_create_new_certificate(tasks, instance_model):
+def subtest_update_same_domains_does_not_create_new_certificate(
+    tasks, instance_model, service_instance_id="4321", expected_num_certificates=1
+):
     tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = db.session.get(instance_model, "4321")
-    assert len(instance.certificates) == 1
+    instance = db.session.get(instance_model, service_instance_id)
+    assert len(instance.certificates) == expected_num_certificates
 
 
-def subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model):
+def subtest_update_same_domains_does_not_create_new_challenges(
+    tasks, instance_model, service_instance_id="4321"
+):
     tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = db.session.get(instance_model, "4321")
+    instance = db.session.get(instance_model, service_instance_id)
     certificate = instance.new_certificate
     assert len(certificate.challenges.all()) == 2
     assert all([c.answered for c in certificate.challenges])
 
 
-def subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model):
+def subtest_update_same_domains_does_not_update_route53(
+    tasks, route53, instance_model, service_instance_id="4321"
+):
     tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = db.session.get(instance_model, "4321")
+    instance = db.session.get(instance_model, service_instance_id)
     assert not instance.route53_change_ids
     # should run wait for changes, which should do nothing
     tasks.run_queued_tasks_and_enqueue_dependents()
+    route53.assert_no_pending_responses()
 
 
-def subtest_update_same_domains_does_not_retrieve_new_certificate(
-    tasks, instance_model
+def subtest_update_same_domains_updates_cloudfront(
+    tasks,
+    cloudfront,
+    instance_model,
+    service_instance_id="4321",
+    expect_update_domain_names=["example.com", "foo.com"],
+    expect_forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
+    expect_forwarded_cookies=["mycookie", "myothercookie", "anewcookie"],
+    expect_origin_hostname="newer-origin.com",
+    expect_origin_path="/somewhere-else",
+    expect_forward_cookie_policy=CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value,
+    expect_origin_protocol_policy="http-only",
 ):
-    # the idea here is that we don't have new challenges, so asking
-    # for a new certificate should raise an error.
-    # no errors = did not try to ask for a new certificate
-    tasks.run_queued_tasks_and_enqueue_dependents()  # answer_challenges
-    tasks.run_queued_tasks_and_enqueue_dependents()  # retrieve_certificate
-
-
-def subtest_update_same_domains_does_not_update_iam(tasks, instance_model):
-    # if we don't prime IAM to expect a call, then we didn't update iam
-    tasks.run_queued_tasks_and_enqueue_dependents()
-
-
-def subtest_update_same_domains_updates_cloudfront(tasks, cloudfront, instance_model):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
     id_ = certificate.id
     cloudfront.expect_get_distribution_config(
-        caller_reference="4321",
+        caller_reference=service_instance_id,
         domains=["example.com", "foo.com"],
         certificate_id=service_instance.new_certificate.iam_server_certificate_id,
         origin_hostname="origin_hostname",
@@ -300,17 +310,17 @@ def subtest_update_same_domains_updates_cloudfront(tasks, cloudfront, instance_m
         },
     )
     cloudfront.expect_update_distribution(
-        caller_reference="4321",
-        domains=["bar.com", "foo.com"],
+        caller_reference=service_instance_id,
+        domains=expect_update_domain_names,
         certificate_id=certificate.iam_server_certificate_id,
-        origin_hostname="newer-origin.com",
-        origin_path="/somewhere-else",
+        origin_hostname=expect_origin_hostname,
+        origin_path=expect_origin_path,
         distribution_id="FakeDistributionId",
         distribution_hostname="fake1234.cloudfront.net",
-        forward_cookie_policy="whitelist",
-        forwarded_cookies=["mycookie", "myothercookie", "anewcookie"],
-        forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
-        origin_protocol_policy="http-only",
+        forward_cookie_policy=expect_forward_cookie_policy,
+        forwarded_cookies=expect_forwarded_cookies,
+        forwarded_headers=expect_forwarded_headers,
+        origin_protocol_policy=expect_origin_protocol_policy,
         bucket_prefix="4321/",
         custom_error_responses={"Quantity": 0},
     )
@@ -318,21 +328,23 @@ def subtest_update_same_domains_updates_cloudfront(tasks, cloudfront, instance_m
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
 
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     cloudfront.assert_no_pending_responses()
     assert service_instance.new_certificate is None
     assert service_instance.current_certificate.id == id_
 
 
 def subtest_update_same_domains_does_not_delete_server_certificate(
-    tasks, instance_model
+    tasks, instance_model, service_instance_id="4321"
 ):
     tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = db.session.get(instance_model, "4321")
+    instance = db.session.get(instance_model, service_instance_id)
     assert len(instance.certificates) == 1
 
 
-def subtest_update_updates_ALIAS_records(tasks, route53, instance_model):
+def subtest_update_updates_ALIAS_records(
+    tasks, route53, instance_model, service_instance_id="4321"
+):
     bar_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
         "bar.com.domains.cloud.test", "fake1234.cloudfront.net"
     )
@@ -343,7 +355,7 @@ def subtest_update_updates_ALIAS_records(tasks, route53, instance_model):
     tasks.run_queued_tasks_and_enqueue_dependents()
     route53.assert_no_pending_responses()
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     assert service_instance.route53_change_ids == [bar_com_change_id, foo_com_change_id]
 
 

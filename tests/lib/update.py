@@ -83,9 +83,11 @@ def subtest_update_answers_challenges(tasks, dns, instance_model):
     assert answered == [True, True]
 
 
-def subtest_waits_for_dns_changes(tasks, route53, instance_model):
+def subtest_waits_for_dns_changes(
+    tasks, route53, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
 
     for change_id in service_instance.route53_change_ids:
         route53.expect_wait_for_change_insync(change_id)
@@ -93,7 +95,7 @@ def subtest_waits_for_dns_changes(tasks, route53, instance_model):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     assert service_instance.route53_change_ids == []
     route53.assert_no_pending_responses()
 
@@ -110,10 +112,12 @@ def subtest_update_retrieves_new_cert(tasks, instance_model):
     assert certificate.expires_at is not None
 
 
-def subtest_update_marks_update_complete(tasks, instance_model):
+def subtest_update_marks_update_complete(
+    tasks, instance_model, service_instance_id="4321"
+):
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     operation = service_instance.operations.first()
     assert operation
     assert "succeeded" == operation.state
@@ -179,13 +183,12 @@ def subtest_update_same_domains_does_not_update_route53(tasks, route53, instance
     tasks.run_queued_tasks_and_enqueue_dependents()
     instance = db.session.get(instance_model, "4321")
     assert not instance.route53_change_ids
+    route53.assert_no_pending_responses()
     # should run wait for changes, which should do nothing
     tasks.run_queued_tasks_and_enqueue_dependents()
 
 
-def subtest_update_same_domains_does_not_retrieve_new_certificate(
-    tasks, instance_model
-):
+def subtest_update_same_domains_does_not_retrieve_new_certificate(tasks):
     # the idea here is that we don't have new challenges, so asking
     # for a new certificate should raise an error.
     # no errors = did not try to ask for a new certificate
@@ -193,7 +196,7 @@ def subtest_update_same_domains_does_not_retrieve_new_certificate(
     tasks.run_queued_tasks_and_enqueue_dependents()  # retrieve_certificate
 
 
-def subtest_update_same_domains_does_not_update_iam(tasks, instance_model):
+def subtest_update_same_domains_does_not_update_iam(tasks):
     # if we don't prime IAM to expect a call, then we didn't update iam
     tasks.run_queued_tasks_and_enqueue_dependents()
 

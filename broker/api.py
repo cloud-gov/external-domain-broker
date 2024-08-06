@@ -368,7 +368,7 @@ class API(ServiceBroker):
                 queue = queue_all_domain_broker_migration_tasks_for_operation
             else:
                 raise ClientError("Updating to this service plan is not supported")
-        
+
         if noop:
             return UpdateServiceSpec(False)
 
