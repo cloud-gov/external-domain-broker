@@ -297,13 +297,7 @@ class API(ServiceBroker):
             validators.UniqueDomains(domain_names).validate(instance)
             # If domain names have not changed, then there is no need for a new certificate
             noop = noop and (sorted(domain_names) == sorted(instance.domain_names))
-
-            # if is_cdn_instance(instance) and noop:
-            #     self.logger.info("domains unchanged, no need for new certificate")
-            #     instance.new_certificate = instance.current_certificate
             instance.domain_names = domain_names
-        else:
-            domain_names = instance.domain_names
 
         if is_cdn_instance(instance) and noop:
             self.logger.info("domains unchanged, no need for new certificate")
