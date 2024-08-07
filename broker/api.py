@@ -319,11 +319,6 @@ class API(ServiceBroker):
                     instance, CDNDedicatedWAFServiceInstance, db.session
                 )
                 db.session.refresh(instance)
-
-                # this lets us reuse renewal logic for updates
-                # TODO: is this necessary?
-                # instance.new_certificate_id = instance.current_certificate_id
-                noop = False
             else:
                 raise ClientError("Updating service plan is not supported")
         elif instance.instance_type == "cdn_dedicated_waf_service_instance":

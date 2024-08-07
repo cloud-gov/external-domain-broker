@@ -177,20 +177,6 @@ def subtest_update_same_domains_creates_update_operation(client, dns, instance_m
     return operation_id
 
 
-def subtest_update_same_domains_does_not_create_new_certificate(tasks, instance_model):
-    tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = db.session.get(instance_model, "4321")
-    assert len(instance.certificates) == 1
-
-
-def subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model):
-    tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = db.session.get(instance_model, "4321")
-    certificate = instance.new_certificate
-    assert len(certificate.challenges.all()) == 2
-    assert all([c.answered for c in certificate.challenges])
-
-
 def subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model):
     tasks.run_queued_tasks_and_enqueue_dependents()
     instance = db.session.get(instance_model, "4321")
