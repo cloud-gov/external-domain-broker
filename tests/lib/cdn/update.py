@@ -197,7 +197,12 @@ def subtest_update_same_domains(
     subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
     subtest_update_same_domains_does_not_retrieve_new_certificate(tasks)
     subtest_update_same_domains_does_not_update_iam(tasks)
-    subtest_update_same_domains_updates_cloudfront(tasks, cloudfront, instance_model)
+    subtest_update_same_domains_updates_cloudfront(
+        tasks,
+        cloudfront,
+        instance_model,
+        expect_update_domain_names=["bar.com", "foo.com"],
+    )
     subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)

@@ -42,7 +42,11 @@ def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
 
 
 def subtest_provision_creates_health_checks(
-    tasks, route53, instance_model, service_instance_id="4321"
+    tasks,
+    route53,
+    instance_model,
+    service_instance_id="4321",
+    expected_domain_names=["example.com", "foo.com"],
 ):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
@@ -57,18 +61,22 @@ def subtest_provision_creates_health_checks(
     assert sorted(
         service_instance.route53_health_checks,
         key=lambda check: check["domain_name"],
-    ) == [
-        {
-            "domain_name": "example.com",
-            "health_check_id": "example.com ID",
-        },
-        {"domain_name": "foo.com", "health_check_id": "foo.com ID"},
-    ]
+    ) == sorted(
+        [
+            {"domain_name": domain, "health_check_id": f"{domain} ID"}
+            for domain in expected_domain_names
+        ],
+        key=lambda check: check["domain_name"],
+    )
     route53.assert_no_pending_responses()
 
 
 def subtest_provision_associates_health_checks(
-    tasks, shield, instance_model, service_instance_id="4321"
+    tasks,
+    shield,
+    instance_model,
+    service_instance_id="4321",
+    expected_domain_names=["example.com", "foo.com"],
 ):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
@@ -90,14 +98,12 @@ def subtest_provision_associates_health_checks(
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
-    assert service_instance.shield_associated_health_checks == [
-        {
-            "health_check_id": "example.com ID",
-            "protection_id": protection_id,
-        },
-        {
-            "health_check_id": "foo.com ID",
-            "protection_id": protection_id,
-        },
-    ]
+    assert service_instance.shield_associated_health_checks == sorted(
+        [
+            {"health_check_id": f"{domain} ID", "protection_id": protection_id}
+            for domain in expected_domain_names
+        ],
+        key=lambda check: check["health_check_id"],
+    )
+
     shield.assert_no_pending_responses()
