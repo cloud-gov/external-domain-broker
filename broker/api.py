@@ -288,7 +288,7 @@ class API(ServiceBroker):
             raise errors.ErrBadRequest("Instance has an active operation in progress")
 
         domain_names = parse_domain_options(params)
-        noop = True
+        no_domain_updates = True
         if domain_names is not None:
             self.logger.info("validating CNAMEs")
             validators.CNAME(domain_names).validate()
@@ -296,13 +296,16 @@ class API(ServiceBroker):
             self.logger.info("validating unique domains")
             validators.UniqueDomains(domain_names).validate(instance)
             # If domain names have not changed, then there is no need for a new certificate
-            noop = noop and (sorted(domain_names) == sorted(instance.domain_names))
+            no_domain_updates = no_domain_updates and (
+                sorted(domain_names) == sorted(instance.domain_names)
+            )
             instance.domain_names = domain_names
 
-        if is_cdn_instance(instance) and noop:
+        if is_cdn_instance(instance) and no_domain_updates:
             self.logger.info("domains unchanged, no need for new certificate")
             instance.new_certificate = instance.current_certificate
 
+        noop = True
         if instance.instance_type == "cdn_service_instance":
             noop = False
 
