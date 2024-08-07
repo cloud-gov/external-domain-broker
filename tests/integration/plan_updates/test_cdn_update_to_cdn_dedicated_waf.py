@@ -69,7 +69,6 @@ def test_update_plan_only(
     subtest_update_same_domains_does_not_create_new_certificate(
         tasks,
         instance_model,
-        expected_num_certificates=2,
     )
     subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model)
     subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
@@ -81,12 +80,28 @@ def test_update_plan_only(
         cloudfront,
         instance_model,
         expect_update_domain_names=["example.com", "foo.com"],
-        expect_forwarded_headers=[],
-        expect_forward_cookie_policy=CDNServiceInstance.ForwardCookiePolicy.ALL.value,
-        expect_forwarded_cookies=[],
-        expect_origin_hostname="origin_hostname",
-        expect_origin_path="origin_path",
-        expect_origin_protocol_policy="https-only",
+        expect_forward_cookie_policy=CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value,
+        expect_forwarded_cookies=["mycookie", "myothercookie"],
+        expect_origin_hostname="origin.com",
+        expect_origin_path="/somewhere",
+        expect_origin_protocol_policy="http-only",
+        expect_custom_error_responses={
+            "Quantity": 2,
+            "Items": [
+                {
+                    "ErrorCode": 404,
+                    "ResponsePagePath": "/errors/404.html",
+                    "ResponseCode": "404",
+                    "ErrorCachingMinTTL": 300,
+                },
+                {
+                    "ErrorCode": 405,
+                    "ResponsePagePath": "/errors/405.html",
+                    "ResponseCode": "405",
+                    "ErrorCachingMinTTL": 300,
+                },
+            ],
+        },
     )
     subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
     subtest_update_updates_ALIAS_records(

@@ -247,11 +247,11 @@ def subtest_update_same_domains_creates_update_operation(
 
 
 def subtest_update_same_domains_does_not_create_new_certificate(
-    tasks, instance_model, service_instance_id="4321", expected_num_certificates=1
+    tasks, instance_model, service_instance_id="4321"
 ):
     tasks.run_queued_tasks_and_enqueue_dependents()
     instance = db.session.get(instance_model, service_instance_id)
-    assert len(instance.certificates) == expected_num_certificates
+    assert len(instance.certificates) == 1
 
 
 def subtest_update_same_domains_does_not_create_new_challenges(
@@ -280,14 +280,34 @@ def subtest_update_same_domains_updates_cloudfront(
     cloudfront,
     instance_model,
     service_instance_id="4321",
-    expect_update_domain_names=["example.com", "foo.com"],
-    expect_forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
-    expect_forwarded_cookies=["mycookie", "myothercookie", "anewcookie"],
-    expect_origin_hostname="newer-origin.com",
-    expect_origin_path="/somewhere-else",
-    expect_forward_cookie_policy=CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value,
-    expect_origin_protocol_policy="http-only",
+    expect_update_domain_names=None,
+    expect_forwarded_headers=None,
+    expect_forwarded_cookies=None,
+    expect_origin_hostname=None,
+    expect_origin_path=None,
+    expect_forward_cookie_policy=None,
+    expect_origin_protocol_policy=None,
+    expect_custom_error_responses=None,
 ):
+    if expect_update_domain_names is None:
+        expect_update_domain_names = ["example.com", "foo.com"]
+    if expect_forwarded_headers is None:
+        expect_forwarded_headers = ["X-MY-HEADER", "X-YOUR-HEADER"]
+    if expect_forwarded_cookies is None:
+        expect_forwarded_cookies = ["mycookie", "myothercookie", "anewcookie"]
+    if expect_origin_hostname is None:
+        expect_origin_hostname = "newer-origin.com"
+    if expect_origin_path is None:
+        expect_origin_path = "/somewhere-else"
+    if expect_forward_cookie_policy is None:
+        expect_forward_cookie_policy = (
+            CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
+        )
+    if expect_origin_protocol_policy is None:
+        expect_origin_protocol_policy = "http-only"
+    if expect_custom_error_responses is None:
+        expect_custom_error_responses = {"Quantity": 0}
+
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
@@ -331,7 +351,7 @@ def subtest_update_same_domains_updates_cloudfront(
         forwarded_headers=expect_forwarded_headers,
         origin_protocol_policy=expect_origin_protocol_policy,
         bucket_prefix="4321/",
-        custom_error_responses={"Quantity": 0},
+        custom_error_responses=expect_custom_error_responses,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
