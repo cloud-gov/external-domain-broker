@@ -55,6 +55,13 @@ from broker.tasks.pipelines import (
     queue_all_domain_broker_migration_tasks_for_operation,
     queue_all_migration_deprovision_tasks_for_operation,
 )
+from broker.lib.utils import (
+    parse_cookie_options,
+    parse_header_options,
+    normalize_header_list,
+    parse_domain_options,
+    handle_domain_updates,
+)
 
 ALB_PLAN_ID = "6f60835c-8964-4f1f-a19a-579fb27ce694"
 CDN_PLAN_ID = "1cc78b0c-c296-48f5-9182-0b38404f79ef"
@@ -287,23 +294,7 @@ class API(ServiceBroker):
         if instance.has_active_operations():
             raise errors.ErrBadRequest("Instance has an active operation in progress")
 
-        domain_names = parse_domain_options(params)
-        no_domain_updates = True
-        if domain_names is not None:
-            self.logger.info("validating CNAMEs")
-            validators.CNAME(domain_names).validate()
-
-            self.logger.info("validating unique domains")
-            validators.UniqueDomains(domain_names).validate(instance)
-            # If domain names have not changed, then there is no need for a new certificate
-            no_domain_updates = no_domain_updates and (
-                sorted(domain_names) == sorted(instance.domain_names)
-            )
-            instance.domain_names = domain_names
-
-        if is_cdn_instance(instance) and no_domain_updates:
-            self.logger.info("domains unchanged, no need for new certificate")
-            instance.new_certificate = instance.current_certificate
+        instance = handle_domain_updates(params, instance)
 
         noop = True
         if instance.instance_type == "cdn_service_instance":
@@ -414,52 +405,6 @@ class API(ServiceBroker):
         **kwargs,
     ) -> UnbindSpec:
         pass
-
-
-def parse_cookie_options(params):
-    forward_cookies = params.get("forward_cookies", None)
-    if forward_cookies is not None:
-        forward_cookies = forward_cookies.replace(" ", "")
-        if forward_cookies == "":
-            forward_cookie_policy = CDNServiceInstance.ForwardCookiePolicy.NONE.value
-            forwarded_cookies = []
-        elif forward_cookies == "*":
-            forward_cookie_policy = CDNServiceInstance.ForwardCookiePolicy.ALL.value
-            forwarded_cookies = []
-        else:
-            forward_cookie_policy = (
-                CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
-            )
-            forwarded_cookies = forward_cookies.split(",")
-    else:
-        forward_cookie_policy = CDNServiceInstance.ForwardCookiePolicy.ALL.value
-        forwarded_cookies = []
-
-    return forward_cookie_policy, forwarded_cookies
-
-
-def parse_header_options(params):
-    forwarded_headers = params.get("forward_headers", None)
-    if forwarded_headers is None:
-        forwarded_headers = []
-    else:
-        forwarded_headers = forwarded_headers.replace(" ", "")
-        forwarded_headers = forwarded_headers.split(",")
-    validators.HeaderList(forwarded_headers).validate()
-    return forwarded_headers
-
-
-def normalize_header_list(headers):
-    headers = {header.upper() for header in headers}
-    return sorted(list(headers))
-
-
-def parse_domain_options(params):
-    domains = params.get("domains", None)
-    if isinstance(domains, str):
-        domains = domains.split(",")
-    if isinstance(domains, list):
-        return [d.strip().lower() for d in domains]
 
 
 def provision_cdn_instance(
