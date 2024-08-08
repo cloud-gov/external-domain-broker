@@ -56,8 +56,11 @@ def test_cdn_handle_domain_updates_no_change(
         assert instance.current_certificate == current_cert
         assert instance.current_certificate_id == 1000
 
-        instance = handle_domain_updates(dict(domains=domain_names), instance)
+        (instance, no_domain_updates) = handle_domain_updates(
+            dict(domains=domain_names), instance
+        )
 
+        assert no_domain_updates == True
         assert instance.domain_names == domain_names
         if is_cdn_instance(instance):
             assert instance.new_certificate == instance.current_certificate
@@ -99,8 +102,9 @@ def test_cdn_handle_domain_updates_not_specified(
         assert instance.current_certificate == current_cert
         assert instance.current_certificate_id == 1000
 
-        instance = handle_domain_updates(dict(), instance)
+        (instance, no_domain_updates) = handle_domain_updates(dict(), instance)
 
+        assert no_domain_updates == True
         assert instance.domain_names == domain_names
         if is_cdn_instance(instance):
             assert instance.new_certificate == instance.current_certificate
@@ -144,7 +148,10 @@ def test_cdn_handle_domain_updates_with_changes(
 
         dns.add_cname("_acme-challenge.moo.com")
         domain_names = ["moo.com"]
-        instance = handle_domain_updates(dict(domains=domain_names), instance)
+        (instance, no_domain_updates) = handle_domain_updates(
+            dict(domains=domain_names), instance
+        )
 
+        assert no_domain_updates == False
         assert instance.domain_names == domain_names
         assert instance.new_certificate_id is None

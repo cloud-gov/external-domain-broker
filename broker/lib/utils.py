@@ -75,4 +75,4 @@ def handle_domain_updates(params, instance):
         logger.info("domains unchanged, no need for new certificate")
         instance.new_certificate = instance.current_certificate
 
-    return instance
+    return (instance, no_domain_updates)

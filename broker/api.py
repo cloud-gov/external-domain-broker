@@ -294,9 +294,9 @@ class API(ServiceBroker):
         if instance.has_active_operations():
             raise errors.ErrBadRequest("Instance has an active operation in progress")
 
-        instance = handle_domain_updates(params, instance)
+        (instance, no_domain_updates) = handle_domain_updates(params, instance)
 
-        noop = True
+        noop = no_domain_updates
         if instance.instance_type == "cdn_service_instance":
             noop = False
 
