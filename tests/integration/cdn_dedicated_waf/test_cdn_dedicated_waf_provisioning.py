@@ -1,7 +1,5 @@
 import pytest  # noqa F401
-import uuid
 
-from broker.extensions import config, db
 from broker.models import (
     CDNDedicatedWAFServiceInstance,
 )
@@ -33,7 +31,6 @@ from tests.lib.update import (
     subtest_update_retrieves_new_cert,
     subtest_update_marks_update_complete,
     subtest_update_removes_certificate_from_iam,
-    subtest_update_same_domains_does_not_create_new_challenges,
     subtest_update_same_domains_does_not_update_route53,
 )
 from tests.lib.cdn.update import (
@@ -48,6 +45,7 @@ from tests.lib.cdn.update import (
     subtest_update_same_domains_does_not_update_iam,
     subtest_update_same_domains_updates_cloudfront,
     subtest_update_same_domains_does_not_delete_server_certificate,
+    subtest_update_same_domains_does_not_create_new_challenges,
 )
 from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
