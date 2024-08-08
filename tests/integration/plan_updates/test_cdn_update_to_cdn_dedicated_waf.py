@@ -64,6 +64,7 @@ def test_update_plan_only(
 
     # Test upgrade from cdn_service_instance plan to cdn_dedicated_waf_service_instance plan
     operation_id = subtest_creates_update_plan_operation(client, "4321")
+    subtest_is_cdn_dedicated_waf_instance()
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     instance_model = CDNDedicatedWAFServiceInstance
     subtest_update_same_domains_does_not_create_new_certificate(
@@ -142,6 +143,7 @@ def test_update_plan_and_domains(
     operation_id = subtest_update_creates_update_plan_and_domains_operation(
         client, dns, instance_model
     )
+    subtest_is_cdn_dedicated_waf_instance()
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_update_creates_private_key_and_csr(tasks, instance_model)
     subtest_gets_new_challenges(tasks, instance_model)
@@ -230,3 +232,9 @@ def subtest_is_cdn_instance(service_instance_id="4321"):
     db.session.expunge_all()
     instance = db.session.get(ServiceInstance, service_instance_id)
     assert instance.instance_type == "cdn_service_instance"
+
+
+def subtest_is_cdn_dedicated_waf_instance(service_instance_id="4321"):
+    db.session.expunge_all()
+    instance = db.session.get(ServiceInstance, service_instance_id)
+    assert instance.instance_type == "cdn_dedicated_waf_service_instance"
