@@ -2,16 +2,18 @@ import pytest
 from broker.models import CDNServiceInstance
 
 from tests.lib import factories
-from tests.lib.client import check_last_operation_description
-from tests.integration.cdn.test_cdn_provisioning import (
+
+from tests.lib.provision import (
     subtest_provision_creates_LE_user,
     subtest_provision_initiates_LE_challenge,
-    subtest_provision_provisions_ALIAS_records,
     subtest_provision_updates_TXT_records,
-    subtest_provision_answers_challenges,
     subtest_provision_waits_for_route53_changes,
-    subtest_provision_uploads_certificate_to_iam,
+    subtest_provision_answers_challenges,
     subtest_provision_marks_operation_as_succeeded,
+)
+from tests.lib.cdn.provision import (
+    subtest_provision_provisions_ALIAS_records,
+    subtest_provision_uploads_certificate_to_iam,
 )
 from tests.lib.cdn.update import (
     subtest_update_creates_private_key_and_csr,

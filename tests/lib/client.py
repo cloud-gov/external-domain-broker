@@ -182,6 +182,27 @@ class CFAPIClient(FlaskClient):
             query_string={"accepts_incomplete": accepts_incomplete},
         )
 
+    def update_cdn_to_cdn_dedicated_waf_instance(
+        self, id: str, accepts_incomplete: str = "true", params: dict = None
+    ):
+        json = {
+            "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
+            "plan_id": CDN_DEDICATED_WAF_PLAN_ID,
+            "context": {
+                "organization_guid": "abc",
+                "space_guid": "123",
+            },
+        }
+
+        if params is not None:
+            json["parameters"] = params
+
+        self.patch(
+            f"/v2/service_instances/{id}",
+            json=json,
+            query_string={"accepts_incomplete": accepts_incomplete},
+        )
+
     def update_cdn_dedicated_waf_instance(
         self, id: str, accepts_incomplete: str = "true", params: dict = None
     ):

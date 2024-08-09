@@ -167,6 +167,10 @@ class CDNServiceInstance(ServiceInstance):
 
     __mapper_args__ = {"polymorphic_identity": "cdn_service_instance"}
 
+    @classmethod
+    def update_targets(self) -> List[type]:
+        return [CDNServiceInstance, CDNDedicatedWAFServiceInstance]
+
     def __repr__(self):
         return f"<CDNServiceInstance {self.id} {self.domain_names}>"
 
