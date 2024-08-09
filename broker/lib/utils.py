@@ -56,18 +56,16 @@ def parse_domain_options(params):
         return [d.strip().lower() for d in domains]
 
 
-def handle_domain_updates(params, instance):
-    domain_names = parse_domain_options(params)
-    no_domain_updates = True
-    if domain_names is not None:
+def handle_domain_updates(params, instance) -> list[str]:
+    updated_domain_names = parse_domain_options(params) or []
+    if len(updated_domain_names) > 0:
         logger.info("validating CNAMEs")
-        validators.CNAME(domain_names).validate()
+        validators.CNAME(updated_domain_names).validate()
 
         logger.info("validating unique domains")
-        validators.UniqueDomains(domain_names).validate(instance)
+        validators.UniqueDomains(updated_domain_names).validate(instance)
 
-        no_domain_updates = no_domain_updates and (
-            sorted(domain_names) == sorted(instance.domain_names)
-        )
+        if sorted(updated_domain_names) == sorted(instance.domain_names):
+            return []
 
-    return (domain_names, no_domain_updates)
+    return updated_domain_names

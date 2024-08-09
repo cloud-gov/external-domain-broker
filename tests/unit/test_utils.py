@@ -29,7 +29,7 @@ def test_parse_domains():
         factories.DedicatedALBServiceInstanceFactory,
     ],
 )
-def test_cdn_handle_domain_updates_no_change(
+def test_handle_domain_updates_no_change(
     no_context_clean_db, no_context_app, dns, factory
 ):
     with no_context_app.app_context():
@@ -56,12 +56,10 @@ def test_cdn_handle_domain_updates_no_change(
         assert instance.current_certificate == current_cert
         assert instance.current_certificate_id == 1000
 
-        (updated_domain_names, no_domain_updates) = handle_domain_updates(
+        updated_domain_names = handle_domain_updates(
             dict(domains=domain_names), instance
         )
-
-        assert no_domain_updates == True
-        assert updated_domain_names == domain_names
+        assert updated_domain_names == []
 
 
 @pytest.mark.parametrize(
@@ -73,7 +71,7 @@ def test_cdn_handle_domain_updates_no_change(
         factories.DedicatedALBServiceInstanceFactory,
     ],
 )
-def test_cdn_handle_domain_updates_not_specified(
+def test_handle_domain_updates_not_specified(
     no_context_clean_db, no_context_app, dns, factory
 ):
     with no_context_app.app_context():
@@ -100,12 +98,8 @@ def test_cdn_handle_domain_updates_not_specified(
         assert instance.current_certificate == current_cert
         assert instance.current_certificate_id == 1000
 
-        (updated_domain_names, no_domain_updates) = handle_domain_updates(
-            dict(), instance
-        )
-
-        assert no_domain_updates == True
-        assert updated_domain_names == None
+        updated_domain_names = handle_domain_updates(dict(), instance)
+        assert updated_domain_names == []
 
 
 @pytest.mark.parametrize(
@@ -117,7 +111,7 @@ def test_cdn_handle_domain_updates_not_specified(
         factories.DedicatedALBServiceInstanceFactory,
     ],
 )
-def test_cdn_handle_domain_updates_with_changes(
+def test_handle_domain_updates_with_changes(
     no_context_clean_db, no_context_app, dns, factory
 ):
     with no_context_app.app_context():
@@ -146,9 +140,8 @@ def test_cdn_handle_domain_updates_with_changes(
 
         dns.add_cname("_acme-challenge.moo.com")
         domain_names = ["moo.com"]
-        (updated_domain_names, no_domain_updates) = handle_domain_updates(
+
+        updated_domain_names = handle_domain_updates(
             dict(domains=domain_names), instance
         )
-
-        assert no_domain_updates == False
         assert updated_domain_names == domain_names
