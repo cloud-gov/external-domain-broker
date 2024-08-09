@@ -65,7 +65,7 @@ def handle_domain_updates(params, instance):
 
         logger.info("validating unique domains")
         validators.UniqueDomains(domain_names).validate(instance)
-        # If domain names have not changed, then there is no need for a new certificate
+
         no_domain_updates = no_domain_updates and (
             sorted(domain_names) == sorted(instance.domain_names)
         )
