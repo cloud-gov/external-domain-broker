@@ -69,10 +69,5 @@ def handle_domain_updates(params, instance):
         no_domain_updates = no_domain_updates and (
             sorted(domain_names) == sorted(instance.domain_names)
         )
-        instance.domain_names = domain_names
 
-    if is_cdn_instance(instance) and no_domain_updates:
-        logger.info("domains unchanged, no need for new certificate")
-        instance.new_certificate = instance.current_certificate
-
-    return (instance, no_domain_updates)
+    return (domain_names, no_domain_updates)

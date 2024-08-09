@@ -294,7 +294,16 @@ class API(ServiceBroker):
         if instance.has_active_operations():
             raise errors.ErrBadRequest("Instance has an active operation in progress")
 
-        (instance, no_domain_updates) = handle_domain_updates(params, instance)
+        (updated_domain_names, no_domain_updates) = handle_domain_updates(
+            params, instance
+        )
+
+        if updated_domain_names is not None:
+            instance.domain_names = updated_domain_names
+
+        if is_cdn_instance(instance) and no_domain_updates:
+            self.logger.info("domains unchanged, no need for new certificate")
+            instance.new_certificate = instance.current_certificate
 
         noop = no_domain_updates
         if instance.instance_type == "cdn_service_instance":
