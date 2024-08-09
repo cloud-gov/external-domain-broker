@@ -60,7 +60,7 @@ from broker.lib.utils import (
     parse_header_options,
     normalize_header_list,
     parse_domain_options,
-    handle_domain_updates,
+    validate_domain_name_changes,
 )
 
 ALB_PLAN_ID = "6f60835c-8964-4f1f-a19a-579fb27ce694"
@@ -294,11 +294,14 @@ class API(ServiceBroker):
         if instance.has_active_operations():
             raise errors.ErrBadRequest("Instance has an active operation in progress")
 
-        updated_domain_names = handle_domain_updates(params, instance)
-        has_domain_updates = len(updated_domain_names) > 0
+        requested_domain_names = parse_domain_options(params)
+        domains_to_apply = validate_domain_name_changes(
+            requested_domain_names, instance
+        )
 
+        has_domain_updates = len(domains_to_apply) > 0
         if has_domain_updates:
-            instance.domain_names = updated_domain_names
+            instance.domain_names = domains_to_apply
 
         if is_cdn_instance(instance) and not has_domain_updates:
             self.logger.info("domains unchanged, no need for new certificate")

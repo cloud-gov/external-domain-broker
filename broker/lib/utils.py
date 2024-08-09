@@ -48,24 +48,23 @@ def normalize_header_list(headers):
     return sorted(list(headers))
 
 
-def parse_domain_options(params):
-    domains = params.get("domains", None)
+def parse_domain_options(params) -> list[str]:
+    domains = params.get("domains", [])
     if isinstance(domains, str):
         domains = domains.split(",")
     if isinstance(domains, list):
         return [d.strip().lower() for d in domains]
 
 
-def handle_domain_updates(params, instance) -> list[str]:
-    updated_domain_names = parse_domain_options(params) or []
-    if len(updated_domain_names) > 0:
+def validate_domain_name_changes(requested_domain_names, instance) -> list[str]:
+    if len(requested_domain_names) > 0:
         logger.info("validating CNAMEs")
-        validators.CNAME(updated_domain_names).validate()
+        validators.CNAME(requested_domain_names).validate()
 
         logger.info("validating unique domains")
-        validators.UniqueDomains(updated_domain_names).validate(instance)
+        validators.UniqueDomains(requested_domain_names).validate(instance)
 
-        if sorted(updated_domain_names) == sorted(instance.domain_names):
+        if sorted(requested_domain_names) == sorted(instance.domain_names):
             return []
 
-    return updated_domain_names
+    return requested_domain_names

@@ -3,7 +3,7 @@ import uuid
 
 from openbrokerapi import errors
 
-from broker.lib.utils import parse_domain_options, handle_domain_updates
+from broker.lib.utils import parse_domain_options, validate_domain_name_changes
 from tests.lib import factories
 
 
@@ -30,12 +30,12 @@ def test_parse_domains():
         factories.DedicatedALBServiceInstanceFactory,
     ],
 )
-def test_handle_domain_updates_no_change(
+def test_validate_domain_name_changes_no_change(
     no_context_clean_db, no_context_app, dns, factory
 ):
     with no_context_app.app_context():
-        dns.add_cname("_acme-challenge.foo.com")
-        domain_names = ["foo.com"]
+        dns.add_cname("_acme-challenge.foo.example.com")
+        domain_names = ["foo.example.com"]
 
         instance_id = str(uuid.uuid4())
         instance = factory.create(
@@ -57,9 +57,7 @@ def test_handle_domain_updates_no_change(
         assert instance.current_certificate == current_cert
         assert instance.current_certificate_id == 1000
 
-        updated_domain_names = handle_domain_updates(
-            dict(domains=domain_names), instance
-        )
+        updated_domain_names = validate_domain_name_changes(domain_names, instance)
         assert updated_domain_names == []
 
 
@@ -72,12 +70,12 @@ def test_handle_domain_updates_no_change(
         factories.DedicatedALBServiceInstanceFactory,
     ],
 )
-def test_handle_domain_updates_not_specified(
+def test_validate_domain_name_changes_not_specified(
     no_context_clean_db, no_context_app, dns, factory
 ):
     with no_context_app.app_context():
-        dns.add_cname("_acme-challenge.baz.com")
-        domain_names = ["baz.com"]
+        dns.add_cname("_acme-challenge.baz.example.com")
+        domain_names = ["baz.example.com"]
 
         instance_id = str(uuid.uuid4())
         instance = factory.create(
@@ -99,7 +97,7 @@ def test_handle_domain_updates_not_specified(
         assert instance.current_certificate == current_cert
         assert instance.current_certificate_id == 1000
 
-        updated_domain_names = handle_domain_updates(dict(), instance)
+        updated_domain_names = validate_domain_name_changes([], instance)
         assert updated_domain_names == []
 
 
@@ -112,12 +110,12 @@ def test_handle_domain_updates_not_specified(
         factories.DedicatedALBServiceInstanceFactory,
     ],
 )
-def test_handle_domain_updates_with_changes(
+def test_validate_domain_name_changes_with_changes(
     no_context_clean_db, no_context_app, dns, factory
 ):
     with no_context_app.app_context():
-        dns.add_cname("_acme-challenge.bar.com")
-        domain_names = ["bar.com"]
+        dns.add_cname("_acme-challenge.bar.example.com")
+        domain_names = ["bar.example.com"]
 
         instance_id = str(uuid.uuid4())
         instance = factory.create(
@@ -139,12 +137,10 @@ def test_handle_domain_updates_with_changes(
         assert instance.current_certificate == current_cert
         assert instance.current_certificate_id == 1000
 
-        dns.add_cname("_acme-challenge.moo.com")
-        domain_names = ["moo.com"]
+        dns.add_cname("_acme-challenge.moo.example.com")
+        domain_names = ["moo.example.com"]
 
-        updated_domain_names = handle_domain_updates(
-            dict(domains=domain_names), instance
-        )
+        updated_domain_names = validate_domain_name_changes(domain_names, instance)
         assert updated_domain_names == domain_names
 
 
@@ -157,12 +153,12 @@ def test_handle_domain_updates_with_changes(
         factories.DedicatedALBServiceInstanceFactory,
     ],
 )
-def test_handle_domain_errors_on_missing_dns(
+def test_validate_domain_name_changes_errors_on_missing_dns(
     no_context_clean_db, no_context_app, dns, factory
 ):
     with no_context_app.app_context():
-        dns.add_cname("_acme-challenge.moo.com")
-        domain_names = ["moo.com", "cow.com"]
+        dns.add_cname("_acme-challenge.moo.example.com")
+        domain_names = ["moo.example.com", "cow.example.net"]
 
         instance_id = str(uuid.uuid4())
         instance = factory.create(
@@ -185,7 +181,7 @@ def test_handle_domain_errors_on_missing_dns(
         assert instance.current_certificate_id == 1000
 
         with pytest.raises(errors.ErrBadRequest):
-            handle_domain_updates(dict(domains=domain_names), instance)
+            validate_domain_name_changes(domain_names, instance)
 
 
 @pytest.mark.parametrize(
@@ -197,14 +193,14 @@ def test_handle_domain_errors_on_missing_dns(
         factories.DedicatedALBServiceInstanceFactory,
     ],
 )
-def test_handle_domain_errors_on_non_unique_domains(
+def test_validate_domain_name_changes_errors_on_non_unique_domains(
     no_context_clean_db, no_context_app, dns, factory
 ):
     with no_context_app.app_context():
-        dns.add_cname("_acme-challenge.moo.com")
-        dns.add_cname("_acme-challenge.cow.com")
+        dns.add_cname("_acme-challenge.moo.example.com")
+        dns.add_cname("_acme-challenge.cow.example.net")
 
-        existing_instance_domain_names = ["foo.com", "cow.com"]
+        existing_instance_domain_names = ["foo.example.com", "cow.example.net"]
         existing_instance = factory.create(
             id=str(uuid.uuid4()),
             domain_names=existing_instance_domain_names,
@@ -212,7 +208,7 @@ def test_handle_domain_errors_on_non_unique_domains(
         no_context_clean_db.session.add(existing_instance)
         no_context_clean_db.session.commit()
 
-        domain_names = ["moo.com", "cow.com"]
+        domain_names = ["moo.example.com", "cow.example.net"]
         new_instance = factory.create(
             id=str(uuid.uuid4()),
             domain_names=domain_names,
@@ -233,4 +229,4 @@ def test_handle_domain_errors_on_non_unique_domains(
         assert new_instance.current_certificate_id == 1000
 
         with pytest.raises(errors.ErrBadRequest):
-            handle_domain_updates(dict(domains=domain_names), new_instance)
+            validate_domain_name_changes(domain_names, new_instance)
