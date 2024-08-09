@@ -3,7 +3,6 @@ import uuid
 
 from openbrokerapi import errors
 
-from broker.lib.cdn import is_cdn_instance
 from broker.lib.utils import parse_domain_options, handle_domain_updates
 from tests.lib import factories
 
