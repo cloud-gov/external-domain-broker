@@ -28,6 +28,10 @@ def get_lowest_used_alb(listener_arns) -> tuple[str, str]:
         https_listeners.append(
             dict(listener_arn=listener_arn, certificates=certificates["Certificates"])
         )
+    if len(https_listeners) == 0:
+        raise RuntimeError(
+            "Could not find any HTTPS listeners. Check the app configuration."
+        )
     https_listeners.sort(key=lambda x: len(x["certificates"]))
     selected_listener = https_listeners[0]
     selected_arn = selected_listener["listener_arn"]
@@ -36,9 +40,11 @@ def get_lowest_used_alb(listener_arns) -> tuple[str, str]:
     return listener_data["LoadBalancerArn"], listener_data["ListenerArn"]
 
 
-def get_lowest_dedicated_alb(service_instance, db):
+def get_potential_listeners_for_dedicated_instance(service_instance):
     # n.b. we're counting on our db count here
     # and elsewhere we rely on AWS's count.
+
+    # Get the listeners dedicated to the org for this service (service_instance.org_id)
     active_instances = (
         select(DedicatedALBServiceInstance)
         .where(DedicatedALBServiceInstance.deactivated_at == null())
@@ -60,21 +66,35 @@ def get_lowest_dedicated_alb(service_instance, db):
         .group_by(DedicatedALBListener.id)
         .having(func.count(instance_subquery.id) < config.MAX_CERTS_PER_ALB)
     )
-    potential_listener_ids = db.session.execute(query).all()
+    dedicated_listener_ids = db.session.execute(query).all()
 
-    if len(potential_listener_ids) > 0:
+    if len(dedicated_listener_ids) > 0:
         potential_listeners = [
             db.session.get(DedicatedALBListener, listener_id[0])
-            for listener_id in potential_listener_ids
+            for listener_id in dedicated_listener_ids
         ]
     else:
+        # Try to find listeners that are not dedicated to an org already
         potential_listeners = DedicatedALBListener.query.filter(
             DedicatedALBListener.dedicated_org == null()
         ).all()
 
-    arns = [listener.listener_arn for listener in potential_listeners]
-    arns.sort()  # this just makes testing easier
-    alb_arn, alb_listener_arn = get_lowest_used_alb(arns)
+    if len(potential_listeners) == 0:
+        raise RuntimeError(
+            f"Could not find potential listeners for org {service_instance.org_id}"
+        )
+
+    return potential_listeners
+
+
+def get_lowest_dedicated_alb(service_instance, db):
+    potential_listeners = get_potential_listeners_for_dedicated_instance(
+        service_instance
+    )
+    listener_arns = [listener.listener_arn for listener in potential_listeners]
+    listener_arns.sort()  # this just makes testing easier
+
+    alb_arn, alb_listener_arn = get_lowest_used_alb(listener_arns)
     selected_listener = [
         listener
         for listener in potential_listeners
