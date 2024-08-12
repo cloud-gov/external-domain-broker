@@ -12,6 +12,9 @@
 DATESTAMP=$(date +"%Y%m%d%H%M%S")
 INSTANCE="edb-test-${PLAN_NAME}-${DATESTAMP}"
 TTL=120
+# Disable AWS pager to avoid dependency on less.
+# see https://stackoverflow.com/a/68361849
+export AWS_PAGER=""
 
 required_vars=(
   CF_API_URL
