@@ -36,7 +36,7 @@ def get_lowest_used_alb(listener_arns) -> tuple[str, str]:
     return listener_data["LoadBalancerArn"], listener_data["ListenerArn"]
 
 
-def get_lowest_dedicated_alb(service_instance, db):
+def get_lowest_dedicated_alb(this_instance, db):
     # n.b. we're counting on our db count here
     # and elsewhere we rely on AWS's count.
     active_instances = (
@@ -56,7 +56,7 @@ def get_lowest_dedicated_alb(service_instance, db):
             DedicatedALBListener.listener_arn == instance_subquery.alb_listener_arn,
             isouter=True,
         )
-        .where(DedicatedALBListener.dedicated_org == service_instance.org_id)
+        .where(DedicatedALBListener.dedicated_org == this_instance.org_id)
         .group_by(DedicatedALBListener.id)
         .having(func.count(instance_subquery.id) < config.MAX_CERTS_PER_ALB)
     )
@@ -81,12 +81,12 @@ def get_lowest_dedicated_alb(service_instance, db):
         if listener.listener_arn == alb_listener_arn
     ][0]
     selected_listener.alb_arn = alb_arn
-    selected_listener.dedicated_org = service_instance.org_id
+    selected_listener.dedicated_org = this_instance.org_id
 
-    service_instance.alb_arn = alb_arn
-    service_instance.alb_listener_arn = alb_listener_arn
+    this_instance.alb_arn = alb_arn
+    this_instance.alb_listener_arn = alb_listener_arn
 
-    db.session.add(service_instance)
+    db.session.add(this_instance)
     db.session.add(selected_listener)
     db.session.commit()
 
