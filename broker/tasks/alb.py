@@ -40,7 +40,7 @@ def get_lowest_used_alb(listener_arns) -> tuple[str, str]:
     return listener_data["LoadBalancerArn"], listener_data["ListenerArn"]
 
 
-def get_potential_listeners(service_instance):
+def get_potential_listeners_for_dedicated_instance(service_instance):
     # n.b. we're counting on our db count here
     # and elsewhere we rely on AWS's count.
 
@@ -88,7 +88,9 @@ def get_potential_listeners(service_instance):
 
 
 def get_lowest_dedicated_alb(service_instance, db):
-    potential_listeners = get_potential_listeners(service_instance)
+    potential_listeners = get_potential_listeners_for_dedicated_instance(
+        service_instance
+    )
     listener_arns = [listener.listener_arn for listener in potential_listeners]
     listener_arns.sort()  # this just makes testing easier
 

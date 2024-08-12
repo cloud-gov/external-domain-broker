@@ -3,7 +3,10 @@ import uuid
 
 from botocore.exceptions import ClientError
 
-from broker.tasks.alb import get_potential_listeners, get_lowest_used_alb
+from broker.tasks.alb import (
+    get_potential_listeners_for_dedicated_instance,
+    get_lowest_used_alb,
+)
 from tests.lib import factories
 
 
@@ -94,7 +97,9 @@ def test_get_potential_listeners_with_no_listeners_for_instance_org(
         no_context_clean_db.session.add(service_instance)
         no_context_clean_db.session.commit()
 
-        potential_listeners = get_potential_listeners(service_instance)
+        potential_listeners = get_potential_listeners_for_dedicated_instance(
+            service_instance
+        )
         assert potential_listeners == [listener]
 
 
@@ -114,7 +119,9 @@ def test_get_potential_listeners_with_listeners_for_instance_org(
         no_context_clean_db.session.add(service_instance)
         no_context_clean_db.session.commit()
 
-        potential_listeners = get_potential_listeners(service_instance)
+        potential_listeners = get_potential_listeners_for_dedicated_instance(
+            service_instance
+        )
         assert potential_listeners == [listener]
 
 
@@ -135,4 +142,4 @@ def test_get_potential_listeners_no_listeners_found(
         no_context_clean_db.session.commit()
 
         with pytest.raises(RuntimeError):
-            get_potential_listeners(service_instance)
+            get_potential_listeners_for_dedicated_instance(service_instance)
