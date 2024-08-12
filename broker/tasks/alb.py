@@ -28,6 +28,10 @@ def get_lowest_used_alb(listener_arns) -> tuple[str, str]:
         https_listeners.append(
             dict(listener_arn=listener_arn, certificates=certificates["Certificates"])
         )
+    if len(https_listeners) == 0:
+        raise RuntimeError(
+            "Could not find any HTTPS listeners. Check the app configuration."
+        )
     https_listeners.sort(key=lambda x: len(x["certificates"]))
     selected_listener = https_listeners[0]
     selected_arn = selected_listener["listener_arn"]
@@ -68,9 +72,15 @@ def get_lowest_dedicated_alb(service_instance, db):
             for listener_id in potential_listener_ids
         ]
     else:
+        # Try to find listeners that are not dedicated to an org already
         potential_listeners = DedicatedALBListener.query.filter(
             DedicatedALBListener.dedicated_org == null()
         ).all()
+
+    if len(potential_listeners) == 0:
+        raise RuntimeError(
+            "Could not find potential listeners for dedicated ALB service"
+        )
 
     arns = [listener.listener_arn for listener in potential_listeners]
     arns.sort()  # this just makes testing easier
