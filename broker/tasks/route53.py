@@ -353,6 +353,7 @@ def _create_health_checks(
 
 
 def _create_health_check(service_instance_id, domain_name):
+    logger.info(f"Creating Route53 health check for {domain_name}")
     route53_response = route53.create_health_check(
         CallerReference=f"create_health_check-{service_instance_id}-{domain_name}",
         HealthCheckConfig={
@@ -362,6 +363,13 @@ def _create_health_check(service_instance_id, domain_name):
     )
     health_check_id = route53_response["HealthCheck"]["Id"]
     logger.info(f"Saving Route53 health check ID: {health_check_id}")
+    route53.change_tags_for_resource(
+        ResourceType="healthcheck",
+        ResourceId=health_check_id,
+        AddTags=[
+            {"Key": "broker", "Value": "External domain broker"},
+        ],
+    )
     return health_check_id
 
 
