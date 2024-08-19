@@ -25,19 +25,16 @@ def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
         CDNDedicatedWAFServiceInstance, service_instance_id
     )
     assert service_instance.dedicated_waf_web_acl_id
-    assert (
-        service_instance.dedicated_waf_web_acl_id
-        == f"{service_instance.id}-dedicated-waf-id"
+    web_acl_name = (
+        f"{config.DEDICATED_WAF_NAME_PREFIX}-{service_instance.id}-dedicated-waf"
     )
+    assert service_instance.dedicated_waf_web_acl_id == f"{web_acl_name}-id"
     assert service_instance.dedicated_waf_web_acl_name
-    assert (
-        service_instance.dedicated_waf_web_acl_name
-        == f"{service_instance.id}-dedicated-waf"
-    )
+    assert service_instance.dedicated_waf_web_acl_name == web_acl_name
     assert service_instance.dedicated_waf_web_acl_arn
     assert (
         service_instance.dedicated_waf_web_acl_arn
-        == f"arn:aws:wafv2::000000000000:global/webacl/{service_instance.id}-dedicated-waf"
+        == f"arn:aws:wafv2::000000000000:global/webacl/{web_acl_name}"
     )
 
 

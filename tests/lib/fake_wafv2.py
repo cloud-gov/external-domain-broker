@@ -1,13 +1,14 @@
 import pytest
 
 from broker.aws import wafv2 as real_wafv2
+from broker.extensions import config
 from tests.lib.fake_aws import FakeAWS
 
 
 class FakeWAFV2(FakeAWS):
     def expect_create_web_acl(self, id: str, rule_group_arn: str):
         method = "create_web_acl"
-        waf_name = f"{id}-dedicated-waf"
+        waf_name = f"{config.DEDICATED_WAF_NAME_PREFIX}-{id}-dedicated-waf"
         request = {
             "Name": waf_name,
             "Scope": "CLOUDFRONT",
@@ -22,7 +23,7 @@ class FakeWAFV2(FakeAWS):
                     "VisibilityConfig": {
                         "SampledRequestsEnabled": True,
                         "CloudWatchMetricsEnabled": True,
-                        "MetricName": f"{id}-rate-limit-rule-group",
+                        "MetricName": f"{waf_name}-rate-limit-rule-group",
                     },
                 }
             ],

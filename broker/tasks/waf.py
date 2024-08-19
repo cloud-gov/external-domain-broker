@@ -34,9 +34,9 @@ def create_web_acl(operation_id: str, **kwargs):
         )
         return
 
-    waf_name = f"{service_instance.id}-dedicated-waf"
+    web_acl_name = generate_web_acl_name(service_instance)
     response = wafv2.create_web_acl(
-        Name=waf_name,
+        Name=web_acl_name,
         Scope="CLOUDFRONT",
         DefaultAction={"Allow": {}},
         Rules=[
@@ -51,14 +51,14 @@ def create_web_acl(operation_id: str, **kwargs):
                 "VisibilityConfig": {
                     "SampledRequestsEnabled": True,
                     "CloudWatchMetricsEnabled": True,
-                    "MetricName": f"{service_instance.id}-rate-limit-rule-group",
+                    "MetricName": f"{web_acl_name}-rate-limit-rule-group",
                 },
             }
         ],
         VisibilityConfig={
             "SampledRequestsEnabled": True,
             "CloudWatchMetricsEnabled": True,
-            "MetricName": waf_name,
+            "MetricName": web_acl_name,
         },
     )
 
@@ -93,6 +93,10 @@ def delete_web_acl(operation_id: str, **kwargs):
 
     db.session.add(service_instance)
     db.session.commit()
+
+
+def generate_web_acl_name(service_instance):
+    return f"{config.DEDICATED_WAF_NAME_PREFIX}-{service_instance.id}-dedicated-waf"
 
 
 def _delete_web_acl_with_retries(operation_id, service_instance):
