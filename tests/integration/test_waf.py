@@ -30,7 +30,16 @@ def service_instance(no_context_clean_db, no_context_app, protection_id):
                     "health_check_id": "fake-health-check-id",
                 }
             ],
-            route53_health_check_ids=["fake-health-check-id"],
+            route53_health_checks=[
+                {
+                    "domain_name": "example.com",
+                    "health_check_id": "fake-health-check-id",
+                },
+                {
+                    "domain_name": "foo.com",
+                    "health_check_id": "fake-health-check-id2",
+                },
+            ],
             dedicated_waf_web_acl_id="1234-dedicated-waf-id",
             dedicated_waf_web_acl_name="1234-dedicated-waf",
             dedicated_waf_web_acl_arn="1234-dedicated-waf-arn",

@@ -1,7 +1,5 @@
 import pytest  # noqa F401
-import uuid
 
-from broker.extensions import config, db
 from broker.models import (
     CDNDedicatedWAFServiceInstance,
 )
@@ -24,9 +22,42 @@ from tests.lib.cdn.provision import (
     subtest_provision_waits_for_cloudfront_distribution,
     subtest_provision_provisions_ALIAS_records,
 )
+from tests.lib.update import (
+    subtest_update_creates_private_key_and_csr,
+    subtest_gets_new_challenges,
+    subtest_update_updates_TXT_records,
+    subtest_update_answers_challenges,
+    subtest_waits_for_dns_changes,
+    subtest_update_retrieves_new_cert,
+    subtest_update_marks_update_complete,
+    subtest_update_removes_certificate_from_iam,
+    subtest_update_same_domains_does_not_update_route53,
+)
 from tests.lib.cdn.update import (
-    subtest_update_happy_path,
-    subtest_update_same_domains,
+    subtest_update_creates_update_operation,
+    subtest_update_uploads_new_cert,
+    subtest_updates_cloudfront,
+    subtest_update_waits_for_cloudfront_update,
+    subtest_update_updates_ALIAS_records,
+    subtest_update_same_domains_creates_update_operation,
+    subtest_update_same_domains_does_not_create_new_certificate,
+    subtest_update_same_domains_does_not_retrieve_new_certificate,
+    subtest_update_same_domains_does_not_update_iam,
+    subtest_update_same_domains_updates_cloudfront,
+    subtest_update_same_domains_does_not_delete_server_certificate,
+    subtest_update_same_domains_does_not_create_new_challenges,
+)
+from tests.integration.cdn_dedicated_waf.provision import (
+    subtest_provision_create_web_acl,
+    subtest_provision_creates_health_checks,
+    subtest_provision_associates_health_checks,
+)
+from tests.integration.cdn_dedicated_waf.update import (
+    subtest_update_web_acl_does_not_update,
+    subtest_updates_health_checks,
+    subtest_updates_health_checks_do_not_change,
+    subtest_updates_associated_health_checks,
+    subtest_updates_associated_health_checks_no_change,
 )
 
 
@@ -141,84 +172,75 @@ def test_provision_happy_path(
         iam_commercial,
         simple_regex,
         cloudfront,
+        wafv2,
+        shield,
         instance_model,
     )
-    subtest_update_same_domains(client, dns, tasks, route53, cloudfront, instance_model)
-
-
-def subtest_provision_create_web_acl(tasks, wafv2):
-    db.session.expunge_all()
-    service_instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-
-    wafv2.expect_create_web_acl(
-        service_instance.id,
-        config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
-    )
-
-    tasks.run_queued_tasks_and_enqueue_dependents()
-
-    db.session.expunge_all()
-    service_instance = db.session.get(CDNDedicatedWAFServiceInstance, "4321")
-    assert service_instance.dedicated_waf_web_acl_id
-    assert (
-        service_instance.dedicated_waf_web_acl_id
-        == f"{service_instance.id}-dedicated-waf-id"
-    )
-    assert service_instance.dedicated_waf_web_acl_name
-    assert (
-        service_instance.dedicated_waf_web_acl_name
-        == f"{service_instance.id}-dedicated-waf"
-    )
-    assert service_instance.dedicated_waf_web_acl_arn
-    assert (
-        service_instance.dedicated_waf_web_acl_arn
-        == f"arn:aws:wafv2::000000000000:global/webacl/{service_instance.id}-dedicated-waf"
+    subtest_update_same_domains(
+        client, dns, tasks, route53, cloudfront, wafv2, shield, instance_model
     )
 
 
-def subtest_provision_creates_health_checks(tasks, route53, instance_model):
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+def subtest_update_happy_path(
+    client,
+    dns,
+    tasks,
+    route53,
+    iam_commercial,
+    simple_regex,
+    cloudfront,
+    wafv2,
+    shield,
+    instance_model,
+):
+    operation_id = subtest_update_creates_update_operation(client, dns, instance_model)
+    check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
+    subtest_update_creates_private_key_and_csr(tasks, instance_model)
+    subtest_gets_new_challenges(tasks, instance_model)
+    subtest_update_updates_TXT_records(tasks, route53, instance_model)
+    subtest_waits_for_dns_changes(tasks, route53, instance_model)
+    subtest_update_answers_challenges(tasks, dns, instance_model)
+    subtest_update_retrieves_new_cert(tasks, instance_model)
+    subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex, instance_model)
+    subtest_update_web_acl_does_not_update(tasks, wafv2)
+    subtest_updates_cloudfront(tasks, cloudfront, instance_model)
+    subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
+    subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
+    subtest_waits_for_dns_changes(tasks, route53, instance_model)
+    subtest_update_removes_certificate_from_iam(tasks, iam_commercial, instance_model)
+    subtest_updates_health_checks(tasks, route53, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Updating health checks"
+    )
+    subtest_updates_associated_health_checks(tasks, shield, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Updating associated health checks with Shield"
+    )
+    subtest_update_marks_update_complete(tasks, instance_model)
 
-    for domain_name in service_instance.domain_names:
-        route53.expect_create_health_check(service_instance.id, domain_name)
 
-    tasks.run_queued_tasks_and_enqueue_dependents()
-
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
-    assert service_instance.route53_health_check_ids == ["example.com ID", "foo.com ID"]
-    route53.assert_no_pending_responses()
-
-
-def subtest_provision_associates_health_checks(tasks, shield, instance_model):
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
-    if not service_instance:
-        raise Exception("Could not load service instance")
-
-    protection_id = str(uuid.uuid4())
-    protection = {
-        "Id": protection_id,
-        "ResourceArn": service_instance.cloudfront_distribution_arn,
-    }
-    shield.expect_list_protections([protection])
-
-    for health_check_id in service_instance.route53_health_check_ids:
-        shield.expect_associate_health_check(protection_id, health_check_id)
-
-    tasks.run_queued_tasks_and_enqueue_dependents()
-
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
-    assert service_instance.shield_associated_health_checks == [
-        {
-            "health_check_id": "example.com ID",
-            "protection_id": protection_id,
-        },
-        {
-            "health_check_id": "foo.com ID",
-            "protection_id": protection_id,
-        },
-    ]
-    shield.assert_no_pending_responses()
+def subtest_update_same_domains(
+    client, dns, tasks, route53, cloudfront, wafv2, shield, instance_model
+):
+    subtest_update_same_domains_creates_update_operation(client, dns, instance_model)
+    subtest_update_same_domains_does_not_create_new_certificate(tasks, instance_model)
+    subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model)
+    subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
+    subtest_update_same_domains_does_not_retrieve_new_certificate(tasks)
+    subtest_update_same_domains_does_not_update_iam(tasks)
+    subtest_update_web_acl_does_not_update(tasks, wafv2)
+    subtest_update_same_domains_updates_cloudfront(
+        tasks,
+        cloudfront,
+        instance_model,
+        expect_update_domain_names=["bar.com", "foo.com"],
+    )
+    subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
+    subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
+    subtest_waits_for_dns_changes(tasks, route53, instance_model)
+    subtest_update_same_domains_does_not_delete_server_certificate(
+        tasks, instance_model
+    )
+    subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)
+    subtest_updates_associated_health_checks_no_change(tasks, shield, instance_model)
+    subtest_update_marks_update_complete(tasks, instance_model)

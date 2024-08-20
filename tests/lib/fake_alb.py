@@ -59,6 +59,15 @@ class FakeALB(FakeAWS):
             {"ListenerArn": listener_arn},
         )
 
+    def expect_get_certificates_for_listener_error(self, listener_arn):
+        self.stubber.add_client_error(
+            "describe_listener_certificates",
+            service_error_code="NoSuchEntity",
+            service_message="Not found",
+            http_status_code=404,
+            expected_params={"ListenerArn": listener_arn},
+        )
+
     def expect_add_certificate_to_listener(self, listener_arn, iam_cert_arn):
         self.stubber.add_response(
             "add_listener_certificates",

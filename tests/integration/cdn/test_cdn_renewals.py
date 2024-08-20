@@ -8,13 +8,15 @@ from broker.tasks.cron import scan_for_expiring_certs
 from broker.tasks.huey import huey
 from broker.tasks.letsencrypt import create_user, generate_private_key
 
-from tests.integration.cdn.test_cdn_provisioning import (
+from tests.lib.provision import (
     subtest_provision_initiates_LE_challenge,
     subtest_provision_updates_TXT_records,
-    subtest_provision_answers_challenges,
     subtest_provision_waits_for_route53_changes,
-    subtest_provision_uploads_certificate_to_iam,
+    subtest_provision_answers_challenges,
     subtest_provision_marks_operation_as_succeeded,
+)
+from tests.lib.cdn.provision import (
+    subtest_provision_uploads_certificate_to_iam,
 )
 from tests.lib.cdn.update import (
     subtest_update_creates_private_key_and_csr,

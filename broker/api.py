@@ -46,13 +46,22 @@ from broker.tasks.pipelines import (
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
+    queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation,
     queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation,
     queue_all_cdn_dedicated_waf_provision_tasks_for_operation,
+    queue_all_cdn_dedicated_waf_update_tasks_for_operation,
     queue_all_cdn_broker_migration_tasks_for_operation,
     queue_all_dedicated_alb_provision_tasks_for_operation,
     queue_all_dedicated_alb_update_tasks_for_operation,
     queue_all_domain_broker_migration_tasks_for_operation,
     queue_all_migration_deprovision_tasks_for_operation,
+)
+from broker.lib.utils import (
+    parse_cookie_options,
+    parse_header_options,
+    normalize_header_list,
+    parse_domain_options,
+    validate_domain_name_changes,
 )
 
 ALB_PLAN_ID = "6f60835c-8964-4f1f-a19a-579fb27ce694"
@@ -293,28 +302,41 @@ class API(ServiceBroker):
         if instance.has_active_operations():
             raise errors.ErrBadRequest("Instance has an active operation in progress")
 
-        domain_names = parse_domain_options(params)
-        noop = True
-        if domain_names is not None:
-            self.logger.info("validating CNAMEs")
-            validators.CNAME(domain_names).validate()
+        requested_domain_names = parse_domain_options(params)
+        domains_to_apply = validate_domain_name_changes(
+            requested_domain_names, instance
+        )
 
-            self.logger.info("validating unique domains")
-            validators.UniqueDomains(domain_names).validate(instance)
-            noop = noop and (sorted(domain_names) == sorted(instance.domain_names))
-            if is_cdn_instance(instance) and noop:
-                instance.new_certificate = instance.current_certificate
-            instance.domain_names = domain_names
+        has_domain_updates = len(domains_to_apply) > 0
+        if has_domain_updates:
+            instance.domain_names = domains_to_apply
 
+        if is_cdn_instance(instance) and not has_domain_updates:
+            self.logger.info("domains unchanged, no need for new certificate")
+            instance.new_certificate = instance.current_certificate
+
+        noop = not has_domain_updates
         if instance.instance_type == "cdn_service_instance":
             noop = False
 
-            if details.plan_id != CDN_PLAN_ID:
+            if details.plan_id == CDN_PLAN_ID:
+                instance = update_cdn_instance(params, instance)
+                queue = queue_all_cdn_update_tasks_for_operation
+            elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
+                queue = queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation
+
+                # update and commit any changes to the instance before changing its type,
+                # which will wipe out any pending changes on `instance`
+                instance = update_cdn_instance(params, instance)
+                db.session.add(instance)
+                db.session.commit()
+
+                instance = change_instance_type(
+                    instance, CDNDedicatedWAFServiceInstance, db.session
+                )
+                db.session.refresh(instance)
+            else:
                 raise ClientError("Updating service plan is not supported")
-
-            instance = update_cdn_instance(params, instance)
-
-            queue = queue_all_cdn_update_tasks_for_operation
         elif instance.instance_type == "cdn_dedicated_waf_service_instance":
             noop = False
 
@@ -323,7 +345,7 @@ class API(ServiceBroker):
 
             instance = update_cdn_instance(params, instance)
 
-            queue = queue_all_cdn_update_tasks_for_operation
+            queue = queue_all_cdn_dedicated_waf_update_tasks_for_operation
         elif instance.instance_type == "alb_service_instance":
             if details.plan_id == ALB_PLAN_ID:
                 queue = queue_all_alb_update_tasks_for_operation
@@ -365,6 +387,7 @@ class API(ServiceBroker):
                 queue = queue_all_domain_broker_migration_tasks_for_operation
             else:
                 raise ClientError("Updating to this service plan is not supported")
+
         if noop:
             return UpdateServiceSpec(False)
 
@@ -401,52 +424,6 @@ class API(ServiceBroker):
         **kwargs,
     ) -> UnbindSpec:
         pass
-
-
-def parse_cookie_options(params):
-    forward_cookies = params.get("forward_cookies", None)
-    if forward_cookies is not None:
-        forward_cookies = forward_cookies.replace(" ", "")
-        if forward_cookies == "":
-            forward_cookie_policy = CDNServiceInstance.ForwardCookiePolicy.NONE.value
-            forwarded_cookies = []
-        elif forward_cookies == "*":
-            forward_cookie_policy = CDNServiceInstance.ForwardCookiePolicy.ALL.value
-            forwarded_cookies = []
-        else:
-            forward_cookie_policy = (
-                CDNServiceInstance.ForwardCookiePolicy.WHITELIST.value
-            )
-            forwarded_cookies = forward_cookies.split(",")
-    else:
-        forward_cookie_policy = CDNServiceInstance.ForwardCookiePolicy.ALL.value
-        forwarded_cookies = []
-
-    return forward_cookie_policy, forwarded_cookies
-
-
-def parse_header_options(params):
-    forwarded_headers = params.get("forward_headers", None)
-    if forwarded_headers is None:
-        forwarded_headers = []
-    else:
-        forwarded_headers = forwarded_headers.replace(" ", "")
-        forwarded_headers = forwarded_headers.split(",")
-    validators.HeaderList(forwarded_headers).validate()
-    return forwarded_headers
-
-
-def normalize_header_list(headers):
-    headers = {header.upper() for header in headers}
-    return sorted(list(headers))
-
-
-def parse_domain_options(params):
-    domains = params.get("domains", None)
-    if isinstance(domains, str):
-        domains = domains.split(",")
-    if isinstance(domains, list):
-        return [d.strip().lower() for d in domains]
 
 
 def provision_cdn_instance(
