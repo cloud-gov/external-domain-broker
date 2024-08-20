@@ -44,7 +44,15 @@ def test_provision_happy_path(
     space_guid,
 ):
     subtest_provision_cdn_instance(
-        client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+        client,
+        dns,
+        tasks,
+        route53,
+        iam_commercial,
+        simple_regex,
+        cloudfront,
+        organization_guid,
+        space_guid,
     )
     instance_model = CDNServiceInstance
     subtest_update_happy_path(

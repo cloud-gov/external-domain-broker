@@ -23,11 +23,19 @@ from tests.lib.provision import (
 
 
 def subtest_provision_cdn_instance(
-    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+    client,
+    dns,
+    tasks,
+    route53,
+    iam_commercial,
+    simple_regex,
+    cloudfront,
+    organization_guid,
+    space_guid,
 ):
     instance_model = CDNServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
-        client, dns, instance_model
+        client, dns, organization_guid, space_guid, instance_model
     )
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_provision_creates_LE_user(tasks, instance_model)
@@ -267,6 +275,7 @@ def subtest_provision_creates_cloudfront_distribution(
     assert service_instance.new_certificate is None
     assert service_instance.current_certificate is not None
     assert service_instance.current_certificate.id == id_
+    assert service_instance.tags is not None
 
 
 def subtest_provision_waits_for_cloudfront_distribution(
