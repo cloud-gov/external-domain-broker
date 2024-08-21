@@ -14,10 +14,6 @@ def get_uaa_access_token():
         ),
         timeout=config.REQUEST_TIMEOUT,
     )
-    try:
-        r.raise_for_status()
-    except:
-        return "Unexpected error", 500
-
+    r.raise_for_status()
     response = r.json()
     return response["access_token"]

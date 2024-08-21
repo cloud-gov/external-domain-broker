@@ -1,4 +1,5 @@
 import pytest
+import json
 import uuid
 import requests_mock
 
@@ -22,12 +23,7 @@ def access_token():
 
 def test_gets_space_name(space_guid, access_token):
     with requests_mock.Mocker() as m:
-        response = """
-  {
-    "guid": "{space_guid}",
-    "name": "foobar-space"
-  }
-    """
+        response = json.dumps({"guid": space_guid, "name": "foobar-space"})
         m.get(
             f"http://mock.cf/v3/spaces/{space_guid}",
             text=response,
@@ -40,12 +36,7 @@ def test_gets_space_name(space_guid, access_token):
 
 def test_gets_org_name(organization_guid, access_token):
     with requests_mock.Mocker() as m:
-        response = """
-  {
-    "guid": "{organization_guid}",
-    "name": "org-1234"
-  }
-    """
+        response = json.dumps({"guid": organization_guid, "name": "org-1234"})
         m.get(
             f"http://mock.cf/v3/organizations/{organization_guid}",
             text=response,

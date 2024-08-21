@@ -9,6 +9,7 @@ def get_space_name_by_guid(space_guid, access_token):
         s.headers["Authorization"] = f"Bearer {access_token}"
         url = urljoin(config.CF_API_URL, f"v3/spaces/{space_guid}")
         response = s.get(url)
+        response.raise_for_status()
         data = response.json()
         return data["name"]
 
@@ -18,5 +19,6 @@ def get_org_name_by_guid(organization_guid, access_token):
         s.headers["Authorization"] = f"Bearer {access_token}"
         url = urljoin(config.CF_API_URL, f"v3/organizations/{organization_guid}")
         response = s.get(url)
+        response.raise_for_status()
         data = response.json()
         return data["name"]
