@@ -342,15 +342,11 @@ def _create_health_checks(
     health_check_domains_to_create,
     existing_health_checks,
 ):
-    tags = service_instance.tags if service_instance.tags else {}
-    # tag structure for change_tags_for_resource does not expect "Items"
-    health_check_tags = tags.get("Items", [])
+    tags = service_instance.tags if service_instance.tags else []
 
     updated_health_checks = existing_health_checks
     for domain_name in health_check_domains_to_create:
-        health_check_id = _create_health_check(
-            service_instance.id, domain_name, health_check_tags
-        )
+        health_check_id = _create_health_check(service_instance.id, domain_name, tags)
         updated_health_checks.append(
             {
                 "domain_name": domain_name,
@@ -360,7 +356,7 @@ def _create_health_checks(
     return updated_health_checks
 
 
-def _create_health_check(service_instance_id, domain_name, health_check_tags):
+def _create_health_check(service_instance_id, domain_name, tags):
     logger.info(f"Creating Route53 health check for {domain_name}")
     route53_response = route53.create_health_check(
         CallerReference=f"create_health_check-{service_instance_id}-{domain_name}",
@@ -371,11 +367,11 @@ def _create_health_check(service_instance_id, domain_name, health_check_tags):
     )
     health_check_id = route53_response["HealthCheck"]["Id"]
     logger.info(f"Saving Route53 health check ID: {health_check_id}")
-    if len(health_check_tags) > 0:
+    if len(tags) > 0:
         route53.change_tags_for_resource(
             ResourceType="healthcheck",
             ResourceId=health_check_id,
-            AddTags=health_check_tags,
+            AddTags=tags,
         )
     return health_check_id
 

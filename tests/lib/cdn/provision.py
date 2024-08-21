@@ -147,18 +147,16 @@ def subtest_provision_creates_provision_operation(
         service_plan_name = "domain-with-cdn"
     elif instance_model == CDNDedicatedWAFServiceInstance:
         service_plan_name = "domain-with-cdn-dedicated-waf"
-    assert instance.tags == {
-        "Items": [
-            {"Key": "client", "Value": "Cloud Foundry"},
-            {"Key": "broker", "Value": "External domain broker"},
-            {"Key": "environment", "Value": "test"},
-            {"Key": "Service offering name", "Value": "external-domain"},
-            {"Key": "Service plan name", "Value": service_plan_name},
-            {"Key": "Instance GUID", "Value": "4321"},
-            {"Key": "Organization GUID", "Value": organization_guid},
-            {"Key": "Space GUID", "Value": space_guid},
-        ]
-    }
+    assert instance.tags == [
+        {"Key": "client", "Value": "Cloud Foundry"},
+        {"Key": "broker", "Value": "External domain broker"},
+        {"Key": "environment", "Value": "test"},
+        {"Key": "Service offering name", "Value": "external-domain"},
+        {"Key": "Service plan name", "Value": service_plan_name},
+        {"Key": "Instance GUID", "Value": "4321"},
+        {"Key": "Organization GUID", "Value": organization_guid},
+        {"Key": "Space GUID", "Value": space_guid},
+    ]
 
     client.get_last_operation("4321", operation_id)
     assert "description" in client.response.json

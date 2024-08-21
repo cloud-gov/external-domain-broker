@@ -25,7 +25,7 @@ class FakeCloudFront(FakeAWS):
         bucket_prefix: str = "",
         custom_error_responses: dict = None,
         dedicated_waf_web_acl_arn: str = "",
-        tags: dict = {},
+        tags: list[str] = [],
     ):
         if custom_error_responses is None:
             custom_error_responses = {"Quantity": 0}
@@ -457,7 +457,7 @@ class FakeCloudFront(FakeAWS):
         include_le_bucket: bool = False,
         include_log_bucket: bool = True,
         dedicated_waf_web_acl_arn: str = "",
-        tags: dict = {},
+        tags: list[str] = [],
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -597,7 +597,9 @@ class FakeCloudFront(FakeAWS):
 
         distribution_config_with_tags = {
             "DistributionConfig": distribution_config,
-            "Tags": tags,
+            "Tags": {
+                "Items": tags,
+            },
         }
         return distribution_config_with_tags
 

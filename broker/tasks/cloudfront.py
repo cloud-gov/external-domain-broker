@@ -154,7 +154,7 @@ def create_distribution(operation_id: int, **kwargs):
         "IsIPV6Enabled": True,
     }
 
-    tags = service_instance.tags if service_instance.tags else {}
+    tags = service_instance.tags if service_instance.tags else []
 
     if (
         isinstance(service_instance, CDNDedicatedWAFServiceInstance)
@@ -165,7 +165,9 @@ def create_distribution(operation_id: int, **kwargs):
 
     distribution_config_with_tags = {
         "DistributionConfig": distribution_config,
-        "Tags": tags,
+        "Tags": {
+            "Items": tags,
+        },
     }
 
     response = cloudfront.create_distribution_with_tags(

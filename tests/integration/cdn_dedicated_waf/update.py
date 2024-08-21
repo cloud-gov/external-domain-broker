@@ -17,7 +17,7 @@ def subtest_updates_health_checks(
     service_instance = db.session.get(instance_model, service_instance_id)
 
     route53.expect_create_health_check(service_instance.id, "bar.com")
-    route53.expect_change_tags_for_resource("bar.com", service_instance.tags["Items"])
+    route53.expect_change_tags_for_resource("bar.com", service_instance.tags)
 
     delete_health_check = [
         check

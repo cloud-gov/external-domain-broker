@@ -15,11 +15,10 @@ class Action(Enum):
     UPDATE = "Update"
 
 
-def add_tag(tags, tag_key: str, tag_value: str):
+def add_tag(tags: list[str], tag_key: str, tag_value: str):
     if not tags:
-        tags = {}
-    tags["Items"] = tags.get("Items", [])
-    tags["Items"].append(
+        tags = []
+    tags.append(
         {
             "Key": tag_key,
             "Value": tag_value,
@@ -46,7 +45,7 @@ def generate_instance_tags(
 
 
 def create_resource_tags(tags: typing.Dict[str, str]):
-    resource_tags = {}
+    resource_tags = []
     for tag_key in tags:
         tag_value = tags[tag_key]
         resource_tags = add_tag(resource_tags, tag_key, tag_value)
