@@ -17,6 +17,14 @@ dedicated-plan-visibility-params: &dedicated-plan-visibility-params
   AUTH_PASS: ((broker-auth-password))
   SERVICES: external-domain:domain-with-org-lb
 
+cdn-dedicated-waf-plan-visibility-params: &cdn-dedicated-waf-plan-visibility-params
+  CF_ORGANIZATION: ((broker-organization))
+  CF_SPACE: ((broker-space))
+  BROKER_NAME: ((name))
+  AUTH_USER: ((broker-auth-username))
+  AUTH_PASS: ((broker-auth-password))
+  SERVICES: external-domain:domain-with-cdn-dedicated-waf
+
 cf-creds-dev: &cf-creds-dev
   CF_API_URL: ((dev-cf-api-url))
   CF_USERNAME: ((dev-cf-username))
@@ -146,13 +154,12 @@ cf-manifest-env-production: &cf-manifest-env-production
     CDN_LOG_BUCKET: ((production-log-bucket))
     WAF_RATE_LIMIT_RULE_GROUP_ARN: ((waf-rate-limit-rule-group-arn))
 
-acceptance-tests-params-staging-dedicated: &acceptance-tests-params-staging-dedicated
+acceptance-tests-staging-params: &acceptance-tests-staging-params
   CF_API_URL: ((staging-cf-api-url))
   CF_USERNAME: ((staging-cf-username))
   CF_PASSWORD: ((staging-cf-password))
   CF_ORGANIZATION: ((acceptance-tests-organization))
   CF_SPACE: ((acceptance-tests-space))
-  PLAN_NAME: "domain-with-org-lb"
   SERVICE_NAME: "external-domain"
   DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
   HOSTED_ZONE_ID_0: ((staging-test-hosted-zone-id-2))
@@ -163,47 +170,12 @@ acceptance-tests-params-staging-dedicated: &acceptance-tests-params-staging-dedi
   AWS_SECRET_ACCESS_KEY: ((staging-test-user-aws-secret-access-key))
   AWS_REGION: ((staging-aws-commercial-region))
 
-acceptance-tests-params-staging-alb: &acceptance-tests-params-staging-alb
-  CF_API_URL: ((staging-cf-api-url))
-  CF_USERNAME: ((staging-cf-username))
-  CF_PASSWORD: ((staging-cf-password))
-  CF_ORGANIZATION: ((acceptance-tests-organization))
-  CF_SPACE: ((acceptance-tests-space))
-  PLAN_NAME: "domain"
-  SERVICE_NAME: "external-domain"
-  DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
-  HOSTED_ZONE_ID_0: ((staging-test-hosted-zone-id-2))
-  TEST_DOMAIN_0: ((staging-test-domain-2))
-  HOSTED_ZONE_ID_1: ((staging-test-hosted-zone-id-3))
-  TEST_DOMAIN_1: ((staging-test-domain-3))
-  AWS_ACCESS_KEY_ID: ((staging-test-user-aws-access-key-id))
-  AWS_SECRET_ACCESS_KEY: ((staging-test-user-aws-secret-access-key))
-  AWS_REGION: ((staging-aws-commercial-region))
-
-acceptance-tests-params-staging-cdn: &acceptance-tests-params-staging-cdn
-  CF_API_URL: ((staging-cf-api-url))
-  CF_USERNAME: ((staging-cf-username))
-  CF_PASSWORD: ((staging-cf-password))
-  CF_ORGANIZATION: ((acceptance-tests-organization))
-  CF_SPACE: ((acceptance-tests-space))
-  PLAN_NAME: "domain-with-cdn"
-  SERVICE_NAME: "external-domain"
-  DNS_ROOT_DOMAIN: ((staging-dns-root-domain))
-  HOSTED_ZONE_ID_0: ((staging-test-hosted-zone-id-0))
-  TEST_DOMAIN_0: ((staging-test-domain-0))
-  HOSTED_ZONE_ID_1: ((staging-test-hosted-zone-id-1))
-  TEST_DOMAIN_1: ((staging-test-domain-1))
-  AWS_ACCESS_KEY_ID: ((staging-test-user-aws-access-key-id))
-  AWS_SECRET_ACCESS_KEY: ((staging-test-user-aws-secret-access-key))
-  AWS_REGION: ((staging-aws-commercial-region))
-
-acceptance-tests-params-production-cdn: &acceptance-tests-params-production-cdn
+acceptance-tests-production-params: &acceptance-tests-production-params
   CF_API_URL: ((production-cf-api-url))
   CF_USERNAME: ((production-cf-username))
   CF_PASSWORD: ((production-cf-password))
   CF_ORGANIZATION: ((acceptance-tests-organization))
   CF_SPACE: ((acceptance-tests-space))
-  PLAN_NAME: "domain-with-cdn"
   SERVICE_NAME: "external-domain"
   DNS_ROOT_DOMAIN: ((production-dns-root-domain))
   AWS_ACCESS_KEY_ID: ((production-test-user-aws-access-key-id))
@@ -213,40 +185,6 @@ acceptance-tests-params-production-cdn: &acceptance-tests-params-production-cdn
   TEST_DOMAIN_0: ((production-test-domain-0))
   HOSTED_ZONE_ID_1: ((production-test-hosted-zone-id-1))
   TEST_DOMAIN_1: ((production-test-domain-1))
-
-acceptance-tests-params-production-alb: &acceptance-tests-params-production-alb
-  CF_API_URL: ((production-cf-api-url))
-  CF_USERNAME: ((production-cf-username))
-  CF_PASSWORD: ((production-cf-password))
-  CF_ORGANIZATION: ((acceptance-tests-organization))
-  CF_SPACE: ((acceptance-tests-space))
-  PLAN_NAME: "domain"
-  SERVICE_NAME: "external-domain"
-  DNS_ROOT_DOMAIN: ((production-dns-root-domain))
-  AWS_ACCESS_KEY_ID: ((production-test-user-aws-access-key-id))
-  AWS_SECRET_ACCESS_KEY: ((production-test-user-aws-secret-access-key))
-  AWS_REGION: ((production-aws-commercial-region))
-  HOSTED_ZONE_ID_0: ((production-test-hosted-zone-id-2))
-  TEST_DOMAIN_0: ((production-test-domain-2))
-  HOSTED_ZONE_ID_1: ((production-test-hosted-zone-id-3))
-  TEST_DOMAIN_1: ((production-test-domain-3))
-
-acceptance-tests-params-production-dedicated: &acceptance-tests-params-production-dedicated
-  CF_API_URL: ((production-cf-api-url))
-  CF_USERNAME: ((production-cf-username))
-  CF_PASSWORD: ((production-cf-password))
-  CF_ORGANIZATION: ((acceptance-tests-organization))
-  CF_SPACE: ((acceptance-tests-space))
-  PLAN_NAME: "domain-with-org-lb"
-  SERVICE_NAME: "external-domain"
-  DNS_ROOT_DOMAIN: ((production-dns-root-domain))
-  AWS_ACCESS_KEY_ID: ((production-test-user-aws-access-key-id))
-  AWS_SECRET_ACCESS_KEY: ((production-test-user-aws-secret-access-key))
-  AWS_REGION: ((production-aws-commercial-region))
-  HOSTED_ZONE_ID_0: ((production-test-hosted-zone-id-2))
-  TEST_DOMAIN_0: ((production-test-domain-2))
-  HOSTED_ZONE_ID_1: ((production-test-hosted-zone-id-3))
-  TEST_DOMAIN_1: ((production-test-domain-3))
 
 ############################
 #  GROUPS
@@ -337,13 +275,11 @@ jobs:
     - task: create-postgres
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-dev
-        <<: *create-postgres-service-params
+        <<: [*cf-creds-dev, *create-postgres-service-params]
     - task: create-redis
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-dev
-        <<: *create-redis-service-params
+        <<: [*cf-creds-dev, *create-redis-service-params]
   - task: stop-apps
     file: src/ci/stop-apps.yml
     image: general-task
@@ -355,33 +291,28 @@ jobs:
     image: general-task
     params:
       DATABASE_ENCRYPTION_KEY: ((dev-db-encryption-key))
-      <<: *cf-creds-dev
-      <<: *upgrade-schema-vars
+      <<: [*cf-creds-dev, *upgrade-schema-vars]
   - in_parallel:
     - put: cf-dev
       params:
         path: src
         manifest: src/manifests/app.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-dev
+        <<: [*cf-manifest-vars, *cf-manifest-env-dev]
     - put: cf-dev
       params:
         path: src
         manifest: src/manifests/workers.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-dev
+        <<: [*cf-manifest-vars, *cf-manifest-env-dev]
   - task: register-broker
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-dev
-      <<: *broker-register-params
+      <<: [*cf-creds-dev, *broker-register-params]
   - task: register-broker-dedicated
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-dev
-      <<: *dedicated-plan-visibility-params
+      <<: [*cf-creds-dev, *dedicated-plan-visibility-params]
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((dev-dedicated-alb-org-names))
   on_failure:
@@ -413,13 +344,11 @@ jobs:
     - task: create-postgres
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-staging
-        <<: *create-postgres-service-params
+        <<: [*cf-creds-staging, *create-postgres-service-params]
     - task: create-redis
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-staging
-        <<: *create-redis-service-params
+        <<: [*cf-creds-staging, *create-redis-service-params]
   - task: stop-apps
     image: general-task
     file: src/ci/stop-apps.yml
@@ -431,35 +360,36 @@ jobs:
     file: src/ci/upgrade-schema.yml
     params:
       DATABASE_ENCRYPTION_KEY: ((staging-db-encryption-key))
-      <<: *cf-creds-staging
-      <<: *upgrade-schema-vars
+      <<: [*cf-creds-staging, *upgrade-schema-vars]
   - in_parallel:
     - put: cf-staging
       params:
         path: src
         manifest: src/manifests/app.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-staging
+        <<: [*cf-manifest-vars, *cf-manifest-env-staging]
     - put: cf-staging
       params:
         path: src
         manifest: src/manifests/workers.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-staging
+        <<: [*cf-manifest-vars, *cf-manifest-env-staging]
   - task: register-broker
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-staging
-      <<: *broker-register-params
+      <<: [*cf-creds-staging, *broker-register-params]
   - task: register-broker-dedicated
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-staging
-      <<: *dedicated-plan-visibility-params
+      <<: [*cf-creds-staging, *dedicated-plan-visibility-params]
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((staging-dedicated-alb-org-names))
+  - task: register-broker-cdn-dedicated-waf
+    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
+    params:
+      <<: [*cf-creds-staging, *cdn-dedicated-waf-plan-visibility-params]
+      # space-separated list of org names that should have the dedicated alb plan
+      SERVICE_ORGANIZATION: ((staging-cdn-dedicated-waf-plan-org-names))
   on_failure:
     put: slack
     params:
@@ -496,7 +426,12 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *acceptance-tests-params-staging-cdn
+          <<: *acceptance-tests-staging-params
+          PLAN_NAME: "domain-with-cdn"
+          HOSTED_ZONE_ID_0: ((staging-test-hosted-zone-id-0))
+          TEST_DOMAIN_0: ((staging-test-domain-0))
+          HOSTED_ZONE_ID_1: ((staging-test-hosted-zone-id-1))
+          TEST_DOMAIN_1: ((staging-test-domain-1))
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
@@ -505,7 +440,8 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *acceptance-tests-params-staging-alb
+          <<: *acceptance-tests-staging-params
+          PLAN_NAME: "domain"
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-dedicated
@@ -514,7 +450,22 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *acceptance-tests-params-staging-dedicated
+          <<: *acceptance-tests-staging-params
+          PLAN_NAME: "domain-with-org-lb"
+        run:
+          path: /app/acceptance/run.sh
+    - task: acceptance-cdn-dedicated-waf
+      image: dev-docker-image
+      timeout: 6h
+      config:
+        platform: linux
+        params:
+          <<: *acceptance-tests-staging-params
+          PLAN_NAME: "domain-with-cdn-dedicated-waf"
+          HOSTED_ZONE_ID_0: ((staging-test-hosted-zone-id-0))
+          TEST_DOMAIN_0: ((staging-test-domain-0))
+          HOSTED_ZONE_ID_1: ((staging-test-hosted-zone-id-1))
+          TEST_DOMAIN_1: ((staging-test-domain-1))
         run:
           path: /app/acceptance/run.sh
   on_failure:
@@ -532,7 +483,6 @@ jobs:
         :white_check_mark: Acceptance tests for external-domain-broker PASSED in staging
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
 
-
 - name: production
   serial_groups: [production]
   plan:
@@ -547,13 +497,11 @@ jobs:
     - task: create-postgres
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-production
-        <<: *create-postgres-service-params
+        <<: [*cf-creds-production, *create-postgres-service-params]
     - task: create-redis
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-production
-        <<: *create-redis-service-params
+        <<: [*cf-creds-production, *create-redis-service-params]
   - task: stop-apps
     file: src/ci/stop-apps.yml
     image: general-task
@@ -565,35 +513,36 @@ jobs:
     image: general-task
     params:
       DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
-      <<: *cf-creds-production
-      <<: *upgrade-schema-vars
+      <<: [*cf-creds-production, *upgrade-schema-vars]
   - in_parallel:
     - put: cf-production
       params:
         path: src
         manifest: src/manifests/app.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-production
+        <<: [*cf-manifest-vars, *cf-manifest-env-production]
     - put: cf-production
       params:
         path: src
         manifest: src/manifests/workers.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-production
+        <<: [*cf-manifest-vars, *cf-manifest-env-production]
   - task: register-broker
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-production
-      <<: *broker-register-params
+      <<: [*cf-creds-production, *broker-register-params]
   - task: register-broker-dedicated
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-production
-      <<: *dedicated-plan-visibility-params
+      <<: [*cf-creds-production, *dedicated-plan-visibility-params]
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((production-dedicated-alb-org-names))
+  - task: register-broker-cdn-dedicated-waf
+    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
+    params:
+      <<: [*cf-creds-staging, *cdn-dedicated-waf-plan-visibility-params]
+      # space-separated list of org names that should have the dedicated alb plan
+      SERVICE_ORGANIZATION: ((production-cdn-dedicated-waf-plan-org-names))
   on_failure:
     put: slack
     params:
@@ -608,7 +557,6 @@ jobs:
       text: |
         :white_check_mark: Successfully deployed external-domain-broker on production
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-
 
 - name: production-acceptance-tests
   serial_groups: [production]
@@ -630,7 +578,8 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *acceptance-tests-params-production-cdn
+          <<: *acceptance-tests-production-params
+          PLAN_NAME: "domain-with-cdn"
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
@@ -639,7 +588,12 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *acceptance-tests-params-production-alb
+          <<: *acceptance-tests-production-params
+          PLAN_NAME: "domain"
+          HOSTED_ZONE_ID_0: ((production-test-hosted-zone-id-2))
+          TEST_DOMAIN_0: ((production-test-domain-2))
+          HOSTED_ZONE_ID_1: ((production-test-hosted-zone-id-3))
+          TEST_DOMAIN_1: ((production-test-domain-3))
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-dedicated
@@ -648,7 +602,22 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *acceptance-tests-params-production-dedicated
+          <<: *acceptance-tests-production-params
+          PLAN_NAME: "domain-with-org-lb"
+          HOSTED_ZONE_ID_0: ((production-test-hosted-zone-id-2))
+          TEST_DOMAIN_0: ((production-test-domain-2))
+          HOSTED_ZONE_ID_1: ((production-test-hosted-zone-id-3))
+          TEST_DOMAIN_1: ((production-test-domain-3))
+        run:
+          path: /app/acceptance/run.sh
+    - task: acceptance-cdn-dedicated-waf
+      image: dev-docker-image
+      timeout: 6h
+      config:
+        platform: linux
+        params:
+          <<: *acceptance-tests-production-params
+          PLAN_NAME: "domain-with-cdn-dedicated-waf"
         run:
           path: /app/acceptance/run.sh
   on_failure:
