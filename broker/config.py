@@ -120,6 +120,10 @@ class AppConfig(Config):
         # in seconds
         self.DELETE_WEB_ACL_WAIT_RETRY_TIME = 5
 
+        self.UAA_TOKEN_URL = self.env("UAA_TOKEN_URL")
+        self.UAA_CLIENT_ID = self.env("UAA_CLIENT_ID")
+        self.UAA_CLIENT_SECRET = self.env("UAA_CLIENT_SECRET")
+
 
 class ProductionConfig(AppConfig):
     def __init__(self):
