@@ -19,15 +19,17 @@ def access_token():
 def test_gets_access_token(access_token):
     with requests_mock.Mocker() as m:
         response = json.dumps({"access_token": access_token})
-        basic_auth = requests.auth._basic_auth_str(
-            config.UAA_CLIENT_ID, config.UAA_CLIENT_SECRET
+        basic_auth = bytes.decode(
+            base64.b64encode(
+                bytes(f"{config.UAA_CLIENT_ID}:{config.UAA_CLIENT_SECRET}", "utf-8")
+            )
         )
 
         m.post(
             f"http://mock.uaa/token",
             text=response,
             request_headers={
-                "Authorization": basic_auth,
+                "Authorization": f"Basic {basic_auth}",
             },
         )
 
