@@ -59,6 +59,9 @@ class Config:
 
         self.DEDICATED_WAF_NAME_PREFIX = f"cg-external-domains-{self.FLASK_ENV}"
 
+        # see https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+        self.REQUEST_TIMEOUT = 30
+
 
 class AppConfig(Config):
     """Base class for apps running in Cloud Foundry"""
@@ -120,7 +123,13 @@ class AppConfig(Config):
         # in seconds
         self.DELETE_WEB_ACL_WAIT_RETRY_TIME = 5
 
-        self.UAA_TOKEN_URL = self.env("UAA_TOKEN_URL")
+        self.CF_API_URL = self.env("CF_API_URL")
+
+        self.UAA_BASE_URL = self.env("UAA_BASE_URL")
+        if self.UAA_BASE_URL[-1] != "/":
+            self.UAA_BASE_URL = f"{self.UAA_BASE_URL}/"
+        self.UAA_TOKEN_URL = f"{self.UAA_BASE_URL}oauth/token"
+
         self.UAA_CLIENT_ID = self.env("UAA_CLIENT_ID")
         self.UAA_CLIENT_SECRET = self.env("UAA_CLIENT_SECRET")
 
@@ -241,6 +250,11 @@ class DockerConfig(Config):
         self.SMTP_PASS = None
 
         self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "rate-limit-rule-group-fake-arn"
+
+        self.CF_API_URL = "http://mock.cf/"
+        self.UAA_TOKEN_URL = "http://mock.uaa/token"
+        self.UAA_CLIENT_ID = "EXAMPLE"
+        self.UAA_CLIENT_SECRET = "example"
 
 
 class LocalDevelopmentConfig(DockerConfig):
