@@ -354,14 +354,19 @@ class CFAPIClient(FlaskClient):
         )
 
     def update_dedicated_alb_instance(
-        self, id: str, accepts_incomplete: str = "true", params: dict = None
+        self,
+        id: str,
+        accepts_incomplete: str = "true",
+        params: dict = None,
+        organization_guid: str = "our-org",
+        space_guid: str = "123",
     ):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "fcde69c6-077b-4edd-8d12-7b95bbc2595f",
             "context": {
-                "organization_guid": "our-org",
-                "space_guid": "123",
+                "organization_guid": organization_guid,
+                "space_guid": space_guid,
             },
         }
 
