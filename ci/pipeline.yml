@@ -17,6 +17,14 @@ dedicated-plan-visibility-params: &dedicated-plan-visibility-params
   AUTH_PASS: ((broker-auth-password))
   SERVICES: external-domain:domain-with-org-lb
 
+cdn-dedicated-waf-plan-visibility-params: &cdn-dedicated-waf-plan-visibility-params
+  CF_ORGANIZATION: ((broker-organization))
+  CF_SPACE: ((broker-space))
+  BROKER_NAME: ((name))
+  AUTH_USER: ((broker-auth-username))
+  AUTH_PASS: ((broker-auth-password))
+  SERVICES: external-domain:domain-with-cdn-dedicated-waf
+
 cf-creds-dev: &cf-creds-dev
   CF_API_URL: ((dev-cf-api-url))
   CF_USERNAME: ((dev-cf-username))
@@ -460,6 +468,13 @@ jobs:
       <<: *dedicated-plan-visibility-params
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((staging-dedicated-alb-org-names))
+  - task: register-broker-cdn-dedicated-waf
+    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
+    params:
+      <<: *cf-creds-staging
+      <<: *cdn-dedicated-waf-plan-visibility-params
+      # space-separated list of org names that should have the dedicated alb plan
+      SERVICE_ORGANIZATION: ((staging-cdn-dedicated-waf-plan-org-names))
   on_failure:
     put: slack
     params:
@@ -594,6 +609,13 @@ jobs:
       <<: *dedicated-plan-visibility-params
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((production-dedicated-alb-org-names))
+  - task: register-broker-cdn-dedicated-waf
+    file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
+    params:
+      <<: *cf-creds-staging
+      <<: *cdn-dedicated-waf-plan-visibility-params
+      # space-separated list of org names that should have the dedicated alb plan
+      SERVICE_ORGANIZATION: ((production-cdn-dedicated-waf-plan-org-names))
   on_failure:
     put: slack
     params:
