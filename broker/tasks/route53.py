@@ -245,7 +245,7 @@ def create_health_checks(operation_id: int, **kwargs):
     logger.info(f'Creating health check(s) for "{service_instance.domain_names}"')
 
     updated_health_checks = _create_health_checks(
-        service_instance.id,
+        service_instance,
         service_instance.domain_names,
         service_instance.route53_health_checks,
     )
@@ -292,7 +292,7 @@ def update_health_checks(operation_id: int, **kwargs):
 
     if len(health_check_domains_to_create) > 0:
         updated_health_checks = _create_health_checks(
-            service_instance.id,
+            service_instance,
             health_check_domains_to_create,
             updated_health_checks,
         )
@@ -338,11 +338,19 @@ def delete_health_checks(operation_id: int, **kwargs):
 
 
 def _create_health_checks(
-    service_instance_id, health_check_domains_to_create, existing_health_checks
+    service_instance,
+    health_check_domains_to_create,
+    existing_health_checks,
 ):
+    tags = service_instance.tags if service_instance.tags else {}
+    # tag structure for change_tags_for_resource does not expect "Items"
+    health_check_tags = tags.get("Items", [])
+
     updated_health_checks = existing_health_checks
     for domain_name in health_check_domains_to_create:
-        health_check_id = _create_health_check(service_instance_id, domain_name)
+        health_check_id = _create_health_check(
+            service_instance.id, domain_name, health_check_tags
+        )
         updated_health_checks.append(
             {
                 "domain_name": domain_name,
@@ -352,7 +360,7 @@ def _create_health_checks(
     return updated_health_checks
 
 
-def _create_health_check(service_instance_id, domain_name):
+def _create_health_check(service_instance_id, domain_name, health_check_tags):
     logger.info(f"Creating Route53 health check for {domain_name}")
     route53_response = route53.create_health_check(
         CallerReference=f"create_health_check-{service_instance_id}-{domain_name}",
@@ -363,13 +371,12 @@ def _create_health_check(service_instance_id, domain_name):
     )
     health_check_id = route53_response["HealthCheck"]["Id"]
     logger.info(f"Saving Route53 health check ID: {health_check_id}")
-    route53.change_tags_for_resource(
-        ResourceType="healthcheck",
-        ResourceId=health_check_id,
-        AddTags=[
-            {"Key": "broker", "Value": "External domain broker"},
-        ],
-    )
+    if len(health_check_tags) > 0:
+        route53.change_tags_for_resource(
+            ResourceType="healthcheck",
+            ResourceId=health_check_id,
+            AddTags=health_check_tags,
+        )
     return health_check_id
 
 

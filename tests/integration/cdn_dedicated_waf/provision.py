@@ -50,7 +50,9 @@ def subtest_provision_creates_health_checks(
 
     for domain_name in service_instance.domain_names:
         route53.expect_create_health_check(service_instance.id, domain_name)
-        route53.expect_change_tags_for_resource(domain_name)
+        route53.expect_change_tags_for_resource(
+            domain_name, service_instance.tags["Items"]
+        )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
