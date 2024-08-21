@@ -1,4 +1,5 @@
 import pytest  # noqa F401
+import uuid
 
 from broker.models import (
     CDNDedicatedWAFServiceInstance,
