@@ -275,13 +275,11 @@ jobs:
     - task: create-postgres
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-dev
-        <<: *create-postgres-service-params
+        <<: [*cf-creds-dev, *create-postgres-service-params]
     - task: create-redis
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-dev
-        <<: *create-redis-service-params
+        <<: [*cf-creds-dev, *create-redis-service-params]
   - task: stop-apps
     file: src/ci/stop-apps.yml
     image: general-task
@@ -293,33 +291,28 @@ jobs:
     image: general-task
     params:
       DATABASE_ENCRYPTION_KEY: ((dev-db-encryption-key))
-      <<: *cf-creds-dev
-      <<: *upgrade-schema-vars
+      <<: [*cf-creds-dev, *upgrade-schema-vars]
   - in_parallel:
     - put: cf-dev
       params:
         path: src
         manifest: src/manifests/app.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-dev
+        <<: [*cf-manifest-vars, *cf-manifest-env-dev]
     - put: cf-dev
       params:
         path: src
         manifest: src/manifests/workers.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-dev
+        <<: [*cf-manifest-vars, *cf-manifest-env-dev]
   - task: register-broker
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-dev
-      <<: *broker-register-params
+      <<: [*cf-creds-dev, *broker-register-params]
   - task: register-broker-dedicated
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-dev
-      <<: *dedicated-plan-visibility-params
+      <<: [*cf-creds-dev, *dedicated-plan-visibility-params]
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((dev-dedicated-alb-org-names))
   on_failure:
@@ -351,13 +344,11 @@ jobs:
     - task: create-postgres
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-staging
-        <<: *create-postgres-service-params
+        <<: [*cf-creds-staging, *create-postgres-service-params]
     - task: create-redis
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-staging
-        <<: *create-redis-service-params
+        <<: [*cf-creds-staging, *create-redis-service-params]
   - task: stop-apps
     image: general-task
     file: src/ci/stop-apps.yml
@@ -369,40 +360,34 @@ jobs:
     file: src/ci/upgrade-schema.yml
     params:
       DATABASE_ENCRYPTION_KEY: ((staging-db-encryption-key))
-      <<: *cf-creds-staging
-      <<: *upgrade-schema-vars
+      <<: [*cf-creds-staging, *upgrade-schema-vars]
   - in_parallel:
     - put: cf-staging
       params:
         path: src
         manifest: src/manifests/app.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-staging
+        <<: [*cf-manifest-vars, *cf-manifest-env-staging]
     - put: cf-staging
       params:
         path: src
         manifest: src/manifests/workers.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-staging
+        <<: [*cf-manifest-vars, *cf-manifest-env-staging]
   - task: register-broker
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-staging
-      <<: *broker-register-params
+      <<: [*cf-creds-staging, *broker-register-params]
   - task: register-broker-dedicated
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-staging
-      <<: *dedicated-plan-visibility-params
+      <<: [*cf-creds-staging, *dedicated-plan-visibility-params]
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((staging-dedicated-alb-org-names))
   - task: register-broker-cdn-dedicated-waf
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-staging
-      <<: *cdn-dedicated-waf-plan-visibility-params
+      <<: [*cf-creds-staging, *cdn-dedicated-waf-plan-visibility-params]
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((staging-cdn-dedicated-waf-plan-org-names))
   on_failure:
@@ -504,13 +489,11 @@ jobs:
     - task: create-postgres
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-production
-        <<: *create-postgres-service-params
+        <<: [*cf-creds-production, *create-postgres-service-params]
     - task: create-redis
       file: pipeline-tasks/ensure-misbehaved-service.yml
       params:
-        <<: *cf-creds-production
-        <<: *create-redis-service-params
+        <<: [*cf-creds-production, *create-redis-service-params]
   - task: stop-apps
     file: src/ci/stop-apps.yml
     image: general-task
@@ -522,40 +505,34 @@ jobs:
     image: general-task
     params:
       DATABASE_ENCRYPTION_KEY: ((production-db-encryption-key))
-      <<: *cf-creds-production
-      <<: *upgrade-schema-vars
+      <<: [*cf-creds-production, *upgrade-schema-vars]
   - in_parallel:
     - put: cf-production
       params:
         path: src
         manifest: src/manifests/app.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-production
+        <<: [*cf-manifest-vars, *cf-manifest-env-production]
     - put: cf-production
       params:
         path: src
         manifest: src/manifests/workers.yml
         show_app_log: true
-        <<: *cf-manifest-vars
-        <<: *cf-manifest-env-production
+        <<: [*cf-manifest-vars, *cf-manifest-env-production]
   - task: register-broker
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-production
-      <<: *broker-register-params
+      <<: [*cf-creds-production, *broker-register-params]
   - task: register-broker-dedicated
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-production
-      <<: *dedicated-plan-visibility-params
+      <<: [*cf-creds-production, *dedicated-plan-visibility-params]
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((production-dedicated-alb-org-names))
   - task: register-broker-cdn-dedicated-waf
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: *cf-creds-staging
-      <<: *cdn-dedicated-waf-plan-visibility-params
+      <<: [*cf-creds-staging, *cdn-dedicated-waf-plan-visibility-params]
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((production-cdn-dedicated-waf-plan-org-names))
   on_failure:
