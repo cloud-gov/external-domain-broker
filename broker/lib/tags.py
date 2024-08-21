@@ -20,7 +20,7 @@ class Tag(typing.TypedDict):
     Value: str
 
 
-def add_tag(tags: list[Tag], tag_key: str, tag_value: str):
+def add_tag(tags: list[Tag], tag_key: str, tag_value: str) -> list[Tag]:
     if not tags:
         tags = []
     tags.append(
@@ -34,7 +34,7 @@ def add_tag(tags: list[Tag], tag_key: str, tag_value: str):
 
 def generate_instance_tags(
     instance_id: str, details: ProvisionDetails, catalog: Service
-):
+) -> list[Tag]:
     plans = [plan for plan in catalog.plans if plan.id == details.plan_id]
     if len(plans) == 0:
         raise RuntimeError(
