@@ -14,3 +14,4 @@ pytest-watcher
 python-language-server
 requests
 rope
+requests-mock
