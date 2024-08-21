@@ -34,6 +34,19 @@ def test_gets_space_name(space_guid, access_token):
         assert cf.get_space_name_by_guid(space_guid, access_token) == "foobar-space"
 
 
+def test_gets_space_name_error(space_guid, access_token):
+    with requests_mock.Mocker() as m:
+        m.get(
+            f"http://mock.cf/v3/spaces/{space_guid}",
+            request_headers={
+                "Authorization": f"Bearer {access_token}",
+            },
+            status_code=500,
+        )
+        with pytest.raises(Exception):
+            cf.get_space_name_by_guid(space_guid, access_token)
+
+
 def test_gets_org_name(organization_guid, access_token):
     with requests_mock.Mocker() as m:
         response = json.dumps({"guid": organization_guid, "name": "org-1234"})
@@ -45,3 +58,16 @@ def test_gets_org_name(organization_guid, access_token):
             },
         )
         assert cf.get_org_name_by_guid(organization_guid, access_token) == "org-1234"
+
+
+def test_gets_org_name_error(organization_guid, access_token):
+    with requests_mock.Mocker() as m:
+        m.get(
+            f"http://mock.cf/v3/organizations/{organization_guid}",
+            request_headers={
+                "Authorization": f"Bearer {access_token}",
+            },
+            status_code=500,
+        )
+        with pytest.raises(Exception):
+            cf.get_org_name_by_guid(space_guid, access_token)
