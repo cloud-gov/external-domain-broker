@@ -16,6 +16,7 @@ def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
     wafv2.expect_create_web_acl(
         service_instance.id,
         config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
+        service_instance.tags,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
