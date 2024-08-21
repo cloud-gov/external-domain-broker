@@ -68,6 +68,13 @@ def upload_server_certificate(operation_id: int, **kwargs):
     certificate.iam_server_certificate_arn = response["ServerCertificateMetadata"][
         "Arn"
     ]
+
+    tags = service_instance.tags if service_instance.tags else []
+    iam.tag_server_certificate(
+        ServerCertificateName=certificate.iam_server_certificate_name,
+        Tags=tags,
+    )
+
     db.session.add(service_instance)
     db.session.add(certificate)
     db.session.commit()

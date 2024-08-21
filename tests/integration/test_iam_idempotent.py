@@ -94,6 +94,10 @@ def test_reupload_certificate_ok(
         chain=certificate.fullchain_pem,
         path="/cloudfront/external-domains-test/",
     )
+    iam_commercial.expect_tag_server_certificate(
+        f"{service_instance.id}-{today}-{certificate.id}",
+        [],
+    )
 
     upload_server_certificate.call_local("4321")
 

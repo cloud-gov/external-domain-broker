@@ -28,6 +28,10 @@ def subtest_update_uploads_new_cert(tasks, iam_govcloud, simple_regex, instance_
         chain=certificate.fullchain_pem,
         path="/alb/external-domains-test/",
     )
+    iam_govcloud.expect_tag_server_certificate(
+        f"{service_instance.id}-{today}-{certificate.id}",
+        service_instance.tags,
+    )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
