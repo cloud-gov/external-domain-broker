@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from acme.errors import ValidationError
 import pytest
+import uuid
 
 from broker.extensions import db
 from broker.models import Operation, DedicatedALBServiceInstance
@@ -37,7 +38,12 @@ from tests.lib.factories import (
 
 
 @pytest.fixture
-def dedicated_alb_instance_needing_renewal(clean_db, tasks):
+def organization_guid():
+    return str(uuid.uuid4())
+
+
+@pytest.fixture
+def dedicated_alb_instance_needing_renewal(clean_db, tasks, organization_guid):
     """
     create a cdn service instance that needs renewal.
     This includes walking it through the first few ACME steps to create a user so we can reuse that user.
@@ -49,7 +55,7 @@ def dedicated_alb_instance_needing_renewal(clean_db, tasks):
         route53_alias_hosted_zone="ALBHOSTEDZONEID",
         alb_arn="alb-arn-0",
         alb_listener_arn="our-arn-0",
-        org_id="our-org",
+        org_id=organization_guid,
     )
     current_cert = CertificateFactory.create(
         id=1001,
@@ -91,8 +97,8 @@ def test_scan_for_expiring_certs_alb_happy_path(
     dns,
     iam_govcloud,
     simple_regex,
-    cloudfront,
     alb,
+    organization_guid,
 ):
 
     no_renew_service_instance = DedicatedALBServiceInstanceFactory.create(
@@ -133,7 +139,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
     subtest_provision_uploads_certificate_to_iam(
         tasks, iam_govcloud, simple_regex, instance_model
     )
-    subtest_provision_selects_dedicated_alb(tasks, alb)
+    subtest_provision_selects_dedicated_alb(tasks, alb, organization_guid)
     subtest_provision_adds_certificate_to_alb(tasks, alb)
     subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
