@@ -170,13 +170,12 @@ acceptance-tests-staging-params: &acceptance-tests-staging-params
   AWS_SECRET_ACCESS_KEY: ((staging-test-user-aws-secret-access-key))
   AWS_REGION: ((staging-aws-commercial-region))
 
-acceptance-tests-params-production-cdn: &acceptance-tests-params-production-cdn
+acceptance-tests-production-params: &acceptance-tests-production-params
   CF_API_URL: ((production-cf-api-url))
   CF_USERNAME: ((production-cf-username))
   CF_PASSWORD: ((production-cf-password))
   CF_ORGANIZATION: ((acceptance-tests-organization))
   CF_SPACE: ((acceptance-tests-space))
-  PLAN_NAME: "domain-with-cdn"
   SERVICE_NAME: "external-domain"
   DNS_ROOT_DOMAIN: ((production-dns-root-domain))
   AWS_ACCESS_KEY_ID: ((production-test-user-aws-access-key-id))
@@ -186,40 +185,6 @@ acceptance-tests-params-production-cdn: &acceptance-tests-params-production-cdn
   TEST_DOMAIN_0: ((production-test-domain-0))
   HOSTED_ZONE_ID_1: ((production-test-hosted-zone-id-1))
   TEST_DOMAIN_1: ((production-test-domain-1))
-
-acceptance-tests-params-production-alb: &acceptance-tests-params-production-alb
-  CF_API_URL: ((production-cf-api-url))
-  CF_USERNAME: ((production-cf-username))
-  CF_PASSWORD: ((production-cf-password))
-  CF_ORGANIZATION: ((acceptance-tests-organization))
-  CF_SPACE: ((acceptance-tests-space))
-  PLAN_NAME: "domain"
-  SERVICE_NAME: "external-domain"
-  DNS_ROOT_DOMAIN: ((production-dns-root-domain))
-  AWS_ACCESS_KEY_ID: ((production-test-user-aws-access-key-id))
-  AWS_SECRET_ACCESS_KEY: ((production-test-user-aws-secret-access-key))
-  AWS_REGION: ((production-aws-commercial-region))
-  HOSTED_ZONE_ID_0: ((production-test-hosted-zone-id-2))
-  TEST_DOMAIN_0: ((production-test-domain-2))
-  HOSTED_ZONE_ID_1: ((production-test-hosted-zone-id-3))
-  TEST_DOMAIN_1: ((production-test-domain-3))
-
-acceptance-tests-params-production-dedicated: &acceptance-tests-params-production-dedicated
-  CF_API_URL: ((production-cf-api-url))
-  CF_USERNAME: ((production-cf-username))
-  CF_PASSWORD: ((production-cf-password))
-  CF_ORGANIZATION: ((acceptance-tests-organization))
-  CF_SPACE: ((acceptance-tests-space))
-  PLAN_NAME: "domain-with-org-lb"
-  SERVICE_NAME: "external-domain"
-  DNS_ROOT_DOMAIN: ((production-dns-root-domain))
-  AWS_ACCESS_KEY_ID: ((production-test-user-aws-access-key-id))
-  AWS_SECRET_ACCESS_KEY: ((production-test-user-aws-secret-access-key))
-  AWS_REGION: ((production-aws-commercial-region))
-  HOSTED_ZONE_ID_0: ((production-test-hosted-zone-id-2))
-  TEST_DOMAIN_0: ((production-test-domain-2))
-  HOSTED_ZONE_ID_1: ((production-test-hosted-zone-id-3))
-  TEST_DOMAIN_1: ((production-test-domain-3))
 
 ############################
 #  GROUPS
@@ -628,7 +593,8 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *acceptance-tests-params-production-cdn
+          <<: *acceptance-tests-production-params
+          PLAN_NAME: "domain-with-cdn"
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
@@ -637,7 +603,8 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *acceptance-tests-params-production-alb
+          <<: *acceptance-tests-production-params
+          PLAN_NAME: "domain"
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-dedicated
@@ -646,7 +613,18 @@ jobs:
       config:
         platform: linux
         params:
-          <<: *acceptance-tests-params-production-dedicated
+          <<: *acceptance-tests-production-params
+          PLAN_NAME: "domain-with-org-lb"
+        run:
+          path: /app/acceptance/run.sh
+    - task: acceptance-cdn-dedicated-waf
+      image: dev-docker-image
+      timeout: 6h
+      config:
+        platform: linux
+        params:
+          <<: *acceptance-tests-production-params
+          PLAN_NAME: "domain-with-cdn-dedicated-waf"
         run:
           path: /app/acceptance/run.sh
   on_failure:
