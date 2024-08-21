@@ -77,18 +77,16 @@ def subtest_provision_creates_provision_operation(
         service_plan_name = "domain"
     elif instance_model == DedicatedALBServiceInstance:
         service_plan_name = "domain-with-org-lb"
-    assert instance.tags == {
-        "Items": [
-            {"Key": "client", "Value": "Cloud Foundry"},
-            {"Key": "broker", "Value": "External domain broker"},
-            {"Key": "environment", "Value": "test"},
-            {"Key": "Service offering name", "Value": "external-domain"},
-            {"Key": "Service plan name", "Value": service_plan_name},
-            {"Key": "Instance GUID", "Value": "4321"},
-            {"Key": "Organization GUID", "Value": organization_guid},
-            {"Key": "Space GUID", "Value": space_guid},
-        ]
-    }
+    assert instance.tags == [
+        {"Key": "client", "Value": "Cloud Foundry"},
+        {"Key": "broker", "Value": "External domain broker"},
+        {"Key": "environment", "Value": "test"},
+        {"Key": "Service offering name", "Value": "external-domain"},
+        {"Key": "Service plan name", "Value": service_plan_name},
+        {"Key": "Instance GUID", "Value": "4321"},
+        {"Key": "Organization GUID", "Value": organization_guid},
+        {"Key": "Space GUID", "Value": space_guid},
+    ]
 
     return operation_id
 
