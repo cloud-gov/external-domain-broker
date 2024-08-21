@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 import pytest
 
 from broker.aws import cloudfront as real_cloudfront
-from broker.lib.tags import add_tag
+from broker.lib.tags import add_tag, Tag
 from tests.lib.fake_aws import FakeAWS
 
 
@@ -25,7 +25,7 @@ class FakeCloudFront(FakeAWS):
         bucket_prefix: str = "",
         custom_error_responses: dict = None,
         dedicated_waf_web_acl_arn: str = "",
-        tags: list[str] = [],
+        tags: list[Tag] = [],
     ):
         if custom_error_responses is None:
             custom_error_responses = {"Quantity": 0}
@@ -457,7 +457,7 @@ class FakeCloudFront(FakeAWS):
         include_le_bucket: bool = False,
         include_log_bucket: bool = True,
         dedicated_waf_web_acl_arn: str = "",
-        tags: list[str] = [],
+        tags: list[Tag] = [],
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
