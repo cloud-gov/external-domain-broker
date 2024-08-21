@@ -59,18 +59,16 @@ def test_generate_instance_tags(
     instance_id, org_guid, space_guid, plan, details, catalog
 ):
     tags = generate_instance_tags(instance_id, details, catalog)
-    assert tags == {
-        "Items": [
-            {"Key": "client", "Value": "Cloud Foundry"},
-            {"Key": "broker", "Value": "External domain broker"},
-            {"Key": "environment", "Value": "test"},
-            {"Key": "Service offering name", "Value": "external-domain"},
-            {"Key": "Service plan name", "Value": plan.name},
-            {"Key": "Instance GUID", "Value": instance_id},
-            {"Key": "Organization GUID", "Value": org_guid},
-            {"Key": "Space GUID", "Value": space_guid},
-        ]
-    }
+    assert tags == [
+        {"Key": "client", "Value": "Cloud Foundry"},
+        {"Key": "broker", "Value": "External domain broker"},
+        {"Key": "environment", "Value": "test"},
+        {"Key": "Service offering name", "Value": "external-domain"},
+        {"Key": "Service plan name", "Value": plan.name},
+        {"Key": "Instance GUID", "Value": instance_id},
+        {"Key": "Organization GUID", "Value": org_guid},
+        {"Key": "Space GUID", "Value": space_guid},
+    ]
 
 
 def test_generate_instance_tags_multiple_plans(instance_id, plan, details, catalog):
@@ -88,9 +86,10 @@ def test_generate_instance_tags_no_matching_plans(instance_id, plan, details, ca
 
 def test_create_resource_tags():
     tags = {"foo": "bar", "moo": "cow"}
-    assert create_resource_tags(tags) == {
-        "Items": [{"Key": "foo", "Value": "bar"}, {"Key": "moo", "Value": "cow"}]
-    }
+    assert create_resource_tags(tags) == [
+        {"Key": "foo", "Value": "bar"},
+        {"Key": "moo", "Value": "cow"},
+    ]
 
 
 def test_generate_tags(instance_id, org_guid, space_guid, plan, details):
