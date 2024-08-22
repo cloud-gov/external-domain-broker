@@ -1,6 +1,7 @@
 import typing
 
 from broker.extensions import config
+from broker.lib.cf import CFAPIClient
 
 from enum import Enum
 from openbrokerapi.service_broker import (
@@ -8,6 +9,8 @@ from openbrokerapi.service_broker import (
     ServicePlan,
     Service,
 )
+
+cf_api_client = CFAPIClient()
 
 
 class Action(Enum):
@@ -67,8 +70,16 @@ def generate_tags(
         "Service offering name": offering_name,
         "Service plan name": plan.name,
         "Instance GUID": instance_id,
-        # TODO: add tags for org name, space name
         "Organization GUID": details.organization_guid,
         "Space GUID": details.space_guid,
     }
+
+    space_name = cf_api_client.get_space_name_by_guid(details.space_guid)
+    default_tags["Space name"] = space_name
+
+    organization_name = cf_api_client.get_organization_name_by_guid(
+        details.organization_guid
+    )
+    default_tags["Organization name"] = organization_name
+
     return default_tags

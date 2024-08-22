@@ -14,6 +14,13 @@ from tests.lib.fake_shield import shield  # noqa F401
 from tests.lib.simple_regex import simple_regex  # noqa F401
 from tests.lib.dns import dns  # noqa 401
 from tests.lib.tasks import tasks  # noqa 401
+from tests.lib.cf import (
+    access_token,
+    access_token_response,
+    request_mocker_with_auth_mock,
+    space_guid,
+    organization_guid,
+)  # noqa 41
 
 
 def pytest_configure(config):

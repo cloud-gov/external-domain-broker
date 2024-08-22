@@ -1,6 +1,7 @@
 import random
 import pytest
 import uuid
+import json
 
 from openbrokerapi.service_broker import (
     ProvisionDetails,
@@ -27,24 +28,17 @@ def plan_name():
 
 
 @pytest.fixture
-def org_guid():
-    return str(uuid.uuid4())
-
-
-@pytest.fixture
-def space_guid():
-    return str(uuid.uuid4())
-
-
-@pytest.fixture
 def plan(plan_id, plan_name):
     return ServicePlan(plan_id, plan_name, "plan description")
 
 
 @pytest.fixture
-def details(plan, org_guid, space_guid):
+def details(plan, organization_guid, space_guid):
     return ProvisionDetails(
-        uuid.uuid4(), plan.id, organization_guid=org_guid, space_guid=space_guid
+        uuid.uuid4(),
+        plan.id,
+        organization_guid=organization_guid,
+        space_guid=space_guid,
     )
 
 
@@ -56,19 +50,48 @@ def catalog(plan):
 
 
 def test_generate_instance_tags(
-    instance_id, org_guid, space_guid, plan, details, catalog
+    instance_id,
+    organization_guid,
+    space_guid,
+    plan,
+    details,
+    catalog,
+    access_token,
+    request_mocker_with_auth_mock,
 ):
+    response = json.dumps({"guid": organization_guid, "name": "org-1234"})
+    request_mocker_with_auth_mock.get(
+        f"http://mock.cf/v3/organizations/{organization_guid}",
+        text=response,
+        request_headers={
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
+    response = json.dumps({"guid": space_guid, "name": "space-5678"})
+    request_mocker_with_auth_mock.get(
+        f"http://mock.cf/v3/spaces/{space_guid}",
+        text=response,
+        request_headers={
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
+
     tags = generate_instance_tags(instance_id, details, catalog)
-    assert tags == [
-        {"Key": "client", "Value": "Cloud Foundry"},
-        {"Key": "broker", "Value": "External domain broker"},
-        {"Key": "environment", "Value": "test"},
-        {"Key": "Service offering name", "Value": "external-domain"},
-        {"Key": "Service plan name", "Value": plan.name},
-        {"Key": "Instance GUID", "Value": instance_id},
-        {"Key": "Organization GUID", "Value": org_guid},
-        {"Key": "Space GUID", "Value": space_guid},
-    ]
+    assert sorted(tags, key=lambda item: item["Key"]) == sorted(
+        [
+            {"Key": "client", "Value": "Cloud Foundry"},
+            {"Key": "broker", "Value": "External domain broker"},
+            {"Key": "environment", "Value": "test"},
+            {"Key": "Service offering name", "Value": "external-domain"},
+            {"Key": "Service plan name", "Value": plan.name},
+            {"Key": "Instance GUID", "Value": instance_id},
+            {"Key": "Organization GUID", "Value": organization_guid},
+            {"Key": "Organization name", "Value": "org-1234"},
+            {"Key": "Space GUID", "Value": space_guid},
+            {"Key": "Space name", "Value": "space-5678"},
+        ],
+        key=lambda item: item["Key"],
+    )
 
 
 def test_generate_instance_tags_multiple_plans(instance_id, plan, details, catalog):
@@ -92,7 +115,32 @@ def test_create_resource_tags():
     ]
 
 
-def test_generate_tags(instance_id, org_guid, space_guid, plan, details):
+def test_generate_tags(
+    instance_id,
+    organization_guid,
+    space_guid,
+    plan,
+    details,
+    access_token,
+    request_mocker_with_auth_mock,
+):
+    response = json.dumps({"guid": organization_guid, "name": "org-1234"})
+    request_mocker_with_auth_mock.get(
+        f"http://mock.cf/v3/organizations/{organization_guid}",
+        text=response,
+        request_headers={
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
+    response = json.dumps({"guid": space_guid, "name": "space-5678"})
+    request_mocker_with_auth_mock.get(
+        f"http://mock.cf/v3/spaces/{space_guid}",
+        text=response,
+        request_headers={
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
+
     assert generate_tags(
         instance_id,
         "offering-1",
@@ -105,6 +153,8 @@ def test_generate_tags(instance_id, org_guid, space_guid, plan, details):
         "Service offering name": "offering-1",
         "Service plan name": plan.name,
         "Instance GUID": instance_id,
-        "Organization GUID": org_guid,
+        "Organization GUID": organization_guid,
+        "Organization name": "org-1234",
         "Space GUID": space_guid,
+        "Space name": "space-5678",
     }

@@ -52,7 +52,7 @@ class CFAPIClient:
             return data["name"]
 
     @cache
-    def get_org_name_by_guid(self, organization_guid):
+    def get_organization_name_by_guid(self, organization_guid):
         with requests.Session() as s:
             s.headers["Authorization"] = f"Bearer {self.get_access_token()}"
             url = urljoin(config.CF_API_URL, f"v3/organizations/{organization_guid}")
