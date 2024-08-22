@@ -9,6 +9,8 @@ from broker.models import (
     DedicatedALBServiceInstance,
 )
 
+from tests.lib.tags import sort_instance_tags
+
 
 def subtest_provision_uploads_certificate_to_iam(
     tasks, iam_govcloud, simple_regex, instance_model
@@ -78,16 +80,20 @@ def subtest_provision_creates_provision_operation(
         service_plan_name = "domain"
     elif instance_model == DedicatedALBServiceInstance:
         service_plan_name = "domain-with-org-lb"
-    assert instance.tags == [
-        {"Key": "client", "Value": "Cloud Foundry"},
-        {"Key": "broker", "Value": "External domain broker"},
-        {"Key": "environment", "Value": "test"},
-        {"Key": "Service offering name", "Value": "external-domain"},
-        {"Key": "Service plan name", "Value": service_plan_name},
-        {"Key": "Instance GUID", "Value": "4321"},
-        {"Key": "Organization GUID", "Value": organization_guid},
-        {"Key": "Space GUID", "Value": space_guid},
-    ]
+    assert sort_instance_tags(instance.tags) == sort_instance_tags(
+        [
+            {"Key": "client", "Value": "Cloud Foundry"},
+            {"Key": "broker", "Value": "External domain broker"},
+            {"Key": "environment", "Value": "test"},
+            {"Key": "Service offering name", "Value": "external-domain"},
+            {"Key": "Service plan name", "Value": service_plan_name},
+            {"Key": "Instance GUID", "Value": "4321"},
+            {"Key": "Organization GUID", "Value": organization_guid},
+            {"Key": "Space GUID", "Value": space_guid},
+            {"Key": "Space name", "Value": "space-1234"},
+            {"Key": "Organization name", "Value": "org-1234"},
+        ]
+    )
 
     return operation_id
 
