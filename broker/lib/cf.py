@@ -1,7 +1,6 @@
 import datetime
 import requests
 from functools import cache
-from time import time
 from urllib.parse import urljoin
 
 from broker.extensions import config
