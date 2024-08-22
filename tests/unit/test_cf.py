@@ -30,14 +30,8 @@ def access_token_response(access_token):
 
 
 @pytest.fixture
-def cf_api_client(access_token_response):
-    with requests_mock.Mocker() as m:
-        m.post(
-            f"http://mock.uaa/token",
-            text=access_token_response,
-            additional_matcher=match_uaa_basic_auth,
-        )
-        return cf.CFAPIClient()
+def cf_api_client():
+    return cf.CFAPIClient()
 
 
 def match_uaa_basic_auth(request):
@@ -65,7 +59,7 @@ def test_gets_access_token(access_token, access_token_response):
         assert cfApiClient.get_access_token() == access_token
 
 
-def test_get_access_token_error():
+def test_get_access_token_error(cf_api_client):
     with requests_mock.Mocker() as m:
         m.post(
             f"http://mock.uaa/token",
@@ -74,11 +68,33 @@ def test_get_access_token_error():
         )
 
         with pytest.raises(exceptions.HTTPError):
-            cf.CFAPIClient()
+            cf_api_client.get_access_token()
 
 
-def test_gets_space_name(space_guid, access_token, cf_api_client):
+def test_refreshes_access_token(access_token):
+    # expires_in = 0 so token should be immediately expired
+    response = json.dumps({"access_token": access_token, "expires_in": 0})
     with requests_mock.Mocker() as m:
+        m.post(
+            f"http://mock.uaa/token",
+            text=response,
+            additional_matcher=match_uaa_basic_auth,
+        )
+
+        cfApiClient = cf.CFAPIClient()
+        assert cfApiClient.get_access_token() == access_token
+
+
+def test_gets_space_name(
+    space_guid, access_token, access_token_response, cf_api_client
+):
+    with requests_mock.Mocker() as m:
+        m.post(
+            f"http://mock.uaa/token",
+            text=access_token_response,
+            additional_matcher=match_uaa_basic_auth,
+        )
+
         response = json.dumps({"guid": space_guid, "name": "foobar-space"})
         m.get(
             f"http://mock.cf/v3/spaces/{space_guid}",
@@ -91,8 +107,15 @@ def test_gets_space_name(space_guid, access_token, cf_api_client):
         assert cf_api_client.get_space_name_by_guid(space_guid) == "foobar-space"
 
 
-def test_gets_space_name_error(space_guid, access_token, cf_api_client):
+def test_gets_space_name_error(
+    space_guid, access_token, access_token_response, cf_api_client
+):
     with requests_mock.Mocker() as m:
+        m.post(
+            f"http://mock.uaa/token",
+            text=access_token_response,
+            additional_matcher=match_uaa_basic_auth,
+        )
         m.get(
             f"http://mock.cf/v3/spaces/{space_guid}",
             request_headers={
@@ -104,8 +127,15 @@ def test_gets_space_name_error(space_guid, access_token, cf_api_client):
             cf_api_client.get_space_name_by_guid(space_guid)
 
 
-def test_gets_org_name(organization_guid, access_token, cf_api_client):
+def test_gets_org_name(
+    organization_guid, access_token, access_token_response, cf_api_client
+):
     with requests_mock.Mocker() as m:
+        m.post(
+            f"http://mock.uaa/token",
+            text=access_token_response,
+            additional_matcher=match_uaa_basic_auth,
+        )
         response = json.dumps({"guid": organization_guid, "name": "org-1234"})
         m.get(
             f"http://mock.cf/v3/organizations/{organization_guid}",
@@ -117,8 +147,15 @@ def test_gets_org_name(organization_guid, access_token, cf_api_client):
         assert cf_api_client.get_org_name_by_guid(organization_guid) == "org-1234"
 
 
-def test_gets_org_name_error(organization_guid, access_token, cf_api_client):
+def test_gets_org_name_error(
+    organization_guid, access_token, access_token_response, cf_api_client
+):
     with requests_mock.Mocker() as m:
+        m.post(
+            f"http://mock.uaa/token",
+            text=access_token_response,
+            additional_matcher=match_uaa_basic_auth,
+        )
         m.get(
             f"http://mock.cf/v3/organizations/{organization_guid}",
             request_headers={

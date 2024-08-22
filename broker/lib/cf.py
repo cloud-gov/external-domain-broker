@@ -1,3 +1,4 @@
+import datetime
 import requests
 from functools import cache
 from time import time
@@ -8,15 +9,13 @@ from broker.extensions import config
 
 class CFAPIClient:
     _access_token: str
-    _expires_at: int
-
-    def __init__(self):
-        self.set_access_token()
+    _access_token_expiration: float
 
     def set_access_token(self):
         if hasattr(self, "_access_token"):
             return
 
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
         r = requests.post(
             config.UAA_TOKEN_URL,
             data={
@@ -30,11 +29,21 @@ class CFAPIClient:
         r.raise_for_status()
         response = r.json()
         self._access_token = response["access_token"]
-        # expires_at = current time in seconds + number of seconds until token expires
-        self._expires_at = int(time()) + response["expires_in"]
+
+        expiration = now_utc + datetime.timedelta(seconds=response["expires_in"])
+        self._access_token_expiration = expiration.timestamp()
 
     def get_access_token(self):
+        if not hasattr(self, "_access_token") or self.is_token_expiring():
+            self.set_access_token()
         return self._access_token
+
+    def is_token_expiring(self):
+        if hasattr(self, "_access_token_expiration"):
+            now_utc = datetime.datetime.now(datetime.timezone.utc)
+            if now_utc.timestamp() - self._access_token_expiration <= 30:
+                return True
+        return False
 
     @cache
     def get_space_name_by_guid(self, space_guid):
