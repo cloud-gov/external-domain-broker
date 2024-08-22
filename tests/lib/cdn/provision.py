@@ -1,6 +1,5 @@
 from datetime import date
 import pytest  # noqa F401
-import uuid
 
 from broker.extensions import db
 from broker.models import (
@@ -20,6 +19,7 @@ from tests.lib.provision import (
     subtest_provision_answers_challenges,
     subtest_provision_marks_operation_as_succeeded,
 )
+from tests.lib.tags import sort_instance_tags
 
 
 def subtest_provision_cdn_instance(
@@ -94,16 +94,6 @@ def subtest_provision_cdn_instance(
     check_last_operation_description(client, "4321", operation_id, "Complete!")
 
 
-@pytest.fixture
-def organization_guid():
-    return str(uuid.uuid4())
-
-
-@pytest.fixture
-def space_guid():
-    return str(uuid.uuid4())
-
-
 def subtest_provision_creates_provision_operation(
     client, dns, organization_guid, space_guid, instance_model
 ):
@@ -147,16 +137,20 @@ def subtest_provision_creates_provision_operation(
         service_plan_name = "domain-with-cdn"
     elif instance_model == CDNDedicatedWAFServiceInstance:
         service_plan_name = "domain-with-cdn-dedicated-waf"
-    assert instance.tags == [
-        {"Key": "client", "Value": "Cloud Foundry"},
-        {"Key": "broker", "Value": "External domain broker"},
-        {"Key": "environment", "Value": "test"},
-        {"Key": "Service offering name", "Value": "external-domain"},
-        {"Key": "Service plan name", "Value": service_plan_name},
-        {"Key": "Instance GUID", "Value": "4321"},
-        {"Key": "Organization GUID", "Value": organization_guid},
-        {"Key": "Space GUID", "Value": space_guid},
-    ]
+    assert sort_instance_tags(instance.tags) == sort_instance_tags(
+        [
+            {"Key": "client", "Value": "Cloud Foundry"},
+            {"Key": "broker", "Value": "External domain broker"},
+            {"Key": "environment", "Value": "test"},
+            {"Key": "Service offering name", "Value": "external-domain"},
+            {"Key": "Service plan name", "Value": service_plan_name},
+            {"Key": "Instance GUID", "Value": "4321"},
+            {"Key": "Organization GUID", "Value": organization_guid},
+            {"Key": "Space GUID", "Value": space_guid},
+            {"Key": "Space name", "Value": "space-1234"},
+            {"Key": "Organization name", "Value": "org-1234"},
+        ]
+    )
 
     client.get_last_operation("4321", operation_id)
     assert "description" in client.response.json

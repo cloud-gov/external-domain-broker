@@ -17,9 +17,10 @@ from tests.lib.tasks import tasks  # noqa 401
 from tests.lib.cf import (
     access_token,
     access_token_response,
-    request_mocker_with_auth_mock,
+    mock_with_uaa_auth,
     space_guid,
     organization_guid,
+    mocked_cf_api,
 )  # noqa 41
 
 

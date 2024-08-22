@@ -1,5 +1,4 @@
 import pytest  # noqa F401
-import uuid
 
 from broker.models import (
     CDNServiceInstance,
@@ -20,16 +19,6 @@ from tests.lib.cdn.update import (
 # methods.  This still makes it clear which stage in the task pipeline is
 # failing (look for the subtask_foo in the traceback), and allows us to re-use
 # these subtasks when testing failure scenarios.
-
-
-@pytest.fixture
-def organization_guid():
-    return str(uuid.uuid4())
-
-
-@pytest.fixture
-def space_guid():
-    return str(uuid.uuid4())
 
 
 def test_provision_happy_path(

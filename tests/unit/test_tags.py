@@ -10,6 +10,7 @@ from openbrokerapi.service_broker import (
 )
 
 from broker.lib.tags import create_resource_tags, generate_tags, generate_instance_tags
+from tests.lib.tags import sort_instance_tags
 
 
 @pytest.fixture
@@ -57,10 +58,10 @@ def test_generate_instance_tags(
     details,
     catalog,
     access_token,
-    request_mocker_with_auth_mock,
+    mock_with_uaa_auth,
 ):
     response = json.dumps({"guid": organization_guid, "name": "org-1234"})
-    request_mocker_with_auth_mock.get(
+    mock_with_uaa_auth.get(
         f"http://mock.cf/v3/organizations/{organization_guid}",
         text=response,
         request_headers={
@@ -68,7 +69,7 @@ def test_generate_instance_tags(
         },
     )
     response = json.dumps({"guid": space_guid, "name": "space-5678"})
-    request_mocker_with_auth_mock.get(
+    mock_with_uaa_auth.get(
         f"http://mock.cf/v3/spaces/{space_guid}",
         text=response,
         request_headers={
@@ -77,7 +78,7 @@ def test_generate_instance_tags(
     )
 
     tags = generate_instance_tags(instance_id, details, catalog)
-    assert sorted(tags, key=lambda item: item["Key"]) == sorted(
+    assert sort_instance_tags(tags) == sort_instance_tags(
         [
             {"Key": "client", "Value": "Cloud Foundry"},
             {"Key": "broker", "Value": "External domain broker"},
@@ -89,8 +90,7 @@ def test_generate_instance_tags(
             {"Key": "Organization name", "Value": "org-1234"},
             {"Key": "Space GUID", "Value": space_guid},
             {"Key": "Space name", "Value": "space-5678"},
-        ],
-        key=lambda item: item["Key"],
+        ]
     )
 
 
@@ -122,10 +122,10 @@ def test_generate_tags(
     plan,
     details,
     access_token,
-    request_mocker_with_auth_mock,
+    mock_with_uaa_auth,
 ):
     response = json.dumps({"guid": organization_guid, "name": "org-1234"})
-    request_mocker_with_auth_mock.get(
+    mock_with_uaa_auth.get(
         f"http://mock.cf/v3/organizations/{organization_guid}",
         text=response,
         request_headers={
@@ -133,7 +133,7 @@ def test_generate_tags(
         },
     )
     response = json.dumps({"guid": space_guid, "name": "space-5678"})
-    request_mocker_with_auth_mock.get(
+    mock_with_uaa_auth.get(
         f"http://mock.cf/v3/spaces/{space_guid}",
         text=response,
         request_headers={

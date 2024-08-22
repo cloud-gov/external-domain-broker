@@ -42,12 +42,32 @@ def access_token_response(access_token):
     return json.dumps({"access_token": access_token, "expires_in": 10})
 
 
-@pytest.fixture
-def request_mocker_with_auth_mock(access_token_response):
-    with requests_mock.Mocker() as m:
+@pytest.fixture(autouse=True)
+def mock_with_uaa_auth(access_token_response):
+    with requests_mock.Mocker(real_http=True) as m:
         m.post(
             f"http://mock.uaa/token",
             text=access_token_response,
             additional_matcher=match_uaa_basic_auth,
         )
         yield m
+
+
+@pytest.fixture(autouse=True)
+def mocked_cf_api(access_token, organization_guid, space_guid, mock_with_uaa_auth):
+    response = json.dumps({"guid": space_guid, "name": "space-1234"})
+    mock_with_uaa_auth.get(
+        f"http://mock.cf/v3/spaces/{space_guid}",
+        text=response,
+        request_headers={
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
+    response = json.dumps({"guid": organization_guid, "name": "org-1234"})
+    mock_with_uaa_auth.get(
+        f"http://mock.cf/v3/organizations/{organization_guid}",
+        text=response,
+        request_headers={
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
