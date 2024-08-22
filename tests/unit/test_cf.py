@@ -71,18 +71,30 @@ def test_get_access_token_error(cf_api_client):
             cf_api_client.get_access_token()
 
 
-def test_refreshes_access_token(access_token):
+def test_refreshes_access_token(access_token, cf_api_client):
     # expires_in = 0 so token should be immediately expired
-    response = json.dumps({"access_token": access_token, "expires_in": 0})
+    access_token2 = str(uuid.uuid4())
+    responses = [
+        {
+            "text": json.dumps({"access_token": access_token, "expires_in": 0}),
+            "status_code": 200,
+        },
+        {
+            "text": json.dumps({"access_token": access_token2, "expires_in": 0}),
+            "status_code": 200,
+        },
+    ]
+
     with requests_mock.Mocker() as m:
-        m.post(
-            f"http://mock.uaa/token",
-            text=response,
+        m.register_uri(
+            "POST",
+            "http://mock.uaa/token",
+            responses,
             additional_matcher=match_uaa_basic_auth,
         )
 
-        cfApiClient = cf.CFAPIClient()
-        assert cfApiClient.get_access_token() == access_token
+        assert cf_api_client.get_access_token() == access_token
+        assert cf_api_client.get_access_token() == access_token2
 
 
 def test_gets_space_name(
