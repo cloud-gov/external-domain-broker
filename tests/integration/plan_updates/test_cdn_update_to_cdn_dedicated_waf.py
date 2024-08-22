@@ -1,5 +1,4 @@
 import pytest  # noqa F401
-import uuid
 
 from broker.extensions import db
 from broker.models import (
@@ -44,16 +43,6 @@ from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_creates_health_checks,
     subtest_provision_associates_health_checks,
 )
-
-
-@pytest.fixture
-def organization_guid():
-    return str(uuid.uuid4())
-
-
-@pytest.fixture
-def space_guid():
-    return str(uuid.uuid4())
 
 
 def test_update_plan_only(
