@@ -42,7 +42,7 @@ def access_token_response(access_token):
     return json.dumps({"access_token": access_token, "expires_in": 10})
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def request_mocker_with_auth_mock(access_token_response):
     with requests_mock.Mocker() as m:
         m.post(
