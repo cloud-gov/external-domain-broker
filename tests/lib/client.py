@@ -137,13 +137,18 @@ class CFAPIClient(FlaskClient):
         )
 
     def provision_migration_instance(
-        self, id: str, accepts_incomplete: str = "true", params: dict = None
+        self,
+        id: str,
+        accepts_incomplete: str = "true",
+        params: dict = None,
+        organization_guid: str = "abc",
+        space_guid: str = "123",
     ):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "739e78F5-a919-46ef-9193-1293cc086c17",
-            "organization_guid": "abc",
-            "space_guid": "123",
+            "organization_guid": organization_guid,
+            "space_guid": space_guid,
         }
 
         if params is not None:
