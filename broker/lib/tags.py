@@ -51,10 +51,9 @@ def generate_instance_tags(
     )
 
 
-def create_resource_tags(tags: typing.Dict[str, str]) -> list[Tag]:
+def create_resource_tags(tags: dict[str, str]) -> list[Tag]:
     resource_tags = []
-    for tag_key in tags:
-        tag_value = tags[tag_key]
+    for tag_key, tag_value in tags.items():
         resource_tags = add_tag(resource_tags, tag_key, tag_value)
     return resource_tags
 
@@ -65,7 +64,7 @@ def generate_tags(
     plan: ServicePlan,
     details: ProvisionDetails,
     environment: str,
-) -> typing.Dict[str, str]:
+) -> dict[str, str]:
     default_tags = {
         "client": "Cloud Foundry",
         "broker": "External domain broker",
