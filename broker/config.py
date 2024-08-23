@@ -176,6 +176,7 @@ class UpgradeSchemaConfig(Config):
         self.AWS_COMMERCIAL_REGION = "NONE"
         self.AWS_COMMERCIAL_ACCESS_KEY_ID = "NONE"
         self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = "NONE"
+        self.AWS_COMMERCIAL_GLOBAL_REGION = "NONE"
         self.AWS_GOVCLOUD_REGION = "NONE"
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = "NONE"
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
