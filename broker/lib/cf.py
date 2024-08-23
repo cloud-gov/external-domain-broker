@@ -10,7 +10,7 @@ class CFAPIClient:
     _access_token: str
     _access_token_expiration: float
 
-    def set_access_token(self):
+    def fetch_access_token(self):
         now_utc = datetime.datetime.now(datetime.timezone.utc)
         r = requests.post(
             config.UAA_TOKEN_URL,
@@ -31,7 +31,7 @@ class CFAPIClient:
 
     def get_access_token(self):
         if not hasattr(self, "_access_token") or self.is_token_expiring():
-            self.set_access_token()
+            self.fetch_access_token()
         return self._access_token
 
     def is_token_expiring(self):
