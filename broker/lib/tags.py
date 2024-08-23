@@ -25,6 +25,8 @@ class Tag(typing.TypedDict):
 def add_tag(tags: list[Tag], tag_key: str, tag_value: str) -> list[Tag]:
     if not tags:
         tags = []
+    if tag_key in [tag["Key"] for tag in tags]:
+        raise RuntimeError(f"Tag value already exists for {tag_key}")
     tags.append(
         {
             "Key": tag_key,

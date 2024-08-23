@@ -9,7 +9,12 @@ from openbrokerapi.service_broker import (
     Service,
 )
 
-from broker.lib.tags import create_resource_tags, generate_tags, generate_instance_tags
+from broker.lib.tags import (
+    add_tag,
+    create_resource_tags,
+    generate_tags,
+    generate_instance_tags,
+)
 from tests.lib.tags import sort_instance_tags
 
 
@@ -48,6 +53,17 @@ def catalog(plan):
     return Service(
         uuid.uuid4(), "external-domain", "external domain plans", False, plans=[plan]
     )
+
+
+def test_add_tag():
+    tags = add_tag([], "foo", "bar")
+    assert tags == [{"Key": "foo", "Value": "bar"}]
+
+
+def test_add_tag_errors_on_existing_tag():
+    tags = [{"Key": "foo", "Value": "bar"}]
+    with pytest.raises(RuntimeError):
+        add_tag(tags, "foo", "bar")
 
 
 def test_generate_instance_tags(
