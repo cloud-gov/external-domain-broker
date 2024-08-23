@@ -22,7 +22,7 @@ def test_gets_access_token(access_token, access_token_response):
         )
 
         cfApiClient = cf.CFAPIClient()
-        assert cfApiClient.get_access_token() == access_token
+        assert cfApiClient.access_token == access_token
 
 
 def test_get_access_token_error(cf_api_client):
@@ -34,7 +34,7 @@ def test_get_access_token_error(cf_api_client):
         )
 
         with pytest.raises(exceptions.HTTPError):
-            cf_api_client.get_access_token()
+            cf_api_client.access_token
 
 
 def test_refreshes_access_token(access_token, cf_api_client):
@@ -59,8 +59,8 @@ def test_refreshes_access_token(access_token, cf_api_client):
             additional_matcher=match_uaa_basic_auth,
         )
 
-        assert cf_api_client.get_access_token() == access_token
-        assert cf_api_client.get_access_token() == access_token2
+        assert cf_api_client.access_token == access_token
+        assert cf_api_client.access_token == access_token2
 
 
 def test_does_not_refresh_access_token(access_token, cf_api_client):
@@ -76,8 +76,8 @@ def test_does_not_refresh_access_token(access_token, cf_api_client):
             additional_matcher=match_uaa_basic_auth,
         )
 
-        assert cf_api_client.get_access_token() == access_token
-        assert cf_api_client.get_access_token() == access_token
+        assert cf_api_client.access_token == access_token
+        assert cf_api_client.access_token == access_token
 
 
 def test_gets_space_name(

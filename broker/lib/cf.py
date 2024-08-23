@@ -33,7 +33,8 @@ class CFAPIClient:
         expiration = now_utc + datetime.timedelta(seconds=response["expires_in"])
         self._access_token_expiration = expiration.timestamp()
 
-    def get_access_token(self):
+    @property
+    def access_token(self):
         if not self._access_token or self.is_token_expiring():
             self.fetch_access_token()
         return self._access_token
@@ -48,7 +49,7 @@ class CFAPIClient:
     @cache
     def get_space_name_by_guid(self, space_guid):
         with requests.Session() as s:
-            s.headers["Authorization"] = f"Bearer {self.get_access_token()}"
+            s.headers["Authorization"] = f"Bearer {self.access_token}"
             url = urljoin(config.CF_API_URL, f"v3/spaces/{space_guid}")
             response = s.get(url)
             response.raise_for_status()
@@ -58,7 +59,7 @@ class CFAPIClient:
     @cache
     def get_organization_name_by_guid(self, organization_guid):
         with requests.Session() as s:
-            s.headers["Authorization"] = f"Bearer {self.get_access_token()}"
+            s.headers["Authorization"] = f"Bearer {self.access_token}"
             url = urljoin(config.CF_API_URL, f"v3/organizations/{organization_guid}")
             response = s.get(url)
             response.raise_for_status()
