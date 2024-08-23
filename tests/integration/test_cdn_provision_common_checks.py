@@ -13,7 +13,7 @@ from broker.models import (
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_default_origin_and_path_if_none_provided(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
@@ -38,7 +38,7 @@ def test_provision_sets_default_origin_and_path_if_none_provided(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_default_cookie_policy_if_none_provided(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
@@ -58,7 +58,7 @@ def test_provision_sets_default_cookie_policy_if_none_provided(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_none_cookie_policy(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
@@ -78,7 +78,7 @@ def test_provision_sets_none_cookie_policy(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_forward_cookie_policy_with_cookies(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
@@ -101,7 +101,7 @@ def test_provision_sets_forward_cookie_policy_with_cookies(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_forward_cookie_policy_with_star(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
@@ -121,7 +121,7 @@ def test_provision_sets_forward_cookie_policy_with_star(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_forward_headers_to_host_when_none_specified(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
@@ -140,7 +140,7 @@ def test_provision_sets_forward_headers_to_host_when_none_specified(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_forward_headers_plus_host_when_some_specified(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
@@ -164,7 +164,7 @@ def test_provision_sets_forward_headers_plus_host_when_some_specified(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_does_not_set_host_header_when_using_custom_origin(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
@@ -183,7 +183,7 @@ def test_provision_does_not_set_host_header_when_using_custom_origin(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_https_only_by_default(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
@@ -202,7 +202,7 @@ def test_provision_sets_https_only_by_default(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_http_when_set(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
@@ -225,7 +225,7 @@ def test_provision_sets_http_when_set(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_refuses_insecure_origin_for_default_origin(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
@@ -245,7 +245,7 @@ def test_provision_refuses_insecure_origin_for_default_origin(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_custom_error_responses(
-    dns, client, organization_guid, space_guid, instance_model
+    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(

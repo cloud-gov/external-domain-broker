@@ -7,6 +7,7 @@ from broker.models import (
     Operation,
     ServiceInstance,
 )
+
 from tests.lib.client import check_last_operation_description
 
 from tests.lib.cdn.update import (
@@ -70,6 +71,7 @@ def test_update_plan_only(
         organization_guid,
         space_guid,
     )
+
     subtest_is_cdn_instance()
 
     # Test upgrade from cdn_service_instance plan to cdn_dedicated_waf_service_instance plan
@@ -155,6 +157,7 @@ def test_update_plan_and_domains(
         organization_guid,
         space_guid,
     )
+
     subtest_is_cdn_instance()
 
     # Test upgrade from cdn_service_instance plan to cdn_dedicated_waf_service_instance plan

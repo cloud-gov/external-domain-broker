@@ -1,9 +1,13 @@
 import datetime
 import requests
+import logging
+
 from functools import cache
 from urllib.parse import urljoin
 
 from broker.extensions import config
+
+logger = logging.getLogger(__name__)
 
 
 class CFAPIClient:
@@ -15,6 +19,7 @@ class CFAPIClient:
         self._access_token_expiration = None
 
     def fetch_access_token(self):
+        logger.info("fetching access token")
         now_utc = datetime.datetime.now(datetime.timezone.utc)
         r = requests.post(
             config.UAA_TOKEN_URL,
@@ -42,7 +47,8 @@ class CFAPIClient:
     def is_token_expiring(self):
         if self._access_token_expiration:
             now_utc = datetime.datetime.now(datetime.timezone.utc)
-            if now_utc.timestamp() - self._access_token_expiration <= 30:
+            if self._access_token_expiration - now_utc.timestamp() <= 30:
+                logger.info("access token is expired, need to refresh")
                 return True
         return False
 

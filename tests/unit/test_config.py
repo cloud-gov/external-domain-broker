@@ -102,6 +102,7 @@ def mocked_env(
         "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456,arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456",
     )
     monkeypatch.setenv("AWS_COMMERCIAL_REGION", "us-west-1")
+    monkeypatch.setenv("AWS_COMMERCIAL_GLOBAL_REGION", "global-1")
     monkeypatch.setenv("AWS_COMMERCIAL_ACCESS_KEY_ID", "ASIAFAKEKEY")
     monkeypatch.setenv("AWS_COMMERCIAL_SECRET_ACCESS_KEY", "THIS_IS_A_FAKE_ACCESS_KEY")
     monkeypatch.setenv("AWS_GOVCLOUD_REGION", "us-west-1")

@@ -61,13 +61,12 @@ def test_refreshes_access_token(access_token, cf_api_client):
 
         assert cf_api_client.access_token == access_token
         assert cf_api_client.access_token == access_token2
+        assert m.call_count == 2
 
 
 def test_does_not_refresh_access_token(access_token, cf_api_client):
-    # expires in an hour so token should NOT BE refreshed
-    access_token_response = json.dumps(
-        {"access_token": access_token, "expires_in": 3600}
-    )
+    # expires in 35 seconds so token should NOT BE refreshed
+    access_token_response = json.dumps({"access_token": access_token, "expires_in": 35})
 
     with requests_mock.Mocker() as m:
         m.post(
@@ -78,6 +77,7 @@ def test_does_not_refresh_access_token(access_token, cf_api_client):
 
         assert cf_api_client.access_token == access_token
         assert cf_api_client.access_token == access_token
+        assert m.call_count == 1
 
 
 def test_gets_space_name(

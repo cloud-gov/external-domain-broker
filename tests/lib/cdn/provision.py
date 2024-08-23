@@ -9,6 +9,7 @@ from broker.models import (
     CDNDedicatedWAFServiceInstance,
 )
 
+from tests.lib.cf import provision_instance_with_mocks
 from tests.lib.client import check_last_operation_description
 from tests.lib.provision import (
     subtest_provision_creates_LE_user,
@@ -35,7 +36,11 @@ def subtest_provision_cdn_instance(
 ):
     instance_model = CDNServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
-        client, dns, organization_guid, space_guid, instance_model
+        client,
+        dns,
+        organization_guid,
+        space_guid,
+        instance_model,
     )
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_provision_creates_LE_user(tasks, instance_model)
@@ -99,9 +104,12 @@ def subtest_provision_creates_provision_operation(
 ):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
-    client.provision_instance(
+
+    provision_instance_with_mocks(
+        client,
         instance_model,
-        "4321",
+        organization_guid,
+        space_guid,
         params={
             "domains": "example.com, Foo.com",
             "origin": "origin.com",
@@ -109,11 +117,13 @@ def subtest_provision_creates_provision_operation(
             "forward_cookies": "mycookie,myothercookie",
             "forward_headers": "x-my-header, x-your-header   ",
             "insecure_origin": True,
-            "error_responses": {"404": "/errors/404.html", "405": "/errors/405.html"},
+            "error_responses": {
+                "404": "/errors/404.html",
+                "405": "/errors/405.html",
+            },
         },
-        organization_guid=organization_guid,
-        space_guid=space_guid,
     )
+
     db.session.expunge_all()
 
     assert client.response.status_code == 202, client.response.body
