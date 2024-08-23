@@ -24,7 +24,7 @@ from tests.lib.factories import ALBServiceInstanceFactory
         MigrationServiceInstance,
     ],
 )
-def test_refuses_to_provision_synchronously(client, instance_model):
+def test_refuses_to_provision_synchronously(client, instance_model, mocked_cf_api):
     client.provision_instance(instance_model, "4321", accepts_incomplete="false")
 
     assert "AsyncRequired" in client.response.body
@@ -41,7 +41,9 @@ def test_refuses_to_provision_synchronously(client, instance_model):
         MigrationServiceInstance,
     ],
 )
-def test_refuses_to_provision_synchronously_by_default(client, instance_model):
+def test_refuses_to_provision_synchronously_by_default(
+    client, instance_model, mocked_cf_api
+):
     client.provision_instance(instance_model, "4321", accepts_incomplete="")
 
     assert "AsyncRequired" in client.response.body
@@ -58,7 +60,7 @@ def test_refuses_to_provision_synchronously_by_default(client, instance_model):
         MigrationServiceInstance,
     ],
 )
-def test_refuses_to_provision_without_domains(client, instance_model):
+def test_refuses_to_provision_without_domains(client, instance_model, mocked_cf_api):
     client.provision_instance(instance_model, "4321")
 
     assert "domains" in client.response.body
@@ -75,7 +77,9 @@ def test_refuses_to_provision_without_domains(client, instance_model):
         MigrationServiceInstance,
     ],
 )
-def test_refuses_to_provision_with_duplicate_domains(client, dns, instance_model):
+def test_refuses_to_provision_with_duplicate_domains(
+    client, dns, instance_model, mocked_cf_api
+):
     ALBServiceInstanceFactory.create(domain_names=["foo.com", "bar.com"])
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
@@ -99,7 +103,14 @@ def test_refuses_to_provision_with_duplicate_domains(client, dns, instance_model
     ],
 )
 def test_doesnt_refuse_to_provision_with_duplicate_domains_when_not_configured_to(
-    app, client, dns, instance_model, expected_status, organization_guid, space_guid
+    app,
+    client,
+    dns,
+    instance_model,
+    expected_status,
+    organization_guid,
+    space_guid,
+    mocked_cf_api,
 ):
     old_ignore = config.IGNORE_DUPLICATE_DOMAINS
     config.IGNORE_DUPLICATE_DOMAINS = True
@@ -130,7 +141,13 @@ def test_doesnt_refuse_to_provision_with_duplicate_domains_when_not_configured_t
     ],
 )
 def test_duplicate_domain_check_ignores_deactivated(
-    client, dns, instance_model, expected_status, organization_guid, space_guid
+    client,
+    dns,
+    instance_model,
+    expected_status,
+    organization_guid,
+    space_guid,
+    mocked_cf_api,
 ):
     ALBServiceInstanceFactory.create(
         domain_names="foo.com", deactivated_at=datetime.utcnow()
@@ -158,7 +175,9 @@ def test_duplicate_domain_check_ignores_deactivated(
         MigrationServiceInstance,
     ],
 )
-def test_refuses_to_provision_without_any_acme_challenge_CNAMEs(client, instance_model):
+def test_refuses_to_provision_without_any_acme_challenge_CNAMEs(
+    client, instance_model, mocked_cf_api
+):
     client.provision_instance(
         instance_model, "4321", params={"domains": "bar.com,foo.com"}
     )
@@ -183,7 +202,7 @@ def test_refuses_to_provision_without_any_acme_challenge_CNAMEs(client, instance
     ],
 )
 def test_refuses_to_provision_without_one_acme_challenge_CNAME(
-    client, dns, instance_model
+    client, dns, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.foo.com")
     client.provision_instance(
@@ -209,7 +228,7 @@ def test_refuses_to_provision_without_one_acme_challenge_CNAME(
     ],
 )
 def test_refuses_to_provision_with_incorrect_acme_challenge_CNAME(
-    client, dns, instance_model
+    client, dns, instance_model, mocked_cf_api
 ):
     dns.add_cname("_acme-challenge.bar.com")
     dns.add_cname("_acme-challenge.foo.com", target="INCORRECT")

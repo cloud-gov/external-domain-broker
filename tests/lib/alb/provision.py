@@ -9,6 +9,7 @@ from broker.models import (
     DedicatedALBServiceInstance,
 )
 
+from tests.lib.cf import provision_instance_with_mocks
 from tests.lib.tags import sort_instance_tags
 
 
@@ -52,12 +53,13 @@ def subtest_provision_creates_provision_operation(
 ):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
-    client.provision_instance(
+
+    provision_instance_with_mocks(
+        client,
         instance_model,
-        "4321",
+        organization_guid,
+        space_guid,
         params={"domains": "example.com, Foo.com"},
-        organization_guid=organization_guid,
-        space_guid=space_guid,
     )
     db.session.expunge_all()
 

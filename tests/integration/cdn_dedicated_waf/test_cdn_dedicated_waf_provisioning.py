@@ -93,6 +93,7 @@ def test_provision_happy_path(
     shield,
     organization_guid,
     space_guid,
+    mocked_cf_api,
 ):
     instance_model = CDNDedicatedWAFServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
