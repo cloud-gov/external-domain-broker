@@ -10,6 +10,10 @@ class CFAPIClient:
     _access_token: str
     _access_token_expiration: float
 
+    def __init__(self):
+        self._access_token = None
+        self._access_token_expiration = None
+
     def fetch_access_token(self):
         now_utc = datetime.datetime.now(datetime.timezone.utc)
         r = requests.post(
@@ -30,12 +34,12 @@ class CFAPIClient:
         self._access_token_expiration = expiration.timestamp()
 
     def get_access_token(self):
-        if not hasattr(self, "_access_token") or self.is_token_expiring():
+        if not self._access_token or self.is_token_expiring():
             self.fetch_access_token()
         return self._access_token
 
     def is_token_expiring(self):
-        if hasattr(self, "_access_token_expiration"):
+        if self._access_token_expiration:
             now_utc = datetime.datetime.now(datetime.timezone.utc)
             if now_utc.timestamp() - self._access_token_expiration <= 30:
                 return True
