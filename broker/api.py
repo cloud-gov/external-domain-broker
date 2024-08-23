@@ -216,7 +216,7 @@ class API(ServiceBroker):
 
         self.logger.info("adding instance tags")
         catalog = self.catalog()
-        tags = generate_instance_tags(instance_id, details, catalog)
+        tags = generate_instance_tags(instance_id, details, catalog, config.FLASK_ENV)
         instance.tags = tags
 
         db.session.add(instance)

@@ -1,6 +1,5 @@
 import typing
 
-from broker.extensions import config
 from broker.lib.cf import CFAPIClient
 
 from enum import Enum
@@ -36,7 +35,7 @@ def add_tag(tags: list[Tag], tag_key: str, tag_value: str) -> list[Tag]:
 
 
 def generate_instance_tags(
-    instance_id: str, details: ProvisionDetails, catalog: Service
+    instance_id: str, details: ProvisionDetails, catalog: Service, environment: str
 ) -> list[Tag]:
     plans = [plan for plan in catalog.plans if plan.id == details.plan_id]
     if len(plans) == 0:
@@ -48,7 +47,7 @@ def generate_instance_tags(
             f"Found multiple plans for the given plan ID {details.plan_id}"
         )
     return create_resource_tags(
-        generate_tags(instance_id, catalog.name, plans[0], details)
+        generate_tags(instance_id, catalog.name, plans[0], details, environment)
     )
 
 
@@ -61,12 +60,16 @@ def create_resource_tags(tags: typing.Dict[str, str]) -> list[Tag]:
 
 
 def generate_tags(
-    instance_id: str, offering_name: str, plan: ServicePlan, details: ProvisionDetails
+    instance_id: str,
+    offering_name: str,
+    plan: ServicePlan,
+    details: ProvisionDetails,
+    environment: str,
 ) -> typing.Dict[str, str]:
     default_tags = {
         "client": "Cloud Foundry",
         "broker": "External domain broker",
-        "environment": config.FLASK_ENV,
+        "environment": environment,
         "Service offering name": offering_name,
         "Service plan name": plan.name,
         "Instance GUID": instance_id,
