@@ -5,7 +5,6 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import cloudfront
 from broker.extensions import config, db
-
 from broker.lib.tags import add_tag
 from broker.models import Operation, CDNServiceInstance, CDNDedicatedWAFServiceInstance
 from broker.tasks import huey
@@ -155,7 +154,7 @@ def create_distribution(operation_id: int, **kwargs):
         "IsIPV6Enabled": True,
     }
 
-    tags = {}
+    tags = service_instance.tags if service_instance.tags else []
 
     if (
         isinstance(service_instance, CDNDedicatedWAFServiceInstance)
@@ -166,7 +165,9 @@ def create_distribution(operation_id: int, **kwargs):
 
     distribution_config_with_tags = {
         "DistributionConfig": distribution_config,
-        "Tags": tags,
+        "Tags": {
+            "Items": tags,
+        },
     }
 
     response = cloudfront.create_distribution_with_tags(

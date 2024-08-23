@@ -270,7 +270,6 @@ def subtest_deprovision_delete_web_acl_success_when_missing(
     assert not service_instance.dedicated_waf_web_acl_id
     assert not service_instance.dedicated_waf_web_acl_arn
     assert not service_instance.dedicated_waf_web_acl_name
-
     wafv2.assert_no_pending_responses()
 
 

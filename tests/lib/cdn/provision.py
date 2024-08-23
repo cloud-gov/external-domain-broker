@@ -5,6 +5,8 @@ from broker.extensions import db
 from broker.models import (
     CDNServiceInstance,
     Operation,
+    CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
 )
 
 from tests.lib.client import check_last_operation_description
@@ -17,14 +19,23 @@ from tests.lib.provision import (
     subtest_provision_answers_challenges,
     subtest_provision_marks_operation_as_succeeded,
 )
+from tests.lib.tags import sort_instance_tags
 
 
 def subtest_provision_cdn_instance(
-    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+    client,
+    dns,
+    tasks,
+    route53,
+    iam_commercial,
+    simple_regex,
+    cloudfront,
+    organization_guid,
+    space_guid,
 ):
     instance_model = CDNServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
-        client, dns, instance_model
+        client, dns, organization_guid, space_guid, instance_model
     )
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_provision_creates_LE_user(tasks, instance_model)
@@ -83,7 +94,9 @@ def subtest_provision_cdn_instance(
     check_last_operation_description(client, "4321", operation_id, "Complete!")
 
 
-def subtest_provision_creates_provision_operation(client, dns, instance_model):
+def subtest_provision_creates_provision_operation(
+    client, dns, organization_guid, space_guid, instance_model
+):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
     client.provision_instance(
@@ -98,6 +111,8 @@ def subtest_provision_creates_provision_operation(client, dns, instance_model):
             "insecure_origin": True,
             "error_responses": {"404": "/errors/404.html", "405": "/errors/405.html"},
         },
+        organization_guid=organization_guid,
+        space_guid=space_guid,
     )
     db.session.expunge_all()
 
@@ -117,6 +132,25 @@ def subtest_provision_creates_provision_operation(client, dns, instance_model):
     assert instance.domain_names == ["example.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "origin.com"
     assert instance.cloudfront_origin_path == "/somewhere"
+
+    if instance_model == CDNServiceInstance:
+        service_plan_name = "domain-with-cdn"
+    elif instance_model == CDNDedicatedWAFServiceInstance:
+        service_plan_name = "domain-with-cdn-dedicated-waf"
+    assert sort_instance_tags(instance.tags) == sort_instance_tags(
+        [
+            {"Key": "client", "Value": "Cloud Foundry"},
+            {"Key": "broker", "Value": "External domain broker"},
+            {"Key": "environment", "Value": "test"},
+            {"Key": "Service offering name", "Value": "external-domain"},
+            {"Key": "Service plan name", "Value": service_plan_name},
+            {"Key": "Instance GUID", "Value": "4321"},
+            {"Key": "Organization GUID", "Value": organization_guid},
+            {"Key": "Space GUID", "Value": space_guid},
+            {"Key": "Space name", "Value": "space-1234"},
+            {"Key": "Organization name", "Value": "org-1234"},
+        ]
+    )
 
     client.get_last_operation("4321", operation_id)
     assert "description" in client.response.json
@@ -139,6 +173,11 @@ def subtest_provision_uploads_certificate_to_iam(
         private_key=certificate.private_key_pem,
         chain=certificate.fullchain_pem,
         path="/cloudfront/external-domains-test/",
+    )
+    tags = service_instance.tags if service_instance.tags else []
+    iam_commercial.expect_tag_server_certificate(
+        f"{service_instance.id}-{today}-{certificate.id}",
+        tags,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -182,61 +221,9 @@ def subtest_provision_creates_cloudfront_distribution(
 
     id_ = certificate.id
 
-    cloudfront.expect_create_distribution_with_tags(
-        caller_reference=service_instance.id,
-        domains=service_instance.domain_names,
-        certificate_id=certificate.iam_server_certificate_id,
-        origin_hostname=service_instance.cloudfront_origin_hostname,
-        origin_path=service_instance.cloudfront_origin_path,
-        distribution_id="FakeDistributionId",
-        distribution_hostname="fake1234.cloudfront.net",
-        forward_cookie_policy="whitelist",
-        forwarded_cookies=["mycookie", "myothercookie"],
-        forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
-        origin_protocol_policy="http-only",
-        bucket_prefix="4321/",
-        custom_error_responses={
-            "Quantity": 2,
-            "Items": [
-                {
-                    "ErrorCode": 404,
-                    "ResponsePagePath": "/errors/404.html",
-                    "ResponseCode": "404",
-                    "ErrorCachingMinTTL": 300,
-                },
-                {
-                    "ErrorCode": 405,
-                    "ResponsePagePath": "/errors/405.html",
-                    "ResponseCode": "405",
-                    "ErrorCachingMinTTL": 300,
-                },
-            ],
-        },
-    )
-
-    tasks.run_queued_tasks_and_enqueue_dependents()
-
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
-
-    assert service_instance.cloudfront_distribution_arn
-    assert service_instance.cloudfront_distribution_arn.startswith("arn:aws:cloudfront")
-    assert service_instance.cloudfront_distribution_arn.endswith("FakeDistributionId")
-    assert service_instance.cloudfront_distribution_id == "FakeDistributionId"
-    assert service_instance.domain_internal == "fake1234.cloudfront.net"
-    assert service_instance.new_certificate is None
-    assert service_instance.current_certificate is not None
-    assert service_instance.current_certificate.id == id_
-
-
-def subtest_provision_creates_cloudfront_distribution_with_tags(
-    tasks, cloudfront, instance_model
-):
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
-    certificate = service_instance.new_certificate
-
-    id_ = certificate.id
+    dedicated_waf_web_acl_arn = None
+    if instance_model == CDNDedicatedWAFServiceInstance:
+        dedicated_waf_web_acl_arn = service_instance.dedicated_waf_web_acl_arn
 
     cloudfront.expect_create_distribution_with_tags(
         caller_reference=service_instance.id,
@@ -268,7 +255,8 @@ def subtest_provision_creates_cloudfront_distribution_with_tags(
                 },
             ],
         },
-        dedicated_waf_web_acl_arn=service_instance.dedicated_waf_web_acl_arn,
+        dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
+        tags=service_instance.tags,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -284,6 +272,7 @@ def subtest_provision_creates_cloudfront_distribution_with_tags(
     assert service_instance.new_certificate is None
     assert service_instance.current_certificate is not None
     assert service_instance.current_certificate.id == id_
+    assert service_instance.tags is not None
 
 
 def subtest_provision_waits_for_cloudfront_distribution(

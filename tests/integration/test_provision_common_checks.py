@@ -99,7 +99,7 @@ def test_refuses_to_provision_with_duplicate_domains(client, dns, instance_model
     ],
 )
 def test_doesnt_refuse_to_provision_with_duplicate_domains_when_not_configured_to(
-    app, client, dns, instance_model, expected_status
+    app, client, dns, instance_model, expected_status, organization_guid, space_guid
 ):
     old_ignore = config.IGNORE_DUPLICATE_DOMAINS
     config.IGNORE_DUPLICATE_DOMAINS = True
@@ -108,7 +108,11 @@ def test_doesnt_refuse_to_provision_with_duplicate_domains_when_not_configured_t
     dns.add_cname("_acme-challenge.foo.com")
 
     client.provision_instance(
-        instance_model, "4321", params={"domains": "example.com, foo.com"}
+        instance_model,
+        "4321",
+        params={"domains": "example.com, foo.com"},
+        organization_guid=organization_guid,
+        space_guid=space_guid,
     )
 
     assert client.response.status_code == expected_status, client.response.body
@@ -126,14 +130,20 @@ def test_doesnt_refuse_to_provision_with_duplicate_domains_when_not_configured_t
     ],
 )
 def test_duplicate_domain_check_ignores_deactivated(
-    client, dns, instance_model, expected_status
+    client, dns, instance_model, expected_status, organization_guid, space_guid
 ):
     ALBServiceInstanceFactory.create(
         domain_names="foo.com", deactivated_at=datetime.utcnow()
     )
     dns.add_cname("_acme-challenge.foo.com")
 
-    client.provision_instance(instance_model, "4321", params={"domains": "foo.com"})
+    client.provision_instance(
+        instance_model,
+        "4321",
+        params={"domains": "foo.com"},
+        organization_guid=organization_guid,
+        space_guid=space_guid,
+    )
 
     assert client.response.status_code == expected_status, client.response.body
 

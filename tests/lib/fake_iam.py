@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from broker.lib.tags import Tag
 from broker.aws import iam_commercial as real_iam_c
 from broker.aws import iam_govcloud as real_iam_g
 from tests.lib.fake_aws import FakeAWS
@@ -32,6 +33,14 @@ class FakeIAM(FakeAWS):
             }
         }
         self.stubber.add_response(method, response, request)
+
+    def expect_tag_server_certificate(self, name: str, tags: list[Tag]):
+        method = "tag_server_certificate"
+        request = {
+            "ServerCertificateName": name,
+            "Tags": tags,
+        }
+        self.stubber.add_response(method, {}, request)
 
     def expect_upload_server_certificate_raising_duplicate(
         self, name: str, cert: str, private_key: str, chain: str, path: str

@@ -409,6 +409,10 @@ def subtest_update_uploads_new_cert(
         chain=certificate.fullchain_pem,
         path="/cloudfront/external-domains-test/",
     )
+    iam_commercial.expect_tag_server_certificate(
+        f"{service_instance.id}-{today}-{certificate.id}",
+        service_instance.tags,
+    )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 

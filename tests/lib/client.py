@@ -89,13 +89,18 @@ class CFAPIClient(FlaskClient):
         return method(*args, **kwargs)
 
     def provision_cdn_instance(
-        self, id: str, accepts_incomplete: str = "true", params: dict = None
+        self,
+        id: str,
+        accepts_incomplete: str = "true",
+        params: dict = None,
+        organization_guid: str = "abc",
+        space_guid: str = "123",
     ):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": CDN_PLAN_ID,
-            "organization_guid": "abc",
-            "space_guid": "123",
+            "organization_guid": organization_guid,
+            "space_guid": space_guid,
         }
 
         if params is not None:
@@ -108,13 +113,18 @@ class CFAPIClient(FlaskClient):
         )
 
     def provision_cdn_dedicated_waf_instance(
-        self, id: str, accepts_incomplete: str = "true", params: dict = None
+        self,
+        id: str,
+        accepts_incomplete: str = "true",
+        params: dict = None,
+        organization_guid: str = "abc",
+        space_guid: str = "123",
     ):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": CDN_DEDICATED_WAF_PLAN_ID,
-            "organization_guid": "abc",
-            "space_guid": "123",
+            "organization_guid": organization_guid,
+            "space_guid": space_guid,
         }
 
         if params is not None:
@@ -127,13 +137,18 @@ class CFAPIClient(FlaskClient):
         )
 
     def provision_migration_instance(
-        self, id: str, accepts_incomplete: str = "true", params: dict = None
+        self,
+        id: str,
+        accepts_incomplete: str = "true",
+        params: dict = None,
+        organization_guid: str = "abc",
+        space_guid: str = "123",
     ):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "739e78F5-a919-46ef-9193-1293cc086c17",
-            "organization_guid": "abc",
-            "space_guid": "123",
+            "organization_guid": organization_guid,
+            "space_guid": space_guid,
         }
 
         if params is not None:
@@ -265,13 +280,18 @@ class CFAPIClient(FlaskClient):
         )
 
     def provision_alb_instance(
-        self, id: str, accepts_incomplete: str = "true", params: dict = None
+        self,
+        id: str,
+        accepts_incomplete: str = "true",
+        params: dict = None,
+        organization_guid: str = "abc",
+        space_guid: str = "123",
     ):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "6f60835c-8964-4f1f-a19a-579fb27ce694",
-            "organization_guid": "abc",
-            "space_guid": "123",
+            "organization_guid": organization_guid,
+            "space_guid": space_guid,
         }
 
         if params is not None:
@@ -315,13 +335,18 @@ class CFAPIClient(FlaskClient):
         )
 
     def provision_dedicated_alb_instance(
-        self, id: str, accepts_incomplete: str = "true", params: dict = None
+        self,
+        id: str,
+        accepts_incomplete: str = "true",
+        params: dict = None,
+        organization_guid: str = "our-org",
+        space_guid: str = "123",
     ):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "fcde69c6-077b-4edd-8d12-7b95bbc2595f",
-            "organization_guid": "our-org",
-            "space_guid": "123",
+            "organization_guid": organization_guid,
+            "space_guid": space_guid,
         }
 
         if params is not None:
@@ -334,14 +359,19 @@ class CFAPIClient(FlaskClient):
         )
 
     def update_dedicated_alb_instance(
-        self, id: str, accepts_incomplete: str = "true", params: dict = None
+        self,
+        id: str,
+        accepts_incomplete: str = "true",
+        params: dict = None,
+        organization_guid: str = "our-org",
+        space_guid: str = "123",
     ):
         json = {
             "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
             "plan_id": "fcde69c6-077b-4edd-8d12-7b95bbc2595f",
             "context": {
-                "organization_guid": "our-org",
-                "space_guid": "123",
+                "organization_guid": organization_guid,
+                "space_guid": space_guid,
             },
         }
 

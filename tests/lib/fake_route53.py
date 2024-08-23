@@ -262,6 +262,18 @@ class FakeRoute53(FakeAWS):
             }
         }
 
+    def expect_change_tags_for_resource(self, domain_name, tags):
+        health_check_id = f"{domain_name} ID"
+        self.stubber.add_response(
+            "change_tags_for_resource",
+            {},
+            {
+                "ResourceType": "healthcheck",
+                "ResourceId": health_check_id,
+                "AddTags": tags,
+            },
+        )
+
 
 @pytest.fixture(autouse=True)
 def route53():

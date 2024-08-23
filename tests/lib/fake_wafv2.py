@@ -1,12 +1,13 @@
 import pytest
 
 from broker.aws import wafv2 as real_wafv2
+from broker.lib.tags import Tag
 from broker.extensions import config
 from tests.lib.fake_aws import FakeAWS
 
 
 class FakeWAFV2(FakeAWS):
-    def expect_create_web_acl(self, id: str, rule_group_arn: str):
+    def expect_create_web_acl(self, id: str, rule_group_arn: str, tags: list[Tag]):
         method = "create_web_acl"
         waf_name = f"{config.DEDICATED_WAF_NAME_PREFIX}-{id}-dedicated-waf"
         request = {
@@ -32,6 +33,7 @@ class FakeWAFV2(FakeAWS):
                 "CloudWatchMetricsEnabled": True,
                 "MetricName": waf_name,
             },
+            "Tags": tags,
         }
         response = {
             "Summary": {

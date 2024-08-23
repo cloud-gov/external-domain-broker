@@ -1,4 +1,5 @@
 import pytest
+import uuid
 
 from broker.models import DedicatedALBServiceInstance
 
@@ -12,6 +13,11 @@ from tests.lib.provision import (
     subtest_provision_waits_for_route53_changes,
 )
 from tests.lib.alb.provision import subtest_provision_provisions_ALIAS_records
+
+
+@pytest.fixture
+def organization_guid():
+    return str(uuid.uuid4())
 
 
 @pytest.fixture
@@ -55,13 +61,13 @@ def service_instance(clean_db):
 
 
 def test_update_alb_to_dedicated_alb_happy_path(
-    clean_db, client, service_instance, tasks, route53, alb
+    clean_db, client, service_instance, tasks, route53, alb, organization_guid
 ):
-    client.update_instance_to_dedicated_alb("4321")
+    client.update_instance_to_dedicated_alb("4321", organization_guid=organization_guid)
     assert client.response.status_code == 202, client.response.json
     clean_db.session.expunge_all()
     instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
-    assert instance.org_id == "our-org"
+    assert instance.org_id == organization_guid
     assert instance is not None
     assert instance.new_certificate is not None
     assert instance.current_certificate is not None
@@ -71,7 +77,7 @@ def test_update_alb_to_dedicated_alb_happy_path(
     # - add certificate
     # - update DNS
     # - remove certificate from old ALB
-    subtest_provision_selects_dedicated_alb(tasks, alb)
+    subtest_provision_selects_dedicated_alb(tasks, alb, organization_guid)
     subtest_provision_adds_certificate_to_alb(tasks, alb)
     instance_model = DedicatedALBServiceInstance
     subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)

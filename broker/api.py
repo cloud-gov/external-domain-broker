@@ -26,6 +26,7 @@ from sap import cf_logging
 from broker import validators
 from broker.extensions import config, db
 from broker.lib.cdn import is_cdn_instance
+from broker.lib.tags import generate_instance_tags
 from broker.models import (
     Operation,
     ALBServiceInstance,
@@ -213,10 +214,17 @@ class API(ServiceBroker):
             step_description="Queuing tasks",
         )
 
+        self.logger.info("adding instance tags")
+        catalog = self.catalog()
+        tags = generate_instance_tags(instance_id, details, catalog, config.FLASK_ENV)
+        instance.tags = tags
+
         db.session.add(instance)
         db.session.add(operation)
+
         self.logger.info("committing db session")
         db.session.commit()
+
         self.logger.info("queueing tasks")
         queue(operation.id, cf_logging.FRAMEWORK.context.get_correlation_id())
         self.logger.info("all done. Returning provisioned service spec")

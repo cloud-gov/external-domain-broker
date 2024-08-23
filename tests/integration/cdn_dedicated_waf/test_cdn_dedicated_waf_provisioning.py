@@ -1,4 +1,5 @@
 import pytest  # noqa F401
+import uuid
 
 from broker.models import (
     CDNDedicatedWAFServiceInstance,
@@ -18,7 +19,7 @@ from tests.lib.cdn.provision import (
     subtest_provision_creates_provision_operation,
     subtest_provision_retrieves_certificate,
     subtest_provision_uploads_certificate_to_iam,
-    subtest_provision_creates_cloudfront_distribution_with_tags,
+    subtest_provision_creates_cloudfront_distribution,
     subtest_provision_waits_for_cloudfront_distribution,
     subtest_provision_provisions_ALIAS_records,
 )
@@ -60,6 +61,17 @@ from tests.integration.cdn_dedicated_waf.update import (
     subtest_updates_associated_health_checks_no_change,
 )
 
+
+@pytest.fixture
+def organization_guid():
+    return str(uuid.uuid4())
+
+
+@pytest.fixture
+def space_guid():
+    return str(uuid.uuid4())
+
+
 # The subtests below are "interesting".  Before test_provision_happy_path, we
 # had separate tests for each stage in the task pipeline.  But each test would
 # have to duplicate much of the previous test.  This was arduous and slow. Now
@@ -70,11 +82,21 @@ from tests.integration.cdn_dedicated_waf.update import (
 
 
 def test_provision_happy_path(
-    client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront, wafv2, shield
+    client,
+    dns,
+    tasks,
+    route53,
+    iam_commercial,
+    simple_regex,
+    cloudfront,
+    wafv2,
+    shield,
+    organization_guid,
+    space_guid,
 ):
     instance_model = CDNDedicatedWAFServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
-        client, dns, instance_model
+        client, dns, organization_guid, space_guid, instance_model
     )
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_provision_creates_LE_user(tasks, instance_model)
@@ -115,9 +137,7 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Creating custom WAFv2 web ACL"
     )
-    subtest_provision_creates_cloudfront_distribution_with_tags(
-        tasks, cloudfront, instance_model
-    )
+    subtest_provision_creates_cloudfront_distribution(tasks, cloudfront, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Creating CloudFront distribution"
     )

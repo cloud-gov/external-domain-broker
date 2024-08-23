@@ -1,4 +1,5 @@
 import json
+import uuid
 
 import pytest
 
@@ -65,8 +66,20 @@ def vcap_services():
     return json.dumps(data)
 
 
+@pytest.fixture
+def uaa_client_id():
+    return str(uuid.uuid4())
+
+
+@pytest.fixture
+def uaa_client_secret():
+    return str(uuid.uuid4())
+
+
 @pytest.fixture()
-def mocked_env(monkeypatch, vcap_application, vcap_services):
+def mocked_env(
+    monkeypatch, vcap_application, vcap_services, uaa_client_id, uaa_client_secret
+):
     monkeypatch.setenv("SECRET_KEY", "None")
     monkeypatch.setenv("BROKER_USERNAME", "None")
     monkeypatch.setenv("BROKER_PASSWORD", "None")
@@ -103,6 +116,10 @@ def mocked_env(monkeypatch, vcap_application, vcap_services):
     monkeypatch.setenv("SMTP_CERT", "A_REAL_CERT_WOULD_BE_LONGER_THAN_THIS")
     monkeypatch.setenv("CDN_LOG_BUCKET", "my-bucket.s3.amazonaws.com")
     monkeypatch.setenv("WAF_RATE_LIMIT_RULE_GROUP_ARN", "fake-rate-limit-group-arn")
+    monkeypatch.setenv("CF_API_URL", "mock://cf")
+    monkeypatch.setenv("UAA_BASE_URL", "mock://uaa")
+    monkeypatch.setenv("UAA_CLIENT_ID", uaa_client_id)
+    monkeypatch.setenv("UAA_CLIENT_SECRET", uaa_client_secret)
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
@@ -262,3 +279,18 @@ def test_config_sets_waf_rate_limit_rule_group_arn(env, monkeypatch, mocked_env)
     config = config_from_env()
 
     assert config.WAF_RATE_LIMIT_RULE_GROUP_ARN == "fake-rate-limit-group-arn"
+
+
+@pytest.mark.parametrize("env", ["production", "staging", "development"])
+def test_config_sets_cf_vars(
+    env, monkeypatch, mocked_env, uaa_client_id, uaa_client_secret
+):
+    monkeypatch.setenv("FLASK_ENV", env)
+
+    config = config_from_env()
+
+    assert config.CF_API_URL == "mock://cf"
+    assert config.UAA_BASE_URL == "mock://uaa/"
+    assert config.UAA_TOKEN_URL == "mock://uaa/oauth/token"
+    assert config.UAA_CLIENT_ID == uaa_client_id
+    assert config.UAA_CLIENT_SECRET == uaa_client_secret

@@ -35,6 +35,8 @@ def create_web_acl(operation_id: str, **kwargs):
         return
 
     web_acl_name = generate_web_acl_name(service_instance)
+    tags = service_instance.tags if service_instance.tags else []
+
     response = wafv2.create_web_acl(
         Name=web_acl_name,
         Scope="CLOUDFRONT",
@@ -60,6 +62,7 @@ def create_web_acl(operation_id: str, **kwargs):
             "CloudWatchMetricsEnabled": True,
             "MetricName": web_acl_name,
         },
+        Tags=tags,
     )
 
     service_instance.dedicated_waf_web_acl_arn = response["Summary"]["ARN"]

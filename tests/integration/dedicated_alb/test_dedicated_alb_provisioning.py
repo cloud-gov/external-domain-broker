@@ -1,4 +1,5 @@
 import pytest  # noqa F401
+import uuid
 
 from broker.extensions import db
 from broker.models import (
@@ -30,6 +31,17 @@ from tests.integration.dedicated_alb.test_dedicated_alb_update import (
     subtest_update_happy_path,
 )
 
+
+@pytest.fixture
+def organization_guid():
+    return str(uuid.uuid4())
+
+
+@pytest.fixture
+def space_guid():
+    return str(uuid.uuid4())
+
+
 # The subtests below are "interesting".  Before test_provision_happy_path, we
 # had separate tests for each stage in the task pipeline.  But each test would
 # have to duplicate much of the previous test.  This was arduous and slow. Now
@@ -40,11 +52,19 @@ from tests.integration.dedicated_alb.test_dedicated_alb_update import (
 
 
 def test_provision_happy_path(
-    client, dns, tasks, route53, iam_govcloud, simple_regex, alb
+    client,
+    dns,
+    tasks,
+    route53,
+    iam_govcloud,
+    simple_regex,
+    alb,
+    organization_guid,
+    space_guid,
 ):
     instance_model = DedicatedALBServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
-        client, dns, instance_model
+        client, dns, organization_guid, space_guid, instance_model
     )
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_provision_creates_LE_user(tasks, instance_model)
@@ -81,7 +101,7 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Uploading SSL certificate to AWS"
     )
-    subtest_provision_selects_dedicated_alb(tasks, alb)
+    subtest_provision_selects_dedicated_alb(tasks, alb, organization_guid)
     check_last_operation_description(
         client, "4321", operation_id, "Selecting load balancer"
     )
@@ -105,12 +125,14 @@ def test_provision_happy_path(
     subtest_update_noop(client, instance_model)
 
 
-def subtest_provision_selects_dedicated_alb(tasks, alb):
+def subtest_provision_selects_dedicated_alb(tasks, alb, organization_guid):
     our_listener_0 = DedicatedALBListener(
-        listener_arn="our-arn-0", dedicated_org="our-org"
+        listener_arn="our-arn-0",
+        dedicated_org=organization_guid,
     )
     our_listener_1 = DedicatedALBListener(
-        listener_arn="our-arn-1", dedicated_org="our-org"
+        listener_arn="our-arn-1",
+        dedicated_org=organization_guid,
     )
     empty_listener_0 = DedicatedALBListener(listener_arn="empty-arn-0")
     other_listener_0 = DedicatedALBListener(

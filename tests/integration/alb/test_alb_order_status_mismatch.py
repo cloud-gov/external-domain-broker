@@ -9,6 +9,7 @@ instance type, but there's no need to test both cases.
 """
 
 import pytest
+import uuid
 from broker.extensions import config, db
 from broker.models import ALBServiceInstance
 from broker.tasks.letsencrypt import retrieve_certificate
@@ -27,10 +28,22 @@ from tests.lib.alb.provision import (
 )
 
 
-def test_stuff(client, dns, tasks, route53):
+@pytest.fixture
+def organization_guid():
+    return str(uuid.uuid4())
+
+
+@pytest.fixture
+def space_guid():
+    return str(uuid.uuid4())
+
+
+def test_stuff(client, dns, tasks, route53, organization_guid, space_guid):
     # get us into the right state
     instance_model = ALBServiceInstance
-    task_id = subtest_provision_creates_provision_operation(client, dns, instance_model)
+    subtest_provision_creates_provision_operation(
+        client, dns, organization_guid, space_guid, instance_model
+    )
     subtest_provision_creates_LE_user(tasks, instance_model)
     subtest_provision_creates_private_key_and_csr(tasks, instance_model)
     subtest_provision_initiates_LE_challenge(tasks, instance_model)

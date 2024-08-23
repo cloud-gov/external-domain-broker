@@ -55,10 +55,20 @@ def test_update_plan_only(
     dns,
     iam_commercial,
     simple_regex,
+    organization_guid,
+    space_guid,
 ):
     # Create initial cdn_service_instance plan instance
     subtest_provision_cdn_instance(
-        client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+        client,
+        dns,
+        tasks,
+        route53,
+        iam_commercial,
+        simple_regex,
+        cloudfront,
+        organization_guid,
+        space_guid,
     )
     subtest_is_cdn_instance()
 
@@ -130,10 +140,20 @@ def test_update_plan_and_domains(
     dns,
     iam_commercial,
     simple_regex,
+    organization_guid,
+    space_guid,
 ):
     # Create initial cdn_service_instance plan instance
     subtest_provision_cdn_instance(
-        client, dns, tasks, route53, iam_commercial, simple_regex, cloudfront
+        client,
+        dns,
+        tasks,
+        route53,
+        iam_commercial,
+        simple_regex,
+        cloudfront,
+        organization_guid,
+        space_guid,
     )
     subtest_is_cdn_instance()
 

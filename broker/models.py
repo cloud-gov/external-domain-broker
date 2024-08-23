@@ -118,6 +118,8 @@ class ServiceInstance(Base):
         post_update=True,
     )
 
+    tags = mapped_column(postgresql.JSONB)
+
     __mapper_args__ = {
         "polymorphic_identity": "service_instance",
         "polymorphic_on": instance_type,

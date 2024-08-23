@@ -16,6 +16,7 @@ def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
     wafv2.expect_create_web_acl(
         service_instance.id,
         config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
+        service_instance.tags,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -50,6 +51,7 @@ def subtest_provision_creates_health_checks(
 
     for domain_name in service_instance.domain_names:
         route53.expect_create_health_check(service_instance.id, domain_name)
+        route53.expect_change_tags_for_resource(domain_name, service_instance.tags)
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
