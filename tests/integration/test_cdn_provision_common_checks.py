@@ -8,14 +8,6 @@ from broker.models import (
 )
 
 
-# @pytest.fixture
-# def provisioned_instance_client(
-#     client, dns, organization_guid, space_guid, instance_model
-# ):
-
-#     yield client
-
-
 @pytest.mark.parametrize(
     "instance_model",
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
