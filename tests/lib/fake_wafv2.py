@@ -21,6 +21,7 @@ class FakeWAFV2(FakeAWS):
                     "Statement": {
                         "RuleGroupReferenceStatement": {"ARN": rule_group_arn},
                     },
+                    "OverrideAction": {"None": {}},
                     "VisibilityConfig": {
                         "SampledRequestsEnabled": True,
                         "CloudWatchMetricsEnabled": True,
