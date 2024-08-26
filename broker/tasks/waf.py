@@ -50,6 +50,7 @@ def create_web_acl(operation_id: str, **kwargs):
                         "ARN": config.WAF_RATE_LIMIT_RULE_GROUP_ARN
                     },
                 },
+                "OverrideAction": {"None": {}},
                 "VisibilityConfig": {
                     "SampledRequestsEnabled": True,
                     "CloudWatchMetricsEnabled": True,
