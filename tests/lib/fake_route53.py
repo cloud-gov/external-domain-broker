@@ -223,7 +223,7 @@ class FakeRoute53(FakeAWS):
                 "Location": "fake-check-location",
             },
             {
-                "CallerReference": f"create_health_check-{id}-{domain_name}",
+                "CallerReference": f"{id}-{idx}",
                 "HealthCheckConfig": {
                     "Type": "HTTPS",
                     "FullyQualifiedDomainName": domain_name,
