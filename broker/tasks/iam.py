@@ -51,14 +51,11 @@ def upload_server_certificate(operation_id: int, **kwargs):
             CertificateChain=certificate.fullchain_pem,
         )
     except ClientError as e:
-        # TODO: there's an edge case here, where we uploaded the certificate but
-        # failed to persist the metadata to the database. If that happens, we really
-        # need to get the metadata back from IAM.
-        if (
-            e.response["Error"]["Code"] == "EntityAlreadyExistsException"
-            and certificate.iam_server_certificate_id is not None
-        ):
-            return
+        if e.response["Error"]["Code"] == "EntityAlreadyExistsException":
+            get_response = iam.get_server_certificate(
+                ServerCertificateName=certificate.iam_server_certificate_name,
+            )
+            response = get_response["ServerCertificate"]
         else:
             raise e
 
