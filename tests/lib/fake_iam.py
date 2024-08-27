@@ -41,7 +41,9 @@ class FakeIAM(FakeAWS):
         response = {
             "ServerCertificate": self.server_certificate_metadata_response(
                 name, cert, chain, path
-            )
+            ),
+            "CertificateBody": cert,
+            "CertificateChain": chain,
         }
         self.stubber.add_response(method, response, request)
 
@@ -58,9 +60,7 @@ class FakeIAM(FakeAWS):
                 "Arn": f"arn:aws:iam::000000000000:server-certificate{path}{name}",
                 "UploadDate": now,
                 "Expiration": three_months_from_now,
-            },
-            "CertificateBody": cert,
-            "CertificateChain": chain,
+            }
         }
 
     def expect_upload_server_certificate_raising_duplicate(
