@@ -12,8 +12,6 @@ class FakeIAM(FakeAWS):
     def expect_upload_server_certificate(
         self, name: str, cert: str, private_key: str, chain: str, path: str
     ):
-        now = datetime.now(timezone.utc)
-        three_months_from_now = now + timedelta(90)
         method = "upload_server_certificate"
         request = {
             "Path": path,
@@ -22,16 +20,7 @@ class FakeIAM(FakeAWS):
             "PrivateKey": private_key,
             "CertificateChain": chain,
         }
-        response = {
-            "ServerCertificateMetadata": {
-                "ServerCertificateId": "FAKE_CERT_ID_XXXXXXXX",
-                "Path": path,
-                "ServerCertificateName": name,
-                "Arn": f"arn:aws:iam::000000000000:server-certificate{path}{name}",
-                "UploadDate": now,
-                "Expiration": three_months_from_now,
-            }
-        }
+        response = self.server_certificate_metadata_response(name, cert, chain, path)
         self.stubber.add_response(method, response, request)
 
     def expect_tag_server_certificate(self, name: str, tags: list[Tag]):
@@ -41,6 +30,38 @@ class FakeIAM(FakeAWS):
             "Tags": tags,
         }
         self.stubber.add_response(method, {}, request)
+
+    def expect_get_server_certificate(
+        self, name: str, cert: str, chain: str, path: str
+    ):
+        method = "get_server_certificate"
+        request = {
+            "ServerCertificateName": name,
+        }
+        response = {
+            "ServerCertificate": self.server_certificate_metadata_response(
+                name, cert, chain, path
+            )
+        }
+        self.stubber.add_response(method, response, request)
+
+    def server_certificate_metadata_response(
+        self, name: str, cert: str, chain: str, path: str
+    ):
+        now = datetime.now(timezone.utc)
+        three_months_from_now = now + timedelta(90)
+        return {
+            "ServerCertificateMetadata": {
+                "ServerCertificateId": "FAKE_CERT_ID_XXXXXXXX",
+                "Path": path,
+                "ServerCertificateName": name,
+                "Arn": f"arn:aws:iam::000000000000:server-certificate{path}{name}",
+                "UploadDate": now,
+                "Expiration": three_months_from_now,
+            },
+            "CertificateBody": cert,
+            "CertificateChain": chain,
+        }
 
     def expect_upload_server_certificate_raising_duplicate(
         self, name: str, cert: str, private_key: str, chain: str, path: str
