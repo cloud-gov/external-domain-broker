@@ -4,35 +4,13 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import shield
 from broker.extensions import db
+from broker.lib.shield_protections import ShieldProtections
 from broker.models import Operation
 from broker.tasks import huey
 
 logger = logging.getLogger(__name__)
 
-
-class ShieldProtections:
-    def __init__(self):
-        self.protected_cloudfront_ids: dict[str, str] = {}
-
-    def get_cloudfront_protections(self, should_refresh: bool = False):
-        if not self.protected_cloudfront_ids or should_refresh:
-            self._list_cloudfront_protections()
-        return self.protected_cloudfront_ids
-
-    def _list_cloudfront_protections(self):
-        paginator = shield.get_paginator("list_protections")
-        response_iterator = paginator.paginate(
-            InclusionFilters={"ResourceTypes": ["CLOUDFRONT_DISTRIBUTION"]},
-        )
-        for response in response_iterator:
-            for protection in response["Protections"]:
-                if "ResourceArn" in protection and "Id" in protection:
-                    self.protected_cloudfront_ids[protection["ResourceArn"]] = (
-                        protection["Id"]
-                    )
-
-
-shield_protections = ShieldProtections()
+shield_protections = ShieldProtections(shield)
 
 
 @huey.retriable_task
@@ -63,17 +41,13 @@ def associate_health_checks(operation_id: int, **kwargs):
         )
         return
 
-    for health_check in service_instance.route53_health_checks:
+    if len(service_instance.route53_health_checks) > 0:
+        # We can only associate one health check to a Shield protection at a time
+        health_check = service_instance.route53_health_checks[0]
         health_check_id = health_check["health_check_id"]
         _associate_health_check(protection_id, health_check_id)
-        logger.info(f"Saving associated Route53 health check ID: {health_check_id}")
-        service_instance.shield_associated_health_checks.append(
-            {
-                "health_check_id": health_check_id,
-                "protection_id": protection_id,
-            }
-        )
-        flag_modified(service_instance, "shield_associated_health_checks")
+        service_instance.shield_associated_health_check = health_check
+        flag_modified(service_instance, "shield_associated_health_check")
 
     db.session.add(service_instance)
     db.session.commit()
@@ -105,59 +79,33 @@ def update_associated_health_checks(operation_id: int, **kwargs):
             f'Could not find Shield protection for distribution ID "{service_instance.cloudfront_distribution_id}"'
         )
 
-    existing_route53_health_check_ids = [
-        check["health_check_id"] for check in service_instance.route53_health_checks
-    ]
-    shield_associated_health_check_ids = [
-        check["health_check_id"]
-        for check in service_instance.shield_associated_health_checks
-    ]
+    shield_associated_health_check_domain_name = (
+        service_instance.shield_associated_health_check["domain_name"]
+    )
 
-    # If health check ID is NOT IN the list of associated health check IDs, it needs to be ASSOCIATED
-    health_checks_to_associate = [
-        check
-        for check in service_instance.route53_health_checks
-        if check["health_check_id"] not in shield_associated_health_check_ids
-    ]
+    # IF the domain name for associated health check is NOT IN the list of domain names,
+    # THEN it needs to be DISASSOCIATED
+    if shield_associated_health_check_domain_name not in service_instance.domain_names:
+        _disassociate_health_check(service_instance.shield_associated_health_check)
+        service_instance.shield_associated_health_check = None
+        flag_modified(service_instance, "shield_associated_health_check")
 
-    # If health check is IN the list of associated health checks,
-    # but NOT IN the list of created health check IDS,
-    # it needs to be DISASSOCIATED
-    health_checks_to_disassociate = [
-        check
-        for check in service_instance.shield_associated_health_checks
-        if check["health_check_id"] not in existing_route53_health_check_ids
-    ]
-
-    updated_associated_health_checks = service_instance.shield_associated_health_checks
-
-    if len(health_checks_to_associate) > 0:
-        updated_associated_health_checks = _associate_health_checks(
-            protection_id, updated_associated_health_checks, health_checks_to_associate
-        )
-        service_instance.shield_associated_health_checks = (
-            updated_associated_health_checks
-        )
-        flag_modified(service_instance, "shield_associated_health_checks")
-
-    if len(health_checks_to_disassociate) > 0:
-        health_check_ids_to_disassociate = [
-            check["health_check_id"] for check in health_checks_to_disassociate
-        ]
-        domain_names_to_disassociate = [
-            check["domain_name"]
+    # IF the domain name for associated health check is IN the list of domain names
+    # AND there is not already an existing associated health check,
+    # THEN it needs to be ASSOCIATED
+    if not service_instance.shield_associated_health_check:
+        health_checks_to_associate = [
+            check
             for check in service_instance.route53_health_checks
-            if check["health_check_id"] in health_check_ids_to_disassociate
+            if check["domain_name"] in service_instance.domain_names
         ]
-        updated_associated_health_checks = _disassociate_health_checks(
-            domain_names_to_disassociate,
-            updated_associated_health_checks,
-            health_checks_to_disassociate,
-        )
-        service_instance.shield_associated_health_checks = (
-            updated_associated_health_checks
-        )
-        flag_modified(service_instance, "shield_associated_health_checks")
+
+        if len(health_checks_to_associate) > 0:
+            # We can only associate one health check to a Shield protection at a time
+            health_check = health_checks_to_associate[0]
+            _associate_health_check(protection_id, health_check)
+            service_instance.shield_associated_health_check = health_check
+            flag_modified(service_instance, "shield_associated_health_check")
 
     db.session.add(service_instance)
     db.session.commit()
@@ -176,13 +124,11 @@ def disassociate_health_checks(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    updated_associated_health_checks = _disassociate_health_checks(
-        service_instance.domain_names,
-        service_instance.shield_associated_health_checks,
-        service_instance.shield_associated_health_checks,
+    _disassociate_health_check(
+        service_instance.shield_associated_health_check,
     )
-    service_instance.shield_associated_health_checks = updated_associated_health_checks
-    flag_modified(service_instance, "shield_associated_health_checks")
+    service_instance.shield_associated_health_check = None
+    flag_modified(service_instance, "shield_associated_health_check")
 
     db.session.add(service_instance)
     db.session.commit()
@@ -194,45 +140,12 @@ def get_health_check_arn(health_check_id):
     return f"arn:aws:route53:::healthcheck/{health_check_id}"
 
 
-def _associate_health_checks(
-    protection_id, associated_health_checks, health_checks_to_associate
-):
-    for health_check_to_associate in health_checks_to_associate:
-        health_check_id = health_check_to_associate["health_check_id"]
-        _associate_health_check(protection_id, health_check_id)
-        logger.info(f"Saving associated Route53 health check ID: {health_check_id}")
-        associated_health_checks.append(
-            {
-                "health_check_id": health_check_id,
-                "protection_id": protection_id,
-            }
-        )
-    return associated_health_checks
-
-
 def _associate_health_check(protection_id, health_check_id):
     shield.associate_health_check(
         ProtectionId=protection_id,
         HealthCheckArn=get_health_check_arn(health_check_id),
     )
     logger.info(f"Saving associated Route53 health check ID: {health_check_id}")
-
-
-def _disassociate_health_checks(
-    domain_names_to_disassociate, existing_checks, checks_to_disassociate
-):
-    logger.info(f'Disassociating health check(s) for "{domain_names_to_disassociate}"')
-
-    updated_associated_health_checks = existing_checks
-    for health_check_to_disassociate in checks_to_disassociate:
-        _disassociate_health_check(health_check_to_disassociate)
-        updated_associated_health_checks = [
-            check
-            for check in updated_associated_health_checks
-            if check["health_check_id"]
-            != health_check_to_disassociate["health_check_id"]
-        ]
-    return updated_associated_health_checks
 
 
 def _disassociate_health_check(health_check):

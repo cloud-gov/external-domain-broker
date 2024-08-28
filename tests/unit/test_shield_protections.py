@@ -1,5 +1,7 @@
 import uuid
-from broker.tasks.shield import ShieldProtections
+
+from broker.aws import shield as shield_svc
+from broker.lib.shield_protections import ShieldProtections
 from tests.lib.fake_shield import Protection
 
 
@@ -7,7 +9,7 @@ def test_cloudfront_get_already_set_protections(shield):
     protection_id = str(uuid.uuid4())
     cloudfront_arn = "arn:aws:cloudfront::000000000:distribution/fake-arn"
 
-    shield_protections = ShieldProtections()
+    shield_protections = ShieldProtections(shield_svc)
     shield_protections.protected_cloudfront_ids = {
         cloudfront_arn: protection_id,
     }
@@ -23,7 +25,7 @@ def test_cloudfront_get_protections(shield):
     protection: Protection = {"Id": protection_id, "ResourceArn": cloudfront_arn}
     shield.expect_list_protections([protection])
 
-    shield_protections = ShieldProtections()
+    shield_protections = ShieldProtections(shield_svc)
     protections = shield_protections.get_cloudfront_protections()
     assert protections == {
         cloudfront_arn: protection_id,
@@ -37,7 +39,7 @@ def test_cloudfront_get_protections_should_refresh(shield):
 
     shield.expect_list_protections([protection])
 
-    shield_protections = ShieldProtections()
+    shield_protections = ShieldProtections(shield_svc)
     protections = shield_protections.get_cloudfront_protections()
 
     shield.expect_list_protections([protection])
@@ -65,7 +67,7 @@ def test_cloudfront_get_protections_paged_results(shield):
 
     shield.expect_list_protections([protection], [protection2], [protection3])
 
-    shield_protections = ShieldProtections()
+    shield_protections = ShieldProtections(shield_svc)
     protections = shield_protections.get_cloudfront_protections()
     assert protections == {
         cloudfront_arn: protection_id,
