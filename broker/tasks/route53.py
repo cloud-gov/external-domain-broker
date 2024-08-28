@@ -345,8 +345,10 @@ def _create_health_checks(
     tags = service_instance.tags if service_instance.tags else []
 
     updated_health_checks = existing_health_checks
-    for domain_name in health_check_domains_to_create:
-        health_check_id = _create_health_check(service_instance.id, domain_name, tags)
+    for idx, domain_name in enumerate(health_check_domains_to_create):
+        health_check_id = _create_health_check(
+            idx, service_instance.id, domain_name, tags
+        )
         updated_health_checks.append(
             {
                 "domain_name": domain_name,
@@ -356,10 +358,10 @@ def _create_health_checks(
     return updated_health_checks
 
 
-def _create_health_check(service_instance_id, domain_name, tags):
+def _create_health_check(idx, service_instance_id, domain_name, tags):
     logger.info(f"Creating Route53 health check for {domain_name}")
     route53_response = route53.create_health_check(
-        CallerReference=f"create_health_check-{service_instance_id}-{domain_name}",
+        CallerReference=f"{service_instance_id}-{idx}",
         HealthCheckConfig={
             "Type": "HTTPS",
             "FullyQualifiedDomainName": domain_name,

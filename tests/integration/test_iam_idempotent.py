@@ -111,3 +111,35 @@ def test_reupload_certificate_ok(
     upload_server_certificate.call_local("4321")
     operation = db.session.get(Operation, "4321")
     assert updated_at != operation.updated_at.timestamp()
+
+
+def test_upload_certificate_already_exists(
+    clean_db, iam_commercial, service_instance, provision_operation, simple_regex
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(CDNServiceInstance, "1234")
+    certificate = service_instance.new_certificate
+    today = date.today().isoformat()
+    assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
+
+    iam_commercial.expect_upload_server_certificate_raising_duplicate(
+        name=f"{service_instance.id}-{today}-{certificate.id}",
+        cert=certificate.leaf_pem,
+        private_key=certificate.private_key_pem,
+        chain=certificate.fullchain_pem,
+        path="/cloudfront/external-domains-test/",
+    )
+    iam_commercial.expect_get_server_certificate(
+        name=f"{service_instance.id}-{today}-{certificate.id}",
+        cert=certificate.leaf_pem,
+        chain=certificate.fullchain_pem,
+        path="/cloudfront/external-domains-test/",
+    )
+    iam_commercial.expect_tag_server_certificate(
+        f"{service_instance.id}-{today}-{certificate.id}",
+        [],
+    )
+
+    upload_server_certificate.call_local("4321")
+
+    iam_commercial.assert_no_pending_responses()
