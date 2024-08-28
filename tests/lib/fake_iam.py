@@ -38,13 +38,17 @@ class FakeIAM(FakeAWS):
         request = {
             "ServerCertificateName": name,
         }
-        response = {
-            "ServerCertificate": self.server_certificate_metadata_response(
-                name, cert, chain, path
-            ),
-            "CertificateBody": cert,
-            "CertificateChain": chain,
-        }
+        response = {"ServerCertificate": {}}
+
+        response["ServerCertificate"].update(
+            self.server_certificate_metadata_response(name, cert, chain, path)
+        )
+        response["ServerCertificate"].update(
+            {
+                "CertificateBody": cert,
+                "CertificateChain": chain,
+            }
+        )
         self.stubber.add_response(method, response, request)
 
     def server_certificate_metadata_response(
