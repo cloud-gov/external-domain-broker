@@ -169,7 +169,7 @@ def test_deprovision_happy_path(
         instance_model, tasks, service_instance, shield
     )
     check_last_operation_description(
-        client, "1234", operation_id, "Disassociating health checks with Shield"
+        client, "1234", operation_id, "Disassociating health check with Shield"
     )
     subtest_deprovision_deletes_health_checks(
         instance_model, tasks, service_instance, route53
@@ -215,19 +215,15 @@ def subtest_deprovision_disassociate_health_check_when_missing(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
     shield.expect_disassociate_health_check_not_found(
-        service_instance.shield_associated_health_checks[0]["protection_id"],
+        service_instance.shield_associated_health_check["protection_id"],
         "example.com ID",
-    )
-    shield.expect_disassociate_health_check_not_found(
-        service_instance.shield_associated_health_checks[1]["protection_id"],
-        "foo.com ID",
     )
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
 
-    assert service_instance.shield_associated_health_checks == []
+    assert service_instance.shield_associated_health_check == None
 
     shield.assert_no_pending_responses()
 
@@ -274,38 +270,24 @@ def subtest_deprovision_disassociate_health_check(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
 
-    assert sorted(
-        service_instance.shield_associated_health_checks,
-        key=lambda check: check["health_check_id"],
-    ) == [
-        {
-            "protection_id": service_instance.shield_associated_health_checks[0][
-                "protection_id"
-            ],
-            "health_check_id": "example.com ID",
-        },
-        {
-            "protection_id": service_instance.shield_associated_health_checks[0][
-                "protection_id"
-            ],
-            "health_check_id": "foo.com ID",
-        },
-    ]
+    assert service_instance.shield_associated_health_check == {
+        "protection_id": service_instance.shield_associated_health_check[
+            "protection_id"
+        ],
+        "health_check_id": "example.com ID",
+        "domain_name": "example.com",
+    }
 
     shield.expect_disassociate_health_check(
-        service_instance.shield_associated_health_checks[0]["protection_id"],
+        service_instance.shield_associated_health_check["protection_id"],
         "example.com ID",
-    )
-    shield.expect_disassociate_health_check(
-        service_instance.shield_associated_health_checks[1]["protection_id"],
-        "foo.com ID",
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
-    assert len(service_instance.shield_associated_health_checks) == 0
+    assert service_instance.shield_associated_health_check == None
 
     shield.assert_no_pending_responses()
 

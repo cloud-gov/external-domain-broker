@@ -68,7 +68,7 @@ def subtest_updates_associated_health_check(
         raise Exception("Could not load service instance")
 
     # get protection ID from initial creation
-    protection_id = service_instance.shield_associated_health_checks[0]["protection_id"]
+    protection_id = service_instance.shield_associated_health_check["protection_id"]
 
     shield.expect_associate_health_check(protection_id, "bar.com ID")
     shield.expect_disassociate_health_check(protection_id, "example.com ID")
@@ -77,19 +77,11 @@ def subtest_updates_associated_health_check(
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
-    assert sorted(
-        service_instance.shield_associated_health_checks,
-        key=lambda check: check["health_check_id"],
-    ) == [
-        {
-            "health_check_id": "bar.com ID",
-            "protection_id": protection_id,
-        },
-        {
-            "health_check_id": "foo.com ID",
-            "protection_id": protection_id,
-        },
-    ]
+    assert service_instance.shield_associated_health_check == {
+        "health_check_id": "bar.com ID",
+        "protection_id": protection_id,
+        "domain_name": "bar.com",
+    }
     shield.assert_no_pending_responses()
 
 
@@ -99,11 +91,11 @@ def subtest_updates_associated_health_check_no_change(tasks, shield, instance_mo
     if not service_instance:
         raise Exception("Could not load service instance")
 
-    checks_pre_update = service_instance.shield_associated_health_checks
+    check_pre_update = service_instance.shield_associated_health_check
 
     tasks.run_queued_tasks_and_enqueue_dependents()
     shield.assert_no_pending_responses()
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
-    assert service_instance.shield_associated_health_checks == checks_pre_update
+    assert service_instance.shield_associated_health_check == check_pre_update

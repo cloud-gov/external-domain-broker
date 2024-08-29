@@ -162,7 +162,7 @@ def test_provision_happy_path(
     )
     subtest_provision_associate_health_check(tasks, shield, instance_model)
     check_last_operation_description(
-        client, "4321", operation_id, "Associating health checks with Shield"
+        client, "4321", operation_id, "Associating health check with Shield"
     )
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
@@ -216,7 +216,7 @@ def subtest_update_happy_path(
     )
     subtest_updates_associated_health_check(tasks, shield, instance_model)
     check_last_operation_description(
-        client, "4321", operation_id, "Updating associated health checks with Shield"
+        client, "4321", operation_id, "Updating associated health check with Shield"
     )
     subtest_update_marks_update_complete(tasks, instance_model)
 

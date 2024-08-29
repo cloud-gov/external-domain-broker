@@ -89,20 +89,17 @@ def subtest_provision_associate_health_check(
     }
     shield.expect_list_protections([protection])
 
-    for health_check in service_instance.route53_health_checks:
-        health_check_id = health_check["health_check_id"]
-        shield.expect_associate_health_check(protection_id, health_check_id)
+    health_check_id = service_instance.route53_health_checks[0]["health_check_id"]
+    shield.expect_associate_health_check(protection_id, health_check_id)
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
-    assert service_instance.shield_associated_health_checks == sorted(
-        [
-            {"health_check_id": f"{domain} ID", "protection_id": protection_id}
-            for domain in expected_domain_names
-        ],
-        key=lambda check: check["health_check_id"],
-    )
+    assert service_instance.shield_associated_health_check == {
+        "domain_name": "example.com",
+        "health_check_id": health_check_id,
+        "protection_id": protection_id,
+    }
 
     shield.assert_no_pending_responses()
