@@ -38,21 +38,31 @@ from broker.models import (
     change_instance_type,
     Certificate,
 )
-from broker.tasks.pipelines import (
+from broker.pipelines.alb import (
     queue_all_alb_provision_tasks_for_operation,
     queue_all_alb_deprovision_tasks_for_operation,
     queue_all_alb_update_tasks_for_operation,
-    queue_all_alb_to_dedicated_alb_update_tasks_for_operation,
+)
+from broker.pipelines.cdn import (
     queue_all_cdn_deprovision_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
-    queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation,
+)
+from broker.pipelines.cdn_dedicated_waf import (
     queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation,
     queue_all_cdn_dedicated_waf_provision_tasks_for_operation,
     queue_all_cdn_dedicated_waf_update_tasks_for_operation,
-    queue_all_cdn_broker_migration_tasks_for_operation,
+)
+from broker.pipelines.dedicated_alb import (
     queue_all_dedicated_alb_provision_tasks_for_operation,
     queue_all_dedicated_alb_update_tasks_for_operation,
+)
+from broker.pipelines.plan_updates import (
+    queue_all_alb_to_dedicated_alb_update_tasks_for_operation,
+    queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation,
+)
+from broker.pipelines.migration import (
+    queue_all_cdn_broker_migration_tasks_for_operation,
     queue_all_domain_broker_migration_tasks_for_operation,
     queue_all_migration_deprovision_tasks_for_operation,
 )
