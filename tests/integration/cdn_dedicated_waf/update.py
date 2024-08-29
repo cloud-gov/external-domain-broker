@@ -20,13 +20,6 @@ def subtest_update_creates_new_health_checks(
     route53.expect_create_health_check(service_instance.id, "bar.com", 0)
     route53.expect_change_tags_for_resource("bar.com", service_instance.tags)
 
-    # delete_health_check = [
-    #     check
-    #     for check in service_instance.route53_health_checks
-    #     if check["domain_name"] == "example.com"
-    # ][0]
-    # route53.expect_delete_health_check(delete_health_check["health_check_id"])
-
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
