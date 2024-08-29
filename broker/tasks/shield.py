@@ -42,7 +42,8 @@ def associate_health_check(operation_id: int, **kwargs):
         return
 
     if len(service_instance.route53_health_checks) > 0:
-        # We can only associate one health check to a Shield protection at a time
+        # We can only associate one health check to a Shield protection at a time,
+        # so arbitrarily choose the first one
         health_check = service_instance.route53_health_checks[0]
         health_check_id = health_check["health_check_id"]
         _associate_health_check(protection_id, health_check_id)
