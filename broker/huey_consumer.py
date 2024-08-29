@@ -18,4 +18,12 @@ logging.setLogRecordFactory(
 
 from broker.app import create_app  # noqa F401
 from broker.tasks.huey import huey  # noqa F401
-from broker.tasks import pipelines, cron  # noqa F401
+from broker.tasks import cron  # noqa F401
+from broker.pipelines import (
+    alb,
+    cdn,
+    cdn_dedicated_waf,
+    dedicated_alb,
+    migration,
+    plan_updates,
+)  # noqa F401
