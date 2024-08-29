@@ -55,7 +55,7 @@ def associate_health_check(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
-def update_associated_health_checks(operation_id: int, **kwargs):
+def update_associated_health_check(operation_id: int, **kwargs):
     operation = db.session.get(Operation, operation_id)
     if not operation:
         raise Exception(f'Could not load operation "{operation_id}" successfully')

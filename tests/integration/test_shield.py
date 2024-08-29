@@ -2,8 +2,7 @@ import pytest
 import uuid
 import random
 
-from broker.tasks.shield import update_associated_health_checks
-from broker.extensions import db
+from broker.tasks.shield import associate_health_check, update_associated_health_check
 from broker.models import CDNDedicatedWAFServiceInstance
 
 from tests.lib import factories
@@ -119,7 +118,7 @@ def test_shield_update_no_change_associated_health_check(
     clean_db.session.commit()
     clean_db.session.expunge_all()
 
-    update_associated_health_checks.call_local(service_instance_id)
+    update_associated_health_check.call_local(service_instance_id)
 
     # There should be no calls to associate or disassociate a health check with Shield
     shield.assert_no_pending_responses()
@@ -154,7 +153,7 @@ def test_shield_update_change_associated_health_check(
     shield.expect_disassociate_health_check(protection_id, "example.com ID")
     shield.expect_associate_health_check(protection_id, "bar.com ID")
 
-    update_associated_health_checks.call_local(service_instance_id)
+    update_associated_health_check.call_local(service_instance_id)
 
     shield.assert_no_pending_responses()
 
