@@ -28,30 +28,21 @@ def associate_health_check(operation_id: int, **kwargs):
 
     logger.info(f'Associating health check(s) for "{service_instance.domain_names}"')
 
-    protected_cloudfront_ids = shield_protections.get_cloudfront_protections(
-        should_refresh=True
-    )
-    protection_id = protected_cloudfront_ids.get(
-        service_instance.cloudfront_distribution_arn
-    )
-    if not protection_id:
-        # Do not raise exception here. The Shield protection may not have been created yet.
-        logger.info(
-            f'Could not find Shield protection for distribution ID "{service_instance.cloudfront_distribution_id}"'
-        )
-        return
+    protection_id = _get_cloudfront_shield_protection_id(service_instance)
 
     if len(service_instance.route53_health_checks) > 0:
         # We can only associate one health check to a Shield protection at a time,
         # so arbitrarily choose the first one
         health_check = service_instance.route53_health_checks[0]
-        health_check_id = health_check["health_check_id"]
-        _associate_health_check(protection_id, health_check_id)
-        service_instance.shield_associated_health_check = health_check
-        flag_modified(service_instance, "shield_associated_health_check")
 
-    db.session.add(service_instance)
-    db.session.commit()
+        shield_associated_health_check = _associate_health_check(
+            health_check["domain_name"], protection_id, health_check["health_check_id"]
+        )
+        service_instance.shield_associated_health_check = shield_associated_health_check
+
+        flag_modified(service_instance, "shield_associated_health_check")
+        db.session.add(service_instance)
+        db.session.commit()
 
 
 @huey.retriable_task
@@ -71,15 +62,6 @@ def update_associated_health_check(operation_id: int, **kwargs):
         f'Updating associated health check(s) for "{service_instance.domain_names}"'
     )
 
-    protected_cloudfront_ids = shield_protections.get_cloudfront_protections()
-    protection_id = protected_cloudfront_ids.get(
-        service_instance.cloudfront_distribution_arn
-    )
-    if not protection_id:
-        raise Exception(
-            f'Could not find Shield protection for distribution ID "{service_instance.cloudfront_distribution_id}"'
-        )
-
     shield_associated_health_check_domain_name = (
         service_instance.shield_associated_health_check["domain_name"]
     )
@@ -87,9 +69,7 @@ def update_associated_health_check(operation_id: int, **kwargs):
     # IF the domain name for associated health check is NOT IN the list of domain names,
     # THEN it needs to be DISASSOCIATED
     if shield_associated_health_check_domain_name not in service_instance.domain_names:
-        _disassociate_health_check(
-            service_instance.shield_associated_health_check, protection_id
-        )
+        _disassociate_health_check(service_instance.shield_associated_health_check)
         service_instance.shield_associated_health_check = None
         flag_modified(service_instance, "shield_associated_health_check")
 
@@ -97,6 +77,8 @@ def update_associated_health_check(operation_id: int, **kwargs):
     # AND there is not already an existing associated health check,
     # THEN it needs to be ASSOCIATED
     if not service_instance.shield_associated_health_check:
+        protection_id = _get_cloudfront_shield_protection_id(service_instance)
+
         health_checks_to_associate = [
             check
             for check in service_instance.route53_health_checks
@@ -106,8 +88,14 @@ def update_associated_health_check(operation_id: int, **kwargs):
         if len(health_checks_to_associate) > 0:
             # We can only associate one health check to a Shield protection at a time
             health_check = health_checks_to_associate[0]
-            _associate_health_check(protection_id, health_check["health_check_id"])
-            service_instance.shield_associated_health_check = health_check
+            shield_associated_health_check = _associate_health_check(
+                health_check["domain_name"],
+                protection_id,
+                health_check["health_check_id"],
+            )
+            service_instance.shield_associated_health_check = (
+                shield_associated_health_check
+            )
             flag_modified(service_instance, "shield_associated_health_check")
 
     db.session.add(service_instance)
@@ -143,16 +131,22 @@ def get_health_check_arn(health_check_id):
     return f"arn:aws:route53:::healthcheck/{health_check_id}"
 
 
-def _associate_health_check(protection_id, health_check_id):
+def _associate_health_check(domain_name, protection_id, health_check_id):
     shield.associate_health_check(
         ProtectionId=protection_id,
         HealthCheckArn=get_health_check_arn(health_check_id),
     )
     logger.info(f"Saving associated Route53 health check ID: {health_check_id}")
+    return {
+        "domain_name": domain_name,
+        "health_check_id": health_check_id,
+        "protection_id": protection_id,
+    }
 
 
-def _disassociate_health_check(health_check, protection_id):
+def _disassociate_health_check(health_check):
     health_check_id = health_check["health_check_id"]
+    protection_id = health_check["protection_id"]
     logger.info(f"Removing associated Route53 health check ID: {health_check_id}")
 
     try:
@@ -168,3 +162,17 @@ def _disassociate_health_check(health_check, protection_id):
                 "health_check_arn": get_health_check_arn(health_check_id),
             },
         )
+
+
+def _get_cloudfront_shield_protection_id(service_instance):
+    protected_cloudfront_ids = shield_protections.get_cloudfront_protections(
+        should_refresh=True
+    )
+    protection_id = protected_cloudfront_ids.get(
+        service_instance.cloudfront_distribution_arn
+    )
+    if not protection_id:
+        raise Exception(
+            f'Could not find Shield protection for distribution ID "{service_instance.cloudfront_distribution_id}"'
+        )
+    return protection_id

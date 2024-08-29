@@ -2,7 +2,11 @@ import pytest
 import uuid
 import random
 
-from broker.tasks.shield import associate_health_check, update_associated_health_check
+from broker.tasks.shield import (
+    associate_health_check,
+    disassociate_health_check,
+    update_associated_health_check,
+)
 from broker.models import CDNDedicatedWAFServiceInstance
 
 from tests.lib import factories
@@ -112,17 +116,17 @@ def test_shield_associate_health_check(
     assert service_instance.shield_associated_health_check == {
         "domain_name": "example.com",
         "health_check_id": "example.com ID",
+        "protection_id": protection_id,
     }
 
 
 def test_shield_update_no_change_associated_health_check(
-    clean_db, protection, service_instance_id, service_instance, shield
+    clean_db, protection_id, service_instance_id, service_instance, shield
 ):
     clean_db.session.expunge_all()
     service_instance = clean_db.session.get(
         CDNDedicatedWAFServiceInstance, service_instance_id
     )
-    shield.expect_list_protections([protection])
 
     # simulate a change in domain names to ["example.com", "foo.com"]
     service_instance.domain_names = ["example.com", "bar.com"]
@@ -133,6 +137,7 @@ def test_shield_update_no_change_associated_health_check(
     service_instance.shield_associated_health_check = {
         "domain_name": "example.com",
         "health_check_id": "example.com ID",
+        "protection_id": protection_id,
     }
     clean_db.session.add(service_instance)
     clean_db.session.commit()
@@ -143,6 +148,15 @@ def test_shield_update_no_change_associated_health_check(
     # There should be no calls to associate or disassociate a health check with Shield
     shield.assert_no_pending_responses()
 
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
+    assert service_instance.shield_associated_health_check == {
+        "domain_name": "example.com",
+        "health_check_id": "example.com ID",
+        "protection_id": protection_id,
+    }
+
 
 def test_shield_update_change_associated_health_check(
     clean_db, protection_id, protection, service_instance_id, service_instance, shield
@@ -151,8 +165,6 @@ def test_shield_update_change_associated_health_check(
     service_instance = clean_db.session.get(
         CDNDedicatedWAFServiceInstance, service_instance_id
     )
-
-    shield.expect_list_protections([protection])
 
     # simulate a change in domain names
     # example.com no longer in the domain names - expect associated health check to change
@@ -164,6 +176,7 @@ def test_shield_update_change_associated_health_check(
     service_instance.shield_associated_health_check = {
         "domain_name": "example.com",
         "health_check_id": "example.com ID",
+        "protection_id": protection_id,
     }
 
     clean_db.session.add(service_instance)
@@ -171,6 +184,7 @@ def test_shield_update_change_associated_health_check(
     clean_db.session.expunge_all()
 
     shield.expect_disassociate_health_check(protection_id, "example.com ID")
+    shield.expect_list_protections([protection])
     shield.expect_associate_health_check(protection_id, "bar.com ID")
 
     update_associated_health_check.call_local(service_instance_id)
@@ -183,4 +197,31 @@ def test_shield_update_change_associated_health_check(
     assert service_instance.shield_associated_health_check == {
         "domain_name": "bar.com",
         "health_check_id": "bar.com ID",
+        "protection_id": protection_id,
     }
+
+
+def test_shield_disassociate_health_check(
+    clean_db, protection_id, service_instance_id, service_instance, shield
+):
+    service_instance.shield_associated_health_check = {
+        "domain_name": "example.com",
+        "health_check_id": "example.com ID",
+        "protection_id": protection_id,
+    }
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    shield.expect_disassociate_health_check(protection_id, "example.com ID")
+
+    disassociate_health_check.call_local(service_instance_id)
+
+    shield.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
+    assert service_instance.shield_associated_health_check == None
