@@ -239,9 +239,9 @@ jobs:
     params: {depth: 1}
     trigger: true
     passed: [reconfigure]
-  - get: external-domain-broker-image
+  - get: external-domain-broker-testing
   - task: test
-    image: external-domain-broker-image
+    image: external-domain-broker-testing
     config:
       platform: linux
       params:
@@ -421,12 +421,12 @@ jobs:
     - get: cf-staging
       trigger: true
       passed: [staging]
-    - get: external-domain-broker-image
+    - get: external-domain-broker-testing
     - get: test-timer
       trigger: true
   - in_parallel:
     - task: acceptance-cdn
-      image: external-domain-broker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -440,7 +440,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
-      image: external-domain-broker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -450,7 +450,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-dedicated
-      image: external-domain-broker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -460,7 +460,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-cdn-dedicated-waf
-      image: external-domain-broker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -573,12 +573,12 @@ jobs:
     - get: cf-production
       trigger: true
       passed: [production]
-    - get: external-domain-broker-image
+    - get: external-domain-broker-testing
     - get: test-timer
       trigger: true
   - in_parallel:
     - task: acceptance-cdn
-      image: external-domain-broker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -588,7 +588,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
-      image: external-domain-broker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -602,7 +602,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-dedicated
-      image: external-domain-broker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -616,7 +616,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-cdn-dedicated-waf
-      image: external-domain-broker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -731,12 +731,12 @@ resources:
     uri: https://github.com/cloud-gov/((name))
     branch: ((git-branch))
 
-- name: external-domain-broker-image
+- name: external-domain-broker-testing
   type: registry-image
   source:
     aws_access_key_id: ((ecr_aws_key))
     aws_secret_access_key: ((ecr_aws_secret))
-    repository: external-domain-broker
+    repository: external-domain-broker-testing
     aws_region: us-gov-west-1
     tag: latest
 
