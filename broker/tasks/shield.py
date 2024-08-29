@@ -77,8 +77,6 @@ def update_associated_health_check(operation_id: int, **kwargs):
     # AND there is not already an existing associated health check,
     # THEN it needs to be ASSOCIATED
     if not service_instance.shield_associated_health_check:
-        protection_id = _get_cloudfront_shield_protection_id(service_instance)
-
         health_checks_to_associate = [
             check
             for check in service_instance.route53_health_checks
@@ -86,6 +84,7 @@ def update_associated_health_check(operation_id: int, **kwargs):
         ]
 
         if len(health_checks_to_associate) > 0:
+            protection_id = _get_cloudfront_shield_protection_id(service_instance)
             # We can only associate one health check to a Shield protection at a time
             health_check = health_checks_to_associate[0]
             shield_associated_health_check = _associate_health_check(

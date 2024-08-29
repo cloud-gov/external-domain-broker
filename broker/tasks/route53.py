@@ -264,12 +264,12 @@ def create_new_health_checks(operation_id: int, **kwargs):
 
     service_instance = operation.service_instance
 
-    operation.step_description = "Updating health checks"
+    operation.step_description = "Creating new health checks"
     flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
-    logger.info(f'Updating health check(s) for "{service_instance.domain_names}"')
+    logger.info(f'Creating new health check(s) for "{service_instance.domain_names}"')
 
     existing_health_checks = service_instance.route53_health_checks
     existing_health_check_domains = [
@@ -305,12 +305,14 @@ def delete_unused_health_checks(operation_id: int, **kwargs):
 
     service_instance = operation.service_instance
 
-    operation.step_description = "Updating health checks"
+    operation.step_description = "Deleting unused health checks"
     flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
-    logger.info(f'Updating health check(s) for "{service_instance.domain_names}"')
+    logger.info(
+        f'Deleting unused health check(s) for "{service_instance.domain_names}"'
+    )
 
     existing_health_checks = service_instance.route53_health_checks
     # If health check domain is NOT IN updated list of domains, it should be DELETED
@@ -378,7 +380,10 @@ def _create_health_checks(
                 "health_check_id": health_check_id,
             }
         )
-    return updated_health_checks
+    return sorted(
+        updated_health_checks,
+        key=lambda check: check["domain_name"],
+    )
 
 
 def _create_health_check(idx, service_instance_id, domain_name, tags):

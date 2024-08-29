@@ -59,6 +59,8 @@ from tests.integration.cdn_dedicated_waf.update import (
     subtest_updates_health_checks_do_not_change,
     subtest_updates_associated_health_check,
     subtest_updates_associated_health_check_no_change,
+    subtest_update_creates_new_health_checks,
+    subtest_update_deletes_unused_health_checks,
 )
 
 
@@ -210,13 +212,17 @@ def subtest_update_happy_path(
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_update_removes_certificate_from_iam(tasks, iam_commercial, instance_model)
-    subtest_updates_health_checks(tasks, route53, instance_model)
+    subtest_update_creates_new_health_checks(tasks, route53, instance_model)
     check_last_operation_description(
-        client, "4321", operation_id, "Updating health checks"
+        client, "4321", operation_id, "Creating new health checks"
     )
     subtest_updates_associated_health_check(tasks, shield, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Updating associated health check with Shield"
+    )
+    subtest_update_deletes_unused_health_checks(tasks, route53, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Deleting unused health checks"
     )
     subtest_update_marks_update_complete(tasks, instance_model)
 
