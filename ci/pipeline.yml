@@ -239,19 +239,9 @@ jobs:
     params: {depth: 1}
     trigger: true
     passed: [reconfigure]
-
-  - put: dev-docker-image
-    # We push this docker image _only_ so that we can use it in the next task
-    # below.  :shrug: concourse.
-    params:
-      build: src
-      dockerfile: src/docker/Dockerfile.dev
-      tag_as_latest: true
-      cache: true
-
+  - get: external-domain-broker-image
   - task: test
-    # Run the tests using the image pushed above.
-    image: dev-docker-image
+    image: external-domain-broker-image
     config:
       platform: linux
       params:
@@ -431,12 +421,12 @@ jobs:
     - get: cf-staging
       trigger: true
       passed: [staging]
-    - get: dev-docker-image
+    - get: external-domain-broker-image
     - get: test-timer
       trigger: true
   - in_parallel:
     - task: acceptance-cdn
-      image: dev-docker-image
+      image: external-domain-broker-image
       timeout: 6h
       config:
         platform: linux
@@ -450,7 +440,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
-      image: dev-docker-image
+      image: external-domain-broker-image
       timeout: 6h
       config:
         platform: linux
@@ -460,7 +450,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-dedicated
-      image: dev-docker-image
+      image: external-domain-broker-image
       timeout: 6h
       config:
         platform: linux
@@ -470,7 +460,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-cdn-dedicated-waf
-      image: dev-docker-image
+      image: external-domain-broker-image
       timeout: 6h
       config:
         platform: linux
@@ -583,12 +573,12 @@ jobs:
     - get: cf-production
       trigger: true
       passed: [production]
-    - get: dev-docker-image
+    - get: external-domain-broker-image
     - get: test-timer
       trigger: true
   - in_parallel:
     - task: acceptance-cdn
-      image: dev-docker-image
+      image: external-domain-broker-image
       timeout: 6h
       config:
         platform: linux
@@ -598,7 +588,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
-      image: dev-docker-image
+      image: external-domain-broker-image
       timeout: 6h
       config:
         platform: linux
@@ -612,7 +602,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-dedicated
-      image: dev-docker-image
+      image: external-domain-broker-image
       timeout: 6h
       config:
         platform: linux
@@ -626,7 +616,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-cdn-dedicated-waf
-      image: dev-docker-image
+      image: external-domain-broker-image
       timeout: 6h
       config:
         platform: linux
@@ -741,14 +731,14 @@ resources:
     uri: https://github.com/cloud-gov/((name))
     branch: ((git-branch))
 
-- name: dev-docker-image
-  type: docker-image
-  icon: docker
+- name: external-domain-broker-image
+  type: registry-image
   source:
-    email: ((docker-email))
-    username: ((docker-username))
-    password: ((docker-password))
-    repository: ((docker-image-dev))
+    aws_access_key_id: ((ecr_aws_key))
+    aws_secret_access_key: ((ecr_aws_secret))
+    repository: external-domain-broker
+    aws_region: us-gov-west-1
+    tag: latest
 
 - name: cf-dev
   type: cf
