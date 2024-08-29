@@ -51,14 +51,15 @@ from tests.lib.cdn.update import (
 from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
     subtest_provision_creates_health_checks,
-    subtest_provision_associates_health_checks,
+    subtest_provision_associate_health_check,
 )
 from tests.integration.cdn_dedicated_waf.update import (
     subtest_update_web_acl_does_not_update,
-    subtest_updates_health_checks,
     subtest_updates_health_checks_do_not_change,
-    subtest_updates_associated_health_checks,
-    subtest_updates_associated_health_checks_no_change,
+    subtest_updates_associated_health_check,
+    subtest_updates_associated_health_check_no_change,
+    subtest_update_creates_new_health_checks,
+    subtest_update_deletes_unused_health_checks,
 )
 
 
@@ -160,9 +161,9 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Creating health checks"
     )
-    subtest_provision_associates_health_checks(tasks, shield, instance_model)
+    subtest_provision_associate_health_check(tasks, shield, instance_model)
     check_last_operation_description(
-        client, "4321", operation_id, "Associating health checks with Shield"
+        client, "4321", operation_id, "Associating health check with Shield"
     )
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
@@ -210,13 +211,17 @@ def subtest_update_happy_path(
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_update_removes_certificate_from_iam(tasks, iam_commercial, instance_model)
-    subtest_updates_health_checks(tasks, route53, instance_model)
+    subtest_update_creates_new_health_checks(tasks, route53, instance_model)
     check_last_operation_description(
-        client, "4321", operation_id, "Updating health checks"
+        client, "4321", operation_id, "Creating new health checks"
     )
-    subtest_updates_associated_health_checks(tasks, shield, instance_model)
+    subtest_updates_associated_health_check(tasks, shield, instance_model)
     check_last_operation_description(
-        client, "4321", operation_id, "Updating associated health checks with Shield"
+        client, "4321", operation_id, "Updating associated health check with Shield"
+    )
+    subtest_update_deletes_unused_health_checks(tasks, route53, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Deleting unused health checks"
     )
     subtest_update_marks_update_complete(tasks, instance_model)
 
@@ -244,5 +249,5 @@ def subtest_update_same_domains(
         tasks, instance_model
     )
     subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)
-    subtest_updates_associated_health_checks_no_change(tasks, shield, instance_model)
+    subtest_updates_associated_health_check_no_change(tasks, shield, instance_model)
     subtest_update_marks_update_complete(tasks, instance_model)

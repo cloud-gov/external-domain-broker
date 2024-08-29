@@ -244,12 +244,12 @@ def create_health_checks(operation_id: int, **kwargs):
 
     logger.info(f'Creating health check(s) for "{service_instance.domain_names}"')
 
-    updated_health_checks = _create_health_checks(
+    created_health_checks = _create_health_checks(
         service_instance,
         service_instance.domain_names,
         service_instance.route53_health_checks,
     )
-    service_instance.route53_health_checks = updated_health_checks
+    service_instance.route53_health_checks = created_health_checks
     flag_modified(service_instance, "route53_health_checks")
 
     db.session.add(service_instance)
@@ -257,19 +257,19 @@ def create_health_checks(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
-def update_health_checks(operation_id: int, **kwargs):
+def create_new_health_checks(operation_id: int, **kwargs):
     operation = db.session.get(Operation, operation_id)
     if not operation:
         return
 
     service_instance = operation.service_instance
 
-    operation.step_description = "Updating health checks"
+    operation.step_description = "Creating new health checks"
     flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
 
-    logger.info(f'Updating health check(s) for "{service_instance.domain_names}"')
+    logger.info(f'Creating new health check(s) for "{service_instance.domain_names}"')
 
     existing_health_checks = service_instance.route53_health_checks
     existing_health_check_domains = [
@@ -280,12 +280,6 @@ def update_health_checks(operation_id: int, **kwargs):
         domain
         for domain in service_instance.domain_names
         if domain not in existing_health_check_domains
-    ]
-    # If health check domain is NOT IN updated list of domains, it should be DELETED
-    health_checks_to_delete = [
-        check
-        for check in existing_health_checks
-        if check["domain_name"] not in service_instance.domain_names
     ]
 
     updated_health_checks = existing_health_checks
@@ -298,6 +292,37 @@ def update_health_checks(operation_id: int, **kwargs):
         )
         service_instance.route53_health_checks = updated_health_checks
         flag_modified(service_instance, "route53_health_checks")
+
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+@huey.retriable_task
+def delete_unused_health_checks(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    if not operation:
+        return
+
+    service_instance = operation.service_instance
+
+    operation.step_description = "Deleting unused health checks"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    logger.info(
+        f'Deleting unused health check(s) for "{service_instance.domain_names}"'
+    )
+
+    existing_health_checks = service_instance.route53_health_checks
+    # If health check domain is NOT IN updated list of domains, it should be DELETED
+    health_checks_to_delete = [
+        check
+        for check in existing_health_checks
+        if check["domain_name"] not in service_instance.domain_names
+    ]
+
+    updated_health_checks = existing_health_checks
 
     if len(health_checks_to_delete) > 0:
         updated_health_checks = _delete_health_checks(
@@ -355,7 +380,10 @@ def _create_health_checks(
                 "health_check_id": health_check_id,
             }
         )
-    return updated_health_checks
+    return sorted(
+        updated_health_checks,
+        key=lambda check: check["domain_name"],
+    )
 
 
 def _create_health_check(idx, service_instance_id, domain_name, tags):
