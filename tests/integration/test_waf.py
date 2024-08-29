@@ -24,12 +24,11 @@ def service_instance(no_context_clean_db, no_context_app, protection_id):
             cloudfront_distribution_id="FakeDistributionId",
             cloudfront_origin_hostname="origin_hostname",
             cloudfront_origin_path="origin_path",
-            shield_associated_health_checks=[
-                {
-                    "protection_id": protection_id,
-                    "health_check_id": "fake-health-check-id",
-                }
-            ],
+            shield_associated_health_check={
+                "domain_name": "example.com",
+                "protection_id": protection_id,
+                "health_check_id": "fake-health-check-id",
+            },
             route53_health_checks=[
                 {
                     "domain_name": "example.com",
