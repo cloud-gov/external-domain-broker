@@ -42,7 +42,7 @@ from tests.integration.cdn.test_cdn_provisioning import subtest_provision_cdn_in
 from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
     subtest_provision_creates_health_checks,
-    subtest_provision_associates_health_checks,
+    subtest_provision_associates_health_check,
 )
 
 
@@ -128,7 +128,7 @@ def test_update_plan_only(
         tasks, instance_model
     )
     subtest_provision_creates_health_checks(tasks, route53, instance_model)
-    subtest_provision_associates_health_checks(tasks, shield, instance_model)
+    subtest_provision_associates_health_check(tasks, shield, instance_model)
     subtest_update_marks_update_complete(tasks, instance_model)
 
 
@@ -187,7 +187,7 @@ def test_update_plan_and_domains(
     check_last_operation_description(
         client, "4321", operation_id, "Creating health checks"
     )
-    subtest_provision_associates_health_checks(
+    subtest_provision_associates_health_check(
         tasks, shield, instance_model, expected_domain_names=["bar.com", "foo.com"]
     )
     check_last_operation_description(

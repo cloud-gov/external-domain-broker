@@ -51,7 +51,7 @@ from tests.lib.cdn.update import (
 from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
     subtest_provision_creates_health_checks,
-    subtest_provision_associates_health_checks,
+    subtest_provision_associates_health_check,
 )
 from tests.integration.cdn_dedicated_waf.update import (
     subtest_update_web_acl_does_not_update,
@@ -160,7 +160,7 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Creating health checks"
     )
-    subtest_provision_associates_health_checks(tasks, shield, instance_model)
+    subtest_provision_associates_health_check(tasks, shield, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Associating health checks with Shield"
     )

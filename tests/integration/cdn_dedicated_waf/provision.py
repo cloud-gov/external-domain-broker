@@ -70,7 +70,7 @@ def subtest_provision_creates_health_checks(
     route53.assert_no_pending_responses()
 
 
-def subtest_provision_associates_health_checks(
+def subtest_provision_associates_health_check(
     tasks,
     shield,
     instance_model,
