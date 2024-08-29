@@ -14,7 +14,7 @@ shield_protections = ShieldProtections(shield)
 
 
 @huey.retriable_task
-def associate_health_checks(operation_id: int, **kwargs):
+def associate_health_check(operation_id: int, **kwargs):
     operation = db.session.get(Operation, operation_id)
     if not operation:
         raise Exception(f'Could not load operation "{operation_id}" successfully')
@@ -114,7 +114,7 @@ def update_associated_health_checks(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
-def disassociate_health_checks(operation_id: int, **kwargs):
+def disassociate_health_check(operation_id: int, **kwargs):
     operation = db.session.get(Operation, operation_id)
     if not operation:
         raise Exception(f'Could not load operation "{operation_id}" successfully')
