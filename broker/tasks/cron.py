@@ -7,19 +7,25 @@ from broker.extensions import db, config
 from broker.lib.cdn import is_cdn_instance
 from broker.models import Certificate, Operation, DedicatedALBListener
 from broker.tasks import huey
-from broker.tasks.pipelines import (
+from broker.pipelines.alb import (
     queue_all_alb_deprovision_tasks_for_operation,
     queue_all_alb_provision_tasks_for_operation,
     queue_all_alb_renewal_tasks_for_operation,
     queue_all_alb_update_tasks_for_operation,
-    queue_all_dedicated_alb_renewal_tasks_for_operation,
+)
+from broker.pipelines.cdn import (
     queue_all_cdn_deprovision_tasks_for_operation,
-    queue_all_cdn_broker_migration_tasks_for_operation,
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
     queue_all_cdn_renewal_tasks_for_operation,
+)
+from broker.pipelines.dedicated_alb import (
+    queue_all_dedicated_alb_renewal_tasks_for_operation,
     queue_all_dedicated_alb_provision_tasks_for_operation,
     queue_all_dedicated_alb_update_tasks_for_operation,
+)
+from broker.pipelines.migration import (
+    queue_all_cdn_broker_migration_tasks_for_operation,
 )
 
 logger = logging.getLogger(__name__)
