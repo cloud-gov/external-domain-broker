@@ -55,7 +55,6 @@ from tests.integration.cdn_dedicated_waf.provision import (
 )
 from tests.integration.cdn_dedicated_waf.update import (
     subtest_update_web_acl_does_not_update,
-    subtest_updates_health_checks,
     subtest_updates_health_checks_do_not_change,
     subtest_updates_associated_health_check,
     subtest_updates_associated_health_check_no_change,
