@@ -86,7 +86,9 @@ def update_associated_health_checks(operation_id: int, **kwargs):
     # IF the domain name for associated health check is NOT IN the list of domain names,
     # THEN it needs to be DISASSOCIATED
     if shield_associated_health_check_domain_name not in service_instance.domain_names:
-        _disassociate_health_check(service_instance.shield_associated_health_check)
+        _disassociate_health_check(
+            service_instance.shield_associated_health_check, protection_id
+        )
         service_instance.shield_associated_health_check = None
         flag_modified(service_instance, "shield_associated_health_check")
 
@@ -103,7 +105,7 @@ def update_associated_health_checks(operation_id: int, **kwargs):
         if len(health_checks_to_associate) > 0:
             # We can only associate one health check to a Shield protection at a time
             health_check = health_checks_to_associate[0]
-            _associate_health_check(protection_id, health_check)
+            _associate_health_check(protection_id, health_check["health_check_id"])
             service_instance.shield_associated_health_check = health_check
             flag_modified(service_instance, "shield_associated_health_check")
 
@@ -148,20 +150,20 @@ def _associate_health_check(protection_id, health_check_id):
     logger.info(f"Saving associated Route53 health check ID: {health_check_id}")
 
 
-def _disassociate_health_check(health_check):
+def _disassociate_health_check(health_check, protection_id):
     health_check_id = health_check["health_check_id"]
     logger.info(f"Removing associated Route53 health check ID: {health_check_id}")
 
     try:
         shield.disassociate_health_check(
-            ProtectionId=health_check["protection_id"],
+            ProtectionId=protection_id,
             HealthCheckArn=get_health_check_arn(health_check_id),
         )
     except shield.exceptions.ResourceNotFoundException:
         logger.info(
             "Associated health check not found",
             extra={
-                "protection_id": health_check["protection_id"],
+                "protection_id": protection_id,
                 "health_check_arn": get_health_check_arn(health_check_id),
             },
         )
