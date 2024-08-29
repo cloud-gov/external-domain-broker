@@ -75,7 +75,7 @@ def subtest_provision_associate_health_check(
     shield,
     instance_model,
     service_instance_id="4321",
-    expected_domain_names=["example.com", "foo.com"],
+    expected_domain_name="example.com",
 ):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
@@ -97,7 +97,7 @@ def subtest_provision_associate_health_check(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
     assert service_instance.shield_associated_health_check == {
-        "domain_name": "example.com",
+        "domain_name": expected_domain_name,
         "health_check_id": health_check_id,
         "protection_id": protection_id,
     }

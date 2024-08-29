@@ -188,7 +188,7 @@ def test_update_plan_and_domains(
         client, "4321", operation_id, "Creating health checks"
     )
     subtest_provision_associate_health_check(
-        tasks, shield, instance_model, expected_domain_names=["bar.com", "foo.com"]
+        tasks, shield, instance_model, expected_domain_name="bar.com"
     )
     check_last_operation_description(
         client, "4321", operation_id, "Associating health check with Shield"
