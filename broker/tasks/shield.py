@@ -69,7 +69,9 @@ def update_associated_health_check(operation_id: int, **kwargs):
     # IF the domain name for associated health check is NOT IN the list of domain names,
     # THEN it needs to be DISASSOCIATED
     if shield_associated_health_check_domain_name not in service_instance.domain_names:
-        _disassociate_health_check(service_instance.shield_associated_health_check)
+        _disassociate_health_check(
+            service_instance.shield_associated_health_check, protection_id
+        )
         service_instance.shield_associated_health_check = None
         flag_modified(service_instance, "shield_associated_health_check")
 
@@ -143,7 +145,7 @@ def _associate_health_check(domain_name, protection_id, health_check_id):
     }
 
 
-def _disassociate_health_check(health_check):
+def _disassociate_health_check(health_check, protection_id):
     health_check_id = health_check["health_check_id"]
     protection_id = health_check["protection_id"]
     logger.info(f"Removing associated Route53 health check ID: {health_check_id}")
