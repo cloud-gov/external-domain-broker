@@ -57,8 +57,8 @@ from tests.integration.cdn_dedicated_waf.update import (
     subtest_update_web_acl_does_not_update,
     subtest_updates_health_checks,
     subtest_updates_health_checks_do_not_change,
-    subtest_updates_associated_health_checks,
-    subtest_updates_associated_health_checks_no_change,
+    subtest_updates_associated_health_check,
+    subtest_updates_associated_health_check_no_change,
 )
 
 
@@ -214,7 +214,7 @@ def subtest_update_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Updating health checks"
     )
-    subtest_updates_associated_health_checks(tasks, shield, instance_model)
+    subtest_updates_associated_health_check(tasks, shield, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Updating associated health checks with Shield"
     )
@@ -244,5 +244,5 @@ def subtest_update_same_domains(
         tasks, instance_model
     )
     subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)
-    subtest_updates_associated_health_checks_no_change(tasks, shield, instance_model)
+    subtest_updates_associated_health_check_no_change(tasks, shield, instance_model)
     subtest_update_marks_update_complete(tasks, instance_model)

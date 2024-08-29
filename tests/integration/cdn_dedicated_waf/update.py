@@ -59,7 +59,7 @@ def subtest_updates_health_checks_do_not_change(tasks, route53, instance_model):
     assert service_instance.route53_health_checks == health_checks_pre_update
 
 
-def subtest_updates_associated_health_checks(
+def subtest_updates_associated_health_check(
     tasks, shield, instance_model, service_instance_id="4321"
 ):
     db.session.expunge_all()
@@ -93,7 +93,7 @@ def subtest_updates_associated_health_checks(
     shield.assert_no_pending_responses()
 
 
-def subtest_updates_associated_health_checks_no_change(tasks, shield, instance_model):
+def subtest_updates_associated_health_check_no_change(tasks, shield, instance_model):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
     if not service_instance:
