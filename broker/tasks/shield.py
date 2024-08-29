@@ -21,7 +21,7 @@ def associate_health_check(operation_id: int, **kwargs):
 
     service_instance = operation.service_instance
 
-    operation.step_description = "Associating health checks with Shield"
+    operation.step_description = "Associating health check with Shield"
     flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
@@ -53,7 +53,7 @@ def update_associated_health_check(operation_id: int, **kwargs):
 
     service_instance = operation.service_instance
 
-    operation.step_description = "Updating associated health checks with Shield"
+    operation.step_description = "Updating associated health check with Shield"
     flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
@@ -110,7 +110,7 @@ def disassociate_health_check(operation_id: int, **kwargs):
 
     service_instance = operation.service_instance
 
-    operation.step_description = "Disassociating health checks with Shield"
+    operation.step_description = "Disassociating health check with Shield"
     flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
