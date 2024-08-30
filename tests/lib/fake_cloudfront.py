@@ -305,7 +305,6 @@ class FakeCloudFront(FakeAWS):
         custom_error_responses: dict = None,
         include_le_bucket: bool = False,
         include_log_bucket: bool = True,
-        dedicated_waf_web_acl_arn: str = "",
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
