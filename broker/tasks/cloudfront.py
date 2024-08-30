@@ -223,9 +223,9 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
     if service_instance.cloudfront_distribution_id is None:
         return
 
-    enabled = True
+    distribution_disabled = False
     num_times = 0
-    while enabled:
+    while not distribution_disabled:
         num_times += 1
         if num_times >= 60:
             logger.info(
@@ -243,7 +243,10 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
             )
         except cloudfront.exceptions.NoSuchDistribution:
             return
-        enabled = status["Distribution"]["DistributionConfig"]["Enabled"]
+        distribution_disabled = (
+            status["Distribution"]["DistributionConfig"]["Enabled"] == False
+            and status["Distribution"]["Status"] == "Deployed"
+        )
 
 
 @huey.retriable_task
