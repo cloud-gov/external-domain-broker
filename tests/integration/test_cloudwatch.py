@@ -2,6 +2,8 @@ import pytest
 import uuid
 import random
 
+from botocore.exceptions import WaiterError
+
 from broker.tasks.cloudwatch import (
     create_health_check_alarms,
 )
@@ -121,10 +123,10 @@ def test_create_health_check_alarms(
 
         cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
         cloudwatch_commercial.expect_describe_alarms(
-            alarm_name, [{"AlarmArn": "fake-arn"}]
+            alarm_name, [{"AlarmArn": str(uuid.uuid4())}]
         )
         cloudwatch_commercial.expect_describe_alarms(
-            alarm_name, [{"AlarmArn": "fake-arn"}]
+            alarm_name, [{"AlarmArn": str(uuid.uuid4())}]
         )
 
     create_health_check_alarms.call_local(operation_id)
@@ -139,3 +141,94 @@ def test_create_health_check_alarms(
         operation.step_description
         == "Creating Cloudwatch alarms for Route53 health checks"
     )
+
+
+def test_create_health_check_alarm_waits(
+    clean_db,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    tags = service_instance.tags if service_instance.tags else []
+
+    health_check_id = service_instance.route53_health_checks[0]["health_check_id"]
+    alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+
+    cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
+    # waiting for alarm to exist
+    cloudwatch_commercial.expect_describe_alarms(alarm_name, [])
+    cloudwatch_commercial.expect_describe_alarms(alarm_name, [])
+    cloudwatch_commercial.expect_describe_alarms(
+        alarm_name, [{"AlarmArn": str(uuid.uuid4())}]
+    )
+    # one final call to get the alarm ARN
+    cloudwatch_commercial.expect_describe_alarms(
+        alarm_name, [{"AlarmArn": str(uuid.uuid4())}]
+    )
+
+    health_check_id = service_instance.route53_health_checks[1]["health_check_id"]
+    alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+
+    cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
+    # waiting for alarm to exist
+    cloudwatch_commercial.expect_describe_alarms(
+        alarm_name, [{"AlarmArn": str(uuid.uuid4())}]
+    )
+    # one final call to get the alarm ARN
+    cloudwatch_commercial.expect_describe_alarms(
+        alarm_name, [{"AlarmArn": str(uuid.uuid4())}]
+    )
+
+    create_health_check_alarms.call_local(operation_id)
+
+    # asserts that all the mocked calls above were made
+    cloudwatch_commercial.assert_no_pending_responses()
+
+
+def test_create_health_check_alarm_error_on_multiple_alarms_found(
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    tags = service_instance.tags if service_instance.tags else []
+
+    health_check_id = service_instance.route53_health_checks[0]["health_check_id"]
+    alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+
+    cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
+    # waiting for alarm to exist
+    cloudwatch_commercial.expect_describe_alarms(
+        alarm_name, [{"AlarmArn": str(uuid.uuid4())}, {"AlarmArn": str(uuid.uuid4())}]
+    )
+    # one final call to get the alarm ARN
+    cloudwatch_commercial.expect_describe_alarms(
+        alarm_name, [{"AlarmArn": str(uuid.uuid4())}, {"AlarmArn": str(uuid.uuid4())}]
+    )
+
+    with pytest.raises(RuntimeError):
+        create_health_check_alarms.call_local(operation_id)
+
+    # asserts that all the mocked calls above were made
+    cloudwatch_commercial.assert_no_pending_responses()
+
+
+def test_create_health_check_alarm_error_if_alarm_not_found(
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    tags = service_instance.tags if service_instance.tags else []
+
+    health_check_id = service_instance.route53_health_checks[0]["health_check_id"]
+    alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+
+    cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
+    # waiting for alarm to exist
+    for i in list(range(config.AWS_POLL_MAX_ATTEMPTS)):
+        cloudwatch_commercial.expect_describe_alarms(alarm_name, [])
+
+    with pytest.raises(WaiterError):
+        create_health_check_alarms.call_local(operation_id)
+
+    # asserts that all the mocked calls above were made
+    cloudwatch_commercial.assert_no_pending_responses()

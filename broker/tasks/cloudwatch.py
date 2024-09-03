@@ -74,6 +74,10 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
         AlarmTypes=[
             "MetricAlarm",
         ],
+        WaiterConfig={
+            "Delay": config.AWS_POLL_WAIT_TIME_IN_SECONDS,
+            "MaxAttempts": config.AWS_POLL_MAX_ATTEMPTS,
+        },
     )
 
     response = cloudwatch_commercial.describe_alarms(
@@ -84,9 +88,7 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
     )
     alarms = response["MetricAlarms"]
 
-    if len(alarms) == 0:
-        raise RuntimeError(f"Could not find alarm {alarm_name}")
-    elif len(alarms) > 1:
+    if len(alarms) > 1:
         raise RuntimeError(f"Found multiple alarms for {alarm_name}")
 
     return alarms[0]["AlarmArn"]
