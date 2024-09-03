@@ -103,3 +103,44 @@ def subtest_provision_associate_health_check(
     }
 
     shield.assert_no_pending_responses()
+
+
+def subtest_provision_creates_health_check_alarms(
+    tasks,
+    cloudwatch_commercial,
+    instance_model,
+    service_instance_id="4321",
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+    tags = service_instance.tags if service_instance.tags else []
+    expected_health_check_arns = []
+
+    for _, health_check in enumerate(service_instance.route53_health_checks):
+        health_check_id = health_check["health_check_id"]
+        alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+
+        cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
+        alarm_arn = f"{health_check_id} ARN"
+        expected_health_check_arns.append(alarm_arn)
+
+        # wait for alarm
+        cloudwatch_commercial.expect_describe_alarms(
+            alarm_name, [{"AlarmArn": alarm_arn}]
+        )
+        # get alarm ARN
+        cloudwatch_commercial.expect_describe_alarms(
+            alarm_name, [{"AlarmArn": alarm_arn}]
+        )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    assert (
+        service_instance.cloudwatch_health_check_alarm_arns
+        == expected_health_check_arns
+    )
+
+    cloudwatch_commercial.assert_no_pending_responses()

@@ -52,6 +52,7 @@ from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
     subtest_provision_creates_health_checks,
     subtest_provision_associate_health_check,
+    subtest_provision_creates_health_check_alarms,
 )
 from tests.integration.cdn_dedicated_waf.update import (
     subtest_update_web_acl_does_not_update,
@@ -92,6 +93,7 @@ def test_provision_happy_path(
     cloudfront,
     wafv2,
     shield,
+    cloudwatch_commercial,
     organization_guid,
     space_guid,
     mocked_cf_api,
@@ -160,6 +162,15 @@ def test_provision_happy_path(
     subtest_provision_creates_health_checks(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Creating health checks"
+    )
+    subtest_provision_creates_health_check_alarms(
+        tasks, cloudwatch_commercial, instance_model
+    )
+    check_last_operation_description(
+        client,
+        "4321",
+        operation_id,
+        "Creating Cloudwatch alarms for Route53 health checks",
     )
     subtest_provision_associate_health_check(tasks, shield, instance_model)
     check_last_operation_description(
