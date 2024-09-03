@@ -51,7 +51,7 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
         AlarmName=alarm_name,
         AlarmActions=[config.NOTIFICATIONS_SNS_TOPIC_ARN],
         MetricName="HealthCheckStatus",
-        NameSpace="AWS/Route53",
+        Namespace="AWS/Route53",
         Statistic="Minimum",
         Dimensions=[
             {
@@ -76,7 +76,12 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
         ],
     )
 
-    response = cloudwatch_commercial.describe_alarms(AlarmNames=[alarm_name])
+    response = cloudwatch_commercial.describe_alarms(
+        AlarmNames=[alarm_name],
+        AlarmTypes=[
+            "MetricAlarm",
+        ],
+    )
     alarms = response["MetricAlarms"]
 
     if len(alarms) == 0:
