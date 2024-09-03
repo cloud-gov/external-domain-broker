@@ -12,6 +12,7 @@ route53 = commercial_session.client("route53")
 iam_commercial = commercial_session.client("iam")
 cloudfront = commercial_session.client("cloudfront")
 shield = commercial_session.client("shield")
+cloudwatch_commercial = commercial_session.client("iam")
 
 # Some services need to explicitly use the global region
 commercial_global_session = boto3.Session(
