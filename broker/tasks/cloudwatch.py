@@ -55,8 +55,6 @@ def update_health_check_alarms(operation_id: int, **kwargs):
         )
         return
 
-    tags = service_instance.tags if service_instance.tags else []
-
     existing_route53_health_check_ids = [
         health_check["health_check_id"]
         for health_check in service_instance.route53_health_checks
