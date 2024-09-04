@@ -117,6 +117,7 @@ def test_create_health_check_alarms(
 ):
     tags = service_instance.tags if service_instance.tags else []
 
+    expected_health_check_alarms = []
     for health_check in service_instance.route53_health_checks:
         health_check_id = health_check["health_check_id"]
         alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
@@ -125,8 +126,11 @@ def test_create_health_check_alarms(
         cloudwatch_commercial.expect_describe_alarms(
             alarm_name, [{"AlarmArn": f"{health_check_id} ARN"}]
         )
-        cloudwatch_commercial.expect_describe_alarms(
-            alarm_name, [{"AlarmArn": f"{health_check_id} ARN"}]
+        expected_health_check_alarms.append(
+            {
+                "alarm_name": alarm_name,
+                "health_check_id": health_check_id,
+            }
         )
 
     create_health_check_alarms.call_local(operation_id)
@@ -145,10 +149,9 @@ def test_create_health_check_alarms(
         CDNDedicatedWAFServiceInstance,
         service_instance_id,
     )
-    assert service_instance.cloudwatch_health_check_alarm_arns == [
-        "example.com ID ARN",
-        "foo.com ID ARN",
-    ]
+    assert (
+        service_instance.cloudwatch_health_check_alarms == expected_health_check_alarms
+    )
 
 
 def test_create_health_check_alarm_waits(
@@ -160,30 +163,36 @@ def test_create_health_check_alarm_waits(
 ):
     tags = service_instance.tags if service_instance.tags else []
 
+    expected_health_check_alarms = []
+
     health_check_id = service_instance.route53_health_checks[0]["health_check_id"]
     alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+    expected_health_check_alarms.append(
+        {
+            "alarm_name": alarm_name,
+            "health_check_id": health_check_id,
+        }
+    )
 
     cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
     # waiting for alarm to exist
     cloudwatch_commercial.expect_describe_alarms(alarm_name, [])
     cloudwatch_commercial.expect_describe_alarms(alarm_name, [])
-    cloudwatch_commercial.expect_describe_alarms(
-        alarm_name, [{"AlarmArn": f"{health_check_id} ARN"}]
-    )
-    # one final call to get the alarm ARN
     cloudwatch_commercial.expect_describe_alarms(
         alarm_name, [{"AlarmArn": f"{health_check_id} ARN"}]
     )
 
     health_check_id = service_instance.route53_health_checks[1]["health_check_id"]
     alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+    expected_health_check_alarms.append(
+        {
+            "alarm_name": alarm_name,
+            "health_check_id": health_check_id,
+        }
+    )
 
     cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
     # waiting for alarm to exist
-    cloudwatch_commercial.expect_describe_alarms(
-        alarm_name, [{"AlarmArn": f"{health_check_id} ARN"}]
-    )
-    # one final call to get the alarm ARN
     cloudwatch_commercial.expect_describe_alarms(
         alarm_name, [{"AlarmArn": f"{health_check_id} ARN"}]
     )
@@ -199,37 +208,9 @@ def test_create_health_check_alarm_waits(
         CDNDedicatedWAFServiceInstance,
         service_instance_id,
     )
-    assert service_instance.cloudwatch_health_check_alarm_arns == [
-        "example.com ID ARN",
-        "foo.com ID ARN",
-    ]
-
-
-def test_create_health_check_alarm_error_on_multiple_alarms_found(
-    service_instance,
-    operation_id,
-    cloudwatch_commercial,
-):
-    tags = service_instance.tags if service_instance.tags else []
-
-    health_check_id = service_instance.route53_health_checks[0]["health_check_id"]
-    alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
-
-    cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
-    # waiting for alarm to exist
-    cloudwatch_commercial.expect_describe_alarms(
-        alarm_name, [{"AlarmArn": str(uuid.uuid4())}, {"AlarmArn": str(uuid.uuid4())}]
+    assert (
+        service_instance.cloudwatch_health_check_alarms == expected_health_check_alarms
     )
-    # one final call to get the alarm ARN
-    cloudwatch_commercial.expect_describe_alarms(
-        alarm_name, [{"AlarmArn": str(uuid.uuid4())}, {"AlarmArn": str(uuid.uuid4())}]
-    )
-
-    with pytest.raises(RuntimeError):
-        create_health_check_alarms.call_local(operation_id)
-
-    # asserts that all the mocked calls above were made
-    cloudwatch_commercial.assert_no_pending_responses()
 
 
 def test_create_health_check_alarm_error_if_alarm_not_found(

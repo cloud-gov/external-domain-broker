@@ -29,18 +29,98 @@ def create_health_check_alarms(operation_id: int, **kwargs):
         )
         return
 
-    tags = service_instance.tags if service_instance.tags else []
-    service_instance.cloudwatch_health_check_alarm_arns = []
+    service_instance.cloudwatch_health_check_alarms = []
 
-    for health_check in service_instance.route53_health_checks:
-        health_check_id = health_check["health_check_id"]
-        alarm_arn = _create_health_check_alarm(health_check_id, tags)
+    _create_health_check_alarms(
+        service_instance.route53_health_checks, service_instance
+    )
 
-        service_instance.cloudwatch_health_check_alarm_arns.append(alarm_arn)
-        flag_modified(service_instance, "cloudwatch_health_check_alarm_arns")
+    # for health_check in service_instance.route53_health_checks:
+    #     health_check_id = health_check["health_check_id"]
+    #     alarm_name = _create_health_check_alarm(health_check_id, tags)
+
+    #     service_instance.cloudwatch_health_check_alarms.append(
+    #         {
+    #             "alarm_name": alarm_name,
+    #             "health_check_id": health_check_id,
+    #         }
+    #     )
+    #     flag_modified(service_instance, "cloudwatch_health_check_alarms")
 
     db.session.add(service_instance)
     db.session.commit()
+
+
+@huey.retriable_task
+def update_health_check_alarms(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    service_instance = operation.service_instance
+
+    operation.step_description = "Updating Cloudwatch alarms for Route53 health checks"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    if len(service_instance.route53_health_checks) == 0:
+        logger.info(
+            f"No Route53 health checks to update alarms on instance {service_instance.id}"
+        )
+        return
+
+    tags = service_instance.tags if service_instance.tags else []
+
+    existing_route53_health_check_ids = [
+        health_check["health_check_id"]
+        for health_check in service_instance.route53_health_checks
+    ]
+    existing_cloudwatch_alarm_health_check_ids = [
+        health_check["health_check_id"]
+        for health_check in service_instance.cloudwatch_health_check_alarms
+    ]
+
+    # IF a health check ID for a Cloudwatch alarm
+    # IS NOT in the set of existing Route53 health check IDs for this service
+    # THEN the Cloudwatch alarm for the health check ID(s) should be DELETED
+    health_checks_alarms_to_delete = [
+        health_check["alarm_name"]
+        for health_check in service_instance.cloudwatch_health_check_alarms
+        if health_check["health_check_id"] not in existing_route53_health_check_ids
+    ]
+    if len(health_checks_alarms_to_delete) > 0:
+        for health_check_alarm in health_checks_alarms_to_delete:
+            cloudwatch_commercial.delete_alarms(
+                AlarmNames=[health_check_alarm["alarm_name"]]
+            )
+
+    # IF a health check ID for a Route53 health check
+    # IS NOT in the set of existing health check IDs for Cloudwatch alarms for this service
+    # THEN the Cloudwatch alarm for the health check ID should be CREATED
+    health_checks_to_create_alarms = [
+        health_check_id
+        for health_check_id in existing_route53_health_check_ids
+        if health_check_id not in existing_cloudwatch_alarm_health_check_ids
+    ]
+    if len(health_checks_to_create_alarms):
+        _create_health_check_alarms(health_checks_to_create_alarms, service_instance)
+
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+def _create_health_check_alarms(health_checks_to_create_alarms, service_instance):
+    tags = service_instance.tags if service_instance.tags else []
+
+    for health_check in health_checks_to_create_alarms:
+        health_check_id = health_check["health_check_id"]
+        alarm_name = _create_health_check_alarm(health_check_id, tags)
+
+        service_instance.cloudwatch_health_check_alarms.append(
+            {
+                "alarm_name": alarm_name,
+                "health_check_id": health_check_id,
+            }
+        )
+        flag_modified(service_instance, "cloudwatch_health_check_alarms")
 
 
 def _create_health_check_alarm(health_check_id, tags) -> str:
@@ -80,15 +160,4 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
         },
     )
 
-    response = cloudwatch_commercial.describe_alarms(
-        AlarmNames=[alarm_name],
-        AlarmTypes=[
-            "MetricAlarm",
-        ],
-    )
-    alarms = response["MetricAlarms"]
-
-    if len(alarms) > 1:
-        raise RuntimeError(f"Found multiple alarms for {alarm_name}")
-
-    return alarms[0]["AlarmArn"]
+    return alarm_name
