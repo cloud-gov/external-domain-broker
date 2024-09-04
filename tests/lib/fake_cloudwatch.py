@@ -45,6 +45,15 @@ class FakeCloudwatch(FakeAWS):
             },
         )
 
+    def expect_delete_alarms(self, alarm_names: list[str]):
+        self.stubber.add_response(
+            "delete_alarms",
+            {},
+            {
+                "AlarmNames": alarm_names,
+            },
+        )
+
 
 @pytest.fixture(autouse=True)
 def cloudwatch_commercial():

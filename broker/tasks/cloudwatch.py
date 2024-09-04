@@ -67,24 +67,24 @@ def update_health_check_alarms(operation_id: int, **kwargs):
     # IF a health check ID for a Cloudwatch alarm
     # IS NOT in the set of existing Route53 health check IDs for this service
     # THEN the Cloudwatch alarm for the health check ID(s) should be DELETED
-    health_checks_alarms_to_delete = [
+    health_checks_alarm_names_to_delete = [
         health_check["alarm_name"]
         for health_check in service_instance.cloudwatch_health_check_alarms
         if health_check["health_check_id"] not in existing_route53_health_check_ids
     ]
-    if len(health_checks_alarms_to_delete) > 0:
-        for health_check_alarm in health_checks_alarms_to_delete:
-            cloudwatch_commercial.delete_alarms(
-                AlarmNames=[health_check_alarm["alarm_name"]]
-            )
+    if len(health_checks_alarm_names_to_delete) > 0:
+        cloudwatch_commercial.delete_alarms(
+            AlarmNames=health_checks_alarm_names_to_delete
+        )
 
     # IF a health check ID for a Route53 health check
     # IS NOT in the set of existing health check IDs for Cloudwatch alarms for this service
     # THEN the Cloudwatch alarm for the health check ID should be CREATED
     health_checks_to_create_alarms = [
-        health_check_id
-        for health_check_id in existing_route53_health_check_ids
-        if health_check_id not in existing_cloudwatch_alarm_health_check_ids
+        health_check
+        for health_check in service_instance.route53_health_checks
+        if health_check["health_check_id"]
+        not in existing_cloudwatch_alarm_health_check_ids
     ]
     if len(health_checks_to_create_alarms):
         _create_health_check_alarms(health_checks_to_create_alarms, service_instance)
@@ -110,7 +110,7 @@ def _create_health_check_alarms(health_checks_to_create_alarms, service_instance
 
 
 def _create_health_check_alarm(health_check_id, tags) -> str:
-    alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+    alarm_name = _get_alarm_name(health_check_id)
 
     # create alarm
     cloudwatch_commercial.put_metric_alarm(
@@ -147,3 +147,7 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
     )
 
     return alarm_name
+
+
+def _get_alarm_name(health_check_id):
+    return f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
