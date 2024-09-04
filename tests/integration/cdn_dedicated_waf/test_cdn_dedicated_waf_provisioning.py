@@ -163,6 +163,10 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Creating health checks"
     )
+    subtest_provision_associate_health_check(tasks, shield, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Associating health check with Shield"
+    )
     subtest_provision_creates_health_check_alarms(
         tasks, cloudwatch_commercial, instance_model
     )
@@ -171,10 +175,6 @@ def test_provision_happy_path(
         "4321",
         operation_id,
         "Creating Cloudwatch alarms for Route53 health checks",
-    )
-    subtest_provision_associate_health_check(tasks, shield, instance_model)
-    check_last_operation_description(
-        client, "4321", operation_id, "Associating health check with Shield"
     )
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
