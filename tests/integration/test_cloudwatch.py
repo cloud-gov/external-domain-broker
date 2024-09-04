@@ -250,6 +250,16 @@ def test_update_health_check_alarms(
     expect_delete_health_check_id = "foo.com ID"
     expect_delete_alarm_names = [_get_alarm_name(expect_delete_health_check_id)]
     expect_create_health_check_id = "bar.com ID"
+    expected_health_check_alarms = [
+        {
+            "health_check_id": "example.com ID",
+            "alarm_name": _get_alarm_name("example.com ID"),
+        },
+        {
+            "health_check_id": expect_create_health_check_id,
+            "alarm_name": _get_alarm_name(expect_create_health_check_id),
+        },
+    ]
 
     # Simulate an update to the domains and health checks
     service_instance.domain_names = ["example.com", "bar.com"]

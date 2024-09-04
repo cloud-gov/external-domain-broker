@@ -6,7 +6,6 @@ from broker.aws import cloudwatch_commercial
 
 from broker.extensions import config, db
 
-# from broker.lib.tags import add_tag
 from broker.models import Operation, CDNServiceInstance, CDNDedicatedWAFServiceInstance
 from broker.tasks import huey
 
@@ -68,14 +67,21 @@ def update_health_check_alarms(operation_id: int, **kwargs):
     # IS NOT in the set of existing Route53 health check IDs for this service
     # THEN the Cloudwatch alarm for the health check ID(s) should be DELETED
     health_checks_alarm_names_to_delete = [
-        health_check["alarm_name"]
-        for health_check in service_instance.cloudwatch_health_check_alarms
-        if health_check["health_check_id"] not in existing_route53_health_check_ids
+        health_check_alarm["alarm_name"]
+        for health_check_alarm in service_instance.cloudwatch_health_check_alarms
+        if health_check_alarm["health_check_id"]
+        not in existing_route53_health_check_ids
     ]
     if len(health_checks_alarm_names_to_delete) > 0:
         cloudwatch_commercial.delete_alarms(
             AlarmNames=health_checks_alarm_names_to_delete
         )
+        service_instance.cloudwatch_health_check_alarms = [
+            health_check_alarm
+            for health_check_alarm in service_instance.cloudwatch_health_check_alarms
+            if health_check_alarm["alarm_name"]
+            not in health_checks_alarm_names_to_delete
+        ]
 
     # IF a health check ID for a Route53 health check
     # IS NOT in the set of existing health check IDs for Cloudwatch alarms for this service
