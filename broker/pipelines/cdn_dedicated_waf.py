@@ -90,6 +90,7 @@ def queue_all_cdn_dedicated_waf_update_tasks_for_operation(
         .then(route53.create_new_health_checks, operation_id, **correlation)
         .then(shield.update_associated_health_check, operation_id, **correlation)
         .then(route53.delete_unused_health_checks, operation_id, **correlation)
+        .then(cloudwatch.update_health_check_alarms, operation_id, **correlation)
         .then(update_operations.update_complete, operation_id, **correlation)
     )
     huey.enqueue(task_pipeline)

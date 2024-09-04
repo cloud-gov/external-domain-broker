@@ -5,6 +5,7 @@ from broker.extensions import config, db
 from broker.models import (
     CDNDedicatedWAFServiceInstance,
 )
+from broker.tasks.cloudwatch import _get_alarm_name
 
 
 def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
@@ -118,7 +119,7 @@ def subtest_provision_creates_health_check_alarms(
 
     for _, health_check in enumerate(service_instance.route53_health_checks):
         health_check_id = health_check["health_check_id"]
-        alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+        alarm_name = _get_alarm_name(health_check_id)
 
         cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
         alarm_arn = f"{health_check_id} ARN"

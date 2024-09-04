@@ -6,7 +6,7 @@ from broker.aws import cloudwatch_commercial
 
 from broker.extensions import config, db
 
-from broker.models import Operation, CDNServiceInstance, CDNDedicatedWAFServiceInstance
+from broker.models import Operation
 from broker.tasks import huey
 
 logger = logging.getLogger(__name__)

@@ -245,8 +245,6 @@ def test_update_health_check_alarms(
     cloudwatch_commercial,
 ):
     tags = service_instance.tags if service_instance.tags else []
-
-    expected_health_check_alarms = []
     expect_delete_health_check_id = "foo.com ID"
     expect_delete_alarm_names = [_get_alarm_name(expect_delete_health_check_id)]
     expect_create_health_check_id = "bar.com ID"
