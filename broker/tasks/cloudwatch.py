@@ -33,6 +33,7 @@ def create_health_check_alarms(operation_id: int, **kwargs):
     _create_health_check_alarms(
         service_instance.route53_health_checks, service_instance
     )
+    flag_modified(service_instance, "cloudwatch_health_check_alarms")
 
     db.session.add(service_instance)
     db.session.commit()
@@ -82,6 +83,7 @@ def update_health_check_alarms(operation_id: int, **kwargs):
             if health_check_alarm["alarm_name"]
             not in health_checks_alarm_names_to_delete
         ]
+        flag_modified(service_instance, "cloudwatch_health_check_alarms")
 
     # IF a health check ID for a Route53 health check
     # IS NOT in the set of existing health check IDs for Cloudwatch alarms for this service
@@ -92,8 +94,37 @@ def update_health_check_alarms(operation_id: int, **kwargs):
         if health_check["health_check_id"]
         not in existing_cloudwatch_alarm_health_check_ids
     ]
-    if len(health_checks_to_create_alarms):
+    if len(health_checks_to_create_alarms) > 0:
         _create_health_check_alarms(health_checks_to_create_alarms, service_instance)
+        flag_modified(service_instance, "cloudwatch_health_check_alarms")
+
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+@huey.retriable_task
+def delete_health_check_alarms(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    service_instance = operation.service_instance
+
+    operation.step_description = "Deleting Cloudwatch alarms for Route53 health checks"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    if len(service_instance.route53_health_checks) == 0:
+        logger.info(
+            f"No Route53 health checks to update alarms on instance {service_instance.id}"
+        )
+        return
+
+    health_checks_alarm_names_to_delete = [
+        health_check_alarm["alarm_name"]
+        for health_check_alarm in service_instance.cloudwatch_health_check_alarms
+    ]
+    cloudwatch_commercial.delete_alarms(AlarmNames=health_checks_alarm_names_to_delete)
+    service_instance.cloudwatch_health_check_alarms = []
+    flag_modified(service_instance, "cloudwatch_health_check_alarms")
 
     db.session.add(service_instance)
     db.session.commit()

@@ -7,6 +7,7 @@ from botocore.exceptions import WaiterError
 from broker.tasks.cloudwatch import (
     create_health_check_alarms,
     update_health_check_alarms,
+    delete_health_check_alarms,
     _get_alarm_name,
 )
 from broker.extensions import config
@@ -316,3 +317,51 @@ def test_update_health_check_alarms(
     assert (
         service_instance.cloudwatch_health_check_alarms == expected_health_check_alarms
     )
+
+
+def test_delete_health_check_alarms(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    expect_delete_alarm_names = [
+        _get_alarm_name("example.com ID"),
+        _get_alarm_name("foo.com ID"),
+    ]
+
+    service_instance.cloudwatch_health_check_alarms = [
+        {
+            "health_check_id": "example.com ID",
+            "alarm_name": _get_alarm_name("example.com ID"),
+        },
+        {
+            "health_check_id": "foo.com ID",
+            "alarm_name": _get_alarm_name("foo.com ID"),
+        },
+    ]
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    cloudwatch_commercial.expect_delete_alarms(expect_delete_alarm_names)
+
+    delete_health_check_alarms.call_local(operation_id)
+
+    # asserts that all the mocked calls above were made
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    operation = clean_db.session.get(Operation, operation_id)
+    assert (
+        operation.step_description
+        == "Deleting Cloudwatch alarms for Route53 health checks"
+    )
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.cloudwatch_health_check_alarms == []
