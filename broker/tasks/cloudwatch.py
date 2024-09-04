@@ -33,7 +33,6 @@ def create_health_check_alarms(operation_id: int, **kwargs):
     _create_health_check_alarms(
         service_instance.route53_health_checks, service_instance
     )
-    flag_modified(service_instance, "cloudwatch_health_check_alarms")
 
     db.session.add(service_instance)
     db.session.commit()
@@ -74,16 +73,7 @@ def update_health_check_alarms(operation_id: int, **kwargs):
         not in existing_route53_health_check_ids
     ]
     if len(health_checks_alarm_names_to_delete) > 0:
-        cloudwatch_commercial.delete_alarms(
-            AlarmNames=health_checks_alarm_names_to_delete
-        )
-        service_instance.cloudwatch_health_check_alarms = [
-            health_check_alarm
-            for health_check_alarm in service_instance.cloudwatch_health_check_alarms
-            if health_check_alarm["alarm_name"]
-            not in health_checks_alarm_names_to_delete
-        ]
-        flag_modified(service_instance, "cloudwatch_health_check_alarms")
+        _delete_alarms(service_instance, health_checks_alarm_names_to_delete)
 
     # IF a health check ID for a Route53 health check
     # IS NOT in the set of existing health check IDs for Cloudwatch alarms for this service
@@ -96,7 +86,6 @@ def update_health_check_alarms(operation_id: int, **kwargs):
     ]
     if len(health_checks_to_create_alarms) > 0:
         _create_health_check_alarms(health_checks_to_create_alarms, service_instance)
-        flag_modified(service_instance, "cloudwatch_health_check_alarms")
 
     db.session.add(service_instance)
     db.session.commit()
@@ -122,9 +111,7 @@ def delete_health_check_alarms(operation_id: int, **kwargs):
         health_check_alarm["alarm_name"]
         for health_check_alarm in service_instance.cloudwatch_health_check_alarms
     ]
-    cloudwatch_commercial.delete_alarms(AlarmNames=health_checks_alarm_names_to_delete)
-    service_instance.cloudwatch_health_check_alarms = []
-    flag_modified(service_instance, "cloudwatch_health_check_alarms")
+    _delete_alarms(service_instance, health_checks_alarm_names_to_delete)
 
     db.session.add(service_instance)
     db.session.commit()
@@ -184,6 +171,22 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
     )
 
     return alarm_name
+
+
+def _delete_alarms(service_instance, alarm_names_to_delete):
+    try:
+        cloudwatch_commercial.delete_alarms(AlarmNames=alarm_names_to_delete)
+    except cloudwatch_commercial.exceptions.ResourceNotFound:
+        logger.info(
+            "Cloudwatch alarms not found",
+            extra={"alarm_names": alarm_names_to_delete},
+        )
+    service_instance.cloudwatch_health_check_alarms = [
+        health_check_alarm
+        for health_check_alarm in service_instance.cloudwatch_health_check_alarms
+        if health_check_alarm["alarm_name"] not in alarm_names_to_delete
+    ]
+    flag_modified(service_instance, "cloudwatch_health_check_alarms")
 
 
 def _get_alarm_name(health_check_id):

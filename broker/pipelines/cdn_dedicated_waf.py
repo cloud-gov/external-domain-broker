@@ -57,6 +57,7 @@ def queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation(
         update_operations.cancel_pending_provisioning.s(operation_id, **correlation)
         .then(route53.remove_ALIAS_records, operation_id, **correlation)
         .then(route53.remove_TXT_records, operation_id, **correlation)
+        .then(cloudwatch.delete_health_check_alarms, operation_id, **correlation)
         .then(shield.disassociate_health_check, operation_id, **correlation)
         .then(route53.delete_health_checks, operation_id, **correlation)
         .then(cloudfront.disable_distribution, operation_id, **correlation)

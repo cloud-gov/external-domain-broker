@@ -3,6 +3,8 @@ import uuid
 
 from broker.extensions import db
 from broker.models import CDNDedicatedWAFServiceInstance
+from broker.tasks.cloudwatch import _get_alarm_name
+
 from tests.lib import factories
 from tests.lib.client import check_last_operation_description
 from tests.lib.cdn.deprovision import (
@@ -51,6 +53,16 @@ def service_instance(protection_id):
             {
                 "domain_name": "foo.com",
                 "health_check_id": "foo.com ID",
+            },
+        ],
+        cloudwatch_health_check_alarms=[
+            {
+                "health_check_id": "example.com ID",
+                "alarm_name": _get_alarm_name("example.com ID"),
+            },
+            {
+                "health_check_id": "foo.com ID",
+                "alarm_name": _get_alarm_name("foo.com ID"),
             },
         ],
         dedicated_waf_web_acl_id="1234-dedicated-waf-id",
@@ -120,12 +132,16 @@ def test_deprovision_continues_when_resources_dont_exist(
     cloudfront,
     shield,
     wafv2,
+    cloudwatch_commercial,
 ):
     instance_model = CDNDedicatedWAFServiceInstance
 
     subtest_deprovision_creates_deprovision_operation(instance_model, client)
     subtest_deprovision_removes_ALIAS_records_when_missing(tasks, route53)
     subtest_deprovision_removes_TXT_records_when_missing(tasks, route53)
+    subtest_deprovision_deletes_health_check_alarms_when_missing(
+        instance_model, tasks, service_instance, cloudwatch_commercial
+    )
     subtest_deprovision_disassociate_health_check_when_missing(
         instance_model, tasks, service_instance, shield
     )
@@ -150,7 +166,15 @@ def test_deprovision_continues_when_resources_dont_exist(
 
 
 def test_deprovision_happy_path(
-    client, service_instance, tasks, route53, iam_commercial, cloudfront, shield, wafv2
+    client,
+    service_instance,
+    tasks,
+    route53,
+    iam_commercial,
+    cloudfront,
+    shield,
+    wafv2,
+    cloudwatch_commercial,
 ):
     instance_model = CDNDedicatedWAFServiceInstance
     operation_id = subtest_deprovision_creates_deprovision_operation(
@@ -164,6 +188,15 @@ def test_deprovision_happy_path(
     subtest_deprovision_removes_TXT_records(tasks, route53)
     check_last_operation_description(
         client, "1234", operation_id, "Removing DNS TXT records"
+    )
+    subtest_deprovision_deletes_health_check_alarms(
+        instance_model, tasks, service_instance, cloudwatch_commercial
+    )
+    check_last_operation_description(
+        client,
+        "1234",
+        operation_id,
+        "Deleting Cloudwatch alarms for Route53 health checks",
     )
     subtest_deprovision_disassociate_health_check(
         instance_model, tasks, service_instance, shield
@@ -348,3 +381,54 @@ def subtest_deprovision_deletes_web_acl(instance_model, tasks, service_instance,
     assert not service_instance.dedicated_waf_web_acl_name
 
     wafv2.assert_no_pending_responses()
+
+
+def subtest_deprovision_deletes_health_check_alarms(
+    instance_model, tasks, service_instance, cloudwatch_commercial
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "1234")
+
+    assert service_instance.cloudwatch_health_check_alarms == [
+        {
+            "health_check_id": "example.com ID",
+            "alarm_name": _get_alarm_name("example.com ID"),
+        },
+        {
+            "health_check_id": "foo.com ID",
+            "alarm_name": _get_alarm_name("foo.com ID"),
+        },
+    ]
+
+    expect_delete_alarm_names = [
+        _get_alarm_name("example.com ID"),
+        _get_alarm_name("foo.com ID"),
+    ]
+    cloudwatch_commercial.expect_delete_alarms(expect_delete_alarm_names)
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "1234")
+    assert service_instance.cloudwatch_health_check_alarms == []
+
+
+def subtest_deprovision_deletes_health_check_alarms_when_missing(
+    instance_model, tasks, service_instance, cloudwatch_commercial
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "1234")
+    cloudwatch_commercial.expect_delete_alarms_not_found(
+        [
+            _get_alarm_name("example.com ID"),
+            _get_alarm_name("foo.com ID"),
+        ]
+    )
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, "1234")
+    assert service_instance.cloudwatch_health_check_alarms == []

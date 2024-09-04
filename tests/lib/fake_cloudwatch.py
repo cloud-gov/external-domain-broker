@@ -54,6 +54,17 @@ class FakeCloudwatch(FakeAWS):
             },
         )
 
+    def expect_delete_alarms_not_found(self, alarm_names: list[str]):
+        self.stubber.add_client_error(
+            "delete_alarms",
+            service_error_code="ResourceNotFound",
+            service_message="Not found",
+            http_status_code=404,
+            expected_params={
+                "AlarmNames": alarm_names,
+            },
+        )
+
 
 @pytest.fixture(autouse=True)
 def cloudwatch_commercial():
