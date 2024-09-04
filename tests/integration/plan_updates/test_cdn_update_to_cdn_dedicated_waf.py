@@ -43,6 +43,7 @@ from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
     subtest_provision_creates_health_checks,
     subtest_provision_associate_health_check,
+    subtest_provision_creates_health_check_alarms,
 )
 
 
@@ -55,6 +56,7 @@ def test_update_plan_only(
     shield,
     dns,
     iam_commercial,
+    cloudwatch_commercial,
     simple_regex,
     organization_guid,
     space_guid,
@@ -129,6 +131,9 @@ def test_update_plan_only(
     )
     subtest_provision_creates_health_checks(tasks, route53, instance_model)
     subtest_provision_associate_health_check(tasks, shield, instance_model)
+    subtest_provision_creates_health_check_alarms(
+        tasks, cloudwatch_commercial, instance_model
+    )
     subtest_update_marks_update_complete(tasks, instance_model)
 
 
@@ -141,6 +146,7 @@ def test_update_plan_and_domains(
     shield,
     dns,
     iam_commercial,
+    cloudwatch_commercial,
     simple_regex,
     organization_guid,
     space_guid,
@@ -192,6 +198,9 @@ def test_update_plan_and_domains(
     )
     check_last_operation_description(
         client, "4321", operation_id, "Associating health check with Shield"
+    )
+    subtest_provision_creates_health_check_alarms(
+        tasks, cloudwatch_commercial, instance_model
     )
     subtest_update_marks_update_complete(tasks, instance_model)
 
