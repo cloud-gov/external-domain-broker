@@ -88,7 +88,7 @@ psycopg2==2.9.9
     # via -r pip-tools/requirements.in
 pycparser==2.22
     # via cffi
-pyopenssl==24.2.1
+pyopenssl==22.0.0
     # via
     #   acme
     #   josepy
@@ -115,7 +115,7 @@ six==1.16.0
     #   furl
     #   orderedmultidict
     #   python-dateutil
-sqlalchemy==2.0.33
+sqlalchemy==2.0.34
     # via
     #   -r pip-tools/requirements.in
     #   alembic

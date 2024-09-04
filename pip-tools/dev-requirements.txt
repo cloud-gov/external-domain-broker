@@ -180,7 +180,7 @@ pycparser==2.22
     #   cffi
 pyflakes==3.2.0
     # via flake8
-pyopenssl==24.2.1
+pyopenssl==22.0.0
     # via
     #   -r pip-tools/../requirements.txt
     #   acme
@@ -246,7 +246,7 @@ six==1.16.0
     #   orderedmultidict
     #   pytest-profiling
     #   python-dateutil
-sqlalchemy==2.0.33
+sqlalchemy==2.0.34
     # via
     #   -r pip-tools/../requirements.txt
     #   alembic
