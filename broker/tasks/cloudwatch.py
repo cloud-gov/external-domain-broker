@@ -35,18 +35,6 @@ def create_health_check_alarms(operation_id: int, **kwargs):
         service_instance.route53_health_checks, service_instance
     )
 
-    # for health_check in service_instance.route53_health_checks:
-    #     health_check_id = health_check["health_check_id"]
-    #     alarm_name = _create_health_check_alarm(health_check_id, tags)
-
-    #     service_instance.cloudwatch_health_check_alarms.append(
-    #         {
-    #             "alarm_name": alarm_name,
-    #             "health_check_id": health_check_id,
-    #         }
-    #     )
-    #     flag_modified(service_instance, "cloudwatch_health_check_alarms")
-
     db.session.add(service_instance)
     db.session.commit()
 
