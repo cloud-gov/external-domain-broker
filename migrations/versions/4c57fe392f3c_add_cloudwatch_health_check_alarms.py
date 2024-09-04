@@ -1,7 +1,7 @@
 """add_cloudwatch_health_check_alarms
 
 Revision ID: 4c57fe392f3c
-Revises: 38b7e9da2fb9
+Revises: 819e31a29986
 Create Date: 2024-09-04 14:52:36.703601
 
 """
@@ -12,7 +12,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "4c57fe392f3c"
-down_revision = "38b7e9da2fb9"
+down_revision = "819e31a29986"
 branch_labels = None
 depends_on = None
 
