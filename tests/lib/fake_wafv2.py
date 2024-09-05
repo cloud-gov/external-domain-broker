@@ -10,6 +10,7 @@ class FakeWAFV2(FakeAWS):
     def expect_create_web_acl(self, id: str, rule_group_arn: str, tags: list[Tag]):
         method = "create_web_acl"
         waf_name = f"{config.DEDICATED_WAF_NAME_PREFIX}-{id}-dedicated-waf"
+
         request = {
             "Name": waf_name,
             "Scope": "CLOUDFRONT",
@@ -34,8 +35,11 @@ class FakeWAFV2(FakeAWS):
                 "CloudWatchMetricsEnabled": True,
                 "MetricName": waf_name,
             },
-            "Tags": tags,
         }
+
+        if tags is not None:
+            request["Tags"] = tags
+
         response = {
             "Summary": {
                 "Id": f"{waf_name}-id",
