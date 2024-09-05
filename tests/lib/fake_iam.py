@@ -91,6 +91,15 @@ class FakeIAM(FakeAWS):
             "delete_server_certificate", {}, {"ServerCertificateName": name}
         )
 
+    def expects_get_server_certificate_returning_no_such_entity(self, name: str):
+        self.stubber.add_client_error(
+            "get_server_certificate",
+            service_error_code="NoSuchEntity",
+            service_message="'Ain't there.",
+            http_status_code=404,
+            expected_params={"ServerCertificateName": name},
+        )
+
     def expects_delete_server_certificate_returning_no_such_entity(self, name: str):
         self.stubber.add_client_error(
             "delete_server_certificate",

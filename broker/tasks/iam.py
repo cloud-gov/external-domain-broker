@@ -135,18 +135,31 @@ def delete_previous_server_certificate(operation_id: str, **kwargs):
     else:
         iam = iam_govcloud
 
-    for certificate in Certificate.query.filter(
+    certificates_to_delete = Certificate.query.filter(
         and_(
             Certificate.service_instance_id == service_instance.id,
             Certificate.id != service_instance.current_certificate_id,
         )
-    ).all():
+    ).all()
+    for certificate in certificates_to_delete:
         try:
+            print(certificate.iam_server_certificate_name)
+            iam.get_server_certificate(
+                ServerCertificateName=certificate.iam_server_certificate_name
+            )
             iam.delete_server_certificate(
                 ServerCertificateName=certificate.iam_server_certificate_name
             )
-        except iam_commercial.exceptions.NoSuchEntityException:
-            pass
+        except ClientError as e:
+            if "NoSuchEntity" in e.response["Error"]["Code"]:
+                logger.info(
+                    f"Certificate {certificate.iam_server_certificate_name} not found, may have already been deleted",
+                )
+            else:
+                logger.error(
+                    f"Got this error deleting the server certificate: {e.response['Error']}"
+                )
+                raise e
         db.session.delete(certificate)
 
     db.session.commit()
