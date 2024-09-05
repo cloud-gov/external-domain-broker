@@ -189,7 +189,7 @@ def _delete_alarms(service_instance, alarm_names_to_delete):
             )
         else:
             logger.error(
-                f"Got this code uploading server certificate: {e.response['Error']}"
+                f"Got this code deleting Cloudwatch alarms: {e.response['Error']}"
             )
             raise e
     service_instance.cloudwatch_health_check_alarms = [
