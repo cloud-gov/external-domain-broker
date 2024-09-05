@@ -1,5 +1,6 @@
 import logging
 
+from botocore.exceptions import ClientError
 from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import cloudwatch_commercial
@@ -176,11 +177,17 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
 def _delete_alarms(service_instance, alarm_names_to_delete):
     try:
         cloudwatch_commercial.delete_alarms(AlarmNames=alarm_names_to_delete)
-    except cloudwatch_commercial.exceptions.ResourceNotFound:
-        logger.info(
-            "Cloudwatch alarms not found",
-            extra={"alarm_names": alarm_names_to_delete},
-        )
+    except ClientError as e:
+        if "ResourceNotFound" in e.response["Error"]["Code"]:
+            logger.info(
+                "Cloudwatch alarms not found",
+                extra={"alarm_names": alarm_names_to_delete},
+            )
+        else:
+            logger.error(
+                f"Got this code uploading server certificate: {e.response['Error']}"
+            )
+            raise e
     service_instance.cloudwatch_health_check_alarms = [
         health_check_alarm
         for health_check_alarm in service_instance.cloudwatch_health_check_alarms

@@ -365,3 +365,46 @@ def test_delete_health_check_alarms(
         service_instance_id,
     )
     assert service_instance.cloudwatch_health_check_alarms == []
+
+
+def test_delete_health_check_alarms_resource_not_found(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    expect_delete_alarm_names = [
+        _get_alarm_name("example.com ID"),
+        _get_alarm_name("foo.com ID"),
+    ]
+
+    service_instance.cloudwatch_health_check_alarms = [
+        {
+            "health_check_id": "example.com ID",
+            "alarm_name": _get_alarm_name("example.com ID"),
+        },
+        {
+            "health_check_id": "foo.com ID",
+            "alarm_name": _get_alarm_name("foo.com ID"),
+        },
+    ]
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    cloudwatch_commercial.expect_delete_alarms_not_found(expect_delete_alarm_names)
+
+    delete_health_check_alarms.call_local(operation_id)
+
+    # asserts that all the mocked calls above were made
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.cloudwatch_health_check_alarms == []
