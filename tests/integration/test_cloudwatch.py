@@ -408,3 +408,37 @@ def test_delete_health_check_alarms_resource_not_found(
         service_instance_id,
     )
     assert service_instance.cloudwatch_health_check_alarms == []
+
+
+def test_delete_health_check_alarms_unexpected_error(
+    clean_db,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    expect_delete_alarm_names = [
+        _get_alarm_name("example.com ID"),
+        _get_alarm_name("foo.com ID"),
+    ]
+
+    service_instance.cloudwatch_health_check_alarms = [
+        {
+            "health_check_id": "example.com ID",
+            "alarm_name": _get_alarm_name("example.com ID"),
+        },
+        {
+            "health_check_id": "foo.com ID",
+            "alarm_name": _get_alarm_name("foo.com ID"),
+        },
+    ]
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    cloudwatch_commercial.expect_delete_alarms_unexpected_error(
+        expect_delete_alarm_names
+    )
+
+    with pytest.raises(Exception):
+        delete_health_check_alarms.call_local(operation_id)

@@ -65,6 +65,17 @@ class FakeCloudwatch(FakeAWS):
             },
         )
 
+    def expect_delete_alarms_unexpected_error(self, alarm_names: list[str]):
+        self.stubber.add_client_error(
+            "delete_alarms",
+            service_error_code="RandomError",
+            service_message="Unexpected error",
+            http_status_code=500,
+            expected_params={
+                "AlarmNames": alarm_names,
+            },
+        )
+
 
 @pytest.fixture(autouse=True)
 def cloudwatch_commercial():
