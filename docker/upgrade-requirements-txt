@@ -4,6 +4,6 @@ set -euo pipefail
 
 export CUSTOM_COMPILE_COMMAND="./dev update-requirements"
 echo "Compiling requirements.txt"
-python -m piptools compile --upgrade --output-file requirements.txt pip-tools/requirements.in
+python3.11 -m piptools compile --upgrade --output-file requirements.txt pip-tools/requirements.in
 echo "Compiling dev-requirements.txt"
-python -m piptools compile --upgrade --output-file pip-tools/dev-requirements.txt pip-tools/dev-requirements.in
+python3.11 -m piptools compile --upgrade --output-file pip-tools/dev-requirements.txt pip-tools/dev-requirements.in

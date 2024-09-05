@@ -9,29 +9,33 @@ ARG USER=app
 
 # In case the host user's GID is already in the base image.
 RUN grep -q ":$GID:" /etc/group \
- || groupadd --gid="$GID" "$USER"
+  || groupadd --gid="$GID" "$USER"
 
 RUN useradd \
-      --home-dir="/home/$USER" \
-      --no-log-init \
-      --create-home \
-      --shell=/bin/bash \
-      --gid=$GID \
-      --uid=$UID \
-      --no-user-group \
-      --non-unique \
-      "$USER"
+  --home-dir="/home/$USER" \
+  --no-log-init \
+  --create-home \
+  --shell=/bin/bash \
+  --gid=$GID \
+  --uid=$UID \
+  --no-user-group \
+  --non-unique \
+  "$USER"
 
 RUN apt update \
- && apt -y upgrade \
- && apt install -y --no-install-recommends \
-      build-essential \
-      libpq-dev \
-      curl \
-      gnupg2 \
-      procps \
-      git \
-      lsb-release
+  && apt -y upgrade \
+  && apt install -y --no-install-recommends \
+  build-essential \
+  libpq-dev \
+  curl \
+  gnupg2 \
+  procps \
+  git \
+  lsb-release \
+  ca-certificates \
+  python3.11 \
+  python3-pip\
+  python3.11-dev
 
 # Install Fake Pebble LE server
 COPY --from=letsencrypt/pebble:latest /usr/bin/pebble /usr/bin/pebble
@@ -39,7 +43,7 @@ COPY --from=letsencrypt/pebble:latest /test/ /test/
 COPY --from=letsencrypt/pebble-challtestsrv:latest /usr/bin/pebble-challtestsrv /usr/bin/pebble-challtestsrv
 
 RUN cp /test/certs/pebble.minica.pem /usr/local/share/ca-certificates/pebble.crt \
- && update-ca-certificates
+  && update-ca-certificates
 
 # Install Redis
 # cloud.gov currently supports redis 5.0
@@ -53,27 +57,27 @@ RUN curl -sSL "https://cli.run.pivotal.io/stable?release=linux64-binary&version=
 # Install PostgreSQL
 ENV PG_MAJOR=15
 RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main"\
-    > /etc/apt/sources.list.d/pgdg.list \
- && curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
- && apt update \
- && apt install -y --no-install-recommends "postgresql-$PG_MAJOR"
+  > /etc/apt/sources.list.d/pgdg.list \
+  && curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+  && apt update \
+  && apt install -y --no-install-recommends "postgresql-$PG_MAJOR"
 
 ENV PGDATA /tmp/data
 ENV PGCONFIG /tmp/data/postgresql.conf
 ENV PATH $PATH:/usr/lib/postgresql/$PG_MAJOR/bin
 
 RUN mkdir -p "$PGDATA" \
- && chown -R "$USER:" "$PGDATA" \
- && chmod 700 "$PGDATA"
+  && chown -R "$USER:" "$PGDATA" \
+  && chmod 700 "$PGDATA"
 
 ENV POSTGRES_HOST_AUTH_METHOD=trust
 
 RUN apt install -y --no-install-recommends awscli jq
 
 # Install local python packages
-RUN pip install --upgrade pip
+RUN python3.11 -m pip install --upgrade pip
 COPY pip-tools/dev-requirements.txt ./pip-tools/
-RUN pip install -r pip-tools/dev-requirements.txt
+RUN python3.11 -m pip install -r pip-tools/dev-requirements.txt
 
 WORKDIR /app
 RUN chown "$UID:$GID" .

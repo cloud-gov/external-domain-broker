@@ -3,5 +3,5 @@
 pkill -x pebble
 pkill -x pebble-chall
 pkill -x redis-server
-pkill -f 'python -m smtpd'
-pg_ctl stop 
+pkill -f 'python3.11 -m smtpd'
+pg_ctl stop

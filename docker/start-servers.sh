@@ -9,7 +9,7 @@ if ! pgrep -x postgres > /dev/null; then
   (
     cd "$PGDATA"
     echo > "$LOGS/postgres.log"
-    pg_ctl -l "$LOGS/postgres.log" start 
+    pg_ctl -l "$LOGS/postgres.log" start
   )
 fi
 
@@ -43,10 +43,10 @@ if ! pgrep -x redis-server > /dev/null; then
   )
 fi
 
-if ! pgrep -f 'python -m smtpd' > /dev/null; then
+if ! pgrep -f 'python3.11 -m smtpd' > /dev/null; then
   echo "Starting fake smtpd"
   (
-    python -m smtpd -n -c DebuggingServer localhost:1025 \
+    python3.11 -m smtpd -n -c DebuggingServer localhost:1025 \
       >> "$LOGS/smtpd.log" 2>&1 &
   )
 fi
