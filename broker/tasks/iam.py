@@ -143,7 +143,6 @@ def delete_previous_server_certificate(operation_id: str, **kwargs):
     ).all()
     for certificate in certificates_to_delete:
         try:
-            print(certificate.iam_server_certificate_name)
             iam.get_server_certificate(
                 ServerCertificateName=certificate.iam_server_certificate_name
             )
