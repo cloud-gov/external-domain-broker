@@ -4,7 +4,7 @@ from acme.errors import ValidationError
 import pytest
 
 from broker.extensions import db
-from broker.models import Operation, ALBServiceInstance
+from broker.models import Operation, ALBServiceInstance, Certificate
 from broker.tasks.cron import scan_for_expiring_certs
 from broker.tasks.huey import huey
 from broker.tasks.letsencrypt import create_user, generate_private_key
@@ -57,6 +57,8 @@ def alb_instance_needing_renewal(clean_db, tasks):
         iam_server_certificate_name="certificate_name",
         iam_server_certificate_arn="certificate_arn",
         private_key_pem="SOMEPRIVATEKEY",
+        leaf_pem="SOMECERTPEM",
+        fullchain_pem="FULLCHAINOFSOMECERTPEM",
     )
     renew_service_instance.current_certificate = current_cert
 
@@ -135,7 +137,11 @@ def test_scan_for_expiring_certs_alb_happy_path(
     subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
     subtest_renewal_removes_certificate_from_alb(tasks, alb)
-    subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud)
+
+    db.session.expunge_all()
+    certificate = db.session.get(Certificate, "1001")
+
+    subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud, certificate)
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
 
 
@@ -220,7 +226,13 @@ def subtest_renewal_removes_certificate_from_alb(tasks, alb):
     alb.assert_no_pending_responses()
 
 
-def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud):
+def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud, certificate):
+    iam_govcloud.expect_get_server_certificate(
+        "certificate_name",
+        cert=certificate.leaf_pem,
+        chain=certificate.fullchain_pem,
+        path="/cloudfront/external-domains-test/",
+    )
     iam_govcloud.expects_delete_server_certificate("certificate_name")
 
     tasks.run_queued_tasks_and_enqueue_dependents()
