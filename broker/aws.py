@@ -12,7 +12,6 @@ route53 = commercial_session.client("route53")
 iam_commercial = commercial_session.client("iam")
 cloudfront = commercial_session.client("cloudfront")
 shield = commercial_session.client("shield")
-cloudwatch_commercial = commercial_session.client("cloudwatch")
 
 # Some services need to explicitly use the global region
 commercial_global_session = boto3.Session(
@@ -21,6 +20,7 @@ commercial_global_session = boto3.Session(
     aws_secret_access_key=config.AWS_COMMERCIAL_SECRET_ACCESS_KEY,
 )
 wafv2 = commercial_global_session.client("wafv2")
+cloudwatch_commercial = commercial_global_session.client("cloudwatch")
 
 govcloud_session = boto3.Session(
     region_name=config.AWS_GOVCLOUD_REGION,
