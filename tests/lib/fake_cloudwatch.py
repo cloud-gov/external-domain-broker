@@ -8,29 +8,30 @@ from tests.lib.fake_aws import FakeAWS
 
 class FakeCloudwatch(FakeAWS):
     def expect_put_metric_alarm(self, health_check_id: str, alarm_name: str, tags):
-
+        request = {
+            "AlarmName": alarm_name,
+            "AlarmActions": [config.NOTIFICATIONS_SNS_TOPIC_ARN],
+            "MetricName": "HealthCheckStatus",
+            "Namespace": "AWS/Route53",
+            "Statistic": "Minimum",
+            "Dimensions": [
+                {
+                    "Name": "HealthCheckId",
+                    "Value": health_check_id,
+                }
+            ],
+            "Period": 60,
+            "EvaluationPeriods": 1,
+            "DatapointsToAlarm": 1,
+            "Threshold": 1,
+            "ComparisonOperator": "LessThanThreshold",
+        }
+        if tags is not None:
+            request["Tags"] = tags
         self.stubber.add_response(
             "put_metric_alarm",
             {},
-            {
-                "AlarmName": alarm_name,
-                "AlarmActions": [config.NOTIFICATIONS_SNS_TOPIC_ARN],
-                "MetricName": "HealthCheckStatus",
-                "Namespace": "AWS/Route53",
-                "Statistic": "Minimum",
-                "Dimensions": [
-                    {
-                        "Name": "HealthCheckId",
-                        "Value": health_check_id,
-                    }
-                ],
-                "Period": 60,
-                "EvaluationPeriods": 1,
-                "DatapointsToAlarm": 1,
-                "Threshold": 1,
-                "ComparisonOperator": "LessThanThreshold",
-                "Tags": tags,
-            },
+            request,
         )
 
     def expect_describe_alarms(self, alarm_name: str, expected_alarms):

@@ -119,11 +119,11 @@ def delete_health_check_alarms(operation_id: int, **kwargs):
 
 
 def _create_health_check_alarms(health_checks_to_create_alarms, service_instance):
-    tags = service_instance.tags if service_instance.tags else []
+    # tags = service_instance.tags if service_instance.tags else []
 
     for health_check in health_checks_to_create_alarms:
         health_check_id = health_check["health_check_id"]
-        alarm_name = _create_health_check_alarm(health_check_id, tags)
+        alarm_name = _create_health_check_alarm(health_check_id, service_instance.tags)
 
         service_instance.cloudwatch_health_check_alarms.append(
             {
@@ -138,6 +138,10 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
     alarm_name = _get_alarm_name(health_check_id)
 
     # create alarm
+    kwargs = {}
+    if tags is not None:
+        kwargs["Tags"] = tags
+
     cloudwatch_commercial.put_metric_alarm(
         AlarmName=alarm_name,
         AlarmActions=[config.NOTIFICATIONS_SNS_TOPIC_ARN],
@@ -155,7 +159,7 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
         DatapointsToAlarm=1,
         Threshold=1,
         ComparisonOperator="LessThanThreshold",
-        Tags=tags,
+        **kwargs,
     )
 
     # wait for alarm to exist
