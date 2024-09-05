@@ -51,12 +51,15 @@ def upload_server_certificate(operation_id: int, **kwargs):
             CertificateChain=certificate.fullchain_pem,
         )
     except ClientError as e:
-        if e.response["Error"]["Code"] == "EntityAlreadyExistsException":
+        if "EntityAlreadyExists" in e.response["Error"]["Code"]:
             get_response = iam.get_server_certificate(
                 ServerCertificateName=certificate.iam_server_certificate_name,
             )
             response = get_response["ServerCertificate"]
         else:
+            logger.error(
+                f"Got this coe uploading server certificate: {e.response['Error']}"
+            )
             raise e
 
     certificate.iam_server_certificate_id = response["ServerCertificateMetadata"][

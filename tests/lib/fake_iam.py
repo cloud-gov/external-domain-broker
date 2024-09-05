@@ -74,7 +74,8 @@ class FakeIAM(FakeAWS):
     ):
         self.stubber.add_client_error(
             "upload_server_certificate",
-            service_error_code="EntityAlreadyExistsException",
+            # asdf here is to test looser matching here
+            service_error_code="asdfEntityAlreadyExistsException",
             service_message="already got one",
             expected_params={
                 "Path": path,
