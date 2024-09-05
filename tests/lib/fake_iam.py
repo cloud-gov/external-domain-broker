@@ -29,7 +29,9 @@ class FakeIAM(FakeAWS):
             "ServerCertificateName": name,
             "Tags": tags,
         }
-        self.stubber.add_response(method, {}, request)
+        # sending an empty tags causes an error in IAM.
+        if tags != []:
+            self.stubber.add_response(method, {}, request)
 
     def expect_get_server_certificate(
         self, name: str, cert: str, chain: str, path: str
