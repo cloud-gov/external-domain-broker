@@ -58,7 +58,7 @@ def upload_server_certificate(operation_id: int, **kwargs):
             response = get_response["ServerCertificate"]
         else:
             logger.error(
-                f"Got this coe uploading server certificate: {e.response['Error']}"
+                f"Got this code uploading server certificate: {e.response['Error']}"
             )
             raise e
 
