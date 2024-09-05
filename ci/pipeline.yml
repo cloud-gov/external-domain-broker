@@ -102,6 +102,7 @@ cf-manifest-env-dev: &cf-manifest-env-dev
     UAA_BASE_URL: ((dev-uaa-base-url))
     UAA_CLIENT_ID: ((dev-uaa-client-id))
     UAA_CLIENT_SECRET: ((dev-uaa-client-secret))
+    NOTIFICATIONS_SNS_TOPIC_ARN: ((dev-sns-notifications-topic-arn))
 
 cf-manifest-env-staging: &cf-manifest-env-staging
   environment_variables:
@@ -135,6 +136,7 @@ cf-manifest-env-staging: &cf-manifest-env-staging
     UAA_BASE_URL: ((staging-uaa-base-url))
     UAA_CLIENT_ID: ((staging-uaa-client-id))
     UAA_CLIENT_SECRET: ((staging-uaa-client-secret))
+    NOTIFICATIONS_SNS_TOPIC_ARN: ((staging-sns-notifications-topic-arn))
 
 cf-manifest-env-production: &cf-manifest-env-production
   environment_variables:
@@ -168,6 +170,7 @@ cf-manifest-env-production: &cf-manifest-env-production
     UAA_BASE_URL: ((prod-uaa-base-url))
     UAA_CLIENT_ID: ((production-uaa-client-id))
     UAA_CLIENT_SECRET: ((production-uaa-client-secret))
+    NOTIFICATIONS_SNS_TOPIC_ARN: ((production-sns-notifications-topic-arn))
 
 acceptance-tests-staging-params: &acceptance-tests-staging-params
   CF_API_URL: ((staging-cf-api-url))

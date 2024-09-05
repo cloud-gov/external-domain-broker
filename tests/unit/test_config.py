@@ -121,6 +121,7 @@ def mocked_env(
     monkeypatch.setenv("UAA_BASE_URL", "mock://uaa")
     monkeypatch.setenv("UAA_CLIENT_ID", uaa_client_id)
     monkeypatch.setenv("UAA_CLIENT_SECRET", uaa_client_secret)
+    monkeypatch.setenv("NOTIFICATIONS_SNS_TOPIC_ARN", "fake-sns-topic-arn")
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])

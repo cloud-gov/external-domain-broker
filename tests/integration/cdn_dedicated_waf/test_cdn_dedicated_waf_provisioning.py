@@ -52,6 +52,7 @@ from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
     subtest_provision_creates_health_checks,
     subtest_provision_associate_health_check,
+    subtest_provision_creates_health_check_alarms,
 )
 from tests.integration.cdn_dedicated_waf.update import (
     subtest_update_web_acl_does_not_update,
@@ -60,6 +61,8 @@ from tests.integration.cdn_dedicated_waf.update import (
     subtest_updates_associated_health_check_no_change,
     subtest_update_creates_new_health_checks,
     subtest_update_deletes_unused_health_checks,
+    subtest_updates_health_check_alarms,
+    subtest_updates_health_check_alarms_no_change,
 )
 
 
@@ -92,6 +95,7 @@ def test_provision_happy_path(
     cloudfront,
     wafv2,
     shield,
+    cloudwatch_commercial,
     organization_guid,
     space_guid,
     mocked_cf_api,
@@ -165,6 +169,15 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Associating health check with Shield"
     )
+    subtest_provision_creates_health_check_alarms(
+        tasks, cloudwatch_commercial, instance_model
+    )
+    check_last_operation_description(
+        client,
+        "4321",
+        operation_id,
+        "Creating Cloudwatch alarms for Route53 health checks",
+    )
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")
     subtest_update_happy_path(
@@ -177,10 +190,19 @@ def test_provision_happy_path(
         cloudfront,
         wafv2,
         shield,
+        cloudwatch_commercial,
         instance_model,
     )
     subtest_update_same_domains(
-        client, dns, tasks, route53, cloudfront, wafv2, shield, instance_model
+        client,
+        dns,
+        tasks,
+        route53,
+        cloudfront,
+        wafv2,
+        shield,
+        cloudwatch_commercial,
+        instance_model,
     )
 
 
@@ -194,6 +216,7 @@ def subtest_update_happy_path(
     cloudfront,
     wafv2,
     shield,
+    cloudwatch_commercial,
     instance_model,
 ):
     operation_id = subtest_update_creates_update_operation(client, dns, instance_model)
@@ -223,11 +246,26 @@ def subtest_update_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Deleting unused health checks"
     )
+    subtest_updates_health_check_alarms(tasks, cloudwatch_commercial, instance_model)
+    check_last_operation_description(
+        client,
+        "4321",
+        operation_id,
+        "Updating Cloudwatch alarms for Route53 health checks",
+    )
     subtest_update_marks_update_complete(tasks, instance_model)
 
 
 def subtest_update_same_domains(
-    client, dns, tasks, route53, cloudfront, wafv2, shield, instance_model
+    client,
+    dns,
+    tasks,
+    route53,
+    cloudfront,
+    wafv2,
+    shield,
+    cloudwatch_commercial,
+    instance_model,
 ):
     subtest_update_same_domains_creates_update_operation(client, dns, instance_model)
     subtest_update_same_domains_does_not_create_new_certificate(tasks, instance_model)
@@ -250,4 +288,7 @@ def subtest_update_same_domains(
     )
     subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)
     subtest_updates_associated_health_check_no_change(tasks, shield, instance_model)
+    subtest_updates_health_check_alarms_no_change(
+        tasks, cloudwatch_commercial, instance_model
+    )
     subtest_update_marks_update_complete(tasks, instance_model)

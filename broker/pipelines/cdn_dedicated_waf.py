@@ -8,6 +8,7 @@ from broker.tasks import (
     route53,
     waf,
     shield,
+    cloudwatch,
 )
 from broker.tasks.huey import huey
 
@@ -38,6 +39,7 @@ def queue_all_cdn_dedicated_waf_provision_tasks_for_operation(
         .then(route53.wait_for_changes, operation_id, **correlation)
         .then(route53.create_health_checks, operation_id, **correlation)
         .then(shield.associate_health_check, operation_id, **correlation)
+        .then(cloudwatch.create_health_check_alarms, operation_id, **correlation)
         .then(update_operations.provision, operation_id, **correlation)
     )
     huey.enqueue(task_pipeline)
@@ -55,6 +57,7 @@ def queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation(
         update_operations.cancel_pending_provisioning.s(operation_id, **correlation)
         .then(route53.remove_ALIAS_records, operation_id, **correlation)
         .then(route53.remove_TXT_records, operation_id, **correlation)
+        .then(cloudwatch.delete_health_check_alarms, operation_id, **correlation)
         .then(shield.disassociate_health_check, operation_id, **correlation)
         .then(route53.delete_health_checks, operation_id, **correlation)
         .then(cloudfront.disable_distribution, operation_id, **correlation)
@@ -88,6 +91,7 @@ def queue_all_cdn_dedicated_waf_update_tasks_for_operation(
         .then(route53.create_new_health_checks, operation_id, **correlation)
         .then(shield.update_associated_health_check, operation_id, **correlation)
         .then(route53.delete_unused_health_checks, operation_id, **correlation)
+        .then(cloudwatch.update_health_check_alarms, operation_id, **correlation)
         .then(update_operations.update_complete, operation_id, **correlation)
     )
     huey.enqueue(task_pipeline)

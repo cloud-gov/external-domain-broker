@@ -2,6 +2,7 @@ import pytest  # noqa F401
 import uuid
 
 from broker.extensions import db
+from broker.tasks.cloudwatch import _get_alarm_name
 
 
 def subtest_update_web_acl_does_not_update(tasks, wafv2):
@@ -135,3 +136,73 @@ def subtest_updates_associated_health_check_no_change(tasks, shield, instance_mo
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "4321")
     assert service_instance.shield_associated_health_check == check_pre_update
+
+
+def subtest_updates_health_check_alarms(
+    tasks,
+    cloudwatch_commercial,
+    instance_model,
+    service_instance_id="4321",
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    tags = service_instance.tags if service_instance.tags else []
+    expected_health_check_alarms = []
+    expect_delete_health_check_id = "example.com ID"
+    expect_delete_alarm_names = [_get_alarm_name(expect_delete_health_check_id)]
+    expect_create_health_check_id = "bar.com ID"
+    expected_health_check_alarms = [
+        {
+            "health_check_id": "foo.com ID",
+            "alarm_name": _get_alarm_name("foo.com ID"),
+        },
+        {
+            "health_check_id": expect_create_health_check_id,
+            "alarm_name": _get_alarm_name(expect_create_health_check_id),
+        },
+    ]
+
+    cloudwatch_commercial.expect_delete_alarms(expect_delete_alarm_names)
+    cloudwatch_commercial.expect_put_metric_alarm(
+        expect_create_health_check_id,
+        _get_alarm_name(expect_create_health_check_id),
+        tags,
+    )
+    cloudwatch_commercial.expect_describe_alarms(
+        _get_alarm_name(expect_create_health_check_id),
+        [{"AlarmArn": f"{expect_create_health_check_id} ARN"}],
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    assert (
+        service_instance.cloudwatch_health_check_alarms == expected_health_check_alarms
+    )
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+
+def subtest_updates_health_check_alarms_no_change(
+    tasks,
+    cloudwatch_commercial,
+    instance_model,
+    service_instance_id="4321",
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    health_check_alarms_pre_update = service_instance.cloudwatch_health_check_alarms
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+    assert (
+        service_instance.cloudwatch_health_check_alarms
+        == health_check_alarms_pre_update
+    )

@@ -58,6 +58,7 @@ class Config:
         self.MAX_CERTS_PER_ALB = 19
 
         self.DEDICATED_WAF_NAME_PREFIX = f"cg-external-domains-{self.FLASK_ENV}"
+        self.CLOUDWATCH_ALARM_NAME_PREFIX = f"cg-external-domains-{self.FLASK_ENV}"
 
         # see https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
         self.REQUEST_TIMEOUT = 30
@@ -134,6 +135,8 @@ class AppConfig(Config):
         self.UAA_CLIENT_ID = self.env("UAA_CLIENT_ID")
         self.UAA_CLIENT_SECRET = self.env("UAA_CLIENT_SECRET")
 
+        self.NOTIFICATIONS_SNS_TOPIC_ARN = self.env("NOTIFICATIONS_SNS_TOPIC_ARN")
+
 
 class ProductionConfig(AppConfig):
     def __init__(self):
@@ -183,6 +186,7 @@ class UpgradeSchemaConfig(Config):
         self.ALB_LISTENER_ARNS = []
         self.DEDICATED_ALB_LISTENER_ARNS = []
         self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "NONE"
+        self.NOTIFICATIONS_SNS_TOPIC_ARN = "NONE"
 
 
 class CheckDuplicateCertsConfig(UpgradeSchemaConfig):
@@ -259,6 +263,8 @@ class DockerConfig(Config):
         self.UAA_CLIENT_ID = "EXAMPLE"
         self.UAA_CLIENT_SECRET = "example"
 
+        self.NOTIFICATIONS_SNS_TOPIC_ARN = "fake-notifications-arn"
+
 
 class LocalDevelopmentConfig(DockerConfig):
     def __init__(self):
@@ -280,7 +286,7 @@ class TestConfig(DockerConfig):
         self.ALB_OVERLAP_SLEEP_TIME = 0
         self.CLOUDFRONT_PROPAGATION_SLEEP_TIME = 0
         self.ACME_POLL_TIMEOUT_IN_SECONDS = 10
-        self.AWS_POLL_WAIT_TIME_IN_SECONDS = 1
+        self.AWS_POLL_WAIT_TIME_IN_SECONDS = 0
         self.AWS_POLL_MAX_ATTEMPTS = 10
         # if you need to see what sqlalchemy is doing
         # self.SQLALCHEMY_ECHO = True

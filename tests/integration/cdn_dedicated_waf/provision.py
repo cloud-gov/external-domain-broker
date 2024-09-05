@@ -5,6 +5,7 @@ from broker.extensions import config, db
 from broker.models import (
     CDNDedicatedWAFServiceInstance,
 )
+from broker.tasks.cloudwatch import _get_alarm_name
 
 
 def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
@@ -103,3 +104,44 @@ def subtest_provision_associate_health_check(
     }
 
     shield.assert_no_pending_responses()
+
+
+def subtest_provision_creates_health_check_alarms(
+    tasks,
+    cloudwatch_commercial,
+    instance_model,
+    service_instance_id="4321",
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+    tags = service_instance.tags if service_instance.tags else []
+    expected_health_check_alarms = []
+
+    for _, health_check in enumerate(service_instance.route53_health_checks):
+        health_check_id = health_check["health_check_id"]
+        alarm_name = _get_alarm_name(health_check_id)
+
+        cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
+        alarm_arn = f"{health_check_id} ARN"
+        expected_health_check_alarms.append(
+            {
+                "alarm_name": alarm_name,
+                "health_check_id": health_check_id,
+            }
+        )
+
+        # wait for alarm
+        cloudwatch_commercial.expect_describe_alarms(
+            alarm_name, [{"AlarmArn": alarm_arn}]
+        )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    assert (
+        service_instance.cloudwatch_health_check_alarms == expected_health_check_alarms
+    )
+
+    cloudwatch_commercial.assert_no_pending_responses()

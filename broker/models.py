@@ -183,6 +183,7 @@ class CDNDedicatedWAFServiceInstance(CDNServiceInstance):
     dedicated_waf_web_acl_name = mapped_column(db.String)
     route53_health_checks = mapped_column(postgresql.JSONB, default=[])
     shield_associated_health_check = mapped_column(postgresql.JSONB, default={})
+    cloudwatch_health_check_alarms = mapped_column(postgresql.JSONB, default=[])
 
     __mapper_args__ = {"polymorphic_identity": "cdn_dedicated_waf_service_instance"}
 
