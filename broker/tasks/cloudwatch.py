@@ -119,8 +119,6 @@ def delete_health_check_alarms(operation_id: int, **kwargs):
 
 
 def _create_health_check_alarms(health_checks_to_create_alarms, service_instance):
-    # tags = service_instance.tags if service_instance.tags else []
-
     for health_check in health_checks_to_create_alarms:
         health_check_id = health_check["health_check_id"]
         alarm_name = _create_health_check_alarm(health_check_id, service_instance.tags)
