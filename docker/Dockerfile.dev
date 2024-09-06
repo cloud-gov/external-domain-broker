@@ -1,4 +1,6 @@
-FROM python:3.11-slim as base
+ARG base_image
+
+FROM ${base_image} as base
 
 # When building locally, these should be set to your UID/GID.  That way, any
 # files written to the $PWD mount will be owned by you.  This is not
