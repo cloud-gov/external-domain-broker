@@ -1,6 +1,4 @@
 import pytest
-import uuid
-import random
 
 from botocore.exceptions import WaiterError
 
@@ -14,21 +12,6 @@ from broker.extensions import config
 from broker.models import Operation, CDNDedicatedWAFServiceInstance
 
 from tests.lib import factories
-
-
-@pytest.fixture
-def service_instance_id():
-    return str(random.randrange(0, 10000))
-
-
-@pytest.fixture
-def operation_id():
-    return str(random.randrange(0, 10000))
-
-
-@pytest.fixture
-def cloudfront_distribution_arn():
-    return str(uuid.uuid4())
 
 
 @pytest.fixture

@@ -23,6 +23,13 @@ from tests.lib.cf import (
     organization_guid,
     mocked_cf_api,
 )  # noqa 41
+from tests.lib.identifiers import (
+    service_instance_id,
+    operation_id,
+    new_cert_id,
+    current_cert_id,
+    cloudfront_distribution_arn,
+)  # noqa 41
 
 
 def pytest_configure(config):
