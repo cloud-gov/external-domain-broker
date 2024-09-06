@@ -4,7 +4,7 @@ from datetime import datetime
 from huey.exceptions import CancelExecution
 
 from broker.extensions import db
-from broker.models import Operation
+from broker.models import Operation, OperationStates
 from broker.tasks import huey
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,11 @@ def cancel_canceled_operations(task):
         op = None
         try:
             # big assumption here: the first arg will always be the operation id.
-            op = db.session.get(Operation, args[0])
+            operation_id = args[0]
+            operation = db.session.get(Operation, operation_id)
+            operation.state = OperationStates.CANCELED.value
+            db.session.commit(operation)
+            db.session.refresh(operation)
         except:  # noqa E722
             return
         finally:

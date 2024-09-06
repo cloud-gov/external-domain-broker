@@ -242,10 +242,14 @@ class MigrationServiceInstance(ServiceInstance):
         return f"<MigrationServiceInstance {self.id} {self.domain_names}>"
 
 
+class OperationStates(OperationState):
+    CANCELED = "canceled"
+
+
 class Operation(Base):
     __tablename__ = "operation"
-    # operation.state = Operation.States.IN_PROGRESS.value
-    States = OperationState
+
+    # operation.state = Operation.OperationStates.IN_PROGRESS.value
 
     # operation.action = Operation.Actions.PROVISION.value
     class Actions(Enum):
@@ -261,8 +265,8 @@ class Operation(Base):
     )
     state = mapped_column(
         db.String,
-        default=States.IN_PROGRESS.value,
-        server_default=States.IN_PROGRESS.value,
+        default=OperationStates.IN_PROGRESS.value,
+        server_default=OperationStates.IN_PROGRESS.value,
         nullable=False,
     )
     action = mapped_column(db.String, nullable=False)
