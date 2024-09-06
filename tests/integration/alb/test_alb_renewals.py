@@ -137,11 +137,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
     subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
     subtest_renewal_removes_certificate_from_alb(tasks, alb)
-
-    db.session.expunge_all()
-    certificate = db.session.get(Certificate, "1001")
-
-    subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud, certificate)
+    subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud)
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
 
 
@@ -226,13 +222,7 @@ def subtest_renewal_removes_certificate_from_alb(tasks, alb):
     alb.assert_no_pending_responses()
 
 
-def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud, certificate):
-    iam_govcloud.expect_get_server_certificate(
-        "certificate_name",
-        cert=certificate.leaf_pem,
-        chain=certificate.fullchain_pem,
-        path="/cloudfront/external-domains-test/",
-    )
+def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud):
     iam_govcloud.expects_delete_server_certificate("certificate_name")
 
     tasks.run_queued_tasks_and_enqueue_dependents()

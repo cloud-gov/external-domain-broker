@@ -247,10 +247,42 @@ def test_upload_certificate_already_exists(
     iam_commercial.assert_no_pending_responses()
 
 
+def test_delete_previous_server_certificate_happy_path(
+    clean_db, iam_govcloud, alb_service_instance, operation_id, new_cert_id
+):
+    iam_govcloud.expects_delete_server_certificate(
+        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
+    )
+
+    delete_previous_server_certificate.call_local(operation_id)
+
+    iam_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    certificate = clean_db.session.get(Certificate, new_cert_id)
+    assert not certificate
+
+
+def test_delete_previous_server_certificate_unexpected_error(
+    clean_db, iam_govcloud, alb_service_instance, operation_id, new_cert_id
+):
+    iam_govcloud.expects_delete_server_certificate_unexpected_error(
+        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
+    )
+
+    with pytest.raises(Exception):
+        delete_previous_server_certificate.call_local(operation_id)
+
+    iam_govcloud.assert_no_pending_responses()
+
+
 def test_delete_previous_server_certificate_already_deleted(
     clean_db, iam_govcloud, alb_service_instance, operation_id, new_cert_id
 ):
-
+    iam_govcloud.expects_delete_server_certificate_access_denied(
+        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
+    )
     iam_govcloud.expects_get_server_certificate_returning_no_such_entity(
         _get_server_certificate_name(alb_service_instance.id, new_cert_id),
     )
@@ -263,3 +295,19 @@ def test_delete_previous_server_certificate_already_deleted(
 
     certificate = clean_db.session.get(Certificate, new_cert_id)
     assert not certificate
+
+
+def test_delete_previous_server_certificate_error_on_get_server_certificate(
+    clean_db, iam_govcloud, alb_service_instance, operation_id, new_cert_id
+):
+    iam_govcloud.expects_delete_server_certificate_access_denied(
+        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
+    )
+    iam_govcloud.expects_get_server_certificate_unexpected_error(
+        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
+    )
+
+    with pytest.raises(Exception):
+        delete_previous_server_certificate.call_local(operation_id)
+
+    iam_govcloud.assert_no_pending_responses()
