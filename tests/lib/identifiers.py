@@ -1,6 +1,7 @@
 import pytest
 import random
 import uuid
+from datetime import date
 
 
 @pytest.fixture
@@ -31,3 +32,8 @@ def cloudfront_distribution_arn():
 @pytest.fixture
 def protection_id():
     return str(uuid.uuid4())
+
+
+def get_server_certificate_name(instance_id, certificate_id):
+    today = date.today().isoformat()
+    return f"{instance_id}-{today}-{certificate_id}"
