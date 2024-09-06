@@ -1,6 +1,6 @@
 ARG base_image
 
-FROM ${base_image} as base
+FROM ${base_image} AS base
 
 # When building locally, these should be set to your UID/GID.  That way, any
 # files written to the $PWD mount will be owned by you.  This is not
@@ -62,7 +62,7 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg ma
   > /etc/apt/sources.list.d/pgdg.list \
   && curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
   && apt update \
-  && apt install -y --no-install-recommends "postgresql-$PG_MAJOR"
+  && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends "postgresql-$PG_MAJOR"
 
 ENV PGDATA /tmp/data
 ENV PGCONFIG /tmp/data/postgresql.conf
