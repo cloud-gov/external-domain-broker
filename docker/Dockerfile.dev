@@ -36,8 +36,11 @@ RUN apt update \
   lsb-release \
   ca-certificates \
   python3.11 \
-  python3-pip\
+  python3-pip \
   python3.11-dev
+
+# Symlink python and pip to python3.11
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
 
 # Install Fake Pebble LE server
 COPY --from=letsencrypt/pebble:latest /usr/bin/pebble /usr/bin/pebble
@@ -77,9 +80,9 @@ ENV POSTGRES_HOST_AUTH_METHOD=trust
 RUN apt install -y --no-install-recommends awscli jq
 
 # Install local python packages
-RUN python3.11 -m pip install --upgrade pip
+RUN python -m pip install --upgrade pip
 COPY pip-tools/dev-requirements.txt ./pip-tools/
-RUN python3.11 -m pip install -r pip-tools/dev-requirements.txt
+RUN python -m pip install -r pip-tools/dev-requirements.txt
 
 WORKDIR /app
 RUN chown "$UID:$GID" .

@@ -43,10 +43,10 @@ if ! pgrep -x redis-server > /dev/null; then
   )
 fi
 
-if ! pgrep -f 'python3.11 -m smtpd' > /dev/null; then
+if ! pgrep -f 'python -m smtpd' > /dev/null; then
   echo "Starting fake smtpd"
   (
-    python3.11 -m smtpd -n -c DebuggingServer localhost:1025 \
+    python -m smtpd -n -c DebuggingServer localhost:1025 \
       >> "$LOGS/smtpd.log" 2>&1 &
   )
 fi
