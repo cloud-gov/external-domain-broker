@@ -137,7 +137,7 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
 
     # create alarm
     kwargs = {}
-    if tags is not None:
+    if tags:
         kwargs["Tags"] = tags
 
     cloudwatch_commercial.put_metric_alarm(

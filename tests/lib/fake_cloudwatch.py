@@ -26,7 +26,7 @@ class FakeCloudwatch(FakeAWS):
             "Threshold": 1,
             "ComparisonOperator": "LessThanThreshold",
         }
-        if tags is not None:
+        if tags:
             request["Tags"] = tags
         self.stubber.add_response(
             "put_metric_alarm",

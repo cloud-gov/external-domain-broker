@@ -37,7 +37,7 @@ class FakeWAFV2(FakeAWS):
             },
         }
 
-        if tags is not None:
+        if tags:
             request["Tags"] = tags
 
         response = {
