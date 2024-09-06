@@ -10,6 +10,7 @@ from broker.extensions import db
 from broker.models import CDNServiceInstance, Operation, Certificate
 
 from tests.lib import factories
+from tests.lib.identifiers import get_server_certificate_name
 
 
 @pytest.fixture
@@ -94,7 +95,7 @@ def alb_service_instance(
         iam_server_certificate_id="certificate_id",
         leaf_pem="SOMECERTPEM",
         fullchain_pem="FULLCHAINOFSOMECERTPEM",
-        iam_server_certificate_name=_get_server_certificate_name(
+        iam_server_certificate_name=get_server_certificate_name(
             service_instance_id, new_cert_id
         ),
         id=new_cert_id,
@@ -103,7 +104,7 @@ def alb_service_instance(
         service_instance=service_instance,
         private_key_pem="SOMEPRIVATEKEY",
         iam_server_certificate_id="certificate_id",
-        iam_server_certificate_name=_get_server_certificate_name(
+        iam_server_certificate_name=get_server_certificate_name(
             service_instance_id, current_cert_id
         ),
         id=current_cert_id,
@@ -144,11 +145,6 @@ def alb_service_instance(
     return service_instance
 
 
-def _get_server_certificate_name(instance_id, certificate_id):
-    today = date.today().isoformat()
-    return f"{instance_id}-{today}-{certificate_id}"
-
-
 def test_reupload_certificate_ok(
     clean_db,
     iam_commercial,
@@ -164,14 +160,14 @@ def test_reupload_certificate_ok(
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
 
     iam_commercial.expect_upload_server_certificate(
-        name=_get_server_certificate_name(service_instance_id, certificate.id),
+        name=get_server_certificate_name(service_instance_id, certificate.id),
         cert=certificate.leaf_pem,
         private_key=certificate.private_key_pem,
         chain=certificate.fullchain_pem,
         path="/cloudfront/external-domains-test/",
     )
     iam_commercial.expect_tag_server_certificate(
-        _get_server_certificate_name(service_instance_id, certificate.id),
+        get_server_certificate_name(service_instance_id, certificate.id),
         [],
     )
 
@@ -203,21 +199,21 @@ def test_upload_certificate_already_exists(
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
 
+    server_certificate_name = get_server_certificate_name(
+        service_instance_id, certificate.id
+    )
     iam_commercial.expect_upload_server_certificate_raising_duplicate(
-        name=_get_server_certificate_name(service_instance_id, certificate.id),
+        name=server_certificate_name,
         cert=certificate.leaf_pem,
         private_key=certificate.private_key_pem,
         chain=certificate.fullchain_pem,
         path="/cloudfront/external-domains-test/",
     )
     iam_commercial.expect_get_server_certificate(
-        name=_get_server_certificate_name(service_instance_id, certificate.id),
-        cert=certificate.leaf_pem,
-        chain=certificate.fullchain_pem,
-        path="/cloudfront/external-domains-test/",
+        name=server_certificate_name,
     )
     iam_commercial.expect_tag_server_certificate(
-        _get_server_certificate_name(service_instance_id, certificate.id),
+        server_certificate_name,
         [],
     )
 
@@ -231,13 +227,10 @@ def test_delete_previous_server_certificate_happy_path(
 ):
     certificate = clean_db.session.get(Certificate, new_cert_id)
     iam_govcloud.expect_get_server_certificate(
-        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
-        cert=certificate.leaf_pem,
-        chain=certificate.fullchain_pem,
-        path="/cloudfront/external-domains-test/",
+        get_server_certificate_name(alb_service_instance.id, new_cert_id),
     )
     iam_govcloud.expects_delete_server_certificate(
-        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
+        get_server_certificate_name(alb_service_instance.id, new_cert_id),
     )
 
     delete_previous_server_certificate.call_local(operation_id)
@@ -255,13 +248,10 @@ def test_delete_previous_server_certificate_unexpected_error(
 ):
     certificate = clean_db.session.get(Certificate, new_cert_id)
     iam_govcloud.expect_get_server_certificate(
-        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
-        cert=certificate.leaf_pem,
-        chain=certificate.fullchain_pem,
-        path="/cloudfront/external-domains-test/",
+        get_server_certificate_name(alb_service_instance.id, new_cert_id),
     )
     iam_govcloud.expects_delete_server_certificate_unexpected_error(
-        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
+        get_server_certificate_name(alb_service_instance.id, new_cert_id),
     )
 
     with pytest.raises(Exception):
@@ -274,7 +264,7 @@ def test_delete_previous_server_certificate_already_deleted(
     clean_db, iam_govcloud, alb_service_instance, operation_id, new_cert_id
 ):
     iam_govcloud.expects_get_server_certificate_returning_no_such_entity(
-        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
+        get_server_certificate_name(alb_service_instance.id, new_cert_id),
     )
     delete_previous_server_certificate.call_local(operation_id)
 
@@ -290,10 +280,10 @@ def test_delete_previous_server_certificate_error_on_get_server_certificate(
     clean_db, iam_govcloud, alb_service_instance, operation_id, new_cert_id
 ):
     iam_govcloud.expects_get_server_certificate_unexpected_error(
-        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
+        get_server_certificate_name(alb_service_instance.id, new_cert_id),
     )
     iam_govcloud.expects_delete_server_certificate_access_denied(
-        _get_server_certificate_name(alb_service_instance.id, new_cert_id),
+        get_server_certificate_name(alb_service_instance.id, new_cert_id),
     )
 
     with pytest.raises(Exception):

@@ -36,7 +36,7 @@ from tests.lib.factories import (
 
 
 @pytest.fixture
-def alb_instance_needing_renewal(clean_db, tasks):
+def alb_instance_needing_renewal(clean_db, tasks, current_cert_id):
     """
     create a cdn service instance that needs renewal.
     This includes walking it through the first few ACME steps to create a user so we can reuse that user.
@@ -50,7 +50,7 @@ def alb_instance_needing_renewal(clean_db, tasks):
         alb_listener_arn="listener-arn-0",
     )
     current_cert = CertificateFactory.create(
-        id=1001,
+        id=current_cert_id,
         service_instance=renew_service_instance,
         expires_at=datetime.now() + timedelta(days=29),
         iam_server_certificate_id="certificate_id",
@@ -62,15 +62,15 @@ def alb_instance_needing_renewal(clean_db, tasks):
     )
     renew_service_instance.current_certificate = current_cert
 
-    db.session.add(renew_service_instance)
-    db.session.add(current_cert)
-    db.session.commit()
-    db.session.expunge_all()
+    clean_db.session.add(renew_service_instance)
+    clean_db.session.add(current_cert)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
 
     # create an operation, since that's what our task pipelines know to look for
     operation = OperationFactory.create(service_instance=renew_service_instance)
-    db.session.refresh(operation)
-    db.session.commit()
+    clean_db.session.refresh(operation)
+    clean_db.session.commit()
 
     huey.enqueue(create_user.s(operation.id))
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -78,8 +78,8 @@ def alb_instance_needing_renewal(clean_db, tasks):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     # delete the operation to simplify checks on operations later
-    db.session.delete(operation)
-    db.session.commit()
+    clean_db.session.delete(operation)
+    clean_db.session.commit()
     return renew_service_instance
 
 
@@ -91,10 +91,9 @@ def test_scan_for_expiring_certs_alb_happy_path(
     dns,
     iam_govcloud,
     simple_regex,
-    cloudfront,
     alb,
+    new_cert_id,
 ):
-
     no_renew_service_instance = ALBServiceInstanceFactory.create(
         id="1234",
         domain_names=["example.org", "foo.org"],
@@ -104,20 +103,22 @@ def test_scan_for_expiring_certs_alb_happy_path(
         alb_listener_arn="listener-arn-0",
     )
     no_renew_cert = CertificateFactory.create(
-        id=1002,
+        id=new_cert_id,
         service_instance=no_renew_service_instance,
         expires_at=datetime.now() + timedelta(days=31),
         private_key_pem="SOMEPRIVATEKEY",
+        leaf_pem="SOMECERTPEM",
+        fullchain_pem="FULLCHAINOFSOMECERTPEM",
         iam_server_certificate_id="certificate_id",
         iam_server_certificate_name="certificate_name",
         iam_server_certificate_arn="certificate_arn",
     )
     no_renew_service_instance.current_certificate = no_renew_cert
 
-    db.session.add(no_renew_service_instance)
-    db.session.add(no_renew_cert)
-    db.session.commit()
-    db.session.expunge_all()
+    clean_db.session.add(no_renew_service_instance)
+    clean_db.session.add(no_renew_cert)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
@@ -137,6 +138,8 @@ def test_scan_for_expiring_certs_alb_happy_path(
     subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
     subtest_renewal_removes_certificate_from_alb(tasks, alb)
+
+    certificate = clean_db.session.get(Certificate, new_cert_id)
     subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud)
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
 
@@ -223,6 +226,9 @@ def subtest_renewal_removes_certificate_from_alb(tasks, alb):
 
 
 def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud):
+    iam_govcloud.expect_get_server_certificate(
+        "certificate_name",
+    )
     iam_govcloud.expects_delete_server_certificate("certificate_name")
 
     tasks.run_queued_tasks_and_enqueue_dependents()
