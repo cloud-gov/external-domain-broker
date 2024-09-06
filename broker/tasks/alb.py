@@ -162,10 +162,6 @@ def add_certificate_to_alb(operation_id, **kwargs):
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
 
-    if not certificate:
-        logger.info(f"Could not find certificate for instance {service_instance.id}")
-        return
-
     operation.step_description = "Adding SSL certificate to load balancer"
     flag_modified(operation, "step_description")
     db.session.add(operation)
