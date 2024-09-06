@@ -15,12 +15,12 @@ they're not running. When such pipelines are detected, they're re-enqueued from 
 
 ### Stopping pipelines by hand
 
-Sometimes, a pipeline might be running, and you may want to make it stop. You can do this 
+Sometimes, a pipeline might be running, and you may want to make it stop. You can do this
 by connecting to the database and updating the Operation's `canceled_at` field.
 
 You should [run this update query following the steps outlined below](#safely-running-update-queries):
 
-```
+```sql
 sql> UPDATE operation SET canceled_at = now() WHERE id = <operation_id>;
 ```
 
@@ -29,23 +29,23 @@ sql> UPDATE operation SET canceled_at = now() WHERE id = <operation_id>;
 Sometimes it's useful to restart a pipeline manually, for instance if a pipeline is failing
 on a step, and you know rerunning a previous step is likely to fix it.
 Start by stopping the pipeline as described above. Then wait for the pipeline to attempt to
-rerun the next task (normally ten minutes should be sufficient). 
+rerun the next task (normally ten minutes should be sufficient).
 
 Finally, you will update the record in the `operation` table so the stalled pipeline scanner re-enqueues it.
 
 You should [run this update query following the steps outlined below](#safely-running-update-queries):
 
-```
+```sql
 sql> UPDATE operation SET canceled_at = null WHERE id = <operation_id>;
 ```
 
 ### Safely running UPDATE queries
 
 Since it can be very easy to make mistakes with update queries and affect many more rows than
-you intended, we **strongly recommend** querying the database **before updating** to determine 
+you intended, we **strongly recommend** querying the database **before updating** to determine
 how many rows should be affected by your update:
 
-```
+``` sql
 sql> SELECT count(*) FROM operation WHERE id = <operation_id>
  count
 -------
@@ -55,7 +55,7 @@ sql> SELECT count(*) FROM operation WHERE id = <operation_id>
 
 Then, we also **strongly recommend running your update query in a transaction** like so:
 
-```
+```sql
 sql> BEGIN;
 sql> UPDATE operation SET canceled_at = null WHERE id = <operation_id>;
 UPDATE 1
@@ -64,13 +64,13 @@ UPDATE 1
 If the number of rows updated matches your expected number of rows, then you can safely commit
 the transaction and complete the update:
 
-```
+```sql
 sql> COMMIT;
 ```
 
 Otherwise, you should rollback the transaction:
 
-```
+```sql
 sql> ROLLBACK;
 ```
 
@@ -81,6 +81,7 @@ then you can retry the update in a transaction.
 ## Updating an instance by hand
 
 Any operation that CAPI might do can be done by:
+
 1. updating the service_instance record
 2. creating an appropriate operation record
 This is because of the scan_for_stalled_pipelines job.
@@ -88,7 +89,8 @@ This is because of the scan_for_stalled_pipelines job.
 *note: this bypasses a lot of validation, so proceed with care.*
 
 Before doing any of the below, you should make sure there are no operations in progress:
-```
+
+```sql
 sql> SELECT id FROM operation WHERE
         service_instance_id = <service_instance_id> AND
         state = 'in progress' AND
@@ -99,14 +101,14 @@ Example: Someone, for some reason, ran `cf purge-service-instance <service_insta
 but we need to delete the service instance from the broker so the AWS resources get cleaned up.
 All we need to do is create a record in the `operation` table and wait:
 
-```
+```sql
 sql> INSERT INTO operation (service_instance_id, updated_at, action, state)
         VALUES (<service_instance_id>, now(), 'Deprovision', 'in progress');
 ```
 
 This could also be used to force an early renewal of a certificate:
 
-```
+```sql
 sql> INSERT INTO operation (service_instance_id, updated_at, action, state)
         VALUES (<service_instance_id>, now(), 'Renew', 'in progress');
 ```
