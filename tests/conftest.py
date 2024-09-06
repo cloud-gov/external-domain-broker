@@ -29,6 +29,7 @@ from tests.lib.identifiers import (
     new_cert_id,
     current_cert_id,
     cloudfront_distribution_arn,
+    protection_id,
 )  # noqa 41
 
 

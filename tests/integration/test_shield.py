@@ -1,6 +1,4 @@
 import pytest
-import uuid
-import random
 
 from broker.tasks.shield import (
     associate_health_check,
@@ -10,26 +8,6 @@ from broker.tasks.shield import (
 from broker.models import CDNDedicatedWAFServiceInstance, Operation
 
 from tests.lib import factories
-
-
-@pytest.fixture
-def service_instance_id():
-    return str(random.randrange(0, 10000))
-
-
-@pytest.fixture
-def operation_id():
-    return str(random.randrange(0, 10000))
-
-
-@pytest.fixture
-def protection_id():
-    return str(uuid.uuid4())
-
-
-@pytest.fixture
-def cloudfront_distribution_arn():
-    return str(uuid.uuid4())
 
 
 @pytest.fixture

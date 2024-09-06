@@ -26,3 +26,8 @@ def current_cert_id():
 @pytest.fixture
 def cloudfront_distribution_arn():
     return str(uuid.uuid4())
+
+
+@pytest.fixture
+def protection_id():
+    return str(uuid.uuid4())
