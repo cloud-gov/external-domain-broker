@@ -91,6 +91,42 @@ class FakeIAM(FakeAWS):
             "delete_server_certificate", {}, {"ServerCertificateName": name}
         )
 
+    def expects_delete_server_certificate_access_denied(self, name: str):
+        self.stubber.add_client_error(
+            "delete_server_certificate",
+            service_error_code="AccessDenied",
+            service_message="'Acess denied",
+            http_status_code=401,
+            expected_params={"ServerCertificateName": name},
+        )
+
+    def expects_delete_server_certificate_unexpected_error(self, name: str):
+        self.stubber.add_client_error(
+            "delete_server_certificate",
+            service_error_code="UnknownError",
+            service_message="Unknown error",
+            http_status_code=500,
+            expected_params={"ServerCertificateName": name},
+        )
+
+    def expects_get_server_certificate_returning_no_such_entity(self, name: str):
+        self.stubber.add_client_error(
+            "get_server_certificate",
+            service_error_code="NoSuchEntity",
+            service_message="'Ain't there.",
+            http_status_code=404,
+            expected_params={"ServerCertificateName": name},
+        )
+
+    def expects_get_server_certificate_unexpected_error(self, name: str):
+        self.stubber.add_client_error(
+            "get_server_certificate",
+            service_error_code="UnknownError",
+            service_message="Unknown error",
+            http_status_code=500,
+            expected_params={"ServerCertificateName": name},
+        )
+
     def expects_delete_server_certificate_returning_no_such_entity(self, name: str):
         self.stubber.add_client_error(
             "delete_server_certificate",

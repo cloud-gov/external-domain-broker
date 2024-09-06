@@ -1,5 +1,6 @@
 import logging
 
+from botocore.exceptions import ClientError
 from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import cloudwatch_commercial
@@ -118,11 +119,9 @@ def delete_health_check_alarms(operation_id: int, **kwargs):
 
 
 def _create_health_check_alarms(health_checks_to_create_alarms, service_instance):
-    tags = service_instance.tags if service_instance.tags else []
-
     for health_check in health_checks_to_create_alarms:
         health_check_id = health_check["health_check_id"]
-        alarm_name = _create_health_check_alarm(health_check_id, tags)
+        alarm_name = _create_health_check_alarm(health_check_id, service_instance.tags)
 
         service_instance.cloudwatch_health_check_alarms.append(
             {
@@ -137,6 +136,10 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
     alarm_name = _get_alarm_name(health_check_id)
 
     # create alarm
+    kwargs = {}
+    if tags:
+        kwargs["Tags"] = tags
+
     cloudwatch_commercial.put_metric_alarm(
         AlarmName=alarm_name,
         AlarmActions=[config.NOTIFICATIONS_SNS_TOPIC_ARN],
@@ -154,7 +157,7 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
         DatapointsToAlarm=1,
         Threshold=1,
         ComparisonOperator="LessThanThreshold",
-        Tags=tags,
+        **kwargs,
     )
 
     # wait for alarm to exist
@@ -176,11 +179,17 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
 def _delete_alarms(service_instance, alarm_names_to_delete):
     try:
         cloudwatch_commercial.delete_alarms(AlarmNames=alarm_names_to_delete)
-    except cloudwatch_commercial.exceptions.ResourceNotFound:
-        logger.info(
-            "Cloudwatch alarms not found",
-            extra={"alarm_names": alarm_names_to_delete},
-        )
+    except ClientError as e:
+        if "ResourceNotFound" in e.response["Error"]["Code"]:
+            logger.info(
+                "Cloudwatch alarms not found",
+                extra={"alarm_names": alarm_names_to_delete},
+            )
+        else:
+            logger.error(
+                f"Got this error code deleting Cloudwatch alarms: {e.response['Error']}"
+            )
+            raise e
     service_instance.cloudwatch_health_check_alarms = [
         health_check_alarm
         for health_check_alarm in service_instance.cloudwatch_health_check_alarms

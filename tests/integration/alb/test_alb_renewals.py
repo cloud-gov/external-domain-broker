@@ -4,7 +4,7 @@ from acme.errors import ValidationError
 import pytest
 
 from broker.extensions import db
-from broker.models import Operation, ALBServiceInstance
+from broker.models import Operation, ALBServiceInstance, Certificate
 from broker.tasks.cron import scan_for_expiring_certs
 from broker.tasks.huey import huey
 from broker.tasks.letsencrypt import create_user, generate_private_key
@@ -57,6 +57,8 @@ def alb_instance_needing_renewal(clean_db, tasks):
         iam_server_certificate_name="certificate_name",
         iam_server_certificate_arn="certificate_arn",
         private_key_pem="SOMEPRIVATEKEY",
+        leaf_pem="SOMECERTPEM",
+        fullchain_pem="FULLCHAINOFSOMECERTPEM",
     )
     renew_service_instance.current_certificate = current_cert
 

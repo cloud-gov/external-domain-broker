@@ -134,9 +134,8 @@ def subtest_update_marks_update_complete(
 def subtest_update_removes_certificate_from_iam(
     tasks, iam, instance_model, service_instance_id="4321"
 ):
-    iam.expects_delete_server_certificate(
-        f"{service_instance_id}-{date.today().isoformat()}-1"
-    )
+    server_certificate_name = f"{service_instance_id}-{date.today().isoformat()}-1"
+    iam.expects_delete_server_certificate(server_certificate_name)
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
