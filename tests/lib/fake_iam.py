@@ -33,12 +33,10 @@ class FakeIAM(FakeAWS):
         if tags != []:
             self.stubber.add_response(method, {}, request)
 
-    def expect_get_server_certificate(self, name: str):
+    def expect_get_server_certificate(
+        self, name: str, cert: str = "fake-cert", chain: str = "fake-chain"
+    ):
         path = "/cloudfront/external-domains-test/"
-        # these are just fake values for the response
-        cert = "fake-cert"
-        chain = "fake-chain"
-
         method = "get_server_certificate"
         request = {
             "ServerCertificateName": name,
