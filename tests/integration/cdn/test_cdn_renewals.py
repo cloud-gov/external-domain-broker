@@ -181,6 +181,7 @@ def subtest_renew_retrieves_certificate(tasks):
 
 
 def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud):
+    iam_govcloud.expect_get_server_certificate("certificate_name")
     iam_govcloud.expects_delete_server_certificate("certificate_name")
 
     tasks.run_queued_tasks_and_enqueue_dependents()

@@ -142,31 +142,24 @@ def delete_previous_server_certificate(operation_id: str, **kwargs):
         )
     ).all()
     for certificate in certificates_to_delete:
+        cert_is_deleted = False
         try:
-            iam.delete_server_certificate(
+            iam.get_server_certificate(
                 ServerCertificateName=certificate.iam_server_certificate_name
             )
         except ClientError as e:
-            if "AccessDenied" in e.response["Error"]["Code"]:
-                try:
-                    iam.get_server_certificate(
-                        ServerCertificateName=certificate.iam_server_certificate_name
-                    )
-                except ClientError as innerE:
-                    if "NoSuchEntity" in innerE.response["Error"]["Code"]:
-                        logger.info(
-                            f"Certificate {certificate.iam_server_certificate_name} not found, may have already been deleted",
-                        )
-                    else:
-                        logger.error(
-                            f"Got this error deleting the server certificate: {innerE.response['Error']}"
-                        )
-                        raise e
-            else:
-                logger.error(
-                    f"Got this error deleting the server certificate: {e.response['Error']}"
+            if "NoSuchEntity" in e.response["Error"]["Code"]:
+                logger.info(
+                    f"Certificate {certificate.iam_server_certificate_name} not found, may have already been deleted",
                 )
-                raise e
+                cert_is_deleted = True
+
+        if not cert_is_deleted:
+            # now we know we can see the cert, so any errors should be treated as unexpected
+            iam.delete_server_certificate(
+                ServerCertificateName=certificate.iam_server_certificate_name
+            )
+
         db.session.delete(certificate)
 
     db.session.commit()

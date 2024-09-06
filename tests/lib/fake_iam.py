@@ -34,8 +34,9 @@ class FakeIAM(FakeAWS):
             self.stubber.add_response(method, {}, request)
 
     def expect_get_server_certificate(
-        self, name: str, cert: str, chain: str, path: str
+        self, name: str, cert: str = "fake-cert", chain: str = "fake-chain"
     ):
+        path = "/cloudfront/external-domains-test/"
         method = "get_server_certificate"
         request = {
             "ServerCertificateName": name,

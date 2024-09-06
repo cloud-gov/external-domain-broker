@@ -1,6 +1,4 @@
 import pytest
-import uuid
-import random
 
 from broker.tasks.route53 import (
     create_health_checks,
@@ -11,21 +9,6 @@ from broker.tasks.route53 import (
 from broker.models import CDNDedicatedWAFServiceInstance, Operation
 
 from tests.lib import factories
-
-
-@pytest.fixture
-def service_instance_id():
-    return str(random.randrange(0, 10000))
-
-
-@pytest.fixture
-def operation_id():
-    return str(random.randrange(0, 10000))
-
-
-@pytest.fixture
-def cloudfront_distribution_arn():
-    return str(uuid.uuid4())
 
 
 @pytest.fixture
