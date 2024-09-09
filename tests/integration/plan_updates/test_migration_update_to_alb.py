@@ -23,7 +23,6 @@ from tests.lib.update import (
 )
 from tests.integration.alb.test_alb_renewals import (
     subtest_renewal_removes_certificate_from_iam,
-    subtest_renewal_removes_certificate_from_alb,
 )
 from tests.lib.alb.update import (
     subtest_removes_certificate_from_alb,
