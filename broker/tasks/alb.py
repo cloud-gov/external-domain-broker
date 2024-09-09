@@ -233,6 +233,22 @@ def remove_certificate_from_previous_alb(operation_id, **kwargs):
             ],
         )
 
+    removed_from_alb = False
+    attempts = 0
+    while not removed_from_alb and attempts < config.AWS_POLL_MAX_ATTEMPTS:
+        paginator = alb.get_paginator("describe_listener_certificates")
+        response_iterator = paginator.paginate(
+            ListenerArn=service_instance.previous_alb_listener_arn,
+        )
+        for response in response_iterator:
+            certificate_arns = [
+                certificate["CertificateArn"]
+                for certificate in response["Certificates"]
+            ]
+            removed_from_alb = removed_from_alb not in certificate_arns
+        attempts += 1
+        time.sleep(config.AWS_POLL_WAIT_TIME_IN_SECONDS)
+
     service_instance.previous_alb_arn = None
     service_instance.previous_alb_listener_arn = None
     db.session.add(service_instance)
