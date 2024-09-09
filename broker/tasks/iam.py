@@ -155,7 +155,7 @@ def delete_previous_server_certificate(operation_id: str, **kwargs):
                 cert_is_deleted = True
 
         if not cert_is_deleted:
-            # now we know we can see the cert, so any errors should be treated as unexpected
+            # now we know the cert exists, so any errors should be treated as unexpected
             iam.delete_server_certificate(
                 ServerCertificateName=certificate.iam_server_certificate_name
             )
