@@ -3,11 +3,11 @@ import uuid
 
 from tests.lib.factories import (
     ALBServiceInstanceFactory,
+    DedicatedALBServiceInstanceFactory,
     CertificateFactory,
     OperationFactory,
 )
 
-from broker.models import ALBServiceInstance
 from broker.tasks.alb import remove_certificate_from_previous_alb
 
 
@@ -24,6 +24,7 @@ def previous_certificate_arn(previous_alb_listener_arn):
 @pytest.fixture
 def service_instance(
     clean_db,
+    instance_factory,
     current_cert_id,
     service_instance_id,
     previous_certificate_arn,
@@ -34,7 +35,7 @@ def service_instance(
     create a cdn service instance that needs renewal.
     This includes walking it through the first few ACME steps to create a user so we can reuse that user.
     """
-    service_instance = ALBServiceInstanceFactory.create(
+    service_instance = instance_factory.create(
         id=service_instance_id,
         domain_names=["example.com", "foo.com"],
         domain_internal="fake1234.cloud.test",
@@ -56,6 +57,10 @@ def service_instance(
     return service_instance
 
 
+@pytest.mark.parametrize(
+    "instance_factory",
+    [ALBServiceInstanceFactory, DedicatedALBServiceInstanceFactory],
+)
 def test_remove_certificate_from_previous_alb(
     service_instance,
     operation_id,
@@ -74,6 +79,10 @@ def test_remove_certificate_from_previous_alb(
     alb.assert_no_pending_responses()
 
 
+@pytest.mark.parametrize(
+    "instance_factory",
+    [ALBServiceInstanceFactory, DedicatedALBServiceInstanceFactory],
+)
 def test_remove_certificate_from_previous_alb_with_retries(
     service_instance,
     operation_id,
@@ -94,6 +103,10 @@ def test_remove_certificate_from_previous_alb_with_retries(
     alb.assert_no_pending_responses()
 
 
+@pytest.mark.parametrize(
+    "instance_factory",
+    [ALBServiceInstanceFactory, DedicatedALBServiceInstanceFactory],
+)
 def test_remove_certificate_from_previous_alb_gives_up_after_max_retries(
     service_instance,
     operation_id,
