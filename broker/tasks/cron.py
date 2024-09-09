@@ -32,31 +32,36 @@ from broker.pipelines.migration import (
 logger = logging.getLogger(__name__)
 
 
+def get_expiring_certs():
+    query = (
+        select(
+            Certificate.id,
+        )
+        .select_from(Certificate)
+        .join(
+            ServiceInstance,
+            ServiceInstance.current_certificate_id == Certificate.id,
+        )
+        .filter(ServiceInstance.deactivated_at == None)
+        .filter(
+            Certificate.expires_at - datetime.timedelta(days=30)
+            < datetime.datetime.now()
+        )
+    )
+    results = db.session.execute(query).fetchall()
+    certificates = []
+    for result in results:
+        [certificate_id] = result
+        certificate = db.session.get(Certificate, certificate_id)
+        certificates.append(certificate)
+    return certificates
+
+
 @huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="13"))
 def scan_for_expiring_certs():
     with huey.huey.flask_app.app_context():
         logger.info("Scanning for expired certificates")
-        query = (
-            select(
-                Certificate.id,
-            )
-            .select_from(Certificate)
-            .join(
-                ServiceInstance,
-                ServiceInstance.current_certificate_id == Certificate.id,
-            )
-            .filter(ServiceInstance.deactivated_at == None)
-            .filter(
-                Certificate.expires_at - datetime.timedelta(days=30)
-                < datetime.datetime.now()
-            )
-        )
-        results = db.session.execute(query).fetchall()
-        certificates = []
-        for result in results:
-            [certificate_id] = result
-            certificate = db.session.get(Certificate, certificate_id)
-            certificates.append(certificate)
+        certificates = get_expiring_certs()
         instances = [
             c.service_instance
             for c in certificates
