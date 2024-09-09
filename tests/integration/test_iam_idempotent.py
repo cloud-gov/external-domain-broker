@@ -42,30 +42,6 @@ def service_instance(
         iam_server_certificate_id="certificate_id",
         id=current_cert_id,
     )
-    factories.ChallengeFactory.create(
-        domain="example.com",
-        validation_contents="example txt",
-        certificate_id=current_cert_id,
-        answered=True,
-    )
-    factories.ChallengeFactory.create(
-        domain="foo.com",
-        validation_contents="foo txt",
-        certificate_id=current_cert_id,
-        answered=True,
-    )
-    factories.ChallengeFactory.create(
-        domain="example.com",
-        validation_contents="example txt",
-        certificate_id=new_cert_id,
-        answered=False,
-    )
-    factories.ChallengeFactory.create(
-        domain="foo.com",
-        validation_contents="foo txt",
-        certificate_id=new_cert_id,
-        answered=False,
-    )
     service_instance.current_certificate = current_cert
     service_instance.new_certificate = new_cert
     clean_db.session.add(service_instance)
@@ -108,30 +84,6 @@ def alb_service_instance(
             service_instance_id, current_cert_id
         ),
         id=current_cert_id,
-    )
-    factories.ChallengeFactory.create(
-        domain="example.com",
-        validation_contents="example txt",
-        certificate_id=current_cert_id,
-        answered=True,
-    )
-    factories.ChallengeFactory.create(
-        domain="foo.com",
-        validation_contents="foo txt",
-        certificate_id=current_cert_id,
-        answered=True,
-    )
-    factories.ChallengeFactory.create(
-        domain="example.com",
-        validation_contents="example txt",
-        certificate_id=new_cert_id,
-        answered=False,
-    )
-    factories.ChallengeFactory.create(
-        domain="foo.com",
-        validation_contents="foo txt",
-        certificate_id=new_cert_id,
-        answered=False,
     )
     service_instance.current_certificate = current_cert
     clean_db.session.add(service_instance)

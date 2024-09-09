@@ -24,6 +24,7 @@ from tests.lib.update import (
 from tests.lib.alb.update import (
     subtest_update_uploads_new_cert,
     subtest_update_provisions_ALIAS_records,
+    subtest_removes_certificate_from_alb,
 )
 
 
@@ -44,7 +45,12 @@ def subtest_update_happy_path(
     subtest_update_adds_certificate_to_alb(tasks, alb)
     subtest_update_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
-    subtest_update_removes_certificate_from_alb(tasks, alb)
+    subtest_removes_certificate_from_alb(
+        tasks,
+        alb,
+        "our-arn-0",
+        f"arn:aws:iam::000000000000:server-certificate/alb/external-domains-test/4321-{date.today().isoformat()}-1",
+    )
     subtest_update_removes_certificate_from_iam(tasks, iam_govcloud, instance_model)
     subtest_update_marks_update_complete(tasks, instance_model)
 
@@ -102,14 +108,3 @@ def subtest_update_adds_certificate_to_alb(tasks, alb):
     assert service_instance.new_certificate is None
     assert service_instance.current_certificate is not None
     assert service_instance.current_certificate.id == id_
-
-
-def subtest_update_removes_certificate_from_alb(tasks, alb):
-    alb.expect_remove_certificate_from_listener(
-        "our-arn-0",
-        f"arn:aws:iam::000000000000:server-certificate/alb/external-domains-test/4321-{date.today().isoformat()}-1",
-    )
-
-    tasks.run_queued_tasks_and_enqueue_dependents()
-
-    alb.assert_no_pending_responses()

@@ -2,10 +2,11 @@ import datetime
 import logging
 
 from huey import crontab
+from sqlalchemy import select
 
 from broker.extensions import db, config
 from broker.lib.cdn import is_cdn_instance
-from broker.models import Certificate, Operation, DedicatedALBListener
+from broker.models import Certificate, Operation, DedicatedALBListener, ServiceInstance
 from broker.tasks import huey
 from broker.pipelines.alb import (
     queue_all_alb_deprovision_tasks_for_operation,
@@ -31,21 +32,29 @@ from broker.pipelines.migration import (
 logger = logging.getLogger(__name__)
 
 
+def get_expiring_certs():
+    certificates = (
+        db.session.query(Certificate)
+        .join(
+            ServiceInstance,
+            ServiceInstance.current_certificate_id == Certificate.id,
+        )
+        .filter(ServiceInstance.deactivated_at == None)
+        .filter(
+            Certificate.expires_at - datetime.timedelta(days=30)
+            < datetime.datetime.now()
+        )
+        .all()
+    )
+    return certificates
+
+
 @huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="13"))
 def scan_for_expiring_certs():
     with huey.huey.flask_app.app_context():
         logger.info("Scanning for expired certificates")
-        # TODO: skip SIs with active operations
-        certificates = Certificate.query.filter(
-            Certificate.expires_at - datetime.timedelta(days=30)
-            < datetime.datetime.now()
-        ).all()
-        instances = [
-            c.service_instance
-            for c in certificates
-            if not c.service_instance.deactivated_at
-            and not c.service_instance.has_active_operations()
-        ]
+        certificates = get_expiring_certs()
+        instances = [c.service_instance for c in certificates]
         cdn_renewals = []
         alb_renewals = []
         dedicated_alb_renewals = []

@@ -51,3 +51,15 @@ def subtest_update_noop(client, instance_model):
         instance_model, "4321", params={"domains": "bar.com, Foo.com"}
     )
     assert client.response.status_code == 200
+
+
+def subtest_removes_certificate_from_alb(tasks, alb, listener_arn, certificate_arn):
+    alb.expect_remove_certificate_from_listener(
+        listener_arn,
+        certificate_arn,
+    )
+    alb.expect_get_certificates_for_listener(listener_arn, 0)
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    alb.assert_no_pending_responses()
