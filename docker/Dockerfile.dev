@@ -39,7 +39,7 @@ RUN apt update \
   python3-pip \
   python3.11-dev
 
-# Symlink python and pip to python3.11
+# Symlink python command to python3.11
 RUN ln -s /usr/bin/python3.11 /usr/bin/python
 
 # Install Fake Pebble LE server
