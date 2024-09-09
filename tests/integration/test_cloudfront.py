@@ -44,30 +44,6 @@ def service_instance(
         iam_server_certificate_id="certificate_id",
         id=1001,
     )
-    factories.ChallengeFactory.create(
-        domain="example.com",
-        validation_contents="example txt",
-        certificate_id=1001,
-        answered=True,
-    )
-    factories.ChallengeFactory.create(
-        domain="foo.com",
-        validation_contents="foo txt",
-        certificate_id=1001,
-        answered=True,
-    )
-    factories.ChallengeFactory.create(
-        domain="example.com",
-        validation_contents="example txt",
-        certificate_id=1002,
-        answered=False,
-    )
-    factories.ChallengeFactory.create(
-        domain="foo.com",
-        validation_contents="foo txt",
-        certificate_id=1002,
-        answered=False,
-    )
     service_instance.current_certificate = current_cert
     service_instance.new_certificate = new_cert
     clean_db.session.add(service_instance)
