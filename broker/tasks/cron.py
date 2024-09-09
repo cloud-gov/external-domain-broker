@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 def get_expiring_certs():
     query = (
         select(
-            Certificate.id,
+            Certificate,
         )
         .select_from(Certificate)
         .join(
@@ -51,8 +51,7 @@ def get_expiring_certs():
     results = db.session.execute(query).fetchall()
     certificates = []
     for result in results:
-        [certificate_id] = result
-        certificate = db.session.get(Certificate, certificate_id)
+        [certificate] = result
         certificates.append(certificate)
     return certificates
 
@@ -62,12 +61,7 @@ def scan_for_expiring_certs():
     with huey.huey.flask_app.app_context():
         logger.info("Scanning for expired certificates")
         certificates = get_expiring_certs()
-        instances = [
-            c.service_instance
-            for c in certificates
-            if not c.service_instance.deactivated_at
-            and not c.service_instance.has_active_operations()
-        ]
+        instances = [c.service_instance for c in certificates]
         cdn_renewals = []
         alb_renewals = []
         dedicated_alb_renewals = []
