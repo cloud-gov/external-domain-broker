@@ -33,8 +33,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_expiring_certs():
-    query = (
-        select(Certificate)
+    certificates = (
+        db.session.query(Certificate)
         .join(
             ServiceInstance,
             ServiceInstance.current_certificate_id == Certificate.id,
@@ -44,12 +44,8 @@ def get_expiring_certs():
             Certificate.expires_at - datetime.timedelta(days=30)
             < datetime.datetime.now()
         )
+        .all()
     )
-    results = db.session.execute(query).fetchall()
-    certificates = []
-    for result in results:
-        [certificate] = result
-        certificates.append(certificate)
     return certificates
 
 
