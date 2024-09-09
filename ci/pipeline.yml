@@ -548,7 +548,7 @@ jobs:
   - task: register-broker-cdn-dedicated-waf
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: [*cf-creds-staging, *cdn-dedicated-waf-plan-visibility-params]
+      <<: [*cf-creds-production, *cdn-dedicated-waf-plan-visibility-params]
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((production-cdn-dedicated-waf-plan-org-names))
   on_failure:
