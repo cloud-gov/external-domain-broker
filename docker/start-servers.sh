@@ -9,7 +9,7 @@ if ! pgrep -x postgres > /dev/null; then
   (
     cd "$PGDATA"
     echo > "$LOGS/postgres.log"
-    pg_ctl -l "$LOGS/postgres.log" start 
+    pg_ctl -l "$LOGS/postgres.log" start
   )
 fi
 
