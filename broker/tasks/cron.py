@@ -2,7 +2,7 @@ import datetime
 import logging
 
 from huey import crontab
-from sqlalchemy import func, select, desc
+from sqlalchemy import select
 
 from broker.extensions import db, config
 from broker.lib.cdn import is_cdn_instance
@@ -34,10 +34,7 @@ logger = logging.getLogger(__name__)
 
 def get_expiring_certs():
     query = (
-        select(
-            Certificate,
-        )
-        .select_from(Certificate)
+        select(Certificate)
         .join(
             ServiceInstance,
             ServiceInstance.current_certificate_id == Certificate.id,
