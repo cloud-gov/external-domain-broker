@@ -102,7 +102,6 @@ cf-manifest-env-dev: &cf-manifest-env-dev
     UAA_BASE_URL: ((dev-uaa-base-url))
     UAA_CLIENT_ID: ((dev-uaa-client-id))
     UAA_CLIENT_SECRET: ((dev-uaa-client-secret))
-    NOTIFICATIONS_SNS_TOPIC_ARN: ((dev-sns-notifications-topic-arn))
 
 cf-manifest-env-staging: &cf-manifest-env-staging
   environment_variables:
@@ -136,7 +135,6 @@ cf-manifest-env-staging: &cf-manifest-env-staging
     UAA_BASE_URL: ((staging-uaa-base-url))
     UAA_CLIENT_ID: ((staging-uaa-client-id))
     UAA_CLIENT_SECRET: ((staging-uaa-client-secret))
-    NOTIFICATIONS_SNS_TOPIC_ARN: ((staging-sns-notifications-topic-arn))
 
 cf-manifest-env-production: &cf-manifest-env-production
   environment_variables:
@@ -170,7 +168,6 @@ cf-manifest-env-production: &cf-manifest-env-production
     UAA_BASE_URL: ((prod-uaa-base-url))
     UAA_CLIENT_ID: ((production-uaa-client-id))
     UAA_CLIENT_SECRET: ((production-uaa-client-secret))
-    NOTIFICATIONS_SNS_TOPIC_ARN: ((production-sns-notifications-topic-arn))
 
 acceptance-tests-staging-params: &acceptance-tests-staging-params
   CF_API_URL: ((staging-cf-api-url))
@@ -242,19 +239,9 @@ jobs:
     params: {depth: 1}
     trigger: true
     passed: [reconfigure]
-
-  - put: dev-docker-image
-    # We push this docker image _only_ so that we can use it in the next task
-    # below.  :shrug: concourse.
-    params:
-      build: src
-      dockerfile: src/docker/Dockerfile.dev
-      tag_as_latest: true
-      cache: true
-
+  - get: external-domain-broker-testing
   - task: test
-    # Run the tests using the image pushed above.
-    image: dev-docker-image
+    image: external-domain-broker-testing
     config:
       platform: linux
       params:
@@ -434,12 +421,12 @@ jobs:
     - get: cf-staging
       trigger: true
       passed: [staging]
-    - get: dev-docker-image
+    - get: external-domain-broker-testing
     - get: test-timer
       trigger: true
   - in_parallel:
     - task: acceptance-cdn
-      image: dev-docker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -453,7 +440,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
-      image: dev-docker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -463,7 +450,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-dedicated
-      image: dev-docker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -473,7 +460,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-cdn-dedicated-waf
-      image: dev-docker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -558,7 +545,7 @@ jobs:
   - task: register-broker-cdn-dedicated-waf
     file: pipeline-tasks/register-service-broker-and-set-plan-visibility.yml
     params:
-      <<: [*cf-creds-production, *cdn-dedicated-waf-plan-visibility-params]
+      <<: [*cf-creds-staging, *cdn-dedicated-waf-plan-visibility-params]
       # space-separated list of org names that should have the dedicated alb plan
       SERVICE_ORGANIZATION: ((production-cdn-dedicated-waf-plan-org-names))
   on_failure:
@@ -586,12 +573,12 @@ jobs:
     - get: cf-production
       trigger: true
       passed: [production]
-    - get: dev-docker-image
+    - get: external-domain-broker-testing
     - get: test-timer
       trigger: true
   - in_parallel:
     - task: acceptance-cdn
-      image: dev-docker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -601,7 +588,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-alb
-      image: dev-docker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -615,7 +602,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-dedicated
-      image: dev-docker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -629,7 +616,7 @@ jobs:
         run:
           path: /app/acceptance/run.sh
     - task: acceptance-cdn-dedicated-waf
-      image: dev-docker-image
+      image: external-domain-broker-testing
       timeout: 6h
       config:
         platform: linux
@@ -744,14 +731,14 @@ resources:
     uri: https://github.com/cloud-gov/((name))
     branch: ((git-branch))
 
-- name: dev-docker-image
-  type: docker-image
-  icon: docker
+- name: external-domain-broker-testing
+  type: registry-image
   source:
-    email: ((docker-email))
-    username: ((docker-username))
-    password: ((docker-password))
-    repository: ((docker-image-dev))
+    aws_access_key_id: ((ecr_aws_key))
+    aws_secret_access_key: ((ecr_aws_secret))
+    repository: external-domain-broker
+    aws_region: us-gov-west-1
+    tag: latest
 
 - name: cf-dev
   type: cf
