@@ -26,6 +26,9 @@ from tests.lib.alb.provision import (
     subtest_provision_provisions_ALIAS_records,
     subtest_provision_retrieves_certificate,
 )
+from tests.lib.alb.update import (
+    subtest_removes_certificate_from_alb,
+)
 from tests.lib.update import (
     subtest_update_creates_private_key_and_csr,
 )
@@ -143,7 +146,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
     subtest_provision_adds_certificate_to_alb(tasks, alb)
     subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
-    subtest_renewal_removes_certificate_from_alb(tasks, alb)
+    subtest_removes_certificate_from_alb(tasks, alb, "our-arn-0", "certificate_arn")
     subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud)
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
 
@@ -219,14 +222,6 @@ def test_does_not_queue_for_in_progress_actions(
     instance = db.session.get(DedicatedALBServiceInstance, "4321")
     assert instance.has_active_operations()
     assert scan_for_expiring_certs.call_local() == []
-
-
-def subtest_renewal_removes_certificate_from_alb(tasks, alb):
-    alb.expect_remove_certificate_from_listener("our-arn-0", "certificate_arn")
-
-    tasks.run_queued_tasks_and_enqueue_dependents()
-
-    alb.assert_no_pending_responses()
 
 
 def subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud):
