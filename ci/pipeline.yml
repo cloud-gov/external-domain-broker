@@ -739,7 +739,7 @@ resources:
   source:
     aws_access_key_id: ((ecr_aws_key))
     aws_secret_access_key: ((ecr_aws_secret))
-    repository: external-domain-broker
+    repository: external-domain-broker-testing
     aws_region: us-gov-west-1
     tag: latest
 
