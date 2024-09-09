@@ -16,13 +16,14 @@ def expires_at_needs_renewal():
 @pytest.fixture
 def service_instance(
     clean_db,
+    instance_factory,
     operation_id,
     current_cert_id,
     new_cert_id,
     service_instance_id,
     expires_at_needs_renewal,
 ):
-    service_instance = factories.CDNServiceInstanceFactory.create(
+    service_instance = instance_factory.create(
         id=service_instance_id,
         domain_names=["example.com", "foo.com"],
         domain_internal="fake1234.cloudfront.net",
@@ -56,6 +57,15 @@ def service_instance(
     return service_instance
 
 
+@pytest.mark.parametrize(
+    "instance_factory",
+    [
+        factories.ALBServiceInstanceFactory,
+        factories.DedicatedALBServiceInstanceFactory,
+        factories.CDNServiceInstanceFactory,
+        factories.CDNDedicatedWAFServiceInstanceFactory,
+    ],
+)
 def test_get_expiring_certs(
     service_instance, current_cert_id, expires_at_needs_renewal
 ):
@@ -65,6 +75,15 @@ def test_get_expiring_certs(
     assert certificates[0].expires_at == expires_at_needs_renewal
 
 
+@pytest.mark.parametrize(
+    "instance_factory",
+    [
+        factories.ALBServiceInstanceFactory,
+        factories.DedicatedALBServiceInstanceFactory,
+        factories.CDNServiceInstanceFactory,
+        factories.CDNDedicatedWAFServiceInstanceFactory,
+    ],
+)
 def test_get_expiring_certs_ignores_old_certs(
     clean_db, service_instance, current_cert_id
 ):
@@ -82,6 +101,15 @@ def test_get_expiring_certs_ignores_old_certs(
     assert len(get_expiring_certs()) == 1
 
 
+@pytest.mark.parametrize(
+    "instance_factory",
+    [
+        factories.ALBServiceInstanceFactory,
+        factories.DedicatedALBServiceInstanceFactory,
+        factories.CDNServiceInstanceFactory,
+        factories.CDNDedicatedWAFServiceInstanceFactory,
+    ],
+)
 def test_get_expiring_certs_expires_in_future(
     clean_db, service_instance, current_cert_id
 ):
@@ -94,6 +122,15 @@ def test_get_expiring_certs_expires_in_future(
     assert len(get_expiring_certs()) == 0
 
 
+@pytest.mark.parametrize(
+    "instance_factory",
+    [
+        factories.ALBServiceInstanceFactory,
+        factories.DedicatedALBServiceInstanceFactory,
+        factories.CDNServiceInstanceFactory,
+        factories.CDNDedicatedWAFServiceInstanceFactory,
+    ],
+)
 def test_get_expiring_certs_instance_deactivated(
     clean_db, service_instance, current_cert_id
 ):
