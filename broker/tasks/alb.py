@@ -240,14 +240,22 @@ def remove_certificate_from_previous_alb(operation_id, **kwargs):
         response_iterator = paginator.paginate(
             ListenerArn=service_instance.previous_alb_listener_arn,
         )
+        certificate_arns = []
         for response in response_iterator:
-            certificate_arns = [
+            certificate_arns += [
                 certificate["CertificateArn"]
                 for certificate in response["Certificates"]
             ]
-            removed_from_alb = removed_from_alb not in certificate_arns
+        removed_from_alb = (
+            remove_certificate.iam_server_certificate_arn not in certificate_arns
+        )
         attempts += 1
         time.sleep(config.AWS_POLL_WAIT_TIME_IN_SECONDS)
+
+    if not removed_from_alb:
+        raise RuntimeError(
+            f"Could not verify removal of certificate {remove_certificate.iam_server_certificate_arn} from listener {service_instance.previous_alb_listener_arn}"
+        )
 
     service_instance.previous_alb_arn = None
     service_instance.previous_alb_listener_arn = None

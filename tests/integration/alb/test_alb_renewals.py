@@ -4,7 +4,7 @@ from acme.errors import ValidationError
 import pytest
 
 from broker.extensions import db
-from broker.models import Operation, ALBServiceInstance, Certificate
+from broker.models import Operation, ALBServiceInstance
 from broker.tasks.cron import scan_for_expiring_certs
 from broker.tasks.huey import huey
 from broker.tasks.letsencrypt import create_user, generate_private_key
