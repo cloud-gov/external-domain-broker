@@ -101,50 +101,27 @@ def test_route53_create_health_checks(
     assert operation.step_description == "Creating health checks"
 
 
-def test_route53_create_health_checks_updated_cdn_instance(
+def test_route53_create_health_checks_unmigrated_cdn_instance(
     clean_db,
-    client,
-    service_instance_id,
-    operation_id,
     route53,
+    unmigrated_cdn_service_instance_operation_id,
 ):
-    # Create a CDN instance manually to simulate an instance that
-    # was created in the database before the route53_health_checks
-    # column existed
-    create_cdn_instance_statement = insert(CDNServiceInstance).values(
-        id=service_instance_id,
-        domain_names=["example.com"],
-        domain_internal="fake1234.cloudfront.net",
-        route53_alias_hosted_zone="Z2FDTNDATAQYW2",
-        origin_protocol_policy="https-only",
-        forwarded_headers=["HOST"],
-        route53_health_checks=None,
-        dedicated_waf_web_acl_arn=None,
-        dedicated_waf_web_acl_id=None,
-        dedicated_waf_web_acl_name=None,
-        shield_associated_health_check=None,
-        cloudwatch_health_check_alarms=None,
-        instance_type="cdn_service_instance",
+    operation = clean_db.session.get(
+        Operation, unmigrated_cdn_service_instance_operation_id
     )
-    clean_db.session.execute(create_cdn_instance_statement)
-
-    client.update_cdn_to_cdn_dedicated_waf_instance(service_instance_id)
-
-    operation_id = client.response.json["operation"]
-    operation = clean_db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
     assert service_instance.route53_health_checks == None
 
     for idx, domain_name in enumerate(service_instance.domain_names):
-        route53.expect_create_health_check(service_instance_id, domain_name, idx)
+        route53.expect_create_health_check(service_instance.id, domain_name, idx)
 
-    create_health_checks.call_local(operation_id)
+    create_health_checks.call_local(unmigrated_cdn_service_instance_operation_id)
 
     route53.assert_no_pending_responses()
 
     clean_db.session.expunge_all()
-    service_instance = clean_db.session.get(CDNServiceInstance, service_instance_id)
+    service_instance = clean_db.session.get(CDNServiceInstance, service_instance.id)
     assert service_instance.route53_health_checks == [
         {
             "domain_name": "example.com",
