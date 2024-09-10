@@ -1,20 +1,27 @@
 import pytest
+from sqlalchemy import insert
 
 from broker.tasks.route53 import (
     create_health_checks,
     create_new_health_checks,
     delete_unused_health_checks,
     delete_health_checks,
-    _create_health_checks,
 )
-from broker.models import CDNDedicatedWAFServiceInstance, Operation
+from broker.models import (
+    CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
+    Operation,
+)
 
 from tests.lib import factories
 
 
 @pytest.fixture
 def service_instance(
-    clean_db, operation_id, service_instance_id, cloudfront_distribution_arn
+    clean_db,
+    operation_id,
+    service_instance_id,
+    cloudfront_distribution_arn,
 ):
     service_instance = factories.CDNDedicatedWAFServiceInstanceFactory.create(
         id=service_instance_id,
@@ -27,6 +34,7 @@ def service_instance(
         cloudfront_origin_path="origin_path",
         origin_protocol_policy="https-only",
         forwarded_headers=["HOST"],
+        route53_health_checks=None,
     )
     new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
@@ -91,6 +99,55 @@ def test_route53_create_health_checks(
     ]
     operation = clean_db.session.get(Operation, operation_id)
     assert operation.step_description == "Creating health checks"
+
+
+def test_route53_create_health_checks_updated_cdn_instance(
+    clean_db,
+    client,
+    service_instance_id,
+    operation_id,
+    route53,
+):
+    create_cdn_instance_statement = insert(CDNServiceInstance).values(
+        id=service_instance_id,
+        domain_names=["example.com"],
+        domain_internal="fake1234.cloudfront.net",
+        route53_alias_hosted_zone="Z2FDTNDATAQYW2",
+        origin_protocol_policy="https-only",
+        forwarded_headers=["HOST"],
+        route53_health_checks=None,
+        dedicated_waf_web_acl_arn=None,
+        dedicated_waf_web_acl_id=None,
+        dedicated_waf_web_acl_name=None,
+        shield_associated_health_check=None,
+        cloudwatch_health_check_alarms=None,
+        instance_type="cdn_service_instance",
+    )
+    clean_db.session.execute(create_cdn_instance_statement)
+
+    client.update_cdn_to_cdn_dedicated_waf_instance(service_instance_id)
+
+    operation_id = client.response.json["operation"]
+    operation = clean_db.session.get(Operation, operation_id)
+    service_instance = operation.service_instance
+
+    assert service_instance.route53_health_checks == None
+
+    for idx, domain_name in enumerate(service_instance.domain_names):
+        route53.expect_create_health_check(service_instance_id, domain_name, idx)
+
+    create_health_checks.call_local(operation_id)
+
+    route53.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+    service_instance = clean_db.session.get(CDNServiceInstance, service_instance_id)
+    assert service_instance.route53_health_checks == [
+        {
+            "domain_name": "example.com",
+            "health_check_id": "example.com ID",
+        },
+    ]
 
 
 def test_route53_creates_new_health_checks(
