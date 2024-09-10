@@ -108,6 +108,9 @@ def test_route53_create_health_checks_updated_cdn_instance(
     operation_id,
     route53,
 ):
+    # Create a CDN instance manually to simulate an instance that
+    # was created in the database before the route53_health_checks
+    # column existed
     create_cdn_instance_statement = insert(CDNServiceInstance).values(
         id=service_instance_id,
         domain_names=["example.com"],
