@@ -13,6 +13,9 @@ from tests.lib.fake_wafv2 import wafv2  # noqa F401
 from tests.lib.fake_shield import shield  # noqa F401
 from tests.lib.fake_cloudwatch import cloudwatch_commercial  # noqa F401
 from tests.lib.simple_regex import simple_regex  # noqa F401
+from tests.lib.cdn.instances import (
+    unmigrated_cdn_service_instance_operation_id,
+)  # noqa F401
 from tests.lib.dns import dns  # noqa 401
 from tests.lib.tasks import tasks  # noqa 401
 from tests.lib.cf import (
