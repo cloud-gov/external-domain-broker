@@ -94,6 +94,45 @@ def test_shield_associate_health_check(
     assert operation.step_description == "Associating health check with Shield"
 
 
+def test_shield_associate_health_check_unmigrated_cdn_instance(
+    clean_db,
+    protection_id,
+    protection,
+    service_instance_id,
+    shield,
+    unmigrated_cdn_service_instance_operation_id,
+):
+    operation = clean_db.session.get(
+        Operation, unmigrated_cdn_service_instance_operation_id
+    )
+    service_instance = operation.service_instance
+
+    service_instance.route53_health_checks = [
+        {"domain_name": "example.com", "health_check_id": "example.com ID"},
+        {"domain_name": "foo.com", "health_check_id": "foo.com ID"},
+    ]
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    shield.expect_list_protections([protection])
+    shield.expect_associate_health_check(protection_id, "example.com ID")
+
+    associate_health_check.call_local(unmigrated_cdn_service_instance_operation_id)
+
+    shield.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
+    assert service_instance.shield_associated_health_check == {
+        "domain_name": "example.com",
+        "health_check_id": "example.com ID",
+        "protection_id": protection_id,
+    }
+
+
 def test_shield_update_no_change_associated_health_check(
     clean_db, protection_id, service_instance_id, service_instance, operation_id, shield
 ):
