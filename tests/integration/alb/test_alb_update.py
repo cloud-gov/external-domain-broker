@@ -20,7 +20,7 @@ from tests.lib.update import (
 from tests.lib.alb.update import (
     subtest_update_uploads_new_cert,
     subtest_update_provisions_ALIAS_records,
-    subtest_removes_certificate_from_alb,
+    subtest_removes_previous_certificate_from_alb,
 )
 
 
@@ -41,7 +41,7 @@ def subtest_update_happy_path(
     subtest_update_adds_certificate_to_alb(tasks, alb, instance_model)
     subtest_update_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
-    subtest_removes_certificate_from_alb(
+    subtest_removes_previous_certificate_from_alb(
         tasks,
         alb,
         "listener-arn-0",

@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy import insert
 
 from broker.tasks.route53 import (
     create_health_checks,
@@ -6,14 +7,21 @@ from broker.tasks.route53 import (
     delete_unused_health_checks,
     delete_health_checks,
 )
-from broker.models import CDNDedicatedWAFServiceInstance, Operation
+from broker.models import (
+    CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
+    Operation,
+)
 
 from tests.lib import factories
 
 
 @pytest.fixture
 def service_instance(
-    clean_db, operation_id, service_instance_id, cloudfront_distribution_arn
+    clean_db,
+    operation_id,
+    service_instance_id,
+    cloudfront_distribution_arn,
 ):
     service_instance = factories.CDNDedicatedWAFServiceInstanceFactory.create(
         id=service_instance_id,
@@ -26,6 +34,7 @@ def service_instance(
         cloudfront_origin_path="origin_path",
         origin_protocol_policy="https-only",
         forwarded_headers=["HOST"],
+        route53_health_checks=None,
     )
     new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
@@ -90,6 +99,35 @@ def test_route53_create_health_checks(
     ]
     operation = clean_db.session.get(Operation, operation_id)
     assert operation.step_description == "Creating health checks"
+
+
+def test_route53_create_health_checks_unmigrated_cdn_instance(
+    clean_db,
+    route53,
+    unmigrated_cdn_service_instance_operation_id,
+):
+    operation = clean_db.session.get(
+        Operation, unmigrated_cdn_service_instance_operation_id
+    )
+    service_instance = operation.service_instance
+
+    assert service_instance.route53_health_checks == None
+
+    for idx, domain_name in enumerate(service_instance.domain_names):
+        route53.expect_create_health_check(service_instance.id, domain_name, idx)
+
+    create_health_checks.call_local(unmigrated_cdn_service_instance_operation_id)
+
+    route53.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+    service_instance = clean_db.session.get(CDNServiceInstance, service_instance.id)
+    assert service_instance.route53_health_checks == [
+        {
+            "domain_name": "example.com",
+            "health_check_id": "example.com ID",
+        },
+    ]
 
 
 def test_route53_creates_new_health_checks(

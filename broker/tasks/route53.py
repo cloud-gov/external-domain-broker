@@ -244,10 +244,15 @@ def create_health_checks(operation_id: int, **kwargs):
 
     logger.info(f'Creating health check(s) for "{service_instance.domain_names}"')
 
+    if service_instance.route53_health_checks is None:
+        current_health_checks = []
+    else:
+        current_health_checks = service_instance.route53_health_checks
+
     created_health_checks = _create_health_checks(
         service_instance,
         service_instance.domain_names,
-        service_instance.route53_health_checks,
+        current_health_checks,
     )
     service_instance.route53_health_checks = created_health_checks
     flag_modified(service_instance, "route53_health_checks")

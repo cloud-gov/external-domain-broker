@@ -2,7 +2,7 @@ import pytest  # noqa F401
 
 from broker.extensions import config
 
-from broker.models import CDNDedicatedWAFServiceInstance
+from broker.models import CDNDedicatedWAFServiceInstance, Operation
 from broker.tasks import waf
 from tests.lib import factories
 
@@ -79,6 +79,33 @@ def test_waf_create_web_acl_no_tags(
     )
 
     waf.create_web_acl.call_local(operation_id)
+
+    wafv2.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.dedicated_waf_web_acl_arn
+
+
+def test_waf_create_web_acl_unmigrated_cdn_instance(
+    clean_db, service_instance_id, unmigrated_cdn_service_instance_operation_id, wafv2
+):
+    operation = clean_db.session.get(
+        Operation, unmigrated_cdn_service_instance_operation_id
+    )
+    service_instance = operation.service_instance
+
+    wafv2.expect_create_web_acl(
+        service_instance.id,
+        config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
+        service_instance.tags,
+    )
+
+    waf.create_web_acl.call_local(unmigrated_cdn_service_instance_operation_id)
 
     wafv2.assert_no_pending_responses()
 
