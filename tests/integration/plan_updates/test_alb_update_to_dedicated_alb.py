@@ -14,7 +14,7 @@ from tests.lib.provision import (
 )
 from tests.lib.alb.provision import subtest_provision_provisions_ALIAS_records
 from tests.lib.alb.update import (
-    subtest_removes_certificate_from_alb,
+    subtest_removes_previous_certificate_from_alb,
 )
 
 
@@ -85,11 +85,17 @@ def test_update_alb_to_dedicated_alb_happy_path(
     instance_model = DedicatedALBServiceInstance
     subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
-    subtest_removes_certificate_from_alb(
-        tasks, alb, "alb-listener-arn-1", "certificate_arn"
-    )
+    subtest_renewal_removes_certificate_from_alb(tasks, alb)
     clean_db.session.expunge_all()
     instance = clean_db.session.get(DedicatedALBServiceInstance, "4321")
     assert instance.new_certificate is None
     assert instance.current_certificate is not None
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
+
+
+def subtest_renewal_removes_certificate_from_alb(tasks, alb):
+    alb.expect_remove_certificate_from_listener("alb-listener-arn-1", "certificate_arn")
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    alb.assert_no_pending_responses()

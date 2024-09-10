@@ -53,7 +53,9 @@ def subtest_update_noop(client, instance_model):
     assert client.response.status_code == 200
 
 
-def subtest_removes_certificate_from_alb(tasks, alb, listener_arn, certificate_arn):
+def subtest_removes_previous_certificate_from_alb(
+    tasks, alb, listener_arn, certificate_arn
+):
     alb.expect_remove_certificate_from_listener(
         listener_arn,
         certificate_arn,

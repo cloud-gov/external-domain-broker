@@ -25,7 +25,7 @@ from tests.integration.alb.test_alb_renewals import (
     subtest_renewal_removes_certificate_from_iam,
 )
 from tests.lib.alb.update import (
-    subtest_removes_certificate_from_alb,
+    subtest_removes_previous_certificate_from_alb,
 )
 
 from broker.models import ALBServiceInstance
@@ -134,7 +134,7 @@ def test_migration_pipeline(
     subtest_provision_adds_certificate_to_alb(tasks, alb)
     subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
-    subtest_removes_certificate_from_alb(
+    subtest_removes_previous_certificate_from_alb(
         tasks, alb, "listener-arn-0", "certificate_arn"
     )
     subtest_renewal_removes_certificate_from_iam(tasks, iam_govcloud)
