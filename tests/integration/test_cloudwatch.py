@@ -116,6 +116,58 @@ def test_create_health_check_alarms(
     )
 
 
+def test_create_health_check_alarms_unmigrated_cdn_instance(
+    clean_db,
+    service_instance_id,
+    unmigrated_cdn_service_instance_operation_id,
+    cloudwatch_commercial,
+):
+    operation = clean_db.session.get(
+        Operation, unmigrated_cdn_service_instance_operation_id
+    )
+    service_instance = operation.service_instance
+
+    route53_health_checks = [
+        {"domain_name": "example.com", "health_check_id": "example.com ID"},
+        {"domain_name": "foo.com", "health_check_id": "foo.com ID"},
+    ]
+    service_instance.route53_health_checks = route53_health_checks
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    expected_health_check_alarms = []
+    for health_check in route53_health_checks:
+        health_check_id = health_check["health_check_id"]
+        alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+
+        cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, None)
+        cloudwatch_commercial.expect_describe_alarms(
+            alarm_name, [{"AlarmArn": f"{health_check_id} ARN"}]
+        )
+        expected_health_check_alarms.append(
+            {
+                "alarm_name": alarm_name,
+                "health_check_id": health_check_id,
+            }
+        )
+
+    create_health_check_alarms.call_local(unmigrated_cdn_service_instance_operation_id)
+
+    # asserts that all the mocked calls above were made
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert (
+        service_instance.cloudwatch_health_check_alarms == expected_health_check_alarms
+    )
+
+
 def test_create_health_check_alarm_waits(
     clean_db,
     service_instance_id,
