@@ -243,7 +243,6 @@ jobs:
     passed: [reconfigure]
   - get: external-domain-broker-testing
     trigger: true
-    passed: [reconfigure]
   - task: test
     image: external-domain-broker-testing
     config:
