@@ -163,7 +163,7 @@ def test_provision_happy_path(
     )
     subtest_provision_creates_health_checks(tasks, route53, instance_model)
     check_last_operation_description(
-        client, "4321", operation_id, "Creating health checks"
+        client, "4321", operation_id, "Creating new health checks"
     )
     subtest_provision_associate_health_check(tasks, shield, instance_model)
     check_last_operation_description(

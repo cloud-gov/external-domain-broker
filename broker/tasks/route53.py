@@ -230,38 +230,6 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
 
 
 @huey.retriable_task
-def create_health_checks(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
-    if not operation:
-        return
-
-    service_instance = operation.service_instance
-
-    operation.step_description = "Creating health checks"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
-
-    logger.info(f'Creating health check(s) for "{service_instance.domain_names}"')
-
-    if service_instance.route53_health_checks is None:
-        current_health_checks = []
-    else:
-        current_health_checks = service_instance.route53_health_checks
-
-    created_health_checks = _create_health_checks(
-        service_instance,
-        service_instance.domain_names,
-        current_health_checks,
-    )
-    service_instance.route53_health_checks = created_health_checks
-    flag_modified(service_instance, "route53_health_checks")
-
-    db.session.add(service_instance)
-    db.session.commit()
-
-
-@huey.retriable_task
 def create_new_health_checks(operation_id: int, **kwargs):
     operation = db.session.get(Operation, operation_id)
     if not operation:
@@ -276,9 +244,13 @@ def create_new_health_checks(operation_id: int, **kwargs):
 
     logger.info(f'Creating new health check(s) for "{service_instance.domain_names}"')
 
-    existing_health_checks = service_instance.route53_health_checks
+    if service_instance.route53_health_checks is None:
+        existing_health_checks = []
+    else:
+        existing_health_checks = service_instance.route53_health_checks
+
     existing_health_check_domains = [
-        check["domain_name"] for check in service_instance.route53_health_checks
+        check["domain_name"] for check in existing_health_checks
     ]
     # If domain is NOT IN current domains with health checks, it should be CREATED
     health_check_domains_to_create = [
