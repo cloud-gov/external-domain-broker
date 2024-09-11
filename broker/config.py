@@ -40,7 +40,6 @@ class Config:
         # how long we wait between updating DNS to point to a new ALB and removing the
         # certificate from an old ALB
         self.ALB_OVERLAP_SLEEP_TIME = self.env.int("ALB_OVERLAP_SLEEP_TIME", 900)
-        self.CLOUDFRONT_PROPAGATION_SLEEP_TIME = 60  # Seconds
         self.SQLALCHEMY_TRACK_MODIFICATIONS = False
         self.TESTING = True
         self.DEBUG = True
@@ -284,7 +283,6 @@ class TestConfig(DockerConfig):
         super().__init__()
         self.DNS_PROPAGATION_SLEEP_TIME = 0
         self.ALB_OVERLAP_SLEEP_TIME = 0
-        self.CLOUDFRONT_PROPAGATION_SLEEP_TIME = 0
         self.ACME_POLL_TIMEOUT_IN_SECONDS = 10
         self.AWS_POLL_WAIT_TIME_IN_SECONDS = 0
         self.AWS_POLL_MAX_ATTEMPTS = 10

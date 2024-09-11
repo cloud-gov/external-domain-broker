@@ -227,7 +227,7 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
     num_times = 0
     while not distribution_disabled:
         num_times += 1
-        if num_times >= 60:
+        if num_times > config.AWS_POLL_MAX_ATTEMPTS:
             logger.info(
                 "Failed to disable distribution",
                 extra={
@@ -236,7 +236,7 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
                 },
             )
             raise RuntimeError("Failed to disable distribution")
-        time.sleep(config.CLOUDFRONT_PROPAGATION_SLEEP_TIME)
+        time.sleep(config.AWS_POLL_WAIT_TIME_IN_SECONDS)
         try:
             status = cloudfront.get_distribution(
                 Id=service_instance.cloudfront_distribution_id
