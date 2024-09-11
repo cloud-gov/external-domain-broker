@@ -19,6 +19,14 @@ from broker.extensions import config, db
 logger = logging.getLogger(__name__)
 
 
+class ServiceInstanceTypes(Enum):
+    ALB = "alb_service_instance"
+    CDN = "cdn_service_instance"
+    CDN_DEDICATED_WAF = "cdn_dedicated_waf_service_instance"
+    DEDICATED_ALB = "dedicated_alb_service_instance"
+    MIGRATION = "migration_service_instance"
+
+
 def db_encryption_key():
     return config.DATABASE_ENCRYPTION_KEY
 
@@ -167,7 +175,7 @@ class CDNServiceInstance(ServiceInstance):
     error_responses = mapped_column(postgresql.JSONB, default=[])
     origin_protocol_policy = mapped_column(db.String)
 
-    __mapper_args__ = {"polymorphic_identity": "cdn_service_instance"}
+    __mapper_args__ = {"polymorphic_identity": ServiceInstanceTypes.CDN.value}
 
     @classmethod
     def update_targets(self) -> List[type]:
@@ -185,7 +193,9 @@ class CDNDedicatedWAFServiceInstance(CDNServiceInstance):
     shield_associated_health_check = mapped_column(postgresql.JSONB, default={})
     cloudwatch_health_check_alarms = mapped_column(postgresql.JSONB, default=[])
 
-    __mapper_args__ = {"polymorphic_identity": "cdn_dedicated_waf_service_instance"}
+    __mapper_args__ = {
+        "polymorphic_identity": ServiceInstanceTypes.CDN_DEDICATED_WAF.value
+    }
 
     def __repr__(self):
         return f"<CDNDedicatedWAFServiceInstance {self.id} {self.domain_names}>"
@@ -208,7 +218,7 @@ class AbstractALBServiceInstance(ServiceInstance):
 
 class ALBServiceInstance(AbstractALBServiceInstance):
 
-    __mapper_args__ = {"polymorphic_identity": "alb_service_instance"}
+    __mapper_args__ = {"polymorphic_identity": ServiceInstanceTypes.ALB.value}
 
     @classmethod
     def update_targets(self) -> List[type]:
@@ -221,7 +231,7 @@ class ALBServiceInstance(AbstractALBServiceInstance):
 class DedicatedALBServiceInstance(AbstractALBServiceInstance):
     org_id = mapped_column(db.String)
 
-    __mapper_args__ = {"polymorphic_identity": "dedicated_alb_service_instance"}
+    __mapper_args__ = {"polymorphic_identity": ServiceInstanceTypes.DEDICATED_ALB.value}
 
     @classmethod
     def update_targets(self) -> List[type]:
@@ -232,7 +242,7 @@ class DedicatedALBServiceInstance(AbstractALBServiceInstance):
 
 
 class MigrationServiceInstance(ServiceInstance):
-    __mapper_args__ = {"polymorphic_identity": "migration_service_instance"}
+    __mapper_args__ = {"polymorphic_identity": ServiceInstanceTypes.MIGRATION.value}
 
     @classmethod
     def update_targets(self) -> List[type]:

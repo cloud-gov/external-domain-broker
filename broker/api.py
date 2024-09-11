@@ -37,6 +37,7 @@ from broker.models import (
     ServiceInstance,
     change_instance_type,
     Certificate,
+    ServiceInstanceTypes,
 )
 from broker.pipelines.alb import (
     queue_all_alb_provision_tasks_for_operation,
@@ -326,7 +327,7 @@ class API(ServiceBroker):
             instance.new_certificate = instance.current_certificate
 
         noop = not has_domain_updates
-        if instance.instance_type == "cdn_service_instance":
+        if instance.instance_type == ServiceInstanceTypes.CDN.value:
             noop = False
 
             if details.plan_id == CDN_PLAN_ID:
@@ -347,7 +348,7 @@ class API(ServiceBroker):
                 db.session.refresh(instance)
             else:
                 raise ClientError("Updating service plan is not supported")
-        elif instance.instance_type == "cdn_dedicated_waf_service_instance":
+        elif instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
             noop = False
 
             if details.plan_id != CDN_DEDICATED_WAF_PLAN_ID:
@@ -356,7 +357,7 @@ class API(ServiceBroker):
             instance = update_cdn_instance(params, instance)
 
             queue = queue_all_cdn_dedicated_waf_update_tasks_for_operation
-        elif instance.instance_type == "alb_service_instance":
+        elif instance.instance_type == ServiceInstanceTypes.ALB.value:
             if details.plan_id == ALB_PLAN_ID:
                 queue = queue_all_alb_update_tasks_for_operation
             elif details.plan_id == DEDICATED_ALB_PLAN_ID:
@@ -372,11 +373,11 @@ class API(ServiceBroker):
                 noop = False
             else:
                 raise ClientError("Updating service plan is not supported")
-        elif instance.instance_type == "dedicated_alb_service_instance":
+        elif instance.instance_type == ServiceInstanceTypes.DEDICATED_ALB.value:
             if details.plan_id != DEDICATED_ALB_PLAN_ID:
                 raise ClientError("Updating service plan is not supported")
             queue = queue_all_dedicated_alb_update_tasks_for_operation
-        elif instance.instance_type == "migration_service_instance":
+        elif instance.instance_type == ServiceInstanceTypes.MIGRATION.value:
             if details.plan_id == CDN_PLAN_ID:
                 noop = False
                 validate_migration_to_cdn_params(params)

@@ -6,6 +6,7 @@ from broker.models import (
     CDNDedicatedWAFServiceInstance,
     Operation,
     ServiceInstance,
+    ServiceInstanceTypes,
 )
 
 from tests.lib.client import check_last_operation_description
@@ -263,10 +264,10 @@ def subtest_update_creates_update_plan_and_domains_operation(
 def subtest_is_cdn_instance(service_instance_id="4321"):
     db.session.expunge_all()
     instance = db.session.get(ServiceInstance, service_instance_id)
-    assert instance.instance_type == "cdn_service_instance"
+    assert instance.instance_type == ServiceInstanceTypes.CDN.value
 
 
 def subtest_is_cdn_dedicated_waf_instance(service_instance_id="4321"):
     db.session.expunge_all()
     instance = db.session.get(ServiceInstance, service_instance_id)
-    assert instance.instance_type == "cdn_dedicated_waf_service_instance"
+    assert instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value

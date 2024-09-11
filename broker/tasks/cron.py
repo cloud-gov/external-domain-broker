@@ -2,11 +2,16 @@ import datetime
 import logging
 
 from huey import crontab
-from sqlalchemy import select
 
 from broker.extensions import db, config
 from broker.lib.cdn import is_cdn_instance
-from broker.models import Certificate, Operation, DedicatedALBListener, ServiceInstance
+from broker.models import (
+    Certificate,
+    Operation,
+    DedicatedALBListener,
+    ServiceInstance,
+    ServiceInstanceTypes,
+)
 from broker.tasks import huey
 from broker.pipelines.alb import (
     queue_all_alb_deprovision_tasks_for_operation,
@@ -19,6 +24,11 @@ from broker.pipelines.cdn import (
     queue_all_cdn_provision_tasks_for_operation,
     queue_all_cdn_update_tasks_for_operation,
     queue_all_cdn_renewal_tasks_for_operation,
+)
+from broker.pipelines.cdn_dedicated_waf import (
+    queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation,
+    queue_all_cdn_dedicated_waf_provision_tasks_for_operation,
+    queue_all_cdn_dedicated_waf_update_tasks_for_operation,
 )
 from broker.pipelines.dedicated_alb import (
     queue_all_dedicated_alb_renewal_tasks_for_operation,
@@ -71,9 +81,9 @@ def scan_for_expiring_certs():
             db.session.add(renewal)
             if is_cdn_instance(instance):
                 cdn_renewals.append(renewal)
-            elif instance.instance_type == "alb_service_instance":
+            elif instance.instance_type == ServiceInstanceTypes.ALB.value:
                 alb_renewals.append(renewal)
-            elif instance.instance_type == "dedicated_alb_service_instance":
+            elif instance.instance_type == ServiceInstanceTypes.DEDICATED_ALB.value:
                 dedicated_alb_renewals.append(renewal)
         db.session.commit()
         for renewal in cdn_renewals:
@@ -138,11 +148,19 @@ def reschedule_operation(operation_id):
         actions.RENEW.value: queue_all_dedicated_alb_renewal_tasks_for_operation,
         actions.UPDATE.value: queue_all_dedicated_alb_update_tasks_for_operation,
     }
-    queues = {
-        "cdn_service_instance": cdn_queues,
-        "alb_service_instance": alb_queues,
-        "dedicated_alb_service_instance": dedicated_alb_queues,
+    cdn_dedicated_waf_queues = {
+        actions.DEPROVISION.value: queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation,
+        actions.PROVISION.value: queue_all_cdn_dedicated_waf_provision_tasks_for_operation,
+        actions.RENEW.value: queue_all_cdn_renewal_tasks_for_operation,
+        actions.UPDATE.value: queue_all_cdn_dedicated_waf_update_tasks_for_operation,
     }
+    queues = {}
+
+    queues[ServiceInstanceTypes.CDN.value] = cdn_queues
+    queues[ServiceInstanceTypes.ALB.value] = alb_queues
+    queues[ServiceInstanceTypes.DEDICATED_ALB.value] = dedicated_alb_queues
+    queues[ServiceInstanceTypes.CDN_DEDICATED_WAF.value] = cdn_dedicated_waf_queues
+
     queue = queues[service_instance.instance_type].get(operation.action)
     if not queue:
         raise RuntimeError(
@@ -152,3 +170,5 @@ def reschedule_operation(operation_id):
         queue(operation.id)
     else:
         queue(operation.id, "Recovered operation")
+    # this line is only used for testing
+    return queue
