@@ -332,6 +332,91 @@ def test_update_health_check_alarms(
     )
 
 
+def test_update_health_check_alarms_idempotent(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    tags = service_instance.tags
+    expect_delete_health_check_id = "foo.com ID"
+    expect_delete_alarm_names = [_get_alarm_name(expect_delete_health_check_id)]
+    expect_create_health_check_id = "bar.com ID"
+    expected_health_check_alarms = [
+        {
+            "health_check_id": "example.com ID",
+            "alarm_name": _get_alarm_name("example.com ID"),
+        },
+        {
+            "health_check_id": expect_create_health_check_id,
+            "alarm_name": _get_alarm_name(expect_create_health_check_id),
+        },
+    ]
+
+    # Simulate an update to the domains and health checks
+    service_instance.domain_names = ["example.com", "bar.com"]
+    service_instance.route53_health_checks = [
+        {
+            "domain_name": "example.com",
+            "health_check_id": "example.com ID",
+        },
+        {
+            "domain_name": "bar.com",
+            "health_check_id": "bar.com ID",
+        },
+    ]
+    service_instance.cloudwatch_health_check_alarms = [
+        {
+            "health_check_id": "example.com ID",
+            "alarm_name": _get_alarm_name("example.com ID"),
+        },
+        {
+            "health_check_id": expect_delete_health_check_id,
+            "alarm_name": _get_alarm_name(expect_delete_health_check_id),
+        },
+    ]
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    cloudwatch_commercial.expect_delete_alarms(expect_delete_alarm_names)
+    cloudwatch_commercial.expect_put_metric_alarm(
+        expect_create_health_check_id,
+        _get_alarm_name(expect_create_health_check_id),
+        tags,
+    )
+    cloudwatch_commercial.expect_describe_alarms(
+        _get_alarm_name(expect_create_health_check_id),
+        [{"AlarmArn": f"{expect_create_health_check_id} ARN"}],
+    )
+
+    update_health_check_alarms.call_local(operation_id)
+
+    # asserts that all the mocked calls above were made
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    operation = clean_db.session.get(Operation, operation_id)
+    assert (
+        operation.step_description
+        == "Updating Cloudwatch alarms for Route53 health checks"
+    )
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert (
+        service_instance.cloudwatch_health_check_alarms == expected_health_check_alarms
+    )
+
+    update_health_check_alarms.call_local(operation_id)
+    # asserts that all the mocked calls above were made
+    cloudwatch_commercial.assert_no_pending_responses()
+
+
 def test_delete_health_check_alarms(
     clean_db,
     service_instance_id,
