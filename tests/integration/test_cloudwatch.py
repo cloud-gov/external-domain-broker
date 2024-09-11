@@ -613,3 +613,44 @@ def test_delete_health_check_alarms_unexpected_error(
 
     with pytest.raises(Exception):
         delete_health_check_alarms.call_local(operation_id)
+
+
+def test_delete_health_check_alarms_no_alarms(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    delete_health_check_alarms.call_local(operation_id)
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.cloudwatch_health_check_alarms == []
+
+
+def test_delete_health_check_alarms_unmigrated_instance(
+    clean_db,
+    service_instance_id,
+    unmigrated_cdn_dedicated_waf_service_instance_operation_id,
+    cloudwatch_commercial,
+):
+    delete_health_check_alarms.call_local(
+        unmigrated_cdn_dedicated_waf_service_instance_operation_id
+    )
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.cloudwatch_health_check_alarms == None

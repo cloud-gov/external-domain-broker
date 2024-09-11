@@ -118,7 +118,10 @@ def delete_health_check_alarms(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    if len(service_instance.route53_health_checks) == 0:
+    if (
+        service_instance.route53_health_checks == None
+        or len(service_instance.route53_health_checks) == 0
+    ):
         logger.info(
             f"No Route53 health checks to update alarms on instance {service_instance.id}"
         )
@@ -128,15 +131,18 @@ def delete_health_check_alarms(operation_id: int, **kwargs):
         existing_health_check_alarms = []
     else:
         existing_health_check_alarms = service_instance.cloudwatch_health_check_alarms
+
     health_checks_alarm_names_to_delete = [
         health_check_alarm["alarm_name"]
         for health_check_alarm in existing_health_check_alarms
     ]
-    updated_health_check_alarms = _delete_alarms(
-        existing_health_check_alarms, health_checks_alarm_names_to_delete
-    )
-    service_instance.cloudwatch_health_check_alarms = updated_health_check_alarms
-    flag_modified(service_instance, "cloudwatch_health_check_alarms")
+
+    if len(health_checks_alarm_names_to_delete) > 0:
+        updated_health_check_alarms = _delete_alarms(
+            existing_health_check_alarms, health_checks_alarm_names_to_delete
+        )
+        service_instance.cloudwatch_health_check_alarms = updated_health_check_alarms
+        flag_modified(service_instance, "cloudwatch_health_check_alarms")
 
     db.session.add(service_instance)
     db.session.commit()
