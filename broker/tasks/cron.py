@@ -20,6 +20,11 @@ from broker.pipelines.cdn import (
     queue_all_cdn_update_tasks_for_operation,
     queue_all_cdn_renewal_tasks_for_operation,
 )
+from broker.pipelines.cdn_dedicated_waf import (
+    queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation,
+    queue_all_cdn_dedicated_waf_provision_tasks_for_operation,
+    queue_all_cdn_dedicated_waf_update_tasks_for_operation,
+)
 from broker.pipelines.dedicated_alb import (
     queue_all_dedicated_alb_renewal_tasks_for_operation,
     queue_all_dedicated_alb_provision_tasks_for_operation,
@@ -138,10 +143,17 @@ def reschedule_operation(operation_id):
         actions.RENEW.value: queue_all_dedicated_alb_renewal_tasks_for_operation,
         actions.UPDATE.value: queue_all_dedicated_alb_update_tasks_for_operation,
     }
+    cdn_dedicated_waf_queues = {
+        actions.DEPROVISION.value: queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation,
+        actions.PROVISION.value: queue_all_cdn_dedicated_waf_provision_tasks_for_operation,
+        actions.RENEW.value: queue_all_cdn_renewal_tasks_for_operation,
+        actions.UPDATE.value: queue_all_cdn_dedicated_waf_update_tasks_for_operation,
+    }
     queues = {
         "cdn_service_instance": cdn_queues,
         "alb_service_instance": alb_queues,
         "dedicated_alb_service_instance": dedicated_alb_queues,
+        "cdn_dedicated_waf_service_instance": cdn_dedicated_waf_queues,
     }
     queue = queues[service_instance.instance_type].get(operation.action)
     if not queue:
