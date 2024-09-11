@@ -183,3 +183,13 @@ def test_waf_delete_web_acl_succeeds_on_retry(
 
     waf._delete_web_acl_with_retries(operation_id, service_instance)
     wafv2.assert_no_pending_responses()
+
+
+def test_waf_delete_web_acl_unmigrated_cdn_dedicated_waf_instance(
+    unmigrated_cdn_dedicated_waf_service_instance_operation_id,
+    wafv2,
+):
+    waf.delete_web_acl.call_local(
+        unmigrated_cdn_dedicated_waf_service_instance_operation_id
+    )
+    wafv2.assert_no_pending_responses()
