@@ -59,7 +59,7 @@ def unmigrated_cdn_dedicated_waf_service_instance_operation_id(
         shield_associated_health_check=None,
         cloudwatch_health_check_alarms=None,
         cloudfront_distribution_arn=cloudfront_distribution_arn,
-        instance_type=ServiceInstanceTypes.CDN.value,
+        instance_type=ServiceInstanceTypes.CDN_DEDICATED_WAF.value,
     )
     clean_db.session.execute(create_cdn_instance_statement)
 
