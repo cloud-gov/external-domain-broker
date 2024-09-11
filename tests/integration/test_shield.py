@@ -250,3 +250,27 @@ def test_shield_disassociate_health_check(
     assert service_instance.shield_associated_health_check == None
     operation = clean_db.session.get(Operation, operation_id)
     assert operation.step_description == "Disassociating health check with Shield"
+
+
+def test_shield_disassociate_health_check_unmigrated_cdn_dedicated_waf_instance(
+    clean_db,
+    service_instance_id,
+    unmigrated_cdn_dedicated_waf_service_instance_operation_id,
+    shield,
+):
+    operation = clean_db.session.get(
+        Operation, unmigrated_cdn_dedicated_waf_service_instance_operation_id
+    )
+    service_instance = operation.service_instance
+
+    disassociate_health_check.call_local(
+        unmigrated_cdn_dedicated_waf_service_instance_operation_id
+    )
+
+    shield.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
+    assert service_instance.shield_associated_health_check == None
