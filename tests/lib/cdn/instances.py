@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy import insert
 
-from broker.models import CDNServiceInstance, Operation
+from broker.models import CDNServiceInstance, ServiceInstanceTypes
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def unmigrated_cdn_service_instance_operation_id(
         shield_associated_health_check=None,
         cloudwatch_health_check_alarms=None,
         cloudfront_distribution_arn=cloudfront_distribution_arn,
-        instance_type="cdn_service_instance",
+        instance_type=ServiceInstanceTypes.CDN.value,
     )
     clean_db.session.execute(create_cdn_instance_statement)
 

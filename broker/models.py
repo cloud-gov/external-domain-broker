@@ -24,6 +24,7 @@ class ServiceInstanceTypes(Enum):
     CDN = "cdn_service_instance"
     CDN_DEDICATED_WAF = "cdn_dedicated_waf_service_instance"
     DEDICATED_ALB = "dedicated_alb_service_instance"
+    MIGRATION = "migration_service_instance"
 
 
 def db_encryption_key():
@@ -241,7 +242,7 @@ class DedicatedALBServiceInstance(AbstractALBServiceInstance):
 
 
 class MigrationServiceInstance(ServiceInstance):
-    __mapper_args__ = {"polymorphic_identity": "migration_service_instance"}
+    __mapper_args__ = {"polymorphic_identity": ServiceInstanceTypes.MIGRATION.value}
 
     @classmethod
     def update_targets(self) -> List[type]:
