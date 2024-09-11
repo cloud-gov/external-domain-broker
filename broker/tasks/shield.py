@@ -109,7 +109,8 @@ def disassociate_health_check(operation_id: int, **kwargs):
 
     service_instance = operation.service_instance
 
-    if service_instance.shield_associated_health_check == None:
+    shield_associated_health_check = service_instance.shield_associated_health_check
+    if shield_associated_health_check == None:
         logger.info("No health check to disassociate from Shield")
         return
 
@@ -119,7 +120,7 @@ def disassociate_health_check(operation_id: int, **kwargs):
     db.session.commit()
 
     _disassociate_health_check(
-        service_instance.shield_associated_health_check,
+        shield_associated_health_check,
     )
     service_instance.shield_associated_health_check = None
     flag_modified(service_instance, "shield_associated_health_check")
