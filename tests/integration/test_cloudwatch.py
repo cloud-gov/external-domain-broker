@@ -412,7 +412,7 @@ def test_update_health_check_alarms_idempotent(
     cloudwatch_commercial.assert_no_pending_responses()
 
 
-def test_create_health_check_alarms_unmigrated_instance(
+def test_update_health_check_alarms_unmigrated_instance(
     clean_db,
     service_instance_id,
     unmigrated_cdn_dedicated_waf_service_instance_operation_id,
