@@ -83,7 +83,7 @@ def scan_for_expiring_certs():
                 cdn_renewals.append(renewal)
             elif instance.instance_type == ServiceInstanceTypes.ALB.value:
                 alb_renewals.append(renewal)
-            elif instance.instance_type == ServiceInstanceTypes.DEDICATED_ALB.evalue:
+            elif instance.instance_type == ServiceInstanceTypes.DEDICATED_ALB.value:
                 dedicated_alb_renewals.append(renewal)
         db.session.commit()
         for renewal in cdn_renewals:
