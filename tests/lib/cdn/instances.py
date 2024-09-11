@@ -39,7 +39,7 @@ def unmigrated_cdn_service_instance_operation_id(
 
 
 @pytest.fixture
-def unmigrated_cdn_dedicated_waf_operation_id(
+def unmigrated_cdn_dedicated_waf_service_instance_operation_id(
     clean_db, client, service_instance_id, cloudfront_distribution_arn
 ):
     # Create a CDN instance manually to simulate an instance that

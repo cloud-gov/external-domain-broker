@@ -415,11 +415,11 @@ def test_update_health_check_alarms_idempotent(
 def test_create_health_check_alarms_unmigrated_instance(
     clean_db,
     service_instance_id,
-    unmigrated_cdn_dedicated_waf_operation_id,
+    unmigrated_cdn_dedicated_waf_service_instance_operation_id,
     cloudwatch_commercial,
 ):
     operation = clean_db.session.get(
-        Operation, unmigrated_cdn_dedicated_waf_operation_id
+        Operation, unmigrated_cdn_dedicated_waf_service_instance_operation_id
     )
     service_instance = operation.service_instance
     tags = service_instance.tags
@@ -472,7 +472,9 @@ def test_create_health_check_alarms_unmigrated_instance(
         [{"AlarmArn": f"{expect_create_health_check_id} ARN"}],
     )
 
-    update_health_check_alarms.call_local(unmigrated_cdn_dedicated_waf_operation_id)
+    update_health_check_alarms.call_local(
+        unmigrated_cdn_dedicated_waf_service_instance_operation_id
+    )
 
     # asserts that all the mocked calls above were made
     cloudwatch_commercial.assert_no_pending_responses()
