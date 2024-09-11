@@ -170,3 +170,5 @@ def reschedule_operation(operation_id):
         queue(operation.id)
     else:
         queue(operation.id, "Recovered operation")
+    # this line is only used for testing
+    return queue
