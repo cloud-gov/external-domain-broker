@@ -101,8 +101,8 @@ def scan_for_expiring_certs():
 @huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="*/5"))
 def restart_stalled_pipelines():
     with huey.huey.flask_app.app_context():
-        for operation in scan_for_stalled_pipelines():
-            reschedule_operation(operation)
+        for operation_id in scan_for_stalled_pipelines:
+            reschedule_operation(operation_id)
 
 
 @huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="*"))
