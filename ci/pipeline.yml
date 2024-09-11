@@ -240,9 +240,9 @@ jobs:
   plan:
   - get: src
     params: {depth: 1}
-    trigger: true
     passed: [reconfigure]
   - get: external-domain-broker-testing
+    trigger: true
   - task: test
     image: external-domain-broker-testing
     config:
