@@ -2,7 +2,6 @@ import pytest
 from sqlalchemy import insert
 
 from broker.tasks.route53 import (
-    create_health_checks,
     create_new_health_checks,
     delete_unused_health_checks,
     delete_health_checks,
@@ -63,7 +62,7 @@ def service_instance(
     return service_instance
 
 
-def test_route53_create_health_checks(
+def test_route53_create_all_new_health_checks(
     clean_db,
     service_instance_id,
     service_instance,
@@ -79,7 +78,7 @@ def test_route53_create_health_checks(
     for idx, domain_name in enumerate(service_instance.domain_names):
         route53.expect_create_health_check(service_instance_id, domain_name, idx)
 
-    create_health_checks.call_local(operation_id)
+    create_new_health_checks.call_local(operation_id)
 
     route53.assert_no_pending_responses()
 
@@ -98,10 +97,48 @@ def test_route53_create_health_checks(
         },
     ]
     operation = clean_db.session.get(Operation, operation_id)
-    assert operation.step_description == "Creating health checks"
+    assert operation.step_description == "Creating new health checks"
 
 
-def test_route53_create_health_checks_unmigrated_cdn_instance(
+def test_route53_create_new_health_checks_idempotent(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    route53,
+):
+    clean_db.session.expunge_all()
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
+    assert not service_instance.route53_health_checks
+
+    for idx, domain_name in enumerate(service_instance.domain_names):
+        route53.expect_create_health_check(service_instance_id, domain_name, idx)
+
+    create_new_health_checks.call_local(operation_id)
+    route53.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
+    assert service_instance.route53_health_checks == [
+        {
+            "domain_name": "example.com",
+            "health_check_id": "example.com ID",
+        },
+        {
+            "domain_name": "foo.com",
+            "health_check_id": "foo.com ID",
+        },
+    ]
+
+    create_new_health_checks.call_local(operation_id)
+    route53.assert_no_pending_responses()
+
+
+def test_route53_create_new_health_checks_unmigrated_cdn_instance(
     clean_db,
     route53,
     unmigrated_cdn_service_instance_operation_id,
@@ -116,7 +153,7 @@ def test_route53_create_health_checks_unmigrated_cdn_instance(
     for idx, domain_name in enumerate(service_instance.domain_names):
         route53.expect_create_health_check(service_instance.id, domain_name, idx)
 
-    create_health_checks.call_local(unmigrated_cdn_service_instance_operation_id)
+    create_new_health_checks.call_local(unmigrated_cdn_service_instance_operation_id)
 
     route53.assert_no_pending_responses()
 
@@ -130,7 +167,7 @@ def test_route53_create_health_checks_unmigrated_cdn_instance(
     ]
 
 
-def test_route53_creates_new_health_checks(
+def test_route53_create_new_health_checks(
     clean_db,
     service_instance_id,
     service_instance,

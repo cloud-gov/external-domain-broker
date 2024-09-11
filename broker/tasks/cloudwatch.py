@@ -59,9 +59,12 @@ def update_health_check_alarms(operation_id: int, **kwargs):
         health_check["health_check_id"]
         for health_check in service_instance.route53_health_checks
     ]
+    if service_instance.cloudwatch_health_check_alarms == None:
+        existing_health_check_alarms = []
+    else:
+        existing_health_check_alarms = service_instance.cloudwatch_health_check_alarms
     existing_cloudwatch_alarm_health_check_ids = [
-        health_check["health_check_id"]
-        for health_check in service_instance.cloudwatch_health_check_alarms
+        health_check["health_check_id"] for health_check in existing_health_check_alarms
     ]
 
     # IF a health check ID for a Cloudwatch alarm
@@ -69,7 +72,7 @@ def update_health_check_alarms(operation_id: int, **kwargs):
     # THEN the Cloudwatch alarm for the health check ID(s) should be DELETED
     health_checks_alarm_names_to_delete = [
         health_check_alarm["alarm_name"]
-        for health_check_alarm in service_instance.cloudwatch_health_check_alarms
+        for health_check_alarm in existing_health_check_alarms
         if health_check_alarm["health_check_id"]
         not in existing_route53_health_check_ids
     ]

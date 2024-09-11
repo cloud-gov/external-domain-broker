@@ -37,7 +37,7 @@ def queue_all_cdn_dedicated_waf_provision_tasks_for_operation(
         .then(cloudfront.wait_for_distribution, operation_id, **correlation)
         .then(route53.create_ALIAS_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
-        .then(route53.create_health_checks, operation_id, **correlation)
+        .then(route53.create_new_health_checks, operation_id, **correlation)
         .then(shield.associate_health_check, operation_id, **correlation)
         .then(cloudwatch.create_health_check_alarms, operation_id, **correlation)
         .then(update_operations.provision, operation_id, **correlation)
