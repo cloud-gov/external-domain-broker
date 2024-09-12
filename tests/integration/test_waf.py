@@ -148,10 +148,25 @@ def test_waf_delete_web_acl_gives_up_after_max_retries(
         waf._delete_web_acl_with_retries(operation_id, service_instance)
 
 
+def test_waf_delete_web_acl_handles_empty_values(
+    clean_db, service_instance, operation_id, wafv2
+):
+    service_instance.dedicated_waf_web_acl_id = None
+    service_instance.dedicated_waf_web_acl_name = None
+    service_instance.dedicated_waf_web_acl_arn = None
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    waf.delete_web_acl.call_local(operation_id)
+    wafv2.assert_no_pending_responses()
+
+
 def test_waf_delete_web_acl_succeeds_on_retry(
     clean_db, service_instance_id, service_instance, operation_id, wafv2
 ):
-    service_instance.dedicated_waf_web_acl_id = "1234-dedicated-waf-id"
+    service_instance.dedicated_waf_web_acl_id = None
     service_instance.dedicated_waf_web_acl_name = "1234-dedicated-waf"
     service_instance.dedicated_waf_web_acl_arn = "1234-dedicated-waf-arn"
 
