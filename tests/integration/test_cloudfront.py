@@ -1,11 +1,10 @@
 import pytest
-import uuid
-import random
 
 from broker.tasks.cloudfront import (
     wait_for_distribution_disabled,
 )
 from broker.models import Operation
+from broker.extensions import config
 
 from tests.lib import factories
 
@@ -112,3 +111,34 @@ def test_cloudfront_wait_distribution_disabled(
     assert (
         operation.step_description == "Waiting for CloudFront distribution to disable"
     )
+
+
+@pytest.mark.parametrize(
+    "instance_factory",
+    [
+        factories.CDNServiceInstanceFactory,
+        factories.CDNDedicatedWAFServiceInstanceFactory,
+    ],
+)
+def test_cloudfront_wait_distribution_disabled_error_max_retries(
+    service_instance,
+    operation_id,
+    cloudfront,
+):
+    for _ in range(config.AWS_POLL_MAX_ATTEMPTS):
+        cloudfront.expect_get_distribution(
+            caller_reference="asdf",
+            domains=service_instance.domain_names,
+            certificate_id=service_instance.new_certificate.iam_server_certificate_id,
+            origin_hostname=service_instance.cloudfront_origin_hostname,
+            origin_path=service_instance.cloudfront_origin_path,
+            distribution_id=service_instance.cloudfront_distribution_id,
+            status="In progress",
+            enabled=False,
+        )
+
+    with pytest.raises(RuntimeError):
+        wait_for_distribution_disabled.call_local(operation_id)
+
+    # asserts that all the mocked calls above were made
+    cloudfront.assert_no_pending_responses()

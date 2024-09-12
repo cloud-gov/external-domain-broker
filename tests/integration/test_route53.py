@@ -310,3 +310,22 @@ def test_route53_deletes_health_checks(
     assert service_instance.route53_health_checks == []
     operation = clean_db.session.get(Operation, operation_id)
     assert operation.step_description == "Deleting health checks"
+
+
+def test_route53_deletes_health_checks_unmigrated_cdn_dedicated_waf_instance(
+    clean_db,
+    service_instance_id,
+    unmigrated_cdn_dedicated_waf_service_instance_operation_id,
+    route53,
+):
+    delete_health_checks.call_local(
+        unmigrated_cdn_dedicated_waf_service_instance_operation_id,
+    )
+
+    route53.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
+    assert service_instance.route53_health_checks == None

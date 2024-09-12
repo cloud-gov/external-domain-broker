@@ -328,8 +328,14 @@ def delete_health_checks(operation_id: int, **kwargs):
 
     logger.info(f'Deleting health check(s) for "{service_instance.domain_names}"')
 
+    existing_health_checks = service_instance.route53_health_checks
+
+    if existing_health_checks == None:
+        logger.info("No Route53 health checks to delete")
+        return
+
     updated_health_checks = _delete_health_checks(
-        service_instance.route53_health_checks, service_instance.route53_health_checks
+        existing_health_checks, existing_health_checks
     )
 
     service_instance.route53_health_checks = updated_health_checks
