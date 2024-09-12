@@ -4,10 +4,11 @@ import pytest
 
 from broker.tasks.iam import (
     upload_server_certificate,
+    delete_server_certificate,
     delete_previous_server_certificate,
 )
 from broker.extensions import db
-from broker.models import CDNServiceInstance, Operation, Certificate
+from broker.models import ALBServiceInstance, CDNServiceInstance, Operation, Certificate
 
 from tests.lib import factories
 from tests.lib.identifiers import get_server_certificate_name
@@ -172,6 +173,60 @@ def test_upload_certificate_already_exists(
     upload_server_certificate.call_local(operation_id)
 
     iam_commercial.assert_no_pending_responses()
+
+
+def test_delete_server_certificate(
+    clean_db, iam_govcloud, alb_service_instance, operation_id, current_cert_id
+):
+    iam_govcloud.expect_get_server_certificate(
+        get_server_certificate_name(alb_service_instance.id, current_cert_id),
+    )
+    iam_govcloud.expects_delete_server_certificate(
+        get_server_certificate_name(alb_service_instance.id, current_cert_id),
+    )
+
+    delete_server_certificate.call_local(operation_id)
+
+    iam_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+
+def test_delete_server_certificate_with_new_cert(
+    clean_db,
+    iam_govcloud,
+    alb_service_instance,
+    service_instance_id,
+    operation_id,
+    current_cert_id,
+    new_cert_id,
+):
+    service_instance = clean_db.session.get(ALBServiceInstance, service_instance_id)
+    new_cert = clean_db.session.get(Certificate, new_cert_id)
+    service_instance.new_certificate = new_cert
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    iam_govcloud.expect_get_server_certificate(
+        get_server_certificate_name(service_instance_id, new_cert_id),
+    )
+    iam_govcloud.expects_delete_server_certificate(
+        get_server_certificate_name(service_instance_id, new_cert_id),
+    )
+    iam_govcloud.expect_get_server_certificate(
+        get_server_certificate_name(service_instance_id, current_cert_id),
+    )
+    iam_govcloud.expects_delete_server_certificate(
+        get_server_certificate_name(service_instance_id, current_cert_id),
+    )
+
+    delete_server_certificate.call_local(operation_id)
+
+    iam_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
 
 
 def test_delete_previous_server_certificate_happy_path(
