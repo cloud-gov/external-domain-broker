@@ -1,7 +1,11 @@
 import pytest
 import datetime
 
-from broker.tasks.cron import reschedule_operation, scan_for_stalled_pipelines
+from broker.tasks.cron import (
+    reschedule_operation,
+    scan_for_stalled_pipelines,
+    restart_stalled_pipelines,
+)
 
 from tests.lib.factories import (
     ALBServiceInstanceFactory,
@@ -76,3 +80,17 @@ def test_scan_for_stalled_pipelines(stalled_service_instance, operation_id):
     # assert no error is thrown
     operation_ids = scan_for_stalled_pipelines()
     assert operation_ids == [int(operation_id)]
+
+
+@pytest.mark.parametrize(
+    "instance_factory",
+    [
+        ALBServiceInstanceFactory,
+        CDNServiceInstanceFactory,
+        CDNDedicatedWAFServiceInstanceFactory,
+        DedicatedALBServiceInstanceFactory,
+    ],
+)
+def test_restart_stalled_pipelines(stalled_service_instance):
+    # assert no error is thrown
+    restart_stalled_pipelines.call_local()
