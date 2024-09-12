@@ -89,6 +89,7 @@ def delete_web_acl(operation_id: str, **kwargs):
     if (
         not service_instance.dedicated_waf_web_acl_name
         or not service_instance.dedicated_waf_web_acl_id
+        or not service_instance.dedicated_waf_web_acl_arn
     ):
         logger.info("No WAF web ACL to delete")
         return

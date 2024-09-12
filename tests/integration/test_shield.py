@@ -274,3 +274,23 @@ def test_shield_disassociate_health_check_unmigrated_cdn_dedicated_waf_instance(
         CDNDedicatedWAFServiceInstance, service_instance_id
     )
     assert service_instance.shield_associated_health_check == None
+
+
+def test_shield_disassociate_health_check_empty_check(
+    clean_db, service_instance_id, service_instance, operation_id, shield
+):
+    service_instance.shield_associated_health_check = {}
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    disassociate_health_check.call_local(operation_id)
+
+    shield.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
+    assert service_instance.shield_associated_health_check == {}

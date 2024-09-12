@@ -110,7 +110,7 @@ def disassociate_health_check(operation_id: int, **kwargs):
     service_instance = operation.service_instance
 
     shield_associated_health_check = service_instance.shield_associated_health_check
-    if shield_associated_health_check == None:
+    if shield_associated_health_check is None or shield_associated_health_check == {}:
         logger.info("No health check to disassociate from Shield")
         return
 
