@@ -166,7 +166,7 @@ def test_waf_delete_web_acl_handles_empty_values(
 def test_waf_delete_web_acl_succeeds_on_retry(
     clean_db, service_instance_id, service_instance, operation_id, wafv2
 ):
-    service_instance.dedicated_waf_web_acl_id = None
+    service_instance.dedicated_waf_web_acl_id = "1234-dedicated-waf-id"
     service_instance.dedicated_waf_web_acl_name = "1234-dedicated-waf"
     service_instance.dedicated_waf_web_acl_arn = "1234-dedicated-waf-arn"
 
