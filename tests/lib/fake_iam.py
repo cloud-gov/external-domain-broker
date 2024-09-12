@@ -54,6 +54,15 @@ class FakeIAM(FakeAWS):
         )
         self.stubber.add_response(method, response, request)
 
+    def expect_get_server_certificate_returning_no_such_entity(self, name: str):
+        self.stubber.add_client_error(
+            "get_server_certificate",
+            service_error_code="NoSuchEntity",
+            service_message="'Ain't there.",
+            http_status_code=404,
+            expected_params={"ServerCertificateName": name},
+        )
+
     def server_certificate_metadata_response(
         self, name: str, cert: str, chain: str, path: str
     ):
