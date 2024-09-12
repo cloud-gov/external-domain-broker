@@ -656,7 +656,7 @@ def test_delete_health_check_alarms_unmigrated_instance(
         CDNDedicatedWAFServiceInstance,
         service_instance_id,
     )
-    assert service_instance.cloudwatch_health_check_alarms == None
+    assert service_instance.cloudwatch_health_check_alarms is None
 
     delete_health_check_alarms.call_local(
         unmigrated_cdn_dedicated_waf_service_instance_operation_id
