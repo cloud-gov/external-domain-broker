@@ -622,6 +622,17 @@ def test_delete_health_check_alarms_no_alarms(
     operation_id,
     cloudwatch_commercial,
 ):
+    service_instance.cloudwatch_health_check_alarms = []
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.cloudwatch_health_check_alarms == []
+
     delete_health_check_alarms.call_local(operation_id)
 
     cloudwatch_commercial.assert_no_pending_responses()
@@ -641,6 +652,12 @@ def test_delete_health_check_alarms_unmigrated_instance(
     unmigrated_cdn_dedicated_waf_service_instance_operation_id,
     cloudwatch_commercial,
 ):
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.cloudwatch_health_check_alarms == None
+
     delete_health_check_alarms.call_local(
         unmigrated_cdn_dedicated_waf_service_instance_operation_id
     )
