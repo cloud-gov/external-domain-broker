@@ -48,7 +48,6 @@ def service_instance(
     clean_db.session.add(current_cert)
     clean_db.session.add(new_cert)
     clean_db.session.commit()
-    clean_db.session.expunge_all()
     factories.OperationFactory.create(
         id=operation_id, service_instance=service_instance
     )
@@ -91,7 +90,6 @@ def alb_service_instance(
     clean_db.session.add(current_cert)
     clean_db.session.add(new_cert)
     clean_db.session.commit()
-    clean_db.session.expunge_all()
     factories.OperationFactory.create(
         id=operation_id, service_instance=service_instance
     )
