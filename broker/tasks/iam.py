@@ -101,23 +101,13 @@ def delete_server_certificate(operation_id: str, **kwargs):
         service_instance.new_certificate is not None
         and service_instance.new_certificate.iam_server_certificate_name is not None
     ):
-        try:
-            iam.delete_server_certificate(
-                ServerCertificateName=service_instance.new_certificate.iam_server_certificate_name
-            )
-        except iam_commercial.exceptions.NoSuchEntityException:
-            pass
+        _delete_server_certificate(iam, service_instance.new_certificate)
 
     if (
         service_instance.current_certificate is not None
         and service_instance.current_certificate.iam_server_certificate_name is not None
     ):
-        try:
-            iam.delete_server_certificate(
-                ServerCertificateName=service_instance.current_certificate.iam_server_certificate_name
-            )
-        except iam_commercial.exceptions.NoSuchEntityException:
-            return
+        _delete_server_certificate(iam, service_instance.current_certificate)
 
 
 @huey.retriable_task
@@ -142,24 +132,27 @@ def delete_previous_server_certificate(operation_id: str, **kwargs):
         )
     ).all()
     for certificate in certificates_to_delete:
-        cert_is_deleted = False
-        try:
-            iam.get_server_certificate(
-                ServerCertificateName=certificate.iam_server_certificate_name
-            )
-        except ClientError as e:
-            if "NoSuchEntity" in e.response["Error"]["Code"]:
-                logger.info(
-                    f"Certificate {certificate.iam_server_certificate_name} not found, may have already been deleted",
-                )
-                cert_is_deleted = True
-
-        if not cert_is_deleted:
-            # now we know the cert exists, so any errors should be treated as unexpected
-            iam.delete_server_certificate(
-                ServerCertificateName=certificate.iam_server_certificate_name
-            )
-
+        _delete_server_certificate(iam, certificate)
         db.session.delete(certificate)
 
     db.session.commit()
+
+
+def _delete_server_certificate(iam, certificate):
+    cert_is_deleted = False
+    try:
+        iam.get_server_certificate(
+            ServerCertificateName=certificate.iam_server_certificate_name
+        )
+    except ClientError as e:
+        if "NoSuchEntity" in e.response["Error"]["Code"]:
+            logger.info(
+                f"Certificate {certificate.iam_server_certificate_name} not found, may have already been deleted",
+            )
+            cert_is_deleted = True
+
+    if not cert_is_deleted:
+        # now we know the cert exists, so any errors should be treated as unexpected
+        iam.delete_server_certificate(
+            ServerCertificateName=certificate.iam_server_certificate_name
+        )
