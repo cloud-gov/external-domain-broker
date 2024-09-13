@@ -9,16 +9,18 @@ from tests.lib.cdn.deprovision import (
     subtest_deprovision_removes_TXT_records_when_missing,
     subtest_deprovision_removes_ALIAS_records_when_missing,
     subtest_deprovision_removes_ALIAS_records,
-    subtest_deprovision_removes_TXT_records,
     subtest_deprovision_disables_cloudfront_distribution,
     subtest_deprovision_waits_for_cloudfront_distribution_disabled,
     subtest_deprovision_removes_cloudfront_distribution,
     subtest_deprovision_disables_cloudfront_distribution_when_missing,
     subtest_deprovision_waits_for_cloudfront_distribution_disabled_when_missing,
     subtest_deprovision_removes_cloudfront_distribution_when_missing,
+)
+from tests.lib.deprovision import (
+    subtest_deprovision_removes_TXT_records,
     subtest_deprovision_removes_certificate_from_iam,
-    subtest_deprovision_removes_certificate_from_iam_when_missing,
     subtest_deprovision_marks_operation_as_succeeded,
+    subtest_deprovision_removes_certificate_from_iam_when_missing,
 )
 
 

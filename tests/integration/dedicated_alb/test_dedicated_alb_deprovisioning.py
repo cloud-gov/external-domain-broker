@@ -7,8 +7,10 @@ from tests.lib.client import check_last_operation_description
 from tests.lib.alb.deprovision import (
     subtest_deprovision_creates_deprovision_operation,
     subtest_deprovision_removes_ALIAS_records,
-    subtest_deprovision_removes_TXT_records,
     subtest_deprovision_removes_cert_from_alb,
+)
+from tests.lib.deprovision import (
+    subtest_deprovision_removes_TXT_records,
     subtest_deprovision_removes_certificate_from_iam,
     subtest_deprovision_marks_operation_as_succeeded,
 )
@@ -85,7 +87,7 @@ def test_deprovision_happy_path(
     instance_model = DedicatedALBServiceInstance
     service_instance = db.session.get(instance_model, "1234")
     operation_id = subtest_deprovision_creates_deprovision_operation(
-        client, service_instance, instance_model
+        instance_model, client, service_instance
     )
     check_last_operation_description(client, "1234", operation_id, "Queuing tasks")
     subtest_deprovision_removes_ALIAS_records(tasks, route53)
@@ -97,16 +99,22 @@ def test_deprovision_happy_path(
         client, "1234", operation_id, "Removing DNS TXT records"
     )
     subtest_deprovision_removes_cert_from_alb(
-        tasks, service_instance, alb, instance_model
+        instance_model,
+        tasks,
+        service_instance,
+        alb,
     )
     check_last_operation_description(
         client, "1234", operation_id, "Removing SSL certificate from load balancer"
     )
     subtest_deprovision_removes_certificate_from_iam(
-        tasks, service_instance, iam_govcloud, instance_model
+        instance_model,
+        tasks,
+        service_instance,
+        iam_govcloud,
     )
     check_last_operation_description(
         client, "1234", operation_id, "Removing SSL certificate from AWS"
     )
-    subtest_deprovision_marks_operation_as_succeeded(tasks, instance_model)
+    subtest_deprovision_marks_operation_as_succeeded(instance_model, tasks)
     check_last_operation_description(client, "1234", operation_id, "Complete!")
