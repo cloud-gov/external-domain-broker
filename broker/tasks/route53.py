@@ -63,32 +63,7 @@ def remove_TXT_records(operation_id: int, **kwargs):
 
     for certificate in service_instance.certificates:
         for challenge in certificate.challenges:
-            domain = challenge.validation_domain
-            txt_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
-            contents = challenge.validation_contents
-            logger.info(f'Removing TXT record {txt_record} with contents "{contents}"')
-            try:
-                route53_response = route53.change_resource_record_sets(
-                    ChangeBatch={
-                        "Changes": [
-                            {
-                                "Action": "DELETE",
-                                "ResourceRecordSet": {
-                                    "Type": "TXT",
-                                    "Name": txt_record,
-                                    "ResourceRecords": [{"Value": f'"{contents}"'}],
-                                    "TTL": 60,
-                                },
-                            }
-                        ]
-                    },
-                    HostedZoneId=config.ROUTE53_ZONE_ID,
-                )
-            except:  # noqa E722
-                logger.info("Ignoring error because we don't care")
-            else:
-                change_id = route53_response["ChangeInfo"]["Id"]
-                logger.info(f"Ignoring Route53 TXT change ID: {change_id}")
+            _delete_TXT_record(challenge)
 
 
 @huey.retriable_task
