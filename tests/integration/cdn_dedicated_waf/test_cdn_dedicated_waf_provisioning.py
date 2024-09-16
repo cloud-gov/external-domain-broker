@@ -26,7 +26,7 @@ from tests.lib.cdn.provision import (
 from tests.lib.update import (
     subtest_update_creates_private_key_and_csr,
     subtest_gets_new_challenges,
-    subtest_update_updates_TXT_records,
+    subtest_update_creates_new_TXT_records,
     subtest_update_answers_challenges,
     subtest_waits_for_dns_changes,
     subtest_update_retrieves_new_cert,
@@ -225,7 +225,7 @@ def subtest_update_happy_path(
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_update_creates_private_key_and_csr(tasks, instance_model)
     subtest_gets_new_challenges(tasks, instance_model)
-    subtest_update_updates_TXT_records(tasks, route53, instance_model)
+    subtest_update_creates_new_TXT_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_update_removes_old_TXT_records(tasks, route53, instance_model)
     check_last_operation_description(

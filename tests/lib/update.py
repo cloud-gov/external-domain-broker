@@ -37,7 +37,7 @@ def subtest_gets_new_challenges(tasks, instance_model, service_instance_id="4321
     )
 
 
-def subtest_update_updates_TXT_records(
+def subtest_update_creates_new_TXT_records(
     tasks, route53, instance_model, service_instance_id="4321"
 ):
     bar_com_change_id = route53.expect_create_TXT_and_return_change_id(
