@@ -17,6 +17,7 @@ from tests.lib.update import (
     subtest_update_removes_certificate_from_iam,
     subtest_update_same_domains_does_not_update_iam,
     subtest_update_same_domains_does_not_retrieve_new_certificate,
+    subtest_update_removes_old_TXT_records,
 )
 
 
@@ -36,6 +37,7 @@ def subtest_update_happy_path(
     subtest_gets_new_challenges(tasks, instance_model)
     subtest_update_updates_TXT_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
+    subtest_update_removes_old_TXT_records(tasks, route53, instance_model)
     subtest_update_answers_challenges(tasks, dns, instance_model)
     subtest_update_retrieves_new_cert(tasks, instance_model)
     subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex, instance_model)
@@ -194,7 +196,8 @@ def subtest_update_same_domains(
     subtest_update_same_domains_creates_update_operation(client, dns, instance_model)
     subtest_update_same_domains_does_not_create_new_certificate(tasks, instance_model)
     subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model)
-    subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
+    subtest_update_does_not_create_new_TXT_records(tasks, route53, instance_model)
+    subtest_update_does_not_remove_old_TXT_records(tasks, route53)
     subtest_update_same_domains_does_not_retrieve_new_certificate(tasks)
     subtest_update_same_domains_does_not_update_iam(tasks)
     subtest_update_same_domains_updates_cloudfront(
@@ -264,13 +267,19 @@ def subtest_update_same_domains_does_not_create_new_challenges(
     assert all([c.answered for c in certificate.challenges])
 
 
-def subtest_update_same_domains_does_not_update_route53(
+def subtest_update_does_not_create_new_TXT_records(
     tasks, route53, instance_model, service_instance_id="4321"
 ):
     tasks.run_queued_tasks_and_enqueue_dependents()
     instance = db.session.get(instance_model, service_instance_id)
     assert not instance.route53_change_ids
+    route53.assert_no_pending_responses()
     # should run wait for changes, which should do nothing
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    route53.assert_no_pending_responses()
+
+
+def subtest_update_does_not_remove_old_TXT_records(tasks, route53):
     tasks.run_queued_tasks_and_enqueue_dependents()
     route53.assert_no_pending_responses()
 

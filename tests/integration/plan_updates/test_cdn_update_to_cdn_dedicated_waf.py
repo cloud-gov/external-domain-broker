@@ -20,7 +20,7 @@ from tests.lib.cdn.update import (
     subtest_update_same_domains_updates_cloudfront,
     subtest_update_same_domains_does_not_delete_server_certificate,
     subtest_update_same_domains_does_not_create_new_challenges,
-    subtest_update_same_domains_does_not_update_route53,
+    subtest_update_does_not_create_new_TXT_records,
     subtest_update_creates_private_key_and_csr,
     subtest_gets_new_challenges,
     subtest_update_updates_TXT_records,
@@ -87,7 +87,7 @@ def test_update_plan_only(
         instance_model,
     )
     subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model)
-    subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
+    subtest_update_does_not_create_new_TXT_records(tasks, route53, instance_model)
     subtest_update_same_domains_does_not_retrieve_new_certificate(tasks)
     subtest_update_same_domains_does_not_update_iam(tasks)
     subtest_provision_create_web_acl(tasks, wafv2)

@@ -32,7 +32,6 @@ from tests.lib.update import (
     subtest_update_retrieves_new_cert,
     subtest_update_marks_update_complete,
     subtest_update_removes_certificate_from_iam,
-    subtest_update_same_domains_does_not_update_route53,
 )
 from tests.lib.cdn.update import (
     subtest_update_creates_update_operation,
@@ -47,6 +46,7 @@ from tests.lib.cdn.update import (
     subtest_update_same_domains_updates_cloudfront,
     subtest_update_same_domains_does_not_delete_server_certificate,
     subtest_update_same_domains_does_not_create_new_challenges,
+    subtest_update_does_not_create_new_TXT_records,
 )
 from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
@@ -270,7 +270,7 @@ def subtest_update_same_domains(
     subtest_update_same_domains_creates_update_operation(client, dns, instance_model)
     subtest_update_same_domains_does_not_create_new_certificate(tasks, instance_model)
     subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model)
-    subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
+    subtest_update_does_not_create_new_TXT_records(tasks, route53, instance_model)
     subtest_update_same_domains_does_not_retrieve_new_certificate(tasks)
     subtest_update_same_domains_does_not_update_iam(tasks)
     subtest_update_web_acl_does_not_update(tasks, wafv2)

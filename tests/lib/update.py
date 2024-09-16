@@ -55,6 +55,26 @@ def subtest_update_updates_TXT_records(
     assert service_instance.route53_change_ids == [bar_com_change_id, foo_com_change_id]
 
 
+def subtest_update_removes_old_TXT_records(
+    tasks, route53, instance_model, service_instance_id="4321"
+):
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    challenges = service_instance.current_certificate.challenges.all()
+    challenge = next(
+        (challenge for challenge in challenges if challenge.domain == "example.com"),
+        None,
+    )
+
+    route53.expect_remove_TXT(
+        "_acme-challenge.example.com.domains.cloud.test", challenge.validation_contents
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    route53.assert_no_pending_responses()
+
+
 def subtest_update_answers_challenges(
     tasks, dns, instance_model, service_instance_id="4321"
 ):
@@ -175,15 +195,6 @@ def subtest_update_same_domains_creates_update_operation(client, dns, instance_m
     assert instance.domain_names == ["bar.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "newer-origin.com"
     return operation_id
-
-
-def subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model):
-    tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = db.session.get(instance_model, "4321")
-    assert not instance.route53_change_ids
-    route53.assert_no_pending_responses()
-    # should run wait for changes, which should do nothing
-    tasks.run_queued_tasks_and_enqueue_dependents()
 
 
 def subtest_update_same_domains_does_not_retrieve_new_certificate(tasks):
