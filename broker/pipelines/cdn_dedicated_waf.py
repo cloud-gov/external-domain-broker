@@ -79,6 +79,7 @@ def queue_all_cdn_dedicated_waf_update_tasks_for_operation(
         .then(letsencrypt.initiate_challenges, operation_id, **correlation)
         .then(route53.create_TXT_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
+        .then(route53.remove_old_TXT_records, operation_id, **correlation)
         .then(letsencrypt.answer_challenges, operation_id, **correlation)
         .then(letsencrypt.retrieve_certificate, operation_id, **correlation)
         .then(iam.upload_server_certificate, operation_id, **correlation)
