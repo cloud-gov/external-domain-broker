@@ -38,6 +38,9 @@ def subtest_update_happy_path(
     subtest_update_updates_TXT_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_update_removes_old_TXT_records(tasks, route53, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Removing old DNS TXT records"
+    )
     subtest_update_answers_challenges(tasks, dns, instance_model)
     subtest_update_retrieves_new_cert(tasks, instance_model)
     subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex, instance_model)
