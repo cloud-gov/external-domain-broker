@@ -1,5 +1,4 @@
 import pytest
-import uuid
 
 from broker.models import DedicatedALBServiceInstance
 
@@ -13,14 +12,6 @@ from tests.lib.provision import (
     subtest_provision_waits_for_route53_changes,
 )
 from tests.lib.alb.provision import subtest_provision_provisions_ALIAS_records
-from tests.lib.alb.update import (
-    subtest_removes_previous_certificate_from_alb,
-)
-
-
-@pytest.fixture
-def organization_guid():
-    return str(uuid.uuid4())
 
 
 @pytest.fixture

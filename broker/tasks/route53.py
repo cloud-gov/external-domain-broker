@@ -51,7 +51,7 @@ def create_TXT_records(operation_id: int, **kwargs):
         db.session.commit()
 
 
-@huey.nonretriable_task
+@huey.retriable_task
 def remove_TXT_records(operation_id: int, **kwargs):
     operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
@@ -63,32 +63,31 @@ def remove_TXT_records(operation_id: int, **kwargs):
 
     for certificate in service_instance.certificates:
         for challenge in certificate.challenges:
-            domain = challenge.validation_domain
-            txt_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
-            contents = challenge.validation_contents
-            logger.info(f'Removing TXT record {txt_record} with contents "{contents}"')
-            try:
-                route53_response = route53.change_resource_record_sets(
-                    ChangeBatch={
-                        "Changes": [
-                            {
-                                "Action": "DELETE",
-                                "ResourceRecordSet": {
-                                    "Type": "TXT",
-                                    "Name": txt_record,
-                                    "ResourceRecords": [{"Value": f'"{contents}"'}],
-                                    "TTL": 60,
-                                },
-                            }
-                        ]
-                    },
-                    HostedZoneId=config.ROUTE53_ZONE_ID,
-                )
-            except:  # noqa E722
-                logger.info("Ignoring error because we don't care")
-            else:
-                change_id = route53_response["ChangeInfo"]["Id"]
-                logger.info(f"Ignoring Route53 TXT change ID: {change_id}")
+            _delete_TXT_record(challenge)
+
+
+@huey.retriable_task
+def remove_old_DNS_records(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    service_instance = operation.service_instance
+
+    operation.step_description = "Removing old DNS records"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    # TODO: do we only need to look at the current certificate?
+    current_cert = service_instance.current_certificate
+    challenges = current_cert.challenges.all()
+
+    challenges_to_remove = [
+        challenge
+        for challenge in challenges
+        if challenge.domain not in service_instance.domain_names
+    ]
+    for challenge in challenges_to_remove:
+        _delete_TXT_record(challenge)
+        _delete_ALIAS_record(challenge.domain, service_instance)
 
 
 @huey.retriable_task
@@ -174,7 +173,7 @@ def create_ALIAS_records(operation_id: str, **kwargs):
         db.session.commit()
 
 
-@huey.nonretriable_task
+@huey.retriable_task
 def remove_ALIAS_records(operation_id: str, **kwargs):
     operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
@@ -187,46 +186,7 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
     logger.info(f"Removing ALIAS records for {service_instance.domain_names}")
 
     for domain in service_instance.domain_names:
-        alias_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
-        target = service_instance.domain_internal
-        logger.info(f'Removing ALIAS record {alias_record} pointing to "{target}"')
-        try:
-            route53_response = route53.change_resource_record_sets(
-                ChangeBatch={
-                    "Changes": [
-                        {
-                            "Action": "DELETE",
-                            "ResourceRecordSet": {
-                                "Type": "A",
-                                "Name": alias_record,
-                                "AliasTarget": {
-                                    "DNSName": target,
-                                    "HostedZoneId": service_instance.route53_alias_hosted_zone,
-                                    "EvaluateTargetHealth": False,
-                                },
-                            },
-                        },
-                        {
-                            "Action": "DELETE",
-                            "ResourceRecordSet": {
-                                "Type": "AAAA",
-                                "Name": alias_record,
-                                "AliasTarget": {
-                                    "DNSName": target,
-                                    "HostedZoneId": service_instance.route53_alias_hosted_zone,
-                                    "EvaluateTargetHealth": False,
-                                },
-                            },
-                        },
-                    ]
-                },
-                HostedZoneId=config.ROUTE53_ZONE_ID,
-            )
-        except:  # noqa E722
-            logger.info("Ignoring error because we don't care")
-        else:
-            change_id = route53_response["ChangeInfo"]["Id"]
-            logger.info(f"Not tracking change ID: {change_id}")
+        _delete_ALIAS_record(domain, service_instance)
 
 
 @huey.retriable_task
@@ -414,3 +374,77 @@ def _delete_health_check(health_check_id):
             "Associated health check not found",
             extra={"health_check_id": health_check_id},
         )
+
+
+def _delete_ALIAS_record(domain, service_instance):
+    alias_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
+    target = service_instance.domain_internal
+    logger.info(f'Removing ALIAS record {alias_record} pointing to "{target}"')
+
+    try:
+        route53_response = route53.change_resource_record_sets(
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "DELETE",
+                        "ResourceRecordSet": {
+                            "Type": "A",
+                            "Name": alias_record,
+                            "AliasTarget": {
+                                "DNSName": target,
+                                "HostedZoneId": service_instance.route53_alias_hosted_zone,
+                                "EvaluateTargetHealth": False,
+                            },
+                        },
+                    },
+                    {
+                        "Action": "DELETE",
+                        "ResourceRecordSet": {
+                            "Type": "AAAA",
+                            "Name": alias_record,
+                            "AliasTarget": {
+                                "DNSName": target,
+                                "HostedZoneId": service_instance.route53_alias_hosted_zone,
+                                "EvaluateTargetHealth": False,
+                            },
+                        },
+                    },
+                ]
+            },
+            HostedZoneId=config.ROUTE53_ZONE_ID,
+        )
+    except:  # noqa E722
+        logger.info("Ignoring error because we don't care")
+    else:
+        change_id = route53_response["ChangeInfo"]["Id"]
+        logger.info(f"Not tracking change ID: {change_id}")
+
+
+def _delete_TXT_record(challenge):
+    domain = challenge.validation_domain
+    txt_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
+    contents = challenge.validation_contents
+    logger.info(f'Removing TXT record {txt_record} with contents "{contents}"')
+
+    try:
+        route53_response = route53.change_resource_record_sets(
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "DELETE",
+                        "ResourceRecordSet": {
+                            "Type": "TXT",
+                            "Name": txt_record,
+                            "ResourceRecords": [{"Value": f'"{contents}"'}],
+                            "TTL": 60,
+                        },
+                    }
+                ]
+            },
+            HostedZoneId=config.ROUTE53_ZONE_ID,
+        )
+    except:  # noqa E722
+        logger.info("Ignoring error because we don't care")
+    else:
+        change_id = route53_response["ChangeInfo"]["Id"]
+        logger.info(f"Ignoring Route53 TXT change ID: {change_id}")

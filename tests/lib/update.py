@@ -37,7 +37,7 @@ def subtest_gets_new_challenges(tasks, instance_model, service_instance_id="4321
     )
 
 
-def subtest_update_updates_TXT_records(
+def subtest_update_creates_new_TXT_records(
     tasks, route53, instance_model, service_instance_id="4321"
 ):
     bar_com_change_id = route53.expect_create_TXT_and_return_change_id(
@@ -175,15 +175,6 @@ def subtest_update_same_domains_creates_update_operation(client, dns, instance_m
     assert instance.domain_names == ["bar.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "newer-origin.com"
     return operation_id
-
-
-def subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model):
-    tasks.run_queued_tasks_and_enqueue_dependents()
-    instance = db.session.get(instance_model, "4321")
-    assert not instance.route53_change_ids
-    route53.assert_no_pending_responses()
-    # should run wait for changes, which should do nothing
-    tasks.run_queued_tasks_and_enqueue_dependents()
 
 
 def subtest_update_same_domains_does_not_retrieve_new_certificate(tasks):

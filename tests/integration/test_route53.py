@@ -5,6 +5,7 @@ from broker.tasks.route53 import (
     create_new_health_checks,
     delete_unused_health_checks,
     delete_health_checks,
+    remove_old_DNS_records,
 )
 from broker.models import (
     CDNServiceInstance,
@@ -21,6 +22,8 @@ def service_instance(
     operation_id,
     service_instance_id,
     cloudfront_distribution_arn,
+    new_cert_id,
+    current_cert_id,
 ):
     service_instance = factories.CDNDedicatedWAFServiceInstanceFactory.create(
         id=service_instance_id,
@@ -41,13 +44,13 @@ def service_instance(
         iam_server_certificate_id="certificate_id",
         leaf_pem="SOMECERTPEM",
         fullchain_pem="FULLCHAINOFSOMECERTPEM",
-        id=1002,
+        id=new_cert_id,
     )
     current_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
         private_key_pem="SOMEPRIVATEKEY",
         iam_server_certificate_id="certificate_id",
-        id=1001,
+        id=current_cert_id,
     )
     service_instance.current_certificate = current_cert
     service_instance.new_certificate = new_cert
@@ -58,6 +61,23 @@ def service_instance(
     clean_db.session.expunge_all()
     factories.OperationFactory.create(
         id=operation_id, service_instance=service_instance
+    )
+    return service_instance
+
+
+@pytest.fixture
+def service_instance_with_challenges(service_instance, current_cert_id):
+    factories.ChallengeFactory.create(
+        domain="example.com",
+        validation_contents="example txt",
+        certificate_id=current_cert_id,
+        answered=True,
+    )
+    factories.ChallengeFactory.create(
+        domain="foo.com",
+        validation_contents="foo txt",
+        certificate_id=current_cert_id,
+        answered=True,
     )
     return service_instance
 
@@ -352,3 +372,64 @@ def test_route53_deletes_health_checks_unmigrated_cdn_dedicated_waf_instance(
         CDNDedicatedWAFServiceInstance, service_instance_id
     )
     assert service_instance.route53_health_checks == None
+
+
+def test_route53_deletes_old_DNS_records_does_nothing(
+    clean_db, route53, service_instance_with_challenges, operation_id
+):
+    remove_old_DNS_records.call_local(operation_id)
+
+    route53.assert_no_pending_responses()
+
+    operation = clean_db.session.get(Operation, operation_id)
+    assert operation.step_description == "Removing old DNS records"
+
+
+def test_route53_deletes_old_DNS_records(
+    clean_db, route53, service_instance_with_challenges, operation_id
+):
+    # simulate a change in domain names
+    service_instance_with_challenges.domain_names = ["bar.com", "cow.com"]
+
+    clean_db.session.add(service_instance_with_challenges)
+    clean_db.session.commit()
+
+    route53.expect_remove_TXT(
+        "_acme-challenge.example.com.domains.cloud.test", "example txt"
+    )
+    route53.expect_remove_ALIAS(
+        "example.com.domains.cloud.test", "fake1234.cloudfront.net"
+    )
+    route53.expect_remove_TXT("_acme-challenge.foo.com.domains.cloud.test", "foo txt")
+    route53.expect_remove_ALIAS("foo.com.domains.cloud.test", "fake1234.cloudfront.net")
+
+    remove_old_DNS_records.call_local(operation_id)
+
+    route53.assert_no_pending_responses()
+
+
+def test_route53_deletes_old_DNS_records_ignores_errors(
+    clean_db, route53, service_instance_with_challenges, operation_id
+):
+    # simulate a change in domain names
+    service_instance_with_challenges.domain_names = ["bar.com", "cow.com"]
+
+    clean_db.session.add(service_instance_with_challenges)
+    clean_db.session.commit()
+
+    # error should be ignored
+    route53.expect_remove_missing_TXT(
+        "_acme-challenge.example.com.domains.cloud.test", "example txt"
+    )
+    route53.expect_remove_ALIAS(
+        "example.com.domains.cloud.test", "fake1234.cloudfront.net"
+    )
+    route53.expect_remove_TXT("_acme-challenge.foo.com.domains.cloud.test", "foo txt")
+    # error should be ignored
+    route53.expect_remove_missing_ALIAS(
+        "foo.com.domains.cloud.test", "fake1234.cloudfront.net"
+    )
+
+    remove_old_DNS_records.call_local(operation_id)
+
+    route53.assert_no_pending_responses()

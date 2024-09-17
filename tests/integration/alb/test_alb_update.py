@@ -10,7 +10,7 @@ from tests.lib.client import check_last_operation_description
 from tests.lib.update import (
     subtest_update_creates_private_key_and_csr,
     subtest_gets_new_challenges,
-    subtest_update_updates_TXT_records,
+    subtest_update_creates_new_TXT_records,
     subtest_update_answers_challenges,
     subtest_waits_for_dns_changes,
     subtest_update_retrieves_new_cert,
@@ -21,6 +21,7 @@ from tests.lib.alb.update import (
     subtest_update_uploads_new_cert,
     subtest_update_provisions_ALIAS_records,
     subtest_removes_previous_certificate_from_alb,
+    subtest_update_removes_old_DNS_records,
 )
 
 
@@ -32,8 +33,12 @@ def subtest_update_happy_path(
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_update_creates_private_key_and_csr(tasks, instance_model)
     subtest_gets_new_challenges(tasks, instance_model)
-    subtest_update_updates_TXT_records(tasks, route53, instance_model)
+    subtest_update_creates_new_TXT_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
+    subtest_update_removes_old_DNS_records(tasks, route53, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Removing old DNS records"
+    )
     subtest_update_answers_challenges(tasks, dns, instance_model)
     subtest_update_retrieves_new_cert(tasks, instance_model)
     subtest_update_uploads_new_cert(tasks, iam_govcloud, simple_regex, instance_model)

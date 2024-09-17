@@ -1,5 +1,4 @@
 import pytest  # noqa F401
-import uuid
 
 from broker.extensions import db
 from broker.models import CDNDedicatedWAFServiceInstance
@@ -25,11 +24,6 @@ from tests.lib.deprovision import (
     subtest_deprovision_marks_operation_as_succeeded,
     subtest_deprovision_removes_certificate_from_iam_when_missing,
 )
-
-
-@pytest.fixture
-def protection_id():
-    return str(uuid.uuid4())
 
 
 @pytest.fixture

@@ -9,7 +9,7 @@ from tests.lib.client import check_last_operation_description
 from tests.lib.update import (
     subtest_update_creates_private_key_and_csr,
     subtest_gets_new_challenges,
-    subtest_update_updates_TXT_records,
+    subtest_update_creates_new_TXT_records,
     subtest_update_answers_challenges,
     subtest_waits_for_dns_changes,
     subtest_update_retrieves_new_cert,
@@ -34,8 +34,12 @@ def subtest_update_happy_path(
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_update_creates_private_key_and_csr(tasks, instance_model)
     subtest_gets_new_challenges(tasks, instance_model)
-    subtest_update_updates_TXT_records(tasks, route53, instance_model)
+    subtest_update_creates_new_TXT_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
+    subtest_update_removes_old_DNS_records(tasks, route53, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Removing old DNS records"
+    )
     subtest_update_answers_challenges(tasks, dns, instance_model)
     subtest_update_retrieves_new_cert(tasks, instance_model)
     subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex, instance_model)
@@ -194,7 +198,8 @@ def subtest_update_same_domains(
     subtest_update_same_domains_creates_update_operation(client, dns, instance_model)
     subtest_update_same_domains_does_not_create_new_certificate(tasks, instance_model)
     subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model)
-    subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
+    subtest_update_does_not_create_new_TXT_records(tasks, route53, instance_model)
+    subtest_update_does_not_remove_old_TXT_records(tasks, route53)
     subtest_update_same_domains_does_not_retrieve_new_certificate(tasks)
     subtest_update_same_domains_does_not_update_iam(tasks)
     subtest_update_same_domains_updates_cloudfront(
@@ -264,14 +269,43 @@ def subtest_update_same_domains_does_not_create_new_challenges(
     assert all([c.answered for c in certificate.challenges])
 
 
-def subtest_update_same_domains_does_not_update_route53(
+def subtest_update_does_not_create_new_TXT_records(
     tasks, route53, instance_model, service_instance_id="4321"
 ):
     tasks.run_queued_tasks_and_enqueue_dependents()
     instance = db.session.get(instance_model, service_instance_id)
     assert not instance.route53_change_ids
+    route53.assert_no_pending_responses()
     # should run wait for changes, which should do nothing
     tasks.run_queued_tasks_and_enqueue_dependents()
+    route53.assert_no_pending_responses()
+
+
+def subtest_update_does_not_remove_old_TXT_records(tasks, route53):
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    route53.assert_no_pending_responses()
+
+
+def subtest_update_removes_old_DNS_records(
+    tasks, route53, instance_model, service_instance_id="4321"
+):
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    challenges = service_instance.current_certificate.challenges.all()
+    challenge = next(
+        (challenge for challenge in challenges if challenge.domain == "example.com"),
+        None,
+    )
+
+    route53.expect_remove_TXT(
+        "_acme-challenge.example.com.domains.cloud.test", challenge.validation_contents
+    )
+    route53.expect_remove_ALIAS(
+        "example.com.domains.cloud.test", "fake1234.cloudfront.net"
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
     route53.assert_no_pending_responses()
 
 

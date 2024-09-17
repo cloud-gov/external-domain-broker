@@ -1,6 +1,3 @@
-import pytest  # noqa F401
-import uuid
-
 from broker.models import (
     CDNDedicatedWAFServiceInstance,
 )
@@ -26,13 +23,12 @@ from tests.lib.cdn.provision import (
 from tests.lib.update import (
     subtest_update_creates_private_key_and_csr,
     subtest_gets_new_challenges,
-    subtest_update_updates_TXT_records,
+    subtest_update_creates_new_TXT_records,
     subtest_update_answers_challenges,
     subtest_waits_for_dns_changes,
     subtest_update_retrieves_new_cert,
     subtest_update_marks_update_complete,
     subtest_update_removes_certificate_from_iam,
-    subtest_update_same_domains_does_not_update_route53,
 )
 from tests.lib.cdn.update import (
     subtest_update_creates_update_operation,
@@ -47,6 +43,9 @@ from tests.lib.cdn.update import (
     subtest_update_same_domains_updates_cloudfront,
     subtest_update_same_domains_does_not_delete_server_certificate,
     subtest_update_same_domains_does_not_create_new_challenges,
+    subtest_update_does_not_create_new_TXT_records,
+    subtest_update_does_not_remove_old_TXT_records,
+    subtest_update_removes_old_DNS_records,
 )
 from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
@@ -64,16 +63,6 @@ from tests.integration.cdn_dedicated_waf.update import (
     subtest_updates_health_check_alarms,
     subtest_updates_health_check_alarms_no_change,
 )
-
-
-@pytest.fixture
-def organization_guid():
-    return str(uuid.uuid4())
-
-
-@pytest.fixture
-def space_guid():
-    return str(uuid.uuid4())
 
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we
@@ -223,8 +212,12 @@ def subtest_update_happy_path(
     check_last_operation_description(client, "4321", operation_id, "Queuing tasks")
     subtest_update_creates_private_key_and_csr(tasks, instance_model)
     subtest_gets_new_challenges(tasks, instance_model)
-    subtest_update_updates_TXT_records(tasks, route53, instance_model)
+    subtest_update_creates_new_TXT_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
+    subtest_update_removes_old_DNS_records(tasks, route53, instance_model)
+    check_last_operation_description(
+        client, "4321", operation_id, "Removing old DNS records"
+    )
     subtest_update_answers_challenges(tasks, dns, instance_model)
     subtest_update_retrieves_new_cert(tasks, instance_model)
     subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex, instance_model)
@@ -270,7 +263,8 @@ def subtest_update_same_domains(
     subtest_update_same_domains_creates_update_operation(client, dns, instance_model)
     subtest_update_same_domains_does_not_create_new_certificate(tasks, instance_model)
     subtest_update_same_domains_does_not_create_new_challenges(tasks, instance_model)
-    subtest_update_same_domains_does_not_update_route53(tasks, route53, instance_model)
+    subtest_update_does_not_create_new_TXT_records(tasks, route53, instance_model)
+    subtest_update_does_not_remove_old_TXT_records(tasks, route53)
     subtest_update_same_domains_does_not_retrieve_new_certificate(tasks)
     subtest_update_same_domains_does_not_update_iam(tasks)
     subtest_update_web_acl_does_not_update(tasks, wafv2)
