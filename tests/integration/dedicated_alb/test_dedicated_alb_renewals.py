@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 
 from acme.errors import ValidationError
 import pytest
-import uuid
 
 from broker.extensions import db
 from broker.models import Operation, DedicatedALBServiceInstance
@@ -38,11 +37,6 @@ from tests.lib.factories import (
     OperationFactory,
     CertificateFactory,
 )
-
-
-@pytest.fixture
-def organization_guid():
-    return str(uuid.uuid4())
 
 
 @pytest.fixture

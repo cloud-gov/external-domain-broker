@@ -1,6 +1,3 @@
-import pytest  # noqa F401
-import uuid
-
 from broker.extensions import db
 from broker.models import (
     DedicatedALBServiceInstance,
@@ -30,17 +27,6 @@ from tests.lib.alb.update import (
 from tests.integration.dedicated_alb.test_dedicated_alb_update import (
     subtest_update_happy_path,
 )
-
-
-@pytest.fixture
-def organization_guid():
-    return str(uuid.uuid4())
-
-
-@pytest.fixture
-def space_guid():
-    return str(uuid.uuid4())
-
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we
 # had separate tests for each stage in the task pipeline.  But each test would

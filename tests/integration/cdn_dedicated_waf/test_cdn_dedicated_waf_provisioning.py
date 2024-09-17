@@ -1,6 +1,3 @@
-import pytest  # noqa F401
-import uuid
-
 from broker.models import (
     CDNDedicatedWAFServiceInstance,
 )
@@ -66,16 +63,6 @@ from tests.integration.cdn_dedicated_waf.update import (
     subtest_updates_health_check_alarms,
     subtest_updates_health_check_alarms_no_change,
 )
-
-
-@pytest.fixture
-def organization_guid():
-    return str(uuid.uuid4())
-
-
-@pytest.fixture
-def space_guid():
-    return str(uuid.uuid4())
 
 
 # The subtests below are "interesting".  Before test_provision_happy_path, we

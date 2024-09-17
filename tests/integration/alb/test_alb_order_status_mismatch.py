@@ -8,9 +8,7 @@ It doesn't matter that this test is on ALB - the same issue occurs for the same 
 instance type, but there's no need to test both cases.
 """
 
-import pytest
-import uuid
-from broker.extensions import config, db
+from broker.extensions import db
 from broker.models import ALBServiceInstance
 from broker.tasks.letsencrypt import retrieve_certificate
 
@@ -26,16 +24,6 @@ from tests.lib.alb.provision import (
     subtest_provision_creates_provision_operation,
     subtest_provision_retrieves_certificate,
 )
-
-
-@pytest.fixture
-def organization_guid():
-    return str(uuid.uuid4())
-
-
-@pytest.fixture
-def space_guid():
-    return str(uuid.uuid4())
 
 
 def test_stuff(client, dns, tasks, route53, organization_guid, space_guid):
