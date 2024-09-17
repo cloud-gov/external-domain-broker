@@ -471,6 +471,13 @@ def provision_cdn_instance(
         instance.origin_protocol_policy = instance_type_model.ProtocolPolicy.HTTP.value
     else:
         instance.origin_protocol_policy = instance_type_model.ProtocolPolicy.HTTPS.value
+
+    if (
+        "alarm_notification_email" in params
+        and instance.type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value
+    ):
+        instance.alarm_notification_email = params["alarm_notification_email"]
+
     return instance
 
 
@@ -519,6 +526,12 @@ def update_cdn_instance(params, instance):
     if "error_responses" in params:
         instance.error_responses = params["error_responses"]
         validators.ErrorResponseConfig(instance.error_responses).validate()
+
+    if (
+        "alarm_notification_email" in params
+        and instance.type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value
+    ):
+        instance.alarm_notification_email = params["alarm_notification_email"]
 
     return instance
 
