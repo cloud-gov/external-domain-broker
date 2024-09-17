@@ -260,3 +260,41 @@ def test_provision_sets_custom_error_responses(
     )
     instance = db.session.get(instance_model, "4321")
     assert instance.error_responses["404"] == "/errors/404.html"
+
+
+@pytest.mark.parametrize(
+    "instance_model, alarm_notification_email_param, expected_alarm_notification_email",
+    [
+        [CDNServiceInstance, "foo@bar.com", None],
+        [CDNDedicatedWAFServiceInstance, "foo@bar.com", "foo@bar.com"],
+    ],
+)
+def test_provision_sets_alarm_notification_email(
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    instance_model,
+    service_instance_id,
+    alarm_notification_email_param,
+    expected_alarm_notification_email,
+    mocked_cf_api,
+):
+    dns.add_cname("_acme-challenge.example.com")
+    client.provision_instance(
+        instance_model,
+        service_instance_id,
+        params={
+            "domains": ["example.com"],
+            "alarm_notification_email": alarm_notification_email_param,
+        },
+        organization_guid=organization_guid,
+        space_guid=space_guid,
+    )
+    instance = db.session.get(instance_model, service_instance_id)
+    alarm_notification_email = (
+        instance.alarm_notification_email
+        if hasattr(instance, "alarm_notification_email")
+        else None
+    )
+    assert alarm_notification_email == expected_alarm_notification_email
