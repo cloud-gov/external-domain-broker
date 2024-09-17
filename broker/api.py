@@ -98,7 +98,7 @@ class API(ServiceBroker):
                 imageUrl="TODO",
                 longDescription="Create a custom domain to your application with TLS and an optional CDN. This will provision a TLS certificate from Let's Encrypt, a free certificate provider.",
                 providerDisplayName="Cloud.gov",
-                documentationUrl="https://github.com/cloud-gov/external-domain-broker",
+                documentationUrl="https://cloud.gov/docs/services/external-domain-service/",
                 supportUrl="https://cloud.gov/support",
             ),
             plans=[
