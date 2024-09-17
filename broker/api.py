@@ -68,6 +68,7 @@ from broker.pipelines.migration import (
     queue_all_migration_deprovision_tasks_for_operation,
 )
 from broker.lib.utils import (
+    parse_alarm_notification_email,
     parse_cookie_options,
     parse_header_options,
     normalize_header_list,
@@ -472,11 +473,9 @@ def provision_cdn_instance(
     else:
         instance.origin_protocol_policy = instance_type_model.ProtocolPolicy.HTTPS.value
 
-    if (
-        "alarm_notification_email" in params
-        and instance.type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value
-    ):
-        instance.alarm_notification_email = params["alarm_notification_email"]
+    alarm_notification_email = parse_alarm_notification_email(instance, params)
+    if alarm_notification_email:
+        instance.alarm_notification_email = alarm_notification_email
 
     return instance
 
@@ -527,11 +526,9 @@ def update_cdn_instance(params, instance):
         instance.error_responses = params["error_responses"]
         validators.ErrorResponseConfig(instance.error_responses).validate()
 
-    if (
-        "alarm_notification_email" in params
-        and instance.type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value
-    ):
-        instance.alarm_notification_email = params["alarm_notification_email"]
+    alarm_notification_email = parse_alarm_notification_email(instance, params)
+    if alarm_notification_email:
+        instance.alarm_notification_email = alarm_notification_email
 
     return instance
 

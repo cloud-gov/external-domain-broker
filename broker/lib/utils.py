@@ -1,9 +1,8 @@
 import logging
 
 from broker import validators
-from broker.extensions import db
-from broker.lib.cdn import is_cdn_instance
 from broker.models import (
+    ServiceInstanceTypes,
     CDNServiceInstance,
 )
 
@@ -54,6 +53,16 @@ def parse_domain_options(params) -> list[str]:
         domains = domains.split(",")
     if isinstance(domains, list):
         return [d.strip().lower() for d in domains]
+
+
+def parse_alarm_notification_email(instance, params):
+    alarm_notification_email = None
+    if (
+        "alarm_notification_email" in params
+        and instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value
+    ):
+        alarm_notification_email = params["alarm_notification_email"]
+    return alarm_notification_email
 
 
 def validate_domain_name_changes(requested_domain_names, instance) -> list[str]:
