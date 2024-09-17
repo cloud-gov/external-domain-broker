@@ -358,18 +358,21 @@ def test_provision_sets_alarm_notification_email(
     space_guid,
     instance_model,
     service_instance_id,
+    provision_params,
     alarm_notification_email_param,
     expected_alarm_notification_email,
     mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
+    provision_params.update(
+        {
+            "alarm_notification_email": alarm_notification_email_param,
+        }
+    )
     client.provision_instance(
         instance_model,
         service_instance_id,
-        params={
-            "domains": ["example.com"],
-            "alarm_notification_email": alarm_notification_email_param,
-        },
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -395,18 +398,19 @@ def test_provision_no_alarm_notification_email(
     organization_guid,
     space_guid,
     instance_model,
+    provision_params,
     service_instance_id,
     response_status_code,
     mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
 
+    provision_params["alarm_notification_email"] = None
+
     client.provision_instance(
         instance_model,
         service_instance_id,
-        params={
-            "domains": ["example.com"],
-        },
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
