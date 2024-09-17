@@ -17,7 +17,6 @@ from tests.lib.update import (
     subtest_update_removes_certificate_from_iam,
     subtest_update_same_domains_does_not_update_iam,
     subtest_update_same_domains_does_not_retrieve_new_certificate,
-    subtest_update_removes_old_DNS_records,
 )
 
 
