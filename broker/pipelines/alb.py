@@ -58,6 +58,7 @@ def queue_all_alb_update_tasks_for_operation(operation_id, correlation_id):
         .then(letsencrypt.initiate_challenges, operation_id, **correlation)
         .then(route53.create_TXT_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
+        .then(route53.remove_old_DNS_records, operation_id, **correlation)
         .then(letsencrypt.answer_challenges, operation_id, **correlation)
         .then(letsencrypt.retrieve_certificate, operation_id, **correlation)
         .then(iam.upload_server_certificate, operation_id, **correlation)
