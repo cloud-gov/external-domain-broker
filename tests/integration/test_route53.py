@@ -374,6 +374,17 @@ def test_route53_deletes_health_checks_unmigrated_cdn_dedicated_waf_instance(
     assert service_instance.route53_health_checks == None
 
 
+def test_route53_deletes_old_DNS_records_does_nothing(
+    clean_db, route53, service_instance_with_challenges, operation_id
+):
+    remove_old_DNS_records.call_local(operation_id)
+
+    route53.assert_no_pending_responses()
+
+    operation = clean_db.session.get(Operation, operation_id)
+    assert operation.step_description == "Removing old DNS records"
+
+
 def test_route53_deletes_old_DNS_records(
     clean_db, route53, service_instance_with_challenges, operation_id
 ):
