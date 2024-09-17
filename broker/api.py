@@ -25,7 +25,7 @@ from sap import cf_logging
 
 from broker import validators
 from broker.extensions import config, db
-from broker.lib.cdn import is_cdn_instance
+from broker.lib.cdn import is_cdn_instance, is_cdn_dedicated_waf_instance
 from broker.lib.tags import generate_instance_tags
 from broker.models import (
     Operation,
@@ -476,6 +476,10 @@ def provision_cdn_instance(
     alarm_notification_email = parse_alarm_notification_email(instance, params)
     if alarm_notification_email:
         instance.alarm_notification_email = alarm_notification_email
+    elif is_cdn_dedicated_waf_instance(instance) and not alarm_notification_email:
+        raise errors.ErrBadRequest(
+            f"'alarm_notification_email' is required for {ServiceInstanceTypes.CDN_DEDICATED_WAF.value} instances"
+        )
 
     return instance
 
