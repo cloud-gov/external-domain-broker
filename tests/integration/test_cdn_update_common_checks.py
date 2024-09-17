@@ -78,7 +78,6 @@ def service_instance(service_instance_factory):
     db.session.add(current_cert)
     db.session.add(new_cert)
     db.session.commit()
-    db.session.expunge_all()
     return service_instance
 
 
@@ -285,3 +284,63 @@ def test_update_refuses_insecure_origin_for_default_origin(
     desc = client.response.json.get("description")
     assert client.response.status_code == 400
     assert "insecure_origin" in desc
+
+
+@pytest.mark.parametrize(
+    "instance_model, alarm_notification_email_param, expected_alarm_notification_email",
+    [
+        [CDNServiceInstance, "foo@bar.com", None],
+        [CDNDedicatedWAFServiceInstance, "foo@bar.com", "foo@bar.com"],
+    ],
+)
+def test_provision_sets_alarm_notification_email(
+    dns,
+    client,
+    instance_model,
+    alarm_notification_email_param,
+    expected_alarm_notification_email,
+    service_instance,
+    mocked_cf_api,
+):
+    dns.add_cname("_acme-challenge.example.com")
+    client.update_instance(
+        instance_model,
+        service_instance.id,
+        params={
+            "domains": ["example.com"],
+            "alarm_notification_email": alarm_notification_email_param,
+        },
+    )
+    instance = db.session.get(instance_model, service_instance.id)
+    alarm_notification_email = (
+        instance.alarm_notification_email
+        if hasattr(instance, "alarm_notification_email")
+        else None
+    )
+    assert alarm_notification_email == expected_alarm_notification_email
+
+
+@pytest.mark.parametrize(
+    "instance_model, expected_response_status",
+    [
+        [CDNServiceInstance, 202],
+        [CDNDedicatedWAFServiceInstance, 202],
+    ],
+)
+def test_provision_no_alarm_notification_email(
+    dns,
+    client,
+    instance_model,
+    expected_response_status,
+    service_instance,
+    mocked_cf_api,
+):
+    dns.add_cname("_acme-challenge.example.com")
+    client.update_instance(
+        instance_model,
+        service_instance.id,
+        params={
+            "domains": ["example.com"],
+        },
+    )
+    assert client.response.status_code == expected_response_status
