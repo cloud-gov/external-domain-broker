@@ -51,7 +51,7 @@ def create_TXT_records(operation_id: int, **kwargs):
         db.session.commit()
 
 
-@huey.nonretriable_task
+@huey.retriable_task
 def remove_TXT_records(operation_id: int, **kwargs):
     operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
@@ -67,11 +67,11 @@ def remove_TXT_records(operation_id: int, **kwargs):
 
 
 @huey.retriable_task
-def remove_old_TXT_records(operation_id: int, **kwargs):
+def remove_old_DNS_records(operation_id: int, **kwargs):
     operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
 
-    operation.step_description = "Removing old DNS TXT records"
+    operation.step_description = "Removing old DNS records"
     flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
@@ -87,6 +87,7 @@ def remove_old_TXT_records(operation_id: int, **kwargs):
     ]
     for challenge in challenges_to_remove:
         _delete_TXT_record(challenge)
+        _delete_ALIAS_record(challenge.domain, service_instance)
 
 
 @huey.retriable_task
@@ -172,7 +173,7 @@ def create_ALIAS_records(operation_id: str, **kwargs):
         db.session.commit()
 
 
-@huey.nonretriable_task
+@huey.retriable_task
 def remove_ALIAS_records(operation_id: str, **kwargs):
     operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
@@ -412,6 +413,44 @@ def _delete_health_check(health_check_id):
             "Associated health check not found",
             extra={"health_check_id": health_check_id},
         )
+
+
+def _delete_ALIAS_record(domain, service_instance):
+    alias_record = f"{domain}.{config.DNS_ROOT_DOMAIN}"
+    target = service_instance.domain_internal
+    logger.info(f'Removing ALIAS record {alias_record} pointing to "{target}"')
+
+    route53.change_resource_record_sets(
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "DELETE",
+                    "ResourceRecordSet": {
+                        "Type": "A",
+                        "Name": alias_record,
+                        "AliasTarget": {
+                            "DNSName": target,
+                            "HostedZoneId": service_instance.route53_alias_hosted_zone,
+                            "EvaluateTargetHealth": False,
+                        },
+                    },
+                },
+                {
+                    "Action": "DELETE",
+                    "ResourceRecordSet": {
+                        "Type": "AAAA",
+                        "Name": alias_record,
+                        "AliasTarget": {
+                            "DNSName": target,
+                            "HostedZoneId": service_instance.route53_alias_hosted_zone,
+                            "EvaluateTargetHealth": False,
+                        },
+                    },
+                },
+            ]
+        },
+        HostedZoneId=config.ROUTE53_ZONE_ID,
+    )
 
 
 def _delete_TXT_record(challenge):
