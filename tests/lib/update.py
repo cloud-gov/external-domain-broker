@@ -55,7 +55,7 @@ def subtest_update_creates_new_TXT_records(
     assert service_instance.route53_change_ids == [bar_com_change_id, foo_com_change_id]
 
 
-def subtest_update_removes_old_TXT_records(
+def subtest_update_removes_old_DNS_records(
     tasks, route53, instance_model, service_instance_id="4321"
 ):
     service_instance = db.session.get(instance_model, service_instance_id)
@@ -68,6 +68,9 @@ def subtest_update_removes_old_TXT_records(
 
     route53.expect_remove_TXT(
         "_acme-challenge.example.com.domains.cloud.test", challenge.validation_contents
+    )
+    route53.expect_remove_ALIAS(
+        "example.com.domains.cloud.test", "fake1234.cloudfront.net"
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

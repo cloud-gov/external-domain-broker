@@ -32,7 +32,7 @@ from tests.lib.update import (
     subtest_update_retrieves_new_cert,
     subtest_update_marks_update_complete,
     subtest_update_removes_certificate_from_iam,
-    subtest_update_removes_old_TXT_records,
+    subtest_update_removes_old_DNS_records,
 )
 from tests.lib.cdn.update import (
     subtest_update_creates_update_operation,
@@ -227,9 +227,9 @@ def subtest_update_happy_path(
     subtest_gets_new_challenges(tasks, instance_model)
     subtest_update_creates_new_TXT_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
-    subtest_update_removes_old_TXT_records(tasks, route53, instance_model)
+    subtest_update_removes_old_DNS_records(tasks, route53, instance_model)
     check_last_operation_description(
-        client, "4321", operation_id, "Removing old DNS TXT records"
+        client, "4321", operation_id, "Removing old DNS records"
     )
     subtest_update_answers_challenges(tasks, dns, instance_model)
     subtest_update_retrieves_new_cert(tasks, instance_model)
