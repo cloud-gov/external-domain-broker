@@ -1,4 +1,5 @@
 import pytest  # noqa F401
+from openbrokerapi import errors
 
 from broker.extensions import config, db
 
@@ -8,18 +9,29 @@ from broker.models import (
 )
 
 
+@pytest.fixture
+def provision_params():
+    return {"domains": "example.com", "alarm_notification_email": "foo@bar.com"}
+
+
 @pytest.mark.parametrize(
     "instance_model",
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_default_origin_and_path_if_none_provided(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
         instance_model,
         "4321",
-        params={"domains": "example.com"},
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -38,13 +50,19 @@ def test_provision_sets_default_origin_and_path_if_none_provided(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_default_cookie_policy_if_none_provided(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
         instance_model,
         "4321",
-        params={"domains": "example.com"},
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -58,13 +76,20 @@ def test_provision_sets_default_cookie_policy_if_none_provided(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_none_cookie_policy(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
+    provision_params.update({"forward_cookies": ""})
     client.provision_instance(
         instance_model,
         "4321",
-        params={"domains": "example.com", "forward_cookies": ""},
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -78,16 +103,20 @@ def test_provision_sets_none_cookie_policy(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_forward_cookie_policy_with_cookies(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
+    provision_params.update({"forward_cookies": "my_cookie , my_other_cookie"})
     client.provision_instance(
         instance_model,
         "4321",
-        params={
-            "domains": "example.com",
-            "forward_cookies": "my_cookie , my_other_cookie",
-        },
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -101,13 +130,20 @@ def test_provision_sets_forward_cookie_policy_with_cookies(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_forward_cookie_policy_with_star(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
+    provision_params.update({"forward_cookies": "*"})
     client.provision_instance(
         instance_model,
         "4321",
-        params={"domains": "example.com", "forward_cookies": "*"},
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -121,13 +157,19 @@ def test_provision_sets_forward_cookie_policy_with_star(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_forward_headers_to_host_when_none_specified(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
         instance_model,
         "4321",
-        params={"domains": "example.com"},
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -140,16 +182,20 @@ def test_provision_sets_forward_headers_to_host_when_none_specified(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_forward_headers_plus_host_when_some_specified(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
+    provision_params.update({"forward_headers": "x-my-header,x-your-header"})
     client.provision_instance(
         instance_model,
         "4321",
-        params={
-            "domains": "example.com",
-            "forward_headers": "x-my-header,x-your-header",
-        },
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -164,13 +210,20 @@ def test_provision_sets_forward_headers_plus_host_when_some_specified(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_does_not_set_host_header_when_using_custom_origin(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
+    provision_params.update({"origin": "my-origin.example.gov"})
     client.provision_instance(
         instance_model,
         "4321",
-        params={"domains": "example.com", "origin": "my-origin.example.gov"},
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -183,13 +236,19 @@ def test_provision_does_not_set_host_header_when_using_custom_origin(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_https_only_by_default(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
     client.provision_instance(
         instance_model,
         "4321",
-        params={"domains": "example.com"},
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -202,17 +261,25 @@ def test_provision_sets_https_only_by_default(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_http_when_set(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
+    provision_params.update(
+        {
+            "origin": "origin.gov",
+            "insecure_origin": True,
+        }
+    )
     client.provision_instance(
         instance_model,
         "4321",
-        params={
-            "domains": "example.com",
-            "origin": "origin.gov",
-            "insecure_origin": True,
-        },
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -225,13 +292,24 @@ def test_provision_sets_http_when_set(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_refuses_insecure_origin_for_default_origin(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
+    provision_params.update(
+        {
+            "insecure_origin": True,
+        }
+    )
     client.provision_instance(
         instance_model,
         "4321",
-        params={"domains": "example.com", "insecure_origin": True},
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -245,16 +323,20 @@ def test_provision_refuses_insecure_origin_for_default_origin(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_provision_sets_custom_error_responses(
-    dns, client, organization_guid, space_guid, instance_model, mocked_cf_api
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    provision_params,
+    instance_model,
+    mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
+    provision_params.update({"error_responses": {"404": "/errors/404.html"}})
     client.provision_instance(
         instance_model,
         "4321",
-        params={
-            "domains": "example.com",
-            "error_responses": {"404": "/errors/404.html"},
-        },
+        params=provision_params,
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -298,3 +380,35 @@ def test_provision_sets_alarm_notification_email(
         else None
     )
     assert alarm_notification_email == expected_alarm_notification_email
+
+
+@pytest.mark.parametrize(
+    "instance_model, response_status_code",
+    [
+        [CDNServiceInstance, 202],
+        [CDNDedicatedWAFServiceInstance, 400],
+    ],
+)
+def test_provision_no_alarm_notification_email(
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    instance_model,
+    service_instance_id,
+    response_status_code,
+    mocked_cf_api,
+):
+    dns.add_cname("_acme-challenge.example.com")
+
+    client.provision_instance(
+        instance_model,
+        service_instance_id,
+        params={
+            "domains": ["example.com"],
+        },
+        organization_guid=organization_guid,
+        space_guid=space_guid,
+    )
+
+    assert client.response.status_code == response_status_code
