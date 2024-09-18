@@ -709,6 +709,43 @@ def test_create_ddos_detection_alarm(
     assert service_instance.ddos_detected_cloudwatch_alarm_name == alarm_name
 
 
+def test_create_ddos_detection_alarm_with_tags(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+    sns_commercial,
+):
+    tags = [{"Key": "foo", "Value": "bar"}]
+    service_instance.tags = tags
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    alarm_name = generate_ddos_alarm_name(service_instance)
+
+    sns_commercial.expect_create_topic(service_instance)
+    cloudwatch_commercial.expect_put_ddos_detected_alarm(
+        alarm_name, service_instance, f"{service_instance.id}-notifications-arn"
+    )
+    cloudwatch_commercial.expect_describe_alarms(
+        alarm_name, [{"AlarmArn": f"ddos-{service_instance.id}-arn"}]
+    )
+
+    create_ddos_detected_alarm.call_local(operation_id)
+
+    sns_commercial.assert_no_pending_responses()
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == alarm_name
+
+
 def test_create_ddos_detection_alarm_unmigrated_instance(
     clean_db,
     service_instance_id,
