@@ -207,7 +207,9 @@ def test_update_plan_and_domains(
 
 
 def subtest_creates_update_plan_operation(client, service_instance_id):
-    client.update_cdn_to_cdn_dedicated_waf_instance(service_instance_id)
+    client.update_cdn_to_cdn_dedicated_waf_instance(
+        service_instance_id, params={"alarm_notification_email": "fake@local.host"}
+    )
     db.session.expunge_all()
 
     assert client.response.status_code == 202, client.response.body
@@ -220,6 +222,11 @@ def subtest_creates_update_plan_operation(client, service_instance_id):
     assert operation.state == "in progress"
     assert operation.action == "Update"
     assert operation.service_instance_id == service_instance_id
+
+    service_instance = db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
+    assert service_instance.alarm_notification_email == "fake@local.host"
 
     return operation_id
 
@@ -238,6 +245,7 @@ def subtest_update_creates_update_plan_and_domains_operation(
             "forward_cookies": "mycookie,myothercookie, anewcookie",
             "forward_headers": "x-my-header, x-your-header   ",
             "insecure_origin": True,
+            "alarm_notification_email": "fake@local.host",
         },
     )
     db.session.expunge_all()
@@ -258,6 +266,8 @@ def subtest_update_creates_update_plan_and_domains_operation(
     assert instance.domain_names == ["bar.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "new-origin.com"
     assert instance.cloudfront_origin_path == "/somewhere-else"
+    assert instance.alarm_notification_email == "fake@local.host"
+
     return operation_id
 
 
