@@ -21,6 +21,7 @@ commercial_global_session = boto3.Session(
 )
 wafv2 = commercial_global_session.client("wafv2")
 cloudwatch_commercial = commercial_global_session.client("cloudwatch")
+sns_commercial = commercial_global_session.client("sns")
 
 govcloud_session = boto3.Session(
     region_name=config.AWS_GOVCLOUD_REGION,
