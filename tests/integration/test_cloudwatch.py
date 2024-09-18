@@ -6,7 +6,9 @@ from broker.tasks.cloudwatch import (
     create_health_check_alarms,
     update_health_check_alarms,
     delete_health_check_alarms,
+    create_ddos_detected_alarm,
     _get_alarm_name,
+    generate_ddos_alarm_name,
 )
 from broker.extensions import config
 from broker.models import Operation, CDNDedicatedWAFServiceInstance
@@ -671,3 +673,37 @@ def test_delete_health_check_alarms_unmigrated_instance(
         service_instance_id,
     )
     assert service_instance.cloudwatch_health_check_alarms == None
+
+
+def test_create_ddos_detection_alarm(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+    sns_commercial,
+):
+    alarm_name = generate_ddos_alarm_name(service_instance)
+
+    sns_commercial.expect_create_topic(service_instance)
+    cloudwatch_commercial.expect_put_ddos_detected_alarm(
+        alarm_name, service_instance, f"{service_instance.id}-notifications-arn"
+    )
+    cloudwatch_commercial.expect_describe_alarms(
+        alarm_name, [{"AlarmArn": f"ddos-{service_instance.id}-arn"}]
+    )
+
+    create_ddos_detected_alarm.call_local(operation_id)
+
+    sns_commercial.assert_no_pending_responses()
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    operation = clean_db.session.get(Operation, operation_id)
+    assert operation.step_description == "Creating DDoS detection alarm"
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == alarm_name

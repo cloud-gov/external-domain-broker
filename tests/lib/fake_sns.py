@@ -2,20 +2,22 @@ import pytest
 
 
 from broker.aws import sns_commercial as real_sns_commercial
+from broker.extensions import config
 
 from tests.lib.fake_aws import FakeAWS
 
 
 class FakeSNS(FakeAWS):
-    def expect_create_topic(self, topic_name: str, tags):
+    def expect_create_topic(self, service_instance):
+        topic_name = f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-notifications"
         request = {
-            "TopicName": topic_name,
+            "Name": topic_name,
         }
-        if tags:
-            request["Tags"] = tags
+        if service_instance.tags:
+            request["Tags"] = service_instance.tags
         self.stubber.add_response(
             "create_topic",
-            {},
+            {"TopicArn": f"{service_instance.id}-notifications-arn"},
             request,
         )
 

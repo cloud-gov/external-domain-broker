@@ -34,6 +34,35 @@ class FakeCloudwatch(FakeAWS):
             request,
         )
 
+    def expect_put_ddos_detected_alarm(
+        self, alarm_name, service_instance, notification_topic_arn
+    ):
+        request = {
+            "AlarmName": alarm_name,
+            "AlarmActions": [notification_topic_arn],
+            "MetricName": "DDoSDetected",
+            "Namespace": "AWS/DDoSProtection",
+            "Statistic": "Minimum",
+            "Dimensions": [
+                {
+                    "Name": "ResourceArn",
+                    "Value": service_instance.cloudfront_distribution_arn,
+                }
+            ],
+            "Period": 60,
+            "EvaluationPeriods": 1,
+            "DatapointsToAlarm": 1,
+            "Threshold": 1,
+            "ComparisonOperator": "LessThanThreshold",
+        }
+        if service_instance.tags:
+            request["Tags"] = service_instance.tags
+        self.stubber.add_response(
+            "put_metric_alarm",
+            {},
+            request,
+        )
+
     def expect_describe_alarms(self, alarm_name: str, expected_alarms):
         self.stubber.add_response(
             "describe_alarms",

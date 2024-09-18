@@ -149,7 +149,6 @@ def create_ddos_detected_alarm(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    # create alarm
     kwargs = {}
     if service_instance.tags:
         kwargs["Tags"] = service_instance.tags
@@ -162,9 +161,13 @@ def create_ddos_detected_alarm(operation_id: int, **kwargs):
     db.session.add(service_instance)
     db.session.commit()
 
-    cloudwatch_commercial.put_metric_alarm(
-        AlarmName=f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-DDoSDetected",
-        AlarmActions=[service_instance.sns_notification_topic_arn],
+    ddos_detected_alarm_name = (
+        f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-DDoSDetected"
+    )
+    _create_cloudwatch_alarm(
+        ddos_detected_alarm_name,
+        service_instance.sns_notification_topic_arn,
+        service_instance.tags,
         MetricName="DDoSDetected",
         Namespace="AWS/DDoSProtection",
         Statistic="Minimum",
@@ -174,13 +177,10 @@ def create_ddos_detected_alarm(operation_id: int, **kwargs):
                 "Value": service_instance.cloudfront_distribution_arn,
             }
         ],
-        Period=60,
-        EvaluationPeriods=1,
-        DatapointsToAlarm=1,
-        Threshold=1,
-        ComparisonOperator="LessThanThreshold",
-        **kwargs,
     )
+    service_instance.ddos_detected_cloudwatch_alarm_name = ddos_detected_alarm_name
+    db.session.add(service_instance)
+    db.session.commit()
 
 
 def _create_health_check_alarms(
@@ -268,6 +268,10 @@ def _delete_alarms(existing_health_check_alarms, alarm_names_to_delete):
         if health_check_alarm["alarm_name"] not in alarm_names_to_delete
     ]
     return existing_health_check_alarms
+
+
+def generate_ddos_alarm_name(service_instance):
+    return f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-DDoSDetected"
 
 
 def _get_alarm_name(health_check_id):
