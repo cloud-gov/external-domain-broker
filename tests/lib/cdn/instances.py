@@ -33,7 +33,9 @@ def unmigrated_cdn_service_instance_operation_id(
     )
     clean_db.session.execute(create_cdn_instance_statement)
 
-    client.update_cdn_to_cdn_dedicated_waf_instance(service_instance_id)
+    client.update_cdn_to_cdn_dedicated_waf_instance(
+        service_instance_id, params={"alarm_notification_email": "fake@local.host"}
+    )
     operation_id = client.response.json["operation"]
     return operation_id
 
@@ -63,6 +65,8 @@ def unmigrated_cdn_dedicated_waf_service_instance_operation_id(
     )
     clean_db.session.execute(create_cdn_instance_statement)
 
-    client.update_cdn_to_cdn_dedicated_waf_instance(service_instance_id)
+    client.update_cdn_to_cdn_dedicated_waf_instance(
+        service_instance_id, params={"alarm_notification_email": "fake@local.host"}
+    )
     operation_id = client.response.json["operation"]
     return operation_id
