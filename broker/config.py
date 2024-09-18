@@ -56,8 +56,7 @@ class Config:
         # the maximum from AWS is 25, and we alert when we have 20 on a given alb
         self.MAX_CERTS_PER_ALB = 19
 
-        self.DEDICATED_WAF_NAME_PREFIX = f"cg-external-domains-{self.FLASK_ENV}"
-        self.CLOUDWATCH_ALARM_NAME_PREFIX = f"cg-external-domains-{self.FLASK_ENV}"
+        self.AWS_RESOURCE_PREFIX = f"cg-external-domains-{self.FLASK_ENV}"
 
         # see https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
         self.REQUEST_TIMEOUT = 30

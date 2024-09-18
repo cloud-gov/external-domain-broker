@@ -80,7 +80,7 @@ def test_create_health_check_alarms(
     expected_health_check_alarms = []
     for health_check in service_instance.route53_health_checks:
         health_check_id = health_check["health_check_id"]
-        alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+        alarm_name = f"{config.AWS_RESOURCE_PREFIX}-{health_check_id}"
 
         cloudwatch_commercial.expect_put_metric_alarm(
             health_check_id, alarm_name, service_instance.tags
@@ -139,7 +139,7 @@ def test_create_health_check_alarms_unmigrated_cdn_instance(
     expected_health_check_alarms = []
     for health_check in route53_health_checks:
         health_check_id = health_check["health_check_id"]
-        alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+        alarm_name = f"{config.AWS_RESOURCE_PREFIX}-{health_check_id}"
 
         cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, None)
         cloudwatch_commercial.expect_describe_alarms(
@@ -178,7 +178,7 @@ def test_create_health_check_alarm_waits(
     expected_health_check_alarms = []
 
     health_check_id = service_instance.route53_health_checks[0]["health_check_id"]
-    alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+    alarm_name = f"{config.AWS_RESOURCE_PREFIX}-{health_check_id}"
     expected_health_check_alarms.append(
         {
             "alarm_name": alarm_name,
@@ -197,7 +197,7 @@ def test_create_health_check_alarm_waits(
     )
 
     health_check_id = service_instance.route53_health_checks[1]["health_check_id"]
-    alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+    alarm_name = f"{config.AWS_RESOURCE_PREFIX}-{health_check_id}"
     expected_health_check_alarms.append(
         {
             "alarm_name": alarm_name,
@@ -235,7 +235,7 @@ def test_create_health_check_alarm_error_if_alarm_not_found(
     cloudwatch_commercial,
 ):
     health_check_id = service_instance.route53_health_checks[0]["health_check_id"]
-    alarm_name = f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+    alarm_name = f"{config.AWS_RESOURCE_PREFIX}-{health_check_id}"
 
     cloudwatch_commercial.expect_put_metric_alarm(
         health_check_id, alarm_name, service_instance.tags
