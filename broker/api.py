@@ -348,11 +348,6 @@ class API(ServiceBroker):
                 instance = update_cdn_instance(params, instance)
                 db.session.add(instance)
                 db.session.commit()
-
-                if not instance.alarm_notification_email:
-                    raise errors.ErrBadRequest(
-                        f"'alarm_notification_email' is required for {ServiceInstanceTypes.CDN_DEDICATED_WAF.value}"
-                    )
             else:
                 raise ClientError("Updating service plan is not supported")
         elif instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
@@ -539,6 +534,12 @@ def update_cdn_instance(params, instance):
     alarm_notification_email = parse_alarm_notification_email(instance, params)
     if alarm_notification_email:
         instance.alarm_notification_email = alarm_notification_email
+    elif not instance.alarm_notification_email and is_cdn_dedicated_waf_instance(
+        instance
+    ):
+        raise errors.ErrBadRequest(
+            f"'alarm_notification_email' is required for {ServiceInstanceTypes.CDN_DEDICATED_WAF.value}"
+        )
 
     return instance
 
