@@ -202,14 +202,10 @@ def _create_health_check_alarms(
 def _create_health_check_alarm(health_check_id, tags) -> str:
     alarm_name = _get_alarm_name(health_check_id)
 
-    # create alarm
-    kwargs = {}
-    if tags:
-        kwargs["Tags"] = tags
-
-    cloudwatch_commercial.put_metric_alarm(
-        AlarmName=alarm_name,
-        AlarmActions=[config.NOTIFICATIONS_SNS_TOPIC_ARN],
+    _create_cloudwatch_alarm(
+        alarm_name,
+        config.NOTIFICATIONS_SNS_TOPIC_ARN,
+        tags,
         MetricName="HealthCheckStatus",
         Namespace="AWS/Route53",
         Statistic="Minimum",
@@ -219,6 +215,17 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
                 "Value": health_check_id,
             }
         ],
+    )
+    return alarm_name
+
+
+def _create_cloudwatch_alarm(alarm_name, notification_sns_topic_arn, tags, **kwargs):
+    if tags:
+        kwargs["Tags"] = tags
+
+    cloudwatch_commercial.put_metric_alarm(
+        AlarmName=alarm_name,
+        AlarmActions=[notification_sns_topic_arn],
         Period=60,
         EvaluationPeriods=1,
         DatapointsToAlarm=1,
@@ -239,8 +246,6 @@ def _create_health_check_alarm(health_check_id, tags) -> str:
             "MaxAttempts": config.AWS_POLL_MAX_ATTEMPTS,
         },
     )
-
-    return alarm_name
 
 
 def _delete_alarms(existing_health_check_alarms, alarm_names_to_delete):
