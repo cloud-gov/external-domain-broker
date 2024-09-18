@@ -12,6 +12,7 @@ from tests.lib.fake_route53 import route53  # noqa F401
 from tests.lib.fake_wafv2 import wafv2  # noqa F401
 from tests.lib.fake_shield import shield  # noqa F401
 from tests.lib.fake_cloudwatch import cloudwatch_commercial  # noqa F401
+from tests.lib.fake_sns import sns_commercial  # noqa F401
 from tests.lib.simple_regex import simple_regex  # noqa F401
 from tests.lib.cdn.instances import (
     unmigrated_cdn_service_instance_operation_id,
