@@ -105,23 +105,33 @@ def subtest_provision_creates_provision_operation(
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
+    params = {
+        "domains": "example.com, Foo.com",
+        "origin": "origin.com",
+        "path": "/somewhere",
+        "forward_cookies": "mycookie,myothercookie",
+        "forward_headers": "x-my-header, x-your-header   ",
+        "insecure_origin": True,
+        "error_responses": {
+            "404": "/errors/404.html",
+            "405": "/errors/405.html",
+        },
+    }
+    expected_alarm_notification_email = None
+
+    if instance_model == CDNServiceInstance:
+        service_plan_name = "domain-with-cdn"
+    elif instance_model == CDNDedicatedWAFServiceInstance:
+        service_plan_name = "domain-with-cdn-dedicated-waf"
+        params.update({"alarm_notification_email": "fake@local.host"})
+        expected_alarm_notification_email = "fake@local.host"
+
     provision_instance_with_mocks(
         client,
         instance_model,
         organization_guid,
         space_guid,
-        params={
-            "domains": "example.com, Foo.com",
-            "origin": "origin.com",
-            "path": "/somewhere",
-            "forward_cookies": "mycookie,myothercookie",
-            "forward_headers": "x-my-header, x-your-header   ",
-            "insecure_origin": True,
-            "error_responses": {
-                "404": "/errors/404.html",
-                "405": "/errors/405.html",
-            },
-        },
+        params=params,
     )
 
     db.session.expunge_all()
@@ -142,11 +152,8 @@ def subtest_provision_creates_provision_operation(
     assert instance.domain_names == ["example.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "origin.com"
     assert instance.cloudfront_origin_path == "/somewhere"
+    assert instance.alarm_notification_email == expected_alarm_notification_email
 
-    if instance_model == CDNServiceInstance:
-        service_plan_name = "domain-with-cdn"
-    elif instance_model == CDNDedicatedWAFServiceInstance:
-        service_plan_name = "domain-with-cdn-dedicated-waf"
     assert sort_instance_tags(instance.tags) == sort_instance_tags(
         [
             {"Key": "client", "Value": "Cloud Foundry"},
