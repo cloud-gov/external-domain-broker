@@ -193,6 +193,7 @@ class CDNDedicatedWAFServiceInstance(CDNServiceInstance):
     shield_associated_health_check = mapped_column(postgresql.JSONB, default={})
     cloudwatch_health_check_alarms = mapped_column(postgresql.JSONB, default=[])
     alarm_notification_email = mapped_column(db.String)
+    sns_notification_topic_arn = mapped_column(db.String)
 
     __mapper_args__ = {
         "polymorphic_identity": ServiceInstanceTypes.CDN_DEDICATED_WAF.value
