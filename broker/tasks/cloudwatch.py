@@ -3,7 +3,7 @@ import logging
 from botocore.exceptions import ClientError
 from sqlalchemy.orm.attributes import flag_modified
 
-from broker.aws import cloudwatch_commercial
+from broker.aws import cloudwatch_commercial, sns_commercial
 
 from broker.extensions import config, db
 
@@ -139,6 +139,50 @@ def delete_health_check_alarms(operation_id: int, **kwargs):
     db.session.commit()
 
 
+@huey.retriable_task
+def create_ddos_detected_alarm(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    service_instance = operation.service_instance
+
+    operation.step_description = "Creating DDoS detection alarm"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    # create alarm
+    kwargs = {}
+    if service_instance.tags:
+        kwargs["Tags"] = service_instance.tags
+
+    response = sns_commercial.create_topic(
+        Name=f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-notifications",
+        **kwargs,
+    )
+    service_instance.sns_notification_topic_arn = response["TopicArn"]
+    db.session.add(service_instance)
+    db.session.commit()
+
+    cloudwatch_commercial.put_metric_alarm(
+        AlarmName=f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-DDoSDetected",
+        AlarmActions=[service_instance.sns_notification_topic_arn],
+        MetricName="DDoSDetected",
+        Namespace="AWS/DDoSProtection",
+        Statistic="Minimum",
+        Dimensions=[
+            {
+                "Name": "ResourceArn",
+                "Value": service_instance.cloudfront_distribution_arn,
+            }
+        ],
+        Period=60,
+        EvaluationPeriods=1,
+        DatapointsToAlarm=1,
+        Threshold=1,
+        ComparisonOperator="LessThanThreshold",
+        **kwargs,
+    )
+
+
 def _create_health_check_alarms(
     health_checks_to_create_alarms, existing_health_check_alarms, tags
 ):
@@ -222,4 +266,4 @@ def _delete_alarms(existing_health_check_alarms, alarm_names_to_delete):
 
 
 def _get_alarm_name(health_check_id):
-    return f"{config.CLOUDWATCH_ALARM_NAME_PREFIX}-{health_check_id}"
+    return f"{config.AWS_RESOURCE_PREFIX}-{health_check_id}"
