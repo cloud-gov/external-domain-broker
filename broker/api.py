@@ -337,16 +337,17 @@ class API(ServiceBroker):
             elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
                 queue = queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation
 
-                # update and commit any changes to the instance before changing its type,
+                # commit any changes to the instance before changing its type,
                 # which will wipe out any pending changes on `instance`
-                instance = update_cdn_instance(params, instance)
                 db.session.add(instance)
                 db.session.commit()
 
                 instance = change_instance_type(
                     instance, CDNDedicatedWAFServiceInstance, db.session
                 )
-                db.session.refresh(instance)
+                instance = update_cdn_instance(params, instance)
+                db.session.add(instance)
+                db.session.commit()
 
                 if not instance.alarm_notification_email:
                     raise errors.ErrBadRequest(
