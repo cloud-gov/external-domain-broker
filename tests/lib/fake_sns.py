@@ -21,6 +21,13 @@ class FakeSNS(FakeAWS):
             request,
         )
 
+    def expect_delete_topic(self, topic_arn):
+        self.stubber.add_response(
+            "delete_topic",
+            {},
+            {"TopicArn": topic_arn},
+        )
+
 
 @pytest.fixture(autouse=True)
 def sns_commercial():

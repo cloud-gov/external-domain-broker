@@ -33,3 +33,23 @@ def create_notification_topic(operation_id: int, **kwargs):
     service_instance.sns_notification_topic_arn = response["TopicArn"]
     db.session.add(service_instance)
     db.session.commit()
+
+
+@huey.retriable_task
+def delete_notification_topic(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    service_instance = operation.service_instance
+
+    operation.step_description = "Deleting SNS notification topic"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    if not service_instance.sns_notification_topic_arn:
+        logger.info(f"No SNS topic to delete for instance {service_instance.id}")
+        return
+
+    sns_commercial.delete_topic(TopicArn=service_instance.sns_notification_topic_arn)
+    service_instance.sns_notification_topic_arn = None
+    db.session.add(service_instance)
+    db.session.commit()
