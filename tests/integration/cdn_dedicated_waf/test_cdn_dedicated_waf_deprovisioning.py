@@ -130,12 +130,16 @@ def test_deprovision_continues_when_resources_dont_exist(
     shield,
     wafv2,
     cloudwatch_commercial,
+    sns_commercial,
 ):
     instance_model = CDNDedicatedWAFServiceInstance
 
     subtest_deprovision_creates_deprovision_operation(instance_model, client)
     subtest_deprovision_removes_ALIAS_records_when_missing(tasks, route53)
     subtest_deprovision_removes_TXT_records_when_missing(tasks, route53)
+    subtest_deprovision_deletes_delete_ddos_alarm_when_missing(
+        instance_model, tasks, service_instance, cloudwatch_commercial
+    )
     subtest_deprovision_deletes_health_check_alarms_when_missing(
         instance_model, tasks, service_instance, cloudwatch_commercial
     )
@@ -144,6 +148,9 @@ def test_deprovision_continues_when_resources_dont_exist(
     )
     subtest_deprovision_deletes_health_checks_when_missing(
         instance_model, tasks, service_instance, route53
+    )
+    subtest_deprovision_delete_sns_notification_topic_when_missing(
+        instance_model, tasks, service_instance, sns_commercial
     )
     subtest_deprovision_disables_cloudfront_distribution_when_missing(
         instance_model, tasks, service_instance, cloudfront
@@ -459,10 +466,43 @@ def subtest_deprovision_delete_sns_notification_topic(
     assert service_instance.sns_notification_topic_arn == None
 
 
+def subtest_deprovision_delete_sns_notification_topic_when_missing(
+    instance_model,
+    tasks,
+    service_instance,
+    sns_commercial,
+):
+    sns_commercial.expect_delete_topic_not_found(
+        service_instance.sns_notification_topic_arn
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    sns_commercial.assert_no_pending_responses()
+
+    service_instance = db.session.get(instance_model, "1234")
+    assert service_instance.sns_notification_topic_arn == None
+
+
 def subtest_deprovision_delete_ddos_alarm(
     instance_model, tasks, service_instance, cloudwatch_commercial
 ):
     cloudwatch_commercial.expect_delete_alarms(
+        [service_instance.ddos_detected_cloudwatch_alarm_name]
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    db.session.expunge_all()
+
+    service_instance = db.session.get(instance_model, "1234")
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == None
+
+
+def subtest_deprovision_deletes_delete_ddos_alarm_when_missing(
+    instance_model, tasks, service_instance, cloudwatch_commercial
+):
+    cloudwatch_commercial.expect_delete_alarms_not_found(
         [service_instance.ddos_detected_cloudwatch_alarm_name]
     )
 
