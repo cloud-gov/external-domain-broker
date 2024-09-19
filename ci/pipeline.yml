@@ -471,6 +471,7 @@ jobs:
           TEST_DOMAIN_0: ((staging-test-domain-0))
           HOSTED_ZONE_ID_1: ((staging-test-hosted-zone-id-1))
           TEST_DOMAIN_1: ((staging-test-domain-1))
+          ALARM_NOTIFICATION_EMAIL: ((alarm-notification-email))
         run:
           path: /app/acceptance/run.sh
   on_failure:
@@ -623,6 +624,7 @@ jobs:
         params:
           <<: *acceptance-tests-production-params
           PLAN_NAME: "domain-with-cdn-dedicated-waf"
+          ALARM_NOTIFICATION_EMAIL: ((alarm-notification-email))
         run:
           path: /app/acceptance/run.sh
   on_failure:
