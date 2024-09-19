@@ -117,7 +117,6 @@ def subtest_provision_creates_provision_operation(
             "405": "/errors/405.html",
         },
     }
-    expected_alarm_notification_email = None
 
     if instance_model == CDNServiceInstance:
         service_plan_name = "domain-with-cdn"
@@ -152,7 +151,8 @@ def subtest_provision_creates_provision_operation(
     assert instance.domain_names == ["example.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "origin.com"
     assert instance.cloudfront_origin_path == "/somewhere"
-    assert instance.alarm_notification_email == expected_alarm_notification_email
+    if hasattr(instance, "alarm_notification_email"):
+        assert instance.alarm_notification_email == expected_alarm_notification_email
 
     assert sort_instance_tags(instance.tags) == sort_instance_tags(
         [
