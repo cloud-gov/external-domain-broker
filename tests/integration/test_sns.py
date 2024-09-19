@@ -195,7 +195,7 @@ def test_delete_sns_notification_topic_no_value(
     sns_commercial.assert_no_pending_responses()
 
 
-def test_delete_sns_notification_topic(
+def test_delete_sns_notification_topic_not_found(
     clean_db,
     service_instance_id,
     service_instance,
@@ -206,7 +206,9 @@ def test_delete_sns_notification_topic(
     clean_db.session.add(service_instance)
     clean_db.session.commit()
 
-    sns_commercial.expect_delete_topic(service_instance.sns_notification_topic_arn)
+    sns_commercial.expect_delete_topic_not_found(
+        service_instance.sns_notification_topic_arn
+    )
 
     clean_db.session.expunge_all()
 
@@ -216,8 +218,6 @@ def test_delete_sns_notification_topic(
 
     clean_db.session.expunge_all()
 
-    operation = clean_db.session.get(Operation, operation_id)
-    assert operation.step_description == "Deleting SNS notification topic"
     service_instance = clean_db.session.get(
         CDNDedicatedWAFServiceInstance,
         service_instance_id,

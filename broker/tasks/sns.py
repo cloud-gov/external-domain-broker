@@ -1,5 +1,6 @@
 import logging
 
+from botocore.exceptions import ClientError
 from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import sns_commercial
@@ -49,7 +50,22 @@ def delete_notification_topic(operation_id: int, **kwargs):
         logger.info(f"No SNS topic to delete for instance {service_instance.id}")
         return
 
-    sns_commercial.delete_topic(TopicArn=service_instance.sns_notification_topic_arn)
+    try:
+        sns_commercial.delete_topic(
+            TopicArn=service_instance.sns_notification_topic_arn
+        )
+    except ClientError as e:
+        if "NotFound" in e.response["Error"]["Code"]:
+            logger.info(
+                "SNS topic not found",
+                extra={"topic_arn": service_instance.sns_notification_topic_arn},
+            )
+        else:
+            logger.error(
+                f"Got this error code deleting SNS topic {service_instance.sns_notification_topic_arn}: {e.response['Error']}"
+            )
+            raise e
+
     service_instance.sns_notification_topic_arn = None
     db.session.add(service_instance)
     db.session.commit()

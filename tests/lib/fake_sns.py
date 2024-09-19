@@ -28,6 +28,15 @@ class FakeSNS(FakeAWS):
             {"TopicArn": topic_arn},
         )
 
+    def expect_delete_topic_not_found(self, topic_arn):
+        self.stubber.add_client_error(
+            "delete_topic",
+            service_error_code="NotFoundException",
+            service_message="Not found",
+            http_status_code=404,
+            expected_params={"TopicArn": topic_arn},
+        )
+
 
 @pytest.fixture(autouse=True)
 def sns_commercial():
