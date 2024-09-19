@@ -149,17 +149,10 @@ def create_ddos_detected_alarm(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
-    kwargs = {}
-    if service_instance.tags:
-        kwargs["Tags"] = service_instance.tags
-
-    response = sns_commercial.create_topic(
-        Name=f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-notifications",
-        **kwargs,
-    )
-    service_instance.sns_notification_topic_arn = response["TopicArn"]
-    db.session.add(service_instance)
-    db.session.commit()
+    if not service_instance.sns_notification_topic_arn:
+        raise RuntimeError(
+            f"Could not find sns_notification_topic_arn for instance {service_instance.id}"
+        )
 
     ddos_detected_alarm_name = (
         f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-DDoSDetected"

@@ -44,6 +44,7 @@ def service_instance(
                 "health_check_id": "foo.com ID",
             },
         ],
+        sns_notification_topic_arn=f"{service_instance_id}-notifications-arn",
     )
     new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
@@ -681,11 +682,9 @@ def test_create_ddos_detection_alarm(
     service_instance,
     operation_id,
     cloudwatch_commercial,
-    sns_commercial,
 ):
     alarm_name = generate_ddos_alarm_name(service_instance)
 
-    sns_commercial.expect_create_topic(service_instance)
     cloudwatch_commercial.expect_put_ddos_detected_alarm(
         alarm_name, service_instance, f"{service_instance.id}-notifications-arn"
     )
@@ -695,7 +694,6 @@ def test_create_ddos_detection_alarm(
 
     create_ddos_detected_alarm.call_local(operation_id)
 
-    sns_commercial.assert_no_pending_responses()
     cloudwatch_commercial.assert_no_pending_responses()
 
     clean_db.session.expunge_all()
@@ -715,7 +713,6 @@ def test_create_ddos_detection_alarm_with_tags(
     service_instance,
     operation_id,
     cloudwatch_commercial,
-    sns_commercial,
 ):
     tags = [{"Key": "foo", "Value": "bar"}]
     service_instance.tags = tags
@@ -724,7 +721,6 @@ def test_create_ddos_detection_alarm_with_tags(
 
     alarm_name = generate_ddos_alarm_name(service_instance)
 
-    sns_commercial.expect_create_topic(service_instance)
     cloudwatch_commercial.expect_put_ddos_detected_alarm(
         alarm_name, service_instance, f"{service_instance.id}-notifications-arn"
     )
@@ -734,7 +730,6 @@ def test_create_ddos_detection_alarm_with_tags(
 
     create_ddos_detected_alarm.call_local(operation_id)
 
-    sns_commercial.assert_no_pending_responses()
     cloudwatch_commercial.assert_no_pending_responses()
 
     clean_db.session.expunge_all()
@@ -746,12 +741,29 @@ def test_create_ddos_detection_alarm_with_tags(
     assert service_instance.ddos_detected_cloudwatch_alarm_name == alarm_name
 
 
+def test_create_ddos_detection_alarm_no_topic(
+    clean_db,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    service_instance.sns_notification_topic_arn = None
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    with pytest.raises(RuntimeError):
+        create_ddos_detected_alarm.call_local(operation_id)
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+
 def test_create_ddos_detection_alarm_unmigrated_instance(
     clean_db,
     service_instance_id,
     unmigrated_cdn_service_instance_operation_id,
     cloudwatch_commercial,
-    sns_commercial,
 ):
     operation = clean_db.session.get(
         Operation, unmigrated_cdn_service_instance_operation_id
@@ -760,11 +772,15 @@ def test_create_ddos_detection_alarm_unmigrated_instance(
 
     assert service_instance.ddos_detected_cloudwatch_alarm_name == None
 
+    sns_notification_topic_arn = f"{service_instance.id}-notifications-arn"
+    service_instance.sns_notification_topic_arn = sns_notification_topic_arn
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
     alarm_name = generate_ddos_alarm_name(service_instance)
 
-    sns_commercial.expect_create_topic(service_instance)
     cloudwatch_commercial.expect_put_ddos_detected_alarm(
-        alarm_name, service_instance, f"{service_instance.id}-notifications-arn"
+        alarm_name, service_instance, sns_notification_topic_arn
     )
     cloudwatch_commercial.expect_describe_alarms(
         alarm_name, [{"AlarmArn": f"ddos-{service_instance.id}-arn"}]
@@ -772,7 +788,6 @@ def test_create_ddos_detection_alarm_unmigrated_instance(
 
     create_ddos_detected_alarm.call_local(unmigrated_cdn_service_instance_operation_id)
 
-    sns_commercial.assert_no_pending_responses()
     cloudwatch_commercial.assert_no_pending_responses()
 
     clean_db.session.expunge_all()
