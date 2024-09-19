@@ -80,7 +80,7 @@ def update_health_check_alarms(operation_id: int, **kwargs):
         not in existing_route53_health_check_ids
     ]
     if len(health_checks_alarm_names_to_delete) > 0:
-        updated_health_check_alarms = _delete_alarms(
+        updated_health_check_alarms = _delete_cloudwatch_health_check_alarms(
             updated_health_check_alarms, health_checks_alarm_names_to_delete
         )
         service_instance.cloudwatch_health_check_alarms = updated_health_check_alarms
@@ -129,7 +129,7 @@ def delete_health_check_alarms(operation_id: int, **kwargs):
     ]
 
     if len(health_checks_alarm_names_to_delete) > 0:
-        updated_health_check_alarms = _delete_alarms(
+        updated_health_check_alarms = _delete_cloudwatch_health_check_alarms(
             existing_health_check_alarms, health_checks_alarm_names_to_delete
         )
         service_instance.cloudwatch_health_check_alarms = updated_health_check_alarms
@@ -154,11 +154,9 @@ def create_ddos_detected_alarm(operation_id: int, **kwargs):
             f"Could not find sns_notification_topic_arn for instance {service_instance.id}"
         )
 
-    ddos_detected_alarm_name = (
-        f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-DDoSDetected"
-    )
+    ddos_detected_alarm_name = generate_ddos_alarm_name(service_instance.id)
     _create_cloudwatch_alarm(
-        ddos_detected_alarm_name,
+        generate_ddos_alarm_name(service_instance.id),
         service_instance.sns_notification_topic_arn,
         service_instance.tags,
         MetricName="DDoSDetected",
@@ -172,6 +170,25 @@ def create_ddos_detected_alarm(operation_id: int, **kwargs):
         ],
     )
     service_instance.ddos_detected_cloudwatch_alarm_name = ddos_detected_alarm_name
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+@huey.retriable_task
+def delete_ddos_detected_alarm(operation_id: int, **kwargs):
+    operation = db.session.get(Operation, operation_id)
+    service_instance = operation.service_instance
+
+    operation.step_description = "Deleting DDoS detection alarm"
+    flag_modified(operation, "step_description")
+    db.session.add(operation)
+    db.session.commit()
+
+    if not service_instance.ddos_detected_cloudwatch_alarm_name:
+        return
+
+    _delete_alarms([service_instance.ddos_detected_cloudwatch_alarm_name])
+    service_instance.ddos_detected_cloudwatch_alarm_name = None
     db.session.add(service_instance)
     db.session.commit()
 
@@ -241,7 +258,19 @@ def _create_cloudwatch_alarm(alarm_name, notification_sns_topic_arn, tags, **kwa
     )
 
 
-def _delete_alarms(existing_health_check_alarms, alarm_names_to_delete):
+def _delete_cloudwatch_health_check_alarms(
+    existing_health_check_alarms, alarm_names_to_delete
+):
+    _delete_alarms(alarm_names_to_delete)
+    existing_health_check_alarms = [
+        health_check_alarm
+        for health_check_alarm in existing_health_check_alarms
+        if health_check_alarm["alarm_name"] not in alarm_names_to_delete
+    ]
+    return existing_health_check_alarms
+
+
+def _delete_alarms(alarm_names_to_delete):
     try:
         cloudwatch_commercial.delete_alarms(AlarmNames=alarm_names_to_delete)
     except ClientError as e:
@@ -255,16 +284,10 @@ def _delete_alarms(existing_health_check_alarms, alarm_names_to_delete):
                 f"Got this error code deleting Cloudwatch alarms: {e.response['Error']}"
             )
             raise e
-    existing_health_check_alarms = [
-        health_check_alarm
-        for health_check_alarm in existing_health_check_alarms
-        if health_check_alarm["alarm_name"] not in alarm_names_to_delete
-    ]
-    return existing_health_check_alarms
 
 
-def generate_ddos_alarm_name(service_instance):
-    return f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-DDoSDetected"
+def generate_ddos_alarm_name(service_instance_id):
+    return f"{config.AWS_RESOURCE_PREFIX}-{service_instance_id}-DDoSDetected"
 
 
 def _get_alarm_name(health_check_id):

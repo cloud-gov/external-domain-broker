@@ -1,12 +1,13 @@
 import pytest
 
-from botocore.exceptions import WaiterError
+from botocore.exceptions import WaiterError, ClientError
 
 from broker.tasks.cloudwatch import (
     create_health_check_alarms,
     update_health_check_alarms,
     delete_health_check_alarms,
     create_ddos_detected_alarm,
+    delete_ddos_detected_alarm,
     _get_alarm_name,
     generate_ddos_alarm_name,
 )
@@ -614,7 +615,7 @@ def test_delete_health_check_alarms_unexpected_error(
         expect_delete_alarm_names
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(ClientError):
         delete_health_check_alarms.call_local(operation_id)
 
 
@@ -683,7 +684,7 @@ def test_create_ddos_detection_alarm(
     operation_id,
     cloudwatch_commercial,
 ):
-    alarm_name = generate_ddos_alarm_name(service_instance)
+    alarm_name = generate_ddos_alarm_name(service_instance_id)
 
     cloudwatch_commercial.expect_put_ddos_detected_alarm(
         alarm_name, service_instance, f"{service_instance.id}-notifications-arn"
@@ -719,7 +720,7 @@ def test_create_ddos_detection_alarm_with_tags(
     clean_db.session.add(service_instance)
     clean_db.session.commit()
 
-    alarm_name = generate_ddos_alarm_name(service_instance)
+    alarm_name = generate_ddos_alarm_name(service_instance_id)
 
     cloudwatch_commercial.expect_put_ddos_detected_alarm(
         alarm_name, service_instance, f"{service_instance.id}-notifications-arn"
@@ -777,7 +778,7 @@ def test_create_ddos_detection_alarm_unmigrated_instance(
     clean_db.session.add(service_instance)
     clean_db.session.commit()
 
-    alarm_name = generate_ddos_alarm_name(service_instance)
+    alarm_name = generate_ddos_alarm_name(service_instance_id)
 
     cloudwatch_commercial.expect_put_ddos_detected_alarm(
         alarm_name, service_instance, sns_notification_topic_arn
@@ -797,3 +798,142 @@ def test_create_ddos_detection_alarm_unmigrated_instance(
         service_instance_id,
     )
     assert service_instance.ddos_detected_cloudwatch_alarm_name == alarm_name
+
+
+def test_delete_ddos_detection_alarm(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    alarm_name = generate_ddos_alarm_name(service_instance_id)
+    service_instance.ddos_detected_cloudwatch_alarm_name = alarm_name
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    cloudwatch_commercial.expect_delete_alarms([alarm_name])
+
+    delete_ddos_detected_alarm.call_local(operation_id)
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    operation = clean_db.session.get(Operation, operation_id)
+    assert operation.step_description == "Deleting DDoS detection alarm"
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == None
+
+
+def test_delete_ddos_detection_alarm_no_alarm_value(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == None
+
+    delete_ddos_detected_alarm.call_local(operation_id)
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == None
+
+
+def test_delete_ddos_detection_alarm_not_found(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    alarm_name = generate_ddos_alarm_name(service_instance_id)
+    service_instance.ddos_detected_cloudwatch_alarm_name = alarm_name
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    cloudwatch_commercial.expect_delete_alarms_not_found([alarm_name])
+
+    delete_ddos_detected_alarm.call_local(operation_id)
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == None
+
+
+def test_delete_ddos_detection_alarm_unexpected_error(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    alarm_name = generate_ddos_alarm_name(service_instance)
+    service_instance.ddos_detected_cloudwatch_alarm_name = alarm_name
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    cloudwatch_commercial.expect_delete_alarms_unexpected_error([alarm_name])
+
+    with pytest.raises(ClientError):
+        delete_ddos_detected_alarm.call_local(operation_id)
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == alarm_name
+
+
+def test_delete_ddos_detection_alarm_unmigrated_instance(
+    clean_db,
+    service_instance_id,
+    unmigrated_cdn_service_instance_operation_id,
+    cloudwatch_commercial,
+):
+    alarm_name = generate_ddos_alarm_name(service_instance_id)
+
+    operation = clean_db.session.get(Operation, unmigrated_cdn_service_instance_operation_id)
+    service_instance = operation.service_instance
+    service_instance.ddos_detected_cloudwatch_alarm_name = alarm_name
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    cloudwatch_commercial.expect_delete_alarms_not_found([alarm_name])
+
+    delete_ddos_detected_alarm.call_local(unmigrated_cdn_service_instance_operation_id)
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == None
