@@ -257,6 +257,24 @@ def test_create_health_check_alarm_error_if_alarm_not_found(
     cloudwatch_commercial.assert_no_pending_responses()
 
 
+def test_create_health_check_alarms_no_topic(
+    clean_db,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    service_instance.sns_notification_topic_arn = None
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    with pytest.raises(RuntimeError):
+        create_health_check_alarms.call_local(operation_id)
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+
 def test_update_health_check_alarms(
     clean_db,
     service_instance_id,
@@ -491,6 +509,24 @@ def test_update_health_check_alarms_unmigrated_instance(
     assert (
         service_instance.cloudwatch_health_check_alarms == expected_health_check_alarms
     )
+
+
+def test_update_health_check_alarms_no_topic(
+    clean_db,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    service_instance.sns_notification_topic_arn = None
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    with pytest.raises(RuntimeError):
+        update_health_check_alarms.call_local(operation_id)
+
+    cloudwatch_commercial.assert_no_pending_responses()
 
 
 def test_delete_health_check_alarms(
