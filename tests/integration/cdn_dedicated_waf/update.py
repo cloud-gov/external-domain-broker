@@ -147,7 +147,6 @@ def subtest_updates_health_check_alarms(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
 
-    tags = service_instance.tags if service_instance.tags else []
     expected_health_check_alarms = []
     expect_delete_health_check_id = "example.com ID"
     expect_delete_alarm_names = [_get_alarm_name(expect_delete_health_check_id)]
@@ -167,7 +166,7 @@ def subtest_updates_health_check_alarms(
     cloudwatch_commercial.expect_put_metric_alarm(
         expect_create_health_check_id,
         _get_alarm_name(expect_create_health_check_id),
-        tags,
+        service_instance,
     )
     cloudwatch_commercial.expect_describe_alarms(
         _get_alarm_name(expect_create_health_check_id),
