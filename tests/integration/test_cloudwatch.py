@@ -87,7 +87,7 @@ def test_create_health_check_alarms(
         alarm_name = f"{config.AWS_RESOURCE_PREFIX}-{health_check_id}"
 
         cloudwatch_commercial.expect_put_metric_alarm(
-            health_check_id, alarm_name, service_instance.tags
+            health_check_id, alarm_name, service_instance
         )
         cloudwatch_commercial.expect_describe_alarms(
             alarm_name, [{"AlarmArn": f"{health_check_id} ARN"}]
@@ -136,16 +136,18 @@ def test_create_health_check_alarms_unmigrated_cdn_instance(
         {"domain_name": "foo.com", "health_check_id": "foo.com ID"},
     ]
     service_instance.route53_health_checks = route53_health_checks
+    service_instance.sns_notification_topic_arn = "fake-arn"
     clean_db.session.add(service_instance)
     clean_db.session.commit()
-    clean_db.session.expunge_all()
 
     expected_health_check_alarms = []
     for health_check in route53_health_checks:
         health_check_id = health_check["health_check_id"]
         alarm_name = f"{config.AWS_RESOURCE_PREFIX}-{health_check_id}"
 
-        cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, None)
+        cloudwatch_commercial.expect_put_metric_alarm(
+            health_check_id, alarm_name, service_instance
+        )
         cloudwatch_commercial.expect_describe_alarms(
             alarm_name, [{"AlarmArn": f"{health_check_id} ARN"}]
         )
@@ -191,7 +193,7 @@ def test_create_health_check_alarm_waits(
     )
 
     cloudwatch_commercial.expect_put_metric_alarm(
-        health_check_id, alarm_name, service_instance.tags
+        health_check_id, alarm_name, service_instance
     )
     # waiting for alarm to exist
     cloudwatch_commercial.expect_describe_alarms(alarm_name, [])
@@ -210,7 +212,7 @@ def test_create_health_check_alarm_waits(
     )
 
     cloudwatch_commercial.expect_put_metric_alarm(
-        health_check_id, alarm_name, service_instance.tags
+        health_check_id, alarm_name, service_instance
     )
     # waiting for alarm to exist
     cloudwatch_commercial.expect_describe_alarms(
@@ -242,7 +244,7 @@ def test_create_health_check_alarm_error_if_alarm_not_found(
     alarm_name = f"{config.AWS_RESOURCE_PREFIX}-{health_check_id}"
 
     cloudwatch_commercial.expect_put_metric_alarm(
-        health_check_id, alarm_name, service_instance.tags
+        health_check_id, alarm_name, service_instance
     )
     # waiting for alarm to exist
     for i in list(range(config.AWS_POLL_MAX_ATTEMPTS)):
@@ -262,7 +264,7 @@ def test_update_health_check_alarms(
     operation_id,
     cloudwatch_commercial,
 ):
-    tags = service_instance.tags
+    tags = service_instance
     expect_delete_health_check_id = "foo.com ID"
     expect_delete_alarm_names = [_get_alarm_name(expect_delete_health_check_id)]
     expect_create_health_check_id = "bar.com ID"
@@ -302,7 +304,6 @@ def test_update_health_check_alarms(
 
     clean_db.session.add(service_instance)
     clean_db.session.commit()
-    clean_db.session.expunge_all()
 
     cloudwatch_commercial.expect_delete_alarms(expect_delete_alarm_names)
     cloudwatch_commercial.expect_put_metric_alarm(
@@ -343,7 +344,7 @@ def test_update_health_check_alarms_idempotent(
     operation_id,
     cloudwatch_commercial,
 ):
-    tags = service_instance.tags
+    tags = service_instance
     expect_delete_health_check_id = "foo.com ID"
     expect_delete_alarm_names = [_get_alarm_name(expect_delete_health_check_id)]
     expect_create_health_check_id = "bar.com ID"
@@ -383,7 +384,6 @@ def test_update_health_check_alarms_idempotent(
 
     clean_db.session.add(service_instance)
     clean_db.session.commit()
-    clean_db.session.expunge_all()
 
     cloudwatch_commercial.expect_delete_alarms(expect_delete_alarm_names)
     cloudwatch_commercial.expect_put_metric_alarm(
@@ -426,7 +426,7 @@ def test_update_health_check_alarms_unmigrated_instance(
         Operation, unmigrated_cdn_dedicated_waf_service_instance_operation_id
     )
     service_instance = operation.service_instance
-    tags = service_instance.tags
+    tags = service_instance
 
     expect_create_health_check_id = "bar.com ID"
     expected_health_check_alarms = [
@@ -452,10 +452,9 @@ def test_update_health_check_alarms_unmigrated_instance(
             "health_check_id": "bar.com ID",
         },
     ]
-
+    service_instance.sns_notification_topic_arn = "fake-arn"
     clean_db.session.add(service_instance)
     clean_db.session.commit()
-    clean_db.session.expunge_all()
 
     cloudwatch_commercial.expect_put_metric_alarm(
         "example.com ID",
@@ -917,7 +916,9 @@ def test_delete_ddos_detection_alarm_unmigrated_instance(
 ):
     alarm_name = generate_ddos_alarm_name(service_instance_id)
 
-    operation = clean_db.session.get(Operation, unmigrated_cdn_service_instance_operation_id)
+    operation = clean_db.session.get(
+        Operation, unmigrated_cdn_service_instance_operation_id
+    )
     service_instance = operation.service_instance
     service_instance.ddos_detected_cloudwatch_alarm_name = alarm_name
     clean_db.session.add(service_instance)

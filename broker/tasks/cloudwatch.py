@@ -23,6 +23,11 @@ def create_health_check_alarms(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
+    if not service_instance.sns_notification_topic_arn:
+        raise RuntimeError(
+            f"Could not find sns_notification_topic_arn for instance {service_instance.id}"
+        )
+
     if len(service_instance.route53_health_checks) == 0:
         logger.info(
             f"No Route53 health checks to create alarms on instance {service_instance.id}"
@@ -30,7 +35,10 @@ def create_health_check_alarms(operation_id: int, **kwargs):
         return
 
     new_health_check_alarms = _create_health_check_alarms(
-        service_instance.route53_health_checks, [], service_instance.tags
+        service_instance.route53_health_checks,
+        [],
+        service_instance.sns_notification_topic_arn,
+        service_instance.tags,
     )
     service_instance.cloudwatch_health_check_alarms = new_health_check_alarms
     flag_modified(service_instance, "cloudwatch_health_check_alarms")
@@ -96,9 +104,15 @@ def update_health_check_alarms(operation_id: int, **kwargs):
         not in existing_cloudwatch_alarm_health_check_ids
     ]
     if len(health_checks_to_create_alarms) > 0:
+        if not service_instance.sns_notification_topic_arn:
+            raise RuntimeError(
+                f"Could not find sns_notification_topic_arn for instance {service_instance.id}"
+            )
+
         updated_health_check_alarms = _create_health_check_alarms(
             health_checks_to_create_alarms,
             updated_health_check_alarms,
+            service_instance.sns_notification_topic_arn,
             service_instance.tags,
         )
         service_instance.cloudwatch_health_check_alarms = updated_health_check_alarms
@@ -194,11 +208,16 @@ def delete_ddos_detected_alarm(operation_id: int, **kwargs):
 
 
 def _create_health_check_alarms(
-    health_checks_to_create_alarms, existing_health_check_alarms, tags
+    health_checks_to_create_alarms,
+    existing_health_check_alarms,
+    sns_notification_topic_arn,
+    tags,
 ):
     for health_check in health_checks_to_create_alarms:
         health_check_id = health_check["health_check_id"]
-        alarm_name = _create_health_check_alarm(health_check_id, tags)
+        alarm_name = _create_health_check_alarm(
+            health_check_id, sns_notification_topic_arn, tags
+        )
 
         existing_health_check_alarms.append(
             {
@@ -209,12 +228,14 @@ def _create_health_check_alarms(
     return existing_health_check_alarms
 
 
-def _create_health_check_alarm(health_check_id, tags) -> str:
+def _create_health_check_alarm(
+    health_check_id, sns_notification_topic_arn, tags
+) -> str:
     alarm_name = _get_alarm_name(health_check_id)
 
     _create_cloudwatch_alarm(
         alarm_name,
-        config.NOTIFICATIONS_SNS_TOPIC_ARN,
+        sns_notification_topic_arn,
         tags,
         MetricName="HealthCheckStatus",
         Namespace="AWS/Route53",
