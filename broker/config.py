@@ -56,8 +56,7 @@ class Config:
         # the maximum from AWS is 25, and we alert when we have 20 on a given alb
         self.MAX_CERTS_PER_ALB = 19
 
-        self.DEDICATED_WAF_NAME_PREFIX = f"cg-external-domains-{self.FLASK_ENV}"
-        self.CLOUDWATCH_ALARM_NAME_PREFIX = f"cg-external-domains-{self.FLASK_ENV}"
+        self.AWS_RESOURCE_PREFIX = f"cg-external-domains-{self.FLASK_ENV}"
 
         # see https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
         self.REQUEST_TIMEOUT = 30
@@ -134,8 +133,6 @@ class AppConfig(Config):
         self.UAA_CLIENT_ID = self.env("UAA_CLIENT_ID")
         self.UAA_CLIENT_SECRET = self.env("UAA_CLIENT_SECRET")
 
-        self.NOTIFICATIONS_SNS_TOPIC_ARN = self.env("NOTIFICATIONS_SNS_TOPIC_ARN")
-
 
 class ProductionConfig(AppConfig):
     def __init__(self):
@@ -185,7 +182,6 @@ class UpgradeSchemaConfig(Config):
         self.ALB_LISTENER_ARNS = []
         self.DEDICATED_ALB_LISTENER_ARNS = []
         self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "NONE"
-        self.NOTIFICATIONS_SNS_TOPIC_ARN = "NONE"
 
 
 class CheckDuplicateCertsConfig(UpgradeSchemaConfig):
@@ -261,8 +257,6 @@ class DockerConfig(Config):
         self.UAA_TOKEN_URL = "http://mock.uaa/token"
         self.UAA_CLIENT_ID = "EXAMPLE"
         self.UAA_CLIENT_SECRET = "example"
-
-        self.NOTIFICATIONS_SNS_TOPIC_ARN = "fake-notifications-arn"
 
 
 class LocalDevelopmentConfig(DockerConfig):

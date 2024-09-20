@@ -154,6 +154,13 @@ tests() {
       "$PLAN_NAME" \
       "$INSTANCE" \
       -c "{\"domains\": \"$DOMAIN_0, $DOMAIN_1\", \"forward_cookies\": \"cookieone, cookietwo\", \"forward_headers\": \"x-one-header,x-two-header\", \"error_responses\": {\"404\": \"/errors/404.html\"}}"
+  elif [[ "${PLAN_NAME}" == "domain-with-cdn-dedicated-wafP" ]]; then
+    echo "Creating the service instance"
+    cf create-service \
+      "$SERVICE_NAME" \
+      "$PLAN_NAME" \
+      "$INSTANCE" \
+      -c "{\"domains\": \"$DOMAIN_0, $DOMAIN_1\", \"alarm_notification_email\": \"$ALARM_NOTIFICATION_EMAIL\", \"forward_cookies\": \"cookieone, cookietwo\", \"forward_headers\": \"x-one-header,x-two-header\", \"error_responses\": {\"404\": \"/errors/404.html\"}}"
   else
     echo "Creating the service instance"
     cf create-service \

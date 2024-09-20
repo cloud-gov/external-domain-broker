@@ -9,6 +9,7 @@ from broker.tasks import (
     waf,
     shield,
     cloudwatch,
+    sns,
 )
 from broker.tasks.huey import huey
 
@@ -37,9 +38,11 @@ def queue_all_cdn_dedicated_waf_provision_tasks_for_operation(
         .then(cloudfront.wait_for_distribution, operation_id, **correlation)
         .then(route53.create_ALIAS_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
+        .then(sns.create_notification_topic, operation_id, **correlation)
         .then(route53.create_new_health_checks, operation_id, **correlation)
         .then(shield.associate_health_check, operation_id, **correlation)
         .then(cloudwatch.create_health_check_alarms, operation_id, **correlation)
+        .then(cloudwatch.create_ddos_detected_alarm, operation_id, **correlation)
         .then(update_operations.provision, operation_id, **correlation)
     )
     huey.enqueue(task_pipeline)
@@ -57,9 +60,11 @@ def queue_all_cdn_dedicated_waf_deprovision_tasks_for_operation(
         update_operations.cancel_pending_provisioning.s(operation_id, **correlation)
         .then(route53.remove_ALIAS_records, operation_id, **correlation)
         .then(route53.remove_TXT_records, operation_id, **correlation)
+        .then(cloudwatch.delete_ddos_detected_alarm, operation_id, **correlation)
         .then(cloudwatch.delete_health_check_alarms, operation_id, **correlation)
         .then(shield.disassociate_health_check, operation_id, **correlation)
         .then(route53.delete_health_checks, operation_id, **correlation)
+        .then(sns.delete_notification_topic, operation_id, **correlation)
         .then(cloudfront.disable_distribution, operation_id, **correlation)
         .then(cloudfront.wait_for_distribution_disabled, operation_id, **correlation)
         .then(cloudfront.delete_distribution, operation_id=operation_id, **correlation)

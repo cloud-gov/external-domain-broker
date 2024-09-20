@@ -105,7 +105,7 @@ def delete_web_acl(operation_id: str, **kwargs):
 
 
 def generate_web_acl_name(service_instance):
-    return f"{config.DEDICATED_WAF_NAME_PREFIX}-{service_instance.id}-dedicated-waf"
+    return f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-dedicated-waf"
 
 
 def _delete_web_acl_with_retries(operation_id, service_instance):

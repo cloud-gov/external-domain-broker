@@ -7,10 +7,12 @@ from tests.lib.fake_aws import FakeAWS
 
 
 class FakeCloudwatch(FakeAWS):
-    def expect_put_metric_alarm(self, health_check_id: str, alarm_name: str, tags):
+    def expect_put_metric_alarm(
+        self, health_check_id: str, alarm_name: str, service_instance
+    ):
         request = {
             "AlarmName": alarm_name,
-            "AlarmActions": [config.NOTIFICATIONS_SNS_TOPIC_ARN],
+            "AlarmActions": [service_instance.sns_notification_topic_arn],
             "MetricName": "HealthCheckStatus",
             "Namespace": "AWS/Route53",
             "Statistic": "Minimum",
@@ -26,8 +28,37 @@ class FakeCloudwatch(FakeAWS):
             "Threshold": 1,
             "ComparisonOperator": "LessThanThreshold",
         }
-        if tags:
-            request["Tags"] = tags
+        if service_instance.tags:
+            request["Tags"] = service_instance.tags
+        self.stubber.add_response(
+            "put_metric_alarm",
+            {},
+            request,
+        )
+
+    def expect_put_ddos_detected_alarm(
+        self, alarm_name, service_instance, notification_topic_arn
+    ):
+        request = {
+            "AlarmName": alarm_name,
+            "AlarmActions": [notification_topic_arn],
+            "MetricName": "DDoSDetected",
+            "Namespace": "AWS/DDoSProtection",
+            "Statistic": "Minimum",
+            "Dimensions": [
+                {
+                    "Name": "ResourceArn",
+                    "Value": service_instance.cloudfront_distribution_arn,
+                }
+            ],
+            "Period": 60,
+            "EvaluationPeriods": 1,
+            "DatapointsToAlarm": 1,
+            "Threshold": 1,
+            "ComparisonOperator": "LessThanThreshold",
+        }
+        if service_instance.tags:
+            request["Tags"] = service_instance.tags
         self.stubber.add_response(
             "put_metric_alarm",
             {},

@@ -1,5 +1,4 @@
-from datetime import date, datetime
-import time
+from datetime import datetime
 
 import pytest
 
@@ -121,7 +120,10 @@ def test_doesnt_refuse_to_provision_with_duplicate_domains_when_not_configured_t
     client.provision_instance(
         instance_model,
         "4321",
-        params={"domains": "example.com, foo.com"},
+        params={
+            "domains": "example.com, foo.com",
+            "alarm_notification_email": "fake@localhost",
+        },
         organization_guid=organization_guid,
         space_guid=space_guid,
     )
@@ -157,7 +159,10 @@ def test_duplicate_domain_check_ignores_deactivated(
     client.provision_instance(
         instance_model,
         "4321",
-        params={"domains": "foo.com"},
+        params={
+            "domains": "foo.com",
+            "alarm_notification_email": "fake@localhost",
+        },
         organization_guid=organization_guid,
         space_guid=space_guid,
     )

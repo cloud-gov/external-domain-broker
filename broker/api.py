@@ -25,7 +25,7 @@ from sap import cf_logging
 
 from broker import validators
 from broker.extensions import config, db
-from broker.lib.cdn import is_cdn_instance
+from broker.lib.cdn import is_cdn_instance, is_cdn_dedicated_waf_instance
 from broker.lib.tags import generate_instance_tags
 from broker.models import (
     Operation,
@@ -68,6 +68,7 @@ from broker.pipelines.migration import (
     queue_all_migration_deprovision_tasks_for_operation,
 )
 from broker.lib.utils import (
+    parse_alarm_notification_email,
     parse_cookie_options,
     parse_header_options,
     normalize_header_list,
@@ -98,7 +99,7 @@ class API(ServiceBroker):
                 imageUrl="TODO",
                 longDescription="Create a custom domain to your application with TLS and an optional CDN. This will provision a TLS certificate from Let's Encrypt, a free certificate provider.",
                 providerDisplayName="Cloud.gov",
-                documentationUrl="https://github.com/cloud-gov/external-domain-broker",
+                documentationUrl="https://cloud.gov/docs/services/external-domain-service/",
                 supportUrl="https://cloud.gov/support",
             ),
             plans=[
@@ -336,16 +337,17 @@ class API(ServiceBroker):
             elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
                 queue = queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation
 
-                # update and commit any changes to the instance before changing its type,
+                # commit any changes to the instance before changing its type,
                 # which will wipe out any pending changes on `instance`
-                instance = update_cdn_instance(params, instance)
                 db.session.add(instance)
                 db.session.commit()
 
                 instance = change_instance_type(
                     instance, CDNDedicatedWAFServiceInstance, db.session
                 )
-                db.session.refresh(instance)
+                instance = update_cdn_instance(params, instance)
+                db.session.add(instance)
+                db.session.commit()
             else:
                 raise ClientError("Updating service plan is not supported")
         elif instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
@@ -471,6 +473,15 @@ def provision_cdn_instance(
         instance.origin_protocol_policy = instance_type_model.ProtocolPolicy.HTTP.value
     else:
         instance.origin_protocol_policy = instance_type_model.ProtocolPolicy.HTTPS.value
+
+    alarm_notification_email = parse_alarm_notification_email(instance, params)
+    if alarm_notification_email:
+        instance.alarm_notification_email = alarm_notification_email
+    elif is_cdn_dedicated_waf_instance(instance) and not alarm_notification_email:
+        raise errors.ErrBadRequest(
+            f"'alarm_notification_email' is required for {ServiceInstanceTypes.CDN_DEDICATED_WAF.value} instances"
+        )
+
     return instance
 
 
@@ -519,6 +530,17 @@ def update_cdn_instance(params, instance):
     if "error_responses" in params:
         instance.error_responses = params["error_responses"]
         validators.ErrorResponseConfig(instance.error_responses).validate()
+
+    alarm_notification_email = parse_alarm_notification_email(instance, params)
+    if alarm_notification_email:
+        instance.alarm_notification_email = alarm_notification_email
+    elif (
+        is_cdn_dedicated_waf_instance(instance)
+        and not instance.alarm_notification_email
+    ):
+        raise errors.ErrBadRequest(
+            f"'alarm_notification_email' is required for {ServiceInstanceTypes.CDN_DEDICATED_WAF.value}"
+        )
 
     return instance
 

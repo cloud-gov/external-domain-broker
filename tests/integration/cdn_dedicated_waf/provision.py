@@ -1,11 +1,10 @@
-import pytest  # noqa F401
 import uuid
 
 from broker.extensions import config, db
 from broker.models import (
     CDNDedicatedWAFServiceInstance,
 )
-from broker.tasks.cloudwatch import _get_alarm_name
+from broker.tasks.cloudwatch import _get_alarm_name, generate_ddos_alarm_name
 
 
 def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
@@ -27,9 +26,7 @@ def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
         CDNDedicatedWAFServiceInstance, service_instance_id
     )
     assert service_instance.dedicated_waf_web_acl_id
-    web_acl_name = (
-        f"{config.DEDICATED_WAF_NAME_PREFIX}-{service_instance.id}-dedicated-waf"
-    )
+    web_acl_name = f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-dedicated-waf"
     assert service_instance.dedicated_waf_web_acl_id == f"{web_acl_name}-id"
     assert service_instance.dedicated_waf_web_acl_name
     assert service_instance.dedicated_waf_web_acl_name == web_acl_name
@@ -121,7 +118,9 @@ def subtest_provision_creates_health_check_alarms(
         health_check_id = health_check["health_check_id"]
         alarm_name = _get_alarm_name(health_check_id)
 
-        cloudwatch_commercial.expect_put_metric_alarm(health_check_id, alarm_name, tags)
+        cloudwatch_commercial.expect_put_metric_alarm(
+            health_check_id, alarm_name, service_instance
+        )
         alarm_arn = f"{health_check_id} ARN"
         expected_health_check_alarms.append(
             {
@@ -145,3 +144,52 @@ def subtest_provision_creates_health_check_alarms(
     )
 
     cloudwatch_commercial.assert_no_pending_responses()
+
+
+def subtest_provision_creates_sns_notification_topic(
+    tasks,
+    sns_commercial,
+    instance_model,
+    service_instance_id="4321",
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    sns_commercial.expect_create_topic(service_instance)
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    sns_commercial.assert_no_pending_responses()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    assert (
+        service_instance.sns_notification_topic_arn
+        == f"{service_instance.id}-notifications-arn"
+    )
+
+
+def subtest_provision_creates_ddos_detected_alarm(
+    tasks,
+    cloudwatch_commercial,
+    instance_model,
+    service_instance_id="4321",
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    alarm_name = generate_ddos_alarm_name(service_instance_id)
+    cloudwatch_commercial.expect_put_ddos_detected_alarm(
+        alarm_name, service_instance, service_instance.sns_notification_topic_arn
+    )
+    cloudwatch_commercial.expect_describe_alarms(
+        alarm_name, [{"AlarmArn": f"ddos-{service_instance.id}-arn"}]
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == alarm_name

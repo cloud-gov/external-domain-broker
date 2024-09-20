@@ -52,6 +52,8 @@ from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_creates_health_checks,
     subtest_provision_associate_health_check,
     subtest_provision_creates_health_check_alarms,
+    subtest_provision_creates_sns_notification_topic,
+    subtest_provision_creates_ddos_detected_alarm,
 )
 from tests.integration.cdn_dedicated_waf.update import (
     subtest_update_web_acl_does_not_update,
@@ -85,6 +87,7 @@ def test_provision_happy_path(
     wafv2,
     shield,
     cloudwatch_commercial,
+    sns_commercial,
     organization_guid,
     space_guid,
     mocked_cf_api,
@@ -150,6 +153,12 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Waiting for DNS changes"
     )
+    subtest_provision_creates_sns_notification_topic(
+        tasks, sns_commercial, instance_model
+    )
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating SNS notification topic"
+    )
     subtest_provision_creates_health_checks(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Creating new health checks"
@@ -166,6 +175,12 @@ def test_provision_happy_path(
         "4321",
         operation_id,
         "Creating Cloudwatch alarms for Route53 health checks",
+    )
+    subtest_provision_creates_ddos_detected_alarm(
+        tasks, cloudwatch_commercial, instance_model
+    )
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating DDoS detection alarm"
     )
     subtest_provision_marks_operation_as_succeeded(tasks, instance_model)
     check_last_operation_description(client, "4321", operation_id, "Complete!")

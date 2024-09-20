@@ -45,6 +45,8 @@ from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_creates_health_checks,
     subtest_provision_associate_health_check,
     subtest_provision_creates_health_check_alarms,
+    subtest_provision_creates_sns_notification_topic,
+    subtest_provision_creates_ddos_detected_alarm,
 )
 
 
@@ -58,6 +60,7 @@ def test_update_plan_only(
     dns,
     iam_commercial,
     cloudwatch_commercial,
+    sns_commercial,
     simple_regex,
     organization_guid,
     space_guid,
@@ -130,9 +133,15 @@ def test_update_plan_only(
     subtest_update_same_domains_does_not_delete_server_certificate(
         tasks, instance_model
     )
+    subtest_provision_creates_sns_notification_topic(
+        tasks, sns_commercial, instance_model
+    )
     subtest_provision_creates_health_checks(tasks, route53, instance_model)
     subtest_provision_associate_health_check(tasks, shield, instance_model)
     subtest_provision_creates_health_check_alarms(
+        tasks, cloudwatch_commercial, instance_model
+    )
+    subtest_provision_creates_ddos_detected_alarm(
         tasks, cloudwatch_commercial, instance_model
     )
     subtest_update_marks_update_complete(tasks, instance_model)
@@ -148,6 +157,7 @@ def test_update_plan_and_domains(
     dns,
     iam_commercial,
     cloudwatch_commercial,
+    sns_commercial,
     simple_regex,
     organization_guid,
     space_guid,
@@ -188,6 +198,9 @@ def test_update_plan_and_domains(
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_update_removes_certificate_from_iam(tasks, iam_commercial, instance_model)
+    subtest_provision_creates_sns_notification_topic(
+        tasks, sns_commercial, instance_model
+    )
     subtest_provision_creates_health_checks(
         tasks, route53, instance_model, expected_domain_names=["bar.com", "foo.com"]
     )
@@ -203,11 +216,16 @@ def test_update_plan_and_domains(
     subtest_provision_creates_health_check_alarms(
         tasks, cloudwatch_commercial, instance_model
     )
+    subtest_provision_creates_ddos_detected_alarm(
+        tasks, cloudwatch_commercial, instance_model
+    )
     subtest_update_marks_update_complete(tasks, instance_model)
 
 
 def subtest_creates_update_plan_operation(client, service_instance_id):
-    client.update_cdn_to_cdn_dedicated_waf_instance(service_instance_id)
+    client.update_cdn_to_cdn_dedicated_waf_instance(
+        service_instance_id, params={"alarm_notification_email": "fake@local.host"}
+    )
     db.session.expunge_all()
 
     assert client.response.status_code == 202, client.response.body
@@ -220,6 +238,11 @@ def subtest_creates_update_plan_operation(client, service_instance_id):
     assert operation.state == "in progress"
     assert operation.action == "Update"
     assert operation.service_instance_id == service_instance_id
+
+    service_instance = db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
+    assert service_instance.alarm_notification_email == "fake@local.host"
 
     return operation_id
 
@@ -238,6 +261,7 @@ def subtest_update_creates_update_plan_and_domains_operation(
             "forward_cookies": "mycookie,myothercookie, anewcookie",
             "forward_headers": "x-my-header, x-your-header   ",
             "insecure_origin": True,
+            "alarm_notification_email": "fake@local.host",
         },
     )
     db.session.expunge_all()
@@ -258,6 +282,8 @@ def subtest_update_creates_update_plan_and_domains_operation(
     assert instance.domain_names == ["bar.com", "foo.com"]
     assert instance.cloudfront_origin_hostname == "new-origin.com"
     assert instance.cloudfront_origin_path == "/somewhere-else"
+    assert instance.alarm_notification_email == "fake@local.host"
+
     return operation_id
 
 
