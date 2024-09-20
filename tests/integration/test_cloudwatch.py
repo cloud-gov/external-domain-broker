@@ -835,6 +835,31 @@ def test_create_ddos_detection_alarm_unmigrated_instance(
     assert service_instance.ddos_detected_cloudwatch_alarm_name == alarm_name
 
 
+def test_create_ddos_detection_alarm_already_exists(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    service_instance.ddos_detected_cloudwatch_alarm_name = "fake-alarm"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    create_ddos_detected_alarm.call_local(operation_id)
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == "fake-alarm"
+
+
 def test_delete_ddos_detection_alarm(
     clean_db,
     service_instance_id,
