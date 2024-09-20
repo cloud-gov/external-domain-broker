@@ -65,6 +65,9 @@ def alb_service_instance(service_instance_factory):
 
 
 def cdn_service_instance(service_instance_factory):
+    kwargs = {}
+    if service_instance_factory == factories.CDNDedicatedWAFServiceInstanceFactory:
+        kwargs["alarm_notification_email"] = "fake@localhost"
     service_instance = service_instance_factory.create(
         id="4321",
         domain_names=["example.com", "foo.com"],
@@ -74,6 +77,7 @@ def cdn_service_instance(service_instance_factory):
         cloudfront_origin_hostname="origin_hostname",
         cloudfront_origin_path="origin_path",
         origin_protocol_policy="https-only",
+        **kwargs,
     )
     new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
@@ -210,7 +214,9 @@ def test_duplicate_domain_check_ignores_self(
     dns.add_cname("_acme-challenge.foo.com")
 
     client.update_instance(
-        instance_model, "4321", params={"domains": "example.com, foo.com"}
+        instance_model,
+        "4321",
+        params={"domains": "example.com, foo.com"},
     )
 
     assert client.response.status_code == expected_status_code, client.response.body

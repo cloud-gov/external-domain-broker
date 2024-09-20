@@ -11,6 +11,11 @@ from broker.models import (
 from tests.lib import factories
 
 
+@pytest.fixture
+def params_with_alarm_notification_email():
+    return {"alarm_notification_email": "fake@localhost"}
+
+
 @pytest.fixture()
 def service_instance_factory(instance_model):
     if instance_model == CDNDedicatedWAFServiceInstance:
@@ -85,10 +90,16 @@ def service_instance(service_instance_factory):
     "instance_model",
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
-def test_provision_sets_default_origin_if_provided_as_none(
-    instance_model, client, service_instance
+def test_update_sets_default_origin_if_provided_as_none(
+    instance_model,
+    client,
+    params_with_alarm_notification_email,
+    service_instance,
 ):
-    client.update_instance(instance_model, "4321", params={"origin": None})
+    params_with_alarm_notification_email.update({"origin": None})
+    client.update_instance(
+        instance_model, "4321", params=params_with_alarm_notification_email
+    )
     db.session.expunge_all()
 
     assert client.response.status_code == 202, client.response.body
@@ -107,10 +118,13 @@ def test_provision_sets_default_origin_if_provided_as_none(
     "instance_model",
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
-def test_provision_sets_default_origin_path_if_provided_as_none(
-    instance_model, client, service_instance
+def test_update_sets_default_origin_path_if_provided_as_none(
+    instance_model, client, params_with_alarm_notification_email, service_instance
 ):
-    client.update_instance(instance_model, "4321", params={"path": None})
+    params_with_alarm_notification_email.update({"path": None})
+    client.update_instance(
+        instance_model, "4321", params=params_with_alarm_notification_email
+    )
     db.session.expunge_all()
 
     assert client.response.status_code == 202, client.response.body
@@ -128,14 +142,17 @@ def test_provision_sets_default_origin_path_if_provided_as_none(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_update_sets_default_cookie_policy_if_provided_as_none(
-    instance_model, client, service_instance
+    instance_model, client, params_with_alarm_notification_email, service_instance
 ):
     service_instance.forward_cookie_policy = "whitelist"
     service_instance.forwarded_cookies = ["foo", "bar"]
     db.session.add(service_instance)
     db.session.commit()
 
-    client.update_instance(instance_model, "4321", params={"forward_cookies": None})
+    params_with_alarm_notification_email.update({"forward_cookies": None})
+    client.update_instance(
+        instance_model, "4321", params=params_with_alarm_notification_email
+    )
     db.session.expunge_all()
     instance = db.session.get(instance_model, "4321")
     assert instance.forward_cookie_policy == "all"
@@ -146,12 +163,17 @@ def test_update_sets_default_cookie_policy_if_provided_as_none(
     "instance_model",
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
-def test_update_sets_none_cookie_policy(instance_model, client, service_instance):
+def test_update_sets_none_cookie_policy(
+    instance_model, client, params_with_alarm_notification_email, service_instance
+):
     service_instance.forward_cookie_policy = "whitelist"
     service_instance.forwarded_cookies = ["foo", "bar"]
     db.session.add(service_instance)
     db.session.commit()
-    client.update_instance(instance_model, "4321", params={"forward_cookies": ""})
+    params_with_alarm_notification_email.update({"forward_cookies": ""})
+    client.update_instance(
+        instance_model, "4321", params=params_with_alarm_notification_email
+    )
     db.session.expunge_all()
     instance = db.session.get(instance_model, "4321")
     assert instance.forward_cookie_policy == "none"
@@ -180,17 +202,21 @@ def test_update_sets_forward_cookie_policy_with_cookies(
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
 )
 def test_update_sets_forward_cookie_policy_with_star(
-    instance_model, client, dns, service_instance
+    instance_model, client, dns, params_with_alarm_notification_email, service_instance
 ):
     service_instance.forward_cookie_policy = "whitelist"
     service_instance.forwarded_cookies = ["foo", "bar"]
     db.session.add(service_instance)
     db.session.commit()
     dns.add_cname("_acme-challenge.example.com")
+
+    params_with_alarm_notification_email.update(
+        {"domains": "example.com", "forward_cookies": "*"}
+    )
     client.update_instance(
         instance_model,
         "4321",
-        params={"domains": "example.com", "forward_cookies": "*"},
+        params=params_with_alarm_notification_email,
     )
     db.session.expunge_all()
     instance = db.session.get(instance_model, "4321")
@@ -293,7 +319,7 @@ def test_update_refuses_insecure_origin_for_default_origin(
         [CDNDedicatedWAFServiceInstance, "foo@bar.com", "foo@bar.com"],
     ],
 )
-def test_provision_sets_alarm_notification_email(
+def test_update_sets_alarm_notification_email(
     dns,
     client,
     instance_model,
@@ -324,10 +350,10 @@ def test_provision_sets_alarm_notification_email(
     "instance_model, expected_response_status",
     [
         [CDNServiceInstance, 202],
-        [CDNDedicatedWAFServiceInstance, 202],
+        [CDNDedicatedWAFServiceInstance, 400],
     ],
 )
-def test_provision_no_alarm_notification_email(
+def test_update_no_alarm_notification_email(
     dns,
     client,
     instance_model,
