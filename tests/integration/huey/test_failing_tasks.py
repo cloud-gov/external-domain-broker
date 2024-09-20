@@ -2,9 +2,8 @@ import time
 import pytest
 
 from huey.exceptions import TaskException
-from broker.extensions import config, db
+from broker.extensions import db
 from broker.tasks.huey import huey
-from broker.tasks.letsencrypt import initiate_challenges
 from broker.models import Operation
 
 from tests.lib.factories import OperationFactory
