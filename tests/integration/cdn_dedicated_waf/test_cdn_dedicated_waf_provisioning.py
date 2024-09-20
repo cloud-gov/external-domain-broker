@@ -266,6 +266,12 @@ def subtest_update_happy_path(
     subtest_update_deletes_health_check_alarms(
         tasks, cloudwatch_commercial, instance_model
     )
+    check_last_operation_description(
+        client,
+        "4321",
+        operation_id,
+        "Deleting Cloudwatch alarms for Route53 health checks",
+    )
     subtest_update_creates_health_check_alarms(
         tasks, cloudwatch_commercial, instance_model
     )
@@ -273,10 +279,13 @@ def subtest_update_happy_path(
         client,
         "4321",
         operation_id,
-        "Updating Cloudwatch alarms for Route53 health checks",
+        "Creating Cloudwatch alarms for Route53 health checks",
     )
     subtest_update_does_not_create_ddos_cloudwatch_alarm(
         tasks, cloudwatch_commercial, instance_model
+    )
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating DDoS detection alarm"
     )
     subtest_update_marks_update_complete(tasks, instance_model)
 

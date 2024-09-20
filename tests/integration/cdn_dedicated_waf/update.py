@@ -187,16 +187,22 @@ def subtest_update_creates_health_check_alarms(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
 
-    assert service_instance.cloudwatch_health_check_alarms == [
-        {
-            "health_check_id": "foo.com ID",
-            "alarm_name": _get_alarm_name("foo.com ID"),
-        },
-        {
-            "health_check_id": "bar.com ID",
-            "alarm_name": _get_alarm_name("bar.com ID"),
-        },
-    ]
+    assert sorted(
+        service_instance.cloudwatch_health_check_alarms,
+        key=lambda alarm: alarm["health_check_id"],
+    ) == sorted(
+        [
+            {
+                "health_check_id": "foo.com ID",
+                "alarm_name": _get_alarm_name("foo.com ID"),
+            },
+            {
+                "health_check_id": "bar.com ID",
+                "alarm_name": _get_alarm_name("bar.com ID"),
+            },
+        ],
+        key=lambda alarm: alarm["health_check_id"],
+    )
 
     cloudwatch_commercial.assert_no_pending_responses()
 
