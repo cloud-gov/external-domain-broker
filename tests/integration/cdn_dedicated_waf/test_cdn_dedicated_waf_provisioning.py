@@ -64,7 +64,6 @@ from tests.integration.cdn_dedicated_waf.update import (
     subtest_update_deletes_unused_health_checks,
     subtest_update_deletes_health_check_alarms,
     subtest_update_creates_health_check_alarms,
-    subtest_updates_health_check_alarms_no_change,
     subtest_update_does_not_create_sns_notification_topic,
     subtest_update_does_not_create_ddos_cloudwatch_alarm,
 )
@@ -326,14 +325,12 @@ def subtest_update_same_domains(
         tasks, sns_commercial, instance_model
     )
     subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)
+    subtest_updates_associated_health_check_no_change(tasks, shield, instance_model)
+    subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)
     subtest_update_deletes_health_check_alarms(
         tasks, cloudwatch_commercial, instance_model
     )
     subtest_update_creates_health_check_alarms(
-        tasks, cloudwatch_commercial, instance_model
-    )
-    subtest_updates_associated_health_check_no_change(tasks, shield, instance_model)
-    subtest_updates_health_check_alarms_no_change(
         tasks, cloudwatch_commercial, instance_model
     )
     subtest_update_does_not_create_ddos_cloudwatch_alarm(

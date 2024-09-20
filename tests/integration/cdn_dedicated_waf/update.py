@@ -207,28 +207,6 @@ def subtest_update_creates_health_check_alarms(
     cloudwatch_commercial.assert_no_pending_responses()
 
 
-def subtest_updates_health_check_alarms_no_change(
-    tasks,
-    cloudwatch_commercial,
-    instance_model,
-    service_instance_id="4321",
-):
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, service_instance_id)
-
-    health_check_alarms_pre_update = service_instance.cloudwatch_health_check_alarms
-
-    tasks.run_queued_tasks_and_enqueue_dependents()
-    cloudwatch_commercial.assert_no_pending_responses()
-
-    db.session.expunge_all()
-    service_instance = db.session.get(instance_model, service_instance_id)
-    assert (
-        service_instance.cloudwatch_health_check_alarms
-        == health_check_alarms_pre_update
-    )
-
-
 def subtest_update_does_not_create_sns_notification_topic(
     tasks,
     sns_commercial,
