@@ -1,8 +1,10 @@
 import logging
+import functools
 
 from flask import Flask
 from redis import ConnectionPool, SSLConnection
 from huey import RedisHuey, signals
+from sqlalchemy.orm.attributes import flag_modified
 
 from sap import cf_logging
 
@@ -76,3 +78,43 @@ def mark_operation_failed(signal, task, exc=None):
         db.session.add(operation)
         db.session.commit()
         send_failed_operation_alert(operation)
+
+
+def pipeline_operation(description, is_retriable=True):
+    """
+    define a function as a task with an operation intended to be used in a pipeline.
+    :param description: the end-user friendly step description
+    :param is_retriable: if true, this task may be retried up to 24 times on failure
+
+    The wrapped function must:
+    - have operation_id as a positional argument
+    - accept operation and db as keyword arguments
+
+    Usage:
+
+    @pipeline_operation("Get cookies from jar", is_retriable=False):
+    def fetch_cookies(operation_id, *, operation, db, **kwargs):
+        service_instance = operation.service_instance
+        db.session.query("select cookie from jar")
+    """
+    if is_retriable:
+        huey_task = retriable_task
+    else:
+        huey_task = nonretriable_task
+
+    def decorate(func):
+        @huey_task
+        @functools.wraps(func)
+        def task(operation_id, **kwargs):
+            operation = db.session.get(Operation, operation_id)
+
+            operation.step_description = description
+            flag_modified(operation, "step_description")
+            db.session.add(operation)
+            db.session.commit()
+
+            return func(operation_id, operation=operation, db=db, **kwargs)
+
+        return task
+
+    return decorate

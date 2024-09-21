@@ -10,11 +10,10 @@ from acme import challenges, client, crypto_util, messages, errors
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from sqlalchemy.orm.attributes import flag_modified
 
-from broker.extensions import config, db
+from broker.extensions import config
 from broker.models import ACMEUser, Certificate, Challenge, Operation
-from broker.tasks import huey
+from broker.tasks.huey import pipeline_operation
 from broker.acme_client import AcmeClient
 
 logger = logging.getLogger(__name__)
@@ -51,14 +50,8 @@ def dns_challenge(order, domain):
     raise DNSChallengeNotFound(domain, challenges_for_domain)
 
 
-@huey.retriable_task
-def create_user(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
-
-    operation.step_description = "Registering user for Lets Encrypt"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
+@pipeline_operation("Registering user for Lets Encrypt")
+def create_user(operation_id: int, *, operation, db, **kwargs):
 
     service_instance = operation.service_instance
     if service_instance.acme_user_id is not None:
@@ -96,15 +89,9 @@ def create_user(operation_id: int, **kwargs):
     db.session.commit()
 
 
-@huey.nonretriable_task
-def generate_private_key(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Creating credentials for Lets Encrypt", is_retriable=False)
+def generate_private_key(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Creating credentials for Lets Encrypt"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if service_instance.new_certificate is not None:
         return
@@ -138,17 +125,11 @@ def generate_private_key(operation_id: int, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def initiate_challenges(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Initiating Lets Encrypt challenges")
+def initiate_challenges(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
     certificate = service_instance.new_certificate
-
-    operation.step_description = "Initiating Lets Encrypt challenges"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if certificate.order_json is not None:
         return
@@ -190,17 +171,11 @@ def initiate_challenges(operation_id: int, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def answer_challenges(operation_id: int, **kwargs):
-
+@pipeline_operation("Answering Lets Encrypt challenges")
+def answer_challenges(operation_id: int, *, operation, db, **kwargs):
     operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
-
-    operation.step_description = "Answering Lets Encrypt challenges"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     challenges = service_instance.new_certificate.challenges.all()
     unanswered = [challenge for challenge in challenges if not challenge.answered]
@@ -251,8 +226,8 @@ def answer_challenges(operation_id: int, **kwargs):
         db.session.commit()
 
 
-@huey.retriable_task
-def retrieve_certificate(operation_id: int, **kwargs):
+@pipeline_operation("Retrieving SSL certificate from Lets Encrypt")
+def retrieve_certificate(operation_id: int, *, operation, db, **kwargs):
     def cert_from_fullchain(fullchain_pem: str) -> str:
         """extract cert_pem from fullchain_pem
 
@@ -279,15 +254,9 @@ def retrieve_certificate(operation_id: int, **kwargs):
 
         return certs_normalized[0], "".join(certs_normalized[1:])
 
-    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     acme_user = service_instance.acme_user
     certificate = service_instance.new_certificate
-
-    operation.step_description = "Retrieving SSL certificate from Lets Encrypt"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if certificate.leaf_pem is not None:
         return

@@ -1,25 +1,16 @@
 import logging
 import time
 
-from sqlalchemy.orm.attributes import flag_modified
-
 from broker.aws import wafv2
-from broker.extensions import config, db
-from broker.models import Operation
-from broker.tasks import huey
+from broker.extensions import config
+from broker.tasks.huey import pipeline_operation
 
 logger = logging.getLogger(__name__)
 
 
-@huey.retriable_task
-def create_web_acl(operation_id: str, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Creating custom WAFv2 web ACL")
+def create_web_acl(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Creating custom WAFv2 web ACL"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if (
         service_instance.dedicated_waf_web_acl_arn
@@ -76,15 +67,9 @@ def create_web_acl(operation_id: str, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def delete_web_acl(operation_id: str, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Deleting custom WAFv2 web ACL")
+def delete_web_acl(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Deleting custom WAFv2 web ACL"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if (
         not service_instance.dedicated_waf_web_acl_name

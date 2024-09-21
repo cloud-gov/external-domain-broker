@@ -4,27 +4,20 @@ import time
 
 from botocore.exceptions import ClientError
 from sqlalchemy import and_
-from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import iam_commercial, iam_govcloud
-from broker.extensions import config, db
+from broker.extensions import config
 from broker.lib.cdn import is_cdn_instance
-from broker.models import Certificate, Operation
-from broker.tasks import huey
+from broker.models import Certificate
+from broker.tasks.huey import pipeline_operation
 
 logger = logging.getLogger(__name__)
 
 
-@huey.retriable_task
-def upload_server_certificate(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Uploading SSL certificate to AWS")
+def upload_server_certificate(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
-
-    operation.step_description = "Uploading SSL certificate to AWS"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     today = date.today().isoformat()
     if is_cdn_instance(service_instance):
@@ -82,15 +75,9 @@ def upload_server_certificate(operation_id: int, **kwargs):
     time.sleep(propagation_time)
 
 
-@huey.retriable_task
-def delete_server_certificate(operation_id: str, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Removing SSL certificate from AWS")
+def delete_server_certificate(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Removing SSL certificate from AWS"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if is_cdn_instance(service_instance):
         iam = iam_commercial
@@ -110,15 +97,9 @@ def delete_server_certificate(operation_id: str, **kwargs):
         _delete_server_certificate(iam, service_instance.current_certificate)
 
 
-@huey.retriable_task
-def delete_previous_server_certificate(operation_id: str, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Removing SSL certificate from AWS")
+def delete_previous_server_certificate(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Removing SSL certificate from AWS"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if is_cdn_instance(service_instance):
         iam = iam_commercial

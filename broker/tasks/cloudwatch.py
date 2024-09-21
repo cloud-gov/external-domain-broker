@@ -1,27 +1,19 @@
 import logging
 
 from botocore.exceptions import ClientError
+
 from sqlalchemy.orm.attributes import flag_modified
 
-from broker.aws import cloudwatch_commercial, sns_commercial
-
-from broker.extensions import config, db
-
-from broker.models import Operation
-from broker.tasks import huey
+from broker.aws import cloudwatch_commercial
+from broker.extensions import config
+from broker.tasks.huey import pipeline_operation
 
 logger = logging.getLogger(__name__)
 
 
-@huey.retriable_task
-def create_health_check_alarms(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Creating Cloudwatch alarms for Route53 health checks")
+def create_health_check_alarms(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Creating Cloudwatch alarms for Route53 health checks"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if not service_instance.sns_notification_topic_arn:
         raise RuntimeError(
@@ -47,15 +39,9 @@ def create_health_check_alarms(operation_id: int, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def update_health_check_alarms(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Updating Cloudwatch alarms for Route53 health checks")
+def update_health_check_alarms(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Updating Cloudwatch alarms for Route53 health checks"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if len(service_instance.route53_health_checks) == 0:
         logger.info(
@@ -68,7 +54,7 @@ def update_health_check_alarms(operation_id: int, **kwargs):
         for health_check in service_instance.route53_health_checks
     ]
 
-    if service_instance.cloudwatch_health_check_alarms == None:
+    if service_instance.cloudwatch_health_check_alarms is None:
         existing_health_check_alarms = []
     else:
         existing_health_check_alarms = service_instance.cloudwatch_health_check_alarms
@@ -122,17 +108,11 @@ def update_health_check_alarms(operation_id: int, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def delete_health_check_alarms(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Deleting Cloudwatch alarms for Route53 health checks")
+def delete_health_check_alarms(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
 
-    operation.step_description = "Deleting Cloudwatch alarms for Route53 health checks"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
-
-    if service_instance.cloudwatch_health_check_alarms == None:
+    if service_instance.cloudwatch_health_check_alarms is None:
         existing_health_check_alarms = []
     else:
         existing_health_check_alarms = service_instance.cloudwatch_health_check_alarms
@@ -153,15 +133,9 @@ def delete_health_check_alarms(operation_id: int, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def create_ddos_detected_alarm(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Creating DDoS detection alarm")
+def create_ddos_detected_alarm(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Creating DDoS detection alarm"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if not service_instance.sns_notification_topic_arn:
         raise RuntimeError(
@@ -188,15 +162,9 @@ def create_ddos_detected_alarm(operation_id: int, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def delete_ddos_detected_alarm(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Deleting DDoS detection alarm")
+def delete_ddos_detected_alarm(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Deleting DDoS detection alarm"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if not service_instance.ddos_detected_cloudwatch_alarm_name:
         return
