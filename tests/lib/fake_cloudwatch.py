@@ -44,7 +44,7 @@ class FakeCloudwatch(FakeAWS):
             "AlarmActions": [notification_topic_arn],
             "MetricName": "DDoSDetected",
             "Namespace": "AWS/DDoSProtection",
-            "Statistic": "Minimum",
+            "Statistic": "Maximum",
             "Dimensions": [
                 {
                     "Name": "ResourceArn",
@@ -55,7 +55,7 @@ class FakeCloudwatch(FakeAWS):
             "EvaluationPeriods": 1,
             "DatapointsToAlarm": 1,
             "Threshold": 1,
-            "ComparisonOperator": "LessThanThreshold",
+            "ComparisonOperator": "GreaterThanOrEqualToThreshold",
         }
         if service_instance.tags:
             request["Tags"] = service_instance.tags

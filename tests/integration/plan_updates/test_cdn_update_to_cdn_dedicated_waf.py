@@ -47,6 +47,7 @@ from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_creates_health_check_alarms,
     subtest_provision_creates_sns_notification_topic,
     subtest_provision_creates_ddos_detected_alarm,
+    subtest_provision_subscribes_sns_notification_topic,
 )
 
 
@@ -136,6 +137,9 @@ def test_update_plan_only(
     subtest_provision_creates_sns_notification_topic(
         tasks, sns_commercial, instance_model
     )
+    subtest_provision_subscribes_sns_notification_topic(
+        tasks, sns_commercial, instance_model
+    )
     subtest_provision_creates_health_checks(tasks, route53, instance_model)
     subtest_provision_associate_health_check(tasks, shield, instance_model)
     subtest_provision_creates_health_check_alarms(
@@ -199,6 +203,9 @@ def test_update_plan_and_domains(
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_update_removes_certificate_from_iam(tasks, iam_commercial, instance_model)
     subtest_provision_creates_sns_notification_topic(
+        tasks, sns_commercial, instance_model
+    )
+    subtest_provision_subscribes_sns_notification_topic(
         tasks, sns_commercial, instance_model
     )
     subtest_provision_creates_health_checks(

@@ -63,6 +63,7 @@ def service_instance(protection_id):
         ],
         ddos_detected_cloudwatch_alarm_name="fake-alarm-name",
         sns_notification_topic_arn="fake-sns-arn",
+        sns_notification_topic_subscription_arn="fake-sns-subscription-arn",
         dedicated_waf_web_acl_id="1234-dedicated-waf-id",
         dedicated_waf_web_acl_name="1234-dedicated-waf",
         dedicated_waf_web_acl_arn="1234-dedicated-waf-arn",
@@ -149,6 +150,9 @@ def test_deprovision_continues_when_resources_dont_exist(
     subtest_deprovision_deletes_health_checks_when_missing(
         instance_model, tasks, service_instance, route53
     )
+    subtest_deprovision_unsubscribe_sns_notification_topic_when_missing(
+        instance_model, tasks, service_instance, sns_commercial
+    )
     subtest_deprovision_delete_sns_notification_topic_when_missing(
         instance_model, tasks, service_instance, sns_commercial
     )
@@ -220,6 +224,12 @@ def test_deprovision_happy_path(
     )
     check_last_operation_description(
         client, "1234", operation_id, "Deleting health checks"
+    )
+    subtest_deprovision_unsubscribe_sns_notification_topic(
+        instance_model, tasks, service_instance, sns_commercial
+    )
+    check_last_operation_description(
+        client, "1234", operation_id, "Unsubscribing from SNS notification topic"
     )
     subtest_deprovision_delete_sns_notification_topic(
         instance_model, tasks, service_instance, sns_commercial
@@ -513,3 +523,37 @@ def subtest_deprovision_deletes_delete_ddos_alarm_when_missing(
 
     service_instance = db.session.get(instance_model, "1234")
     assert service_instance.ddos_detected_cloudwatch_alarm_name == None
+
+
+def subtest_deprovision_unsubscribe_sns_notification_topic(
+    instance_model,
+    tasks,
+    service_instance,
+    sns_commercial,
+):
+    sns_commercial.expect_unsubscribe_topic(
+        service_instance.sns_notification_topic_subscription_arn
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    sns_commercial.assert_no_pending_responses()
+
+    service_instance = db.session.get(instance_model, "1234")
+    assert service_instance.sns_notification_topic_subscription_arn == None
+
+
+def subtest_deprovision_unsubscribe_sns_notification_topic_when_missing(
+    instance_model,
+    tasks,
+    service_instance,
+    sns_commercial,
+):
+    sns_commercial.expect_unsubscribe_topic_not_found(
+        service_instance.sns_notification_topic_subscription_arn
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    sns_commercial.assert_no_pending_responses()
+
+    service_instance = db.session.get(instance_model, "1234")
+    assert service_instance.sns_notification_topic_subscription_arn == None

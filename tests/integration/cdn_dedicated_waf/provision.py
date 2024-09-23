@@ -193,3 +193,30 @@ def subtest_provision_creates_ddos_detected_alarm(
     service_instance = db.session.get(instance_model, service_instance_id)
 
     assert service_instance.ddos_detected_cloudwatch_alarm_name == alarm_name
+
+
+def subtest_provision_subscribes_sns_notification_topic(
+    tasks,
+    sns_commercial,
+    instance_model,
+    service_instance_id="4321",
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    sns_commercial.expect_subscribe_topic(
+        service_instance.sns_notification_topic_arn,
+        service_instance.alarm_notification_email,
+        service_instance.id,
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    sns_commercial.assert_no_pending_responses()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    assert (
+        service_instance.sns_notification_topic_subscription_arn
+        == f"{service_instance.id}-subscription-arn"
+    )
