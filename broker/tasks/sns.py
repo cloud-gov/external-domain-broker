@@ -35,10 +35,8 @@ def create_notification_topic(operation_id: int, *, operation, db, **kwargs):
     db.session.commit()
 
 
-@pipeline_operation("Creating SNS notification topic subscription")
-def create_notification_topic_subscription(
-    operation_id: int, *, operation, db, **kwargs
-):
+@pipeline_operation("Subscribing to SNS notification topic")
+def subscribe_notification_topic(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
 
     if service_instance.sns_notification_topic_subscription_arn:
@@ -46,11 +44,13 @@ def create_notification_topic_subscription(
         return
 
     if not service_instance.sns_notification_topic_arn:
-        raise RuntimeError("SNS topic is required to create a subscription")
+        raise RuntimeError(
+            f"SNS topic is required to create a subscription, none found for {service_instance.id}"
+        )
 
     if not service_instance.alarm_notification_email:
         raise RuntimeError(
-            "alarm_notification_email must be specified to create a subscription"
+            f"alarm_notification_email must be specified to create a subscription, none found on {service_instance.id}"
         )
 
     response = sns_commercial.subscribe(
@@ -93,5 +93,39 @@ def delete_notification_topic(operation_id: int, *, operation, db, **kwargs):
 
     service_instance.sns_notification_topic_arn = None
     flag_modified(service_instance, "sns_notification_topic_arn")
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+@pipeline_operation("Unsubscribing from SNS notification topic")
+def unsubscribe_notification_topic(operation_id: int, *, operation, db, **kwargs):
+    service_instance = operation.service_instance
+
+    if not service_instance.sns_notification_topic_subscription_arn:
+        logger.info(
+            f"No SNS topic subscription to delete for instance {service_instance.id}"
+        )
+        return
+
+    try:
+        sns_commercial.unsubscribe(
+            SubscriptionArn=service_instance.sns_notification_topic_subscription_arn
+        )
+    except ClientError as e:
+        if "NotFound" in e.response["Error"]["Code"]:
+            logger.info(
+                "SNS topic subscription not found",
+                extra={
+                    "subscription_arn": service_instance.sns_notification_topic_subscription_arn
+                },
+            )
+        else:
+            logger.error(
+                f"Got this error code unsubscribing {service_instance.sns_notification_topic_subscription_arn}: {e.response['Error']}"
+            )
+            raise e
+
+    service_instance.sns_notification_topic_subscription_arn = None
+    flag_modified(service_instance, "sns_notification_topic_subscription_arn")
     db.session.add(service_instance)
     db.session.commit()

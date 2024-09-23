@@ -3,7 +3,8 @@ import pytest
 from broker.tasks.sns import (
     create_notification_topic,
     delete_notification_topic,
-    create_notification_topic_subscription,
+    subscribe_notification_topic,
+    unsubscribe_notification_topic,
 )
 from broker.models import Operation, CDNDedicatedWAFServiceInstance
 
@@ -301,14 +302,14 @@ def test_create_sns_notification_topic_subscription(
         "fake-arn", "fake-email", service_instance.id
     )
 
-    create_notification_topic_subscription.call_local(operation_id)
+    subscribe_notification_topic.call_local(operation_id)
 
     sns_commercial.assert_no_pending_responses()
 
     clean_db.session.expunge_all()
 
     operation = clean_db.session.get(Operation, operation_id)
-    assert operation.step_description == "Creating SNS notification topic subscription"
+    assert operation.step_description == "Subscribing to SNS notification topic"
     service_instance = clean_db.session.get(
         CDNDedicatedWAFServiceInstance,
         service_instance_id,
@@ -333,7 +334,7 @@ def test_create_sns_notification_topic_subscription_no_topic(
     assert not service_instance.sns_notification_topic_arn
 
     with pytest.raises(RuntimeError):
-        create_notification_topic_subscription.call_local(operation_id)
+        subscribe_notification_topic.call_local(operation_id)
 
     sns_commercial.assert_no_pending_responses()
 
@@ -352,7 +353,7 @@ def test_create_sns_notification_topic_subscription_no_email(
     assert service_instance.sns_notification_topic_arn
 
     with pytest.raises(RuntimeError):
-        create_notification_topic_subscription.call_local(operation_id)
+        subscribe_notification_topic.call_local(operation_id)
 
     sns_commercial.assert_no_pending_responses()
 
@@ -369,7 +370,7 @@ def test_create_sns_notification_topic_subscription_already_exists(
 
     assert service_instance.sns_notification_topic_subscription_arn
 
-    create_notification_topic_subscription.call_local(operation_id)
+    subscribe_notification_topic.call_local(operation_id)
 
     sns_commercial.assert_no_pending_responses()
 
@@ -394,7 +395,7 @@ def test_create_sns_notification_topic_subscription_unmigrated_instance(
         "fake-arn", "fake-email", service_instance.id
     )
 
-    create_notification_topic_subscription.call_local(
+    subscribe_notification_topic.call_local(
         unmigrated_cdn_service_instance_operation_id
     )
 
@@ -410,3 +411,31 @@ def test_create_sns_notification_topic_subscription_unmigrated_instance(
         service_instance.sns_notification_topic_subscription_arn
         == f"{service_instance.id}-subscription-arn"
     )
+
+
+def test_delete_sns_notification_topic_subscription(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    sns_commercial,
+):
+    service_instance.sns_notification_topic_subscription_arn = "fake-arn"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    sns_commercial.expect_unsubscribe_topic("fake-arn")
+
+    unsubscribe_notification_topic.call_local(operation_id)
+
+    sns_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    operation = clean_db.session.get(Operation, operation_id)
+    assert operation.step_description == "Unsubscribing from SNS notification topic"
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.sns_notification_topic_subscription_arn == None
