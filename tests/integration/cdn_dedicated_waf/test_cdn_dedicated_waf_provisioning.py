@@ -54,6 +54,7 @@ from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_creates_health_check_alarms,
     subtest_provision_creates_sns_notification_topic,
     subtest_provision_creates_ddos_detected_alarm,
+    subtest_provision_subscribes_sns_notification_topic,
 )
 from tests.integration.cdn_dedicated_waf.update import (
     subtest_update_web_acl_does_not_update,
@@ -66,6 +67,7 @@ from tests.integration.cdn_dedicated_waf.update import (
     subtest_update_creates_health_check_alarms,
     subtest_update_does_not_create_sns_notification_topic,
     subtest_update_does_not_create_ddos_cloudwatch_alarm,
+    subtest_update_does_not_subscribe_sns_notification_topic,
 )
 
 
@@ -161,6 +163,12 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Creating SNS notification topic"
     )
+    subtest_provision_subscribes_sns_notification_topic(
+        tasks, sns_commercial, instance_model
+    )
+    check_last_operation_description(
+        client, "4321", operation_id, "Subscribing to SNS notification topic"
+    )
     subtest_provision_creates_health_checks(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Creating new health checks"
@@ -250,6 +258,9 @@ def subtest_update_happy_path(
     subtest_update_does_not_create_sns_notification_topic(
         tasks, sns_commercial, instance_model
     )
+    subtest_update_does_not_subscribe_sns_notification_topic(
+        tasks, sns_commercial, instance_model
+    )
     subtest_update_creates_new_health_checks(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Creating new health checks"
@@ -325,6 +336,9 @@ def subtest_update_same_domains(
         tasks, instance_model
     )
     subtest_update_does_not_create_sns_notification_topic(
+        tasks, sns_commercial, instance_model
+    )
+    subtest_update_does_not_subscribe_sns_notification_topic(
         tasks, sns_commercial, instance_model
     )
     subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)
