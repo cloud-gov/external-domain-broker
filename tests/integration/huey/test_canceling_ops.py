@@ -1,12 +1,11 @@
-import json
-from datetime import date, datetime
+from datetime import datetime
 
 import pytest  # noqa F401
 
 from huey.exceptions import CancelExecution
 
-from broker.extensions import config, db
-from broker.models import Challenge, Operation, CDNServiceInstance
+from broker.extensions import db
+from broker.models import Operation
 from tests.lib.factories import (
     OperationFactory,
     CDNServiceInstanceFactory,

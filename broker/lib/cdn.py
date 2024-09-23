@@ -1,14 +1,14 @@
-from broker.models import ServiceInstanceTypes
+from broker.models import (
+    CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
+)
 
 
 def is_cdn_instance(service_instance) -> bool:
-    return service_instance.instance_type in [
-        ServiceInstanceTypes.CDN.value,
-        ServiceInstanceTypes.CDN_DEDICATED_WAF.value,
-    ]
+    return isinstance(service_instance, CDNServiceInstance) or isinstance(
+        service_instance, CDNDedicatedWAFServiceInstance
+    )
 
 
 def is_cdn_dedicated_waf_instance(service_instance) -> bool:
-    return (
-        service_instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value
-    )
+    return isinstance(service_instance, CDNDedicatedWAFServiceInstance)

@@ -1,12 +1,4 @@
-import pytest
-
 from broker.models import DedicatedALBListener
-
-
-def test_server_runs(client):
-    client.get("/ping")
-    assert client.response.status_code == 200
-    assert client.response.body == "PONG"
 
 
 def test_load_albs_on_startup(clean_db):
