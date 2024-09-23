@@ -86,13 +86,14 @@ def create_ddos_detected_alarm(operation_id: int, *, operation, db, **kwargs):
         service_instance.tags,
         MetricName="DDoSDetected",
         Namespace="AWS/DDoSProtection",
-        Statistic="Minimum",
+        Statistic="Maximum",
         Dimensions=[
             {
                 "Name": "ResourceArn",
                 "Value": service_instance.cloudfront_distribution_arn,
             }
         ],
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
     )
     service_instance.ddos_detected_cloudwatch_alarm_name = ddos_detected_alarm_name
     db.session.add(service_instance)
@@ -151,6 +152,7 @@ def _create_health_check_alarm(
                 "Value": health_check_id,
             }
         ],
+        ComparisonOperator="LessThanThreshold",
     )
     return alarm_name
 
@@ -166,7 +168,6 @@ def _create_cloudwatch_alarm(alarm_name, notification_sns_topic_arn, tags, **kwa
         EvaluationPeriods=1,
         DatapointsToAlarm=1,
         Threshold=1,
-        ComparisonOperator="LessThanThreshold",
         **kwargs,
     )
 
