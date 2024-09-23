@@ -142,6 +142,12 @@ def create_ddos_detected_alarm(operation_id: int, *, operation, db, **kwargs):
             f"Could not find sns_notification_topic_arn for instance {service_instance.id}"
         )
 
+    if service_instance.ddos_detected_cloudwatch_alarm_name:
+        logger.info(
+            f"DDoS alarm name {service_instance.ddos_detected_cloudwatch_alarm_name} already exists"
+        )
+        return
+
     ddos_detected_alarm_name = generate_ddos_alarm_name(service_instance.id)
     _create_cloudwatch_alarm(
         generate_ddos_alarm_name(service_instance.id),

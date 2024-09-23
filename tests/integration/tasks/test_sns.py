@@ -149,6 +149,31 @@ def test_create_sns_notification_topic_unmigrated_instance(
     )
 
 
+def test_create_sns_notification_topic_already_exists(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    sns_commercial,
+):
+    service_instance.sns_notification_topic_arn = "fake-arn"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    create_notification_topic.call_local(operation_id)
+
+    sns_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.sns_notification_topic_arn == "fake-arn"
+
+
 def test_delete_sns_notification_topic(
     clean_db,
     service_instance_id,
