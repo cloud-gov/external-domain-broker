@@ -30,7 +30,6 @@ def create_notification_topic(operation_id: int, *, operation, db, **kwargs):
         **sns_kwargs,
     )
     service_instance.sns_notification_topic_arn = response["TopicArn"]
-    flag_modified(service_instance, "sns_notification_topic_arn")
     db.session.add(service_instance)
     db.session.commit()
 
@@ -62,7 +61,6 @@ def subscribe_notification_topic(operation_id: int, *, operation, db, **kwargs):
     service_instance.sns_notification_topic_subscription_arn = response[
         "SubscriptionArn"
     ]
-    flag_modified(service_instance, "sns_notification_topic_subscription_arn")
     db.session.add(service_instance)
     db.session.commit()
 
@@ -92,7 +90,6 @@ def delete_notification_topic(operation_id: int, *, operation, db, **kwargs):
             raise e
 
     service_instance.sns_notification_topic_arn = None
-    flag_modified(service_instance, "sns_notification_topic_arn")
     db.session.add(service_instance)
     db.session.commit()
 
@@ -126,6 +123,5 @@ def unsubscribe_notification_topic(operation_id: int, *, operation, db, **kwargs
             raise e
 
     service_instance.sns_notification_topic_subscription_arn = None
-    flag_modified(service_instance, "sns_notification_topic_subscription_arn")
     db.session.add(service_instance)
     db.session.commit()
