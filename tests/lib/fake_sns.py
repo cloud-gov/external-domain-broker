@@ -21,6 +21,20 @@ class FakeSNS(FakeAWS):
             request,
         )
 
+    def expect_create_topic_subscription(
+        self, topic_arn, alarm_notification_email, service_instance_id
+    ):
+        self.stubber.add_response(
+            "subscribe",
+            {"SubscriptionArn": f"{service_instance_id}-subscription-arn"},
+            {
+                "TopicArn": topic_arn,
+                "Protocol": "email",
+                "Endpoint": alarm_notification_email,
+                "ReturnSubscriptionArn": True,
+            },
+        )
+
     def expect_delete_topic(self, topic_arn):
         self.stubber.add_response(
             "delete_topic",

@@ -1,6 +1,10 @@
 import pytest
 
-from broker.tasks.sns import create_notification_topic, delete_notification_topic
+from broker.tasks.sns import (
+    create_notification_topic,
+    delete_notification_topic,
+    create_notification_topic_subscription,
+)
 from broker.models import Operation, CDNDedicatedWAFServiceInstance
 
 from tests.lib import factories
@@ -279,3 +283,37 @@ def test_delete_sns_notification_topic_unmigrated_instance(
         service_instance_id,
     )
     assert service_instance.sns_notification_topic_arn == None
+
+
+def test_create_sns_notification_topic_subscription(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    sns_commercial,
+):
+    service_instance.sns_notification_topic_arn = "fake-arn"
+    service_instance.alarm_notification_email = "fake-email"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    sns_commercial.expect_create_topic_subscription(
+        "fake-arn", "fake-email", service_instance.id
+    )
+
+    create_notification_topic_subscription.call_local(operation_id)
+
+    sns_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    operation = clean_db.session.get(Operation, operation_id)
+    assert operation.step_description == "Creating SNS notification topic subscription"
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert (
+        service_instance.sns_notification_topic_subscription_arn
+        == f"{service_instance.id}-subscription-arn"
+    )
