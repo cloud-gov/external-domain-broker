@@ -23,6 +23,10 @@ def create_notification_topic(operation_id: int, **kwargs):
     db.session.add(operation)
     db.session.commit()
 
+    if service_instance.sns_notification_topic_arn:
+        logger.info(f"Topic already exists for instance {service_instance.id}")
+        return
+
     kwargs = {}
     if service_instance.tags:
         kwargs["Tags"] = service_instance.tags

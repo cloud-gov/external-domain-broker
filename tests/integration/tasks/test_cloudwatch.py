@@ -4,7 +4,6 @@ from botocore.exceptions import WaiterError, ClientError
 
 from broker.tasks.cloudwatch import (
     create_health_check_alarms,
-    update_health_check_alarms,
     delete_health_check_alarms,
     create_ddos_detected_alarm,
     delete_ddos_detected_alarm,
@@ -271,260 +270,6 @@ def test_create_health_check_alarms_no_topic(
 
     with pytest.raises(RuntimeError):
         create_health_check_alarms.call_local(operation_id)
-
-    cloudwatch_commercial.assert_no_pending_responses()
-
-
-def test_update_health_check_alarms(
-    clean_db,
-    service_instance_id,
-    service_instance,
-    operation_id,
-    cloudwatch_commercial,
-):
-    tags = service_instance
-    expect_delete_health_check_id = "foo.com ID"
-    expect_delete_alarm_names = [_get_alarm_name(expect_delete_health_check_id)]
-    expect_create_health_check_id = "bar.com ID"
-    expected_health_check_alarms = [
-        {
-            "health_check_id": "example.com ID",
-            "alarm_name": _get_alarm_name("example.com ID"),
-        },
-        {
-            "health_check_id": expect_create_health_check_id,
-            "alarm_name": _get_alarm_name(expect_create_health_check_id),
-        },
-    ]
-
-    # Simulate an update to the domains and health checks
-    service_instance.domain_names = ["example.com", "bar.com"]
-    service_instance.route53_health_checks = [
-        {
-            "domain_name": "example.com",
-            "health_check_id": "example.com ID",
-        },
-        {
-            "domain_name": "bar.com",
-            "health_check_id": "bar.com ID",
-        },
-    ]
-    service_instance.cloudwatch_health_check_alarms = [
-        {
-            "health_check_id": "example.com ID",
-            "alarm_name": _get_alarm_name("example.com ID"),
-        },
-        {
-            "health_check_id": expect_delete_health_check_id,
-            "alarm_name": _get_alarm_name(expect_delete_health_check_id),
-        },
-    ]
-
-    clean_db.session.add(service_instance)
-    clean_db.session.commit()
-
-    cloudwatch_commercial.expect_delete_alarms(expect_delete_alarm_names)
-    cloudwatch_commercial.expect_put_metric_alarm(
-        expect_create_health_check_id,
-        _get_alarm_name(expect_create_health_check_id),
-        tags,
-    )
-    cloudwatch_commercial.expect_describe_alarms(
-        _get_alarm_name(expect_create_health_check_id),
-        [{"AlarmArn": f"{expect_create_health_check_id} ARN"}],
-    )
-
-    update_health_check_alarms.call_local(operation_id)
-
-    # asserts that all the mocked calls above were made
-    cloudwatch_commercial.assert_no_pending_responses()
-
-    clean_db.session.expunge_all()
-
-    operation = clean_db.session.get(Operation, operation_id)
-    assert (
-        operation.step_description
-        == "Updating Cloudwatch alarms for Route53 health checks"
-    )
-    service_instance = clean_db.session.get(
-        CDNDedicatedWAFServiceInstance,
-        service_instance_id,
-    )
-    assert (
-        service_instance.cloudwatch_health_check_alarms == expected_health_check_alarms
-    )
-
-
-def test_update_health_check_alarms_idempotent(
-    clean_db,
-    service_instance_id,
-    service_instance,
-    operation_id,
-    cloudwatch_commercial,
-):
-    tags = service_instance
-    expect_delete_health_check_id = "foo.com ID"
-    expect_delete_alarm_names = [_get_alarm_name(expect_delete_health_check_id)]
-    expect_create_health_check_id = "bar.com ID"
-    expected_health_check_alarms = [
-        {
-            "health_check_id": "example.com ID",
-            "alarm_name": _get_alarm_name("example.com ID"),
-        },
-        {
-            "health_check_id": expect_create_health_check_id,
-            "alarm_name": _get_alarm_name(expect_create_health_check_id),
-        },
-    ]
-
-    # Simulate an update to the domains and health checks
-    service_instance.domain_names = ["example.com", "bar.com"]
-    service_instance.route53_health_checks = [
-        {
-            "domain_name": "example.com",
-            "health_check_id": "example.com ID",
-        },
-        {
-            "domain_name": "bar.com",
-            "health_check_id": "bar.com ID",
-        },
-    ]
-    service_instance.cloudwatch_health_check_alarms = [
-        {
-            "health_check_id": "example.com ID",
-            "alarm_name": _get_alarm_name("example.com ID"),
-        },
-        {
-            "health_check_id": expect_delete_health_check_id,
-            "alarm_name": _get_alarm_name(expect_delete_health_check_id),
-        },
-    ]
-
-    clean_db.session.add(service_instance)
-    clean_db.session.commit()
-
-    cloudwatch_commercial.expect_delete_alarms(expect_delete_alarm_names)
-    cloudwatch_commercial.expect_put_metric_alarm(
-        expect_create_health_check_id,
-        _get_alarm_name(expect_create_health_check_id),
-        tags,
-    )
-    cloudwatch_commercial.expect_describe_alarms(
-        _get_alarm_name(expect_create_health_check_id),
-        [{"AlarmArn": f"{expect_create_health_check_id} ARN"}],
-    )
-
-    update_health_check_alarms.call_local(operation_id)
-
-    # asserts that all the mocked calls above were made
-    cloudwatch_commercial.assert_no_pending_responses()
-
-    clean_db.session.expunge_all()
-
-    service_instance = clean_db.session.get(
-        CDNDedicatedWAFServiceInstance,
-        service_instance_id,
-    )
-    assert (
-        service_instance.cloudwatch_health_check_alarms == expected_health_check_alarms
-    )
-
-    update_health_check_alarms.call_local(operation_id)
-    # asserts that all the mocked calls above were made
-    cloudwatch_commercial.assert_no_pending_responses()
-
-
-def test_update_health_check_alarms_unmigrated_instance(
-    clean_db,
-    service_instance_id,
-    unmigrated_cdn_dedicated_waf_service_instance_operation_id,
-    cloudwatch_commercial,
-):
-    operation = clean_db.session.get(
-        Operation, unmigrated_cdn_dedicated_waf_service_instance_operation_id
-    )
-    service_instance = operation.service_instance
-    tags = service_instance
-
-    expect_create_health_check_id = "bar.com ID"
-    expected_health_check_alarms = [
-        {
-            "health_check_id": "example.com ID",
-            "alarm_name": _get_alarm_name("example.com ID"),
-        },
-        {
-            "health_check_id": expect_create_health_check_id,
-            "alarm_name": _get_alarm_name(expect_create_health_check_id),
-        },
-    ]
-
-    # Simulate an update to the domains and health checks
-    service_instance.domain_names = ["example.com", "bar.com"]
-    service_instance.route53_health_checks = [
-        {
-            "domain_name": "example.com",
-            "health_check_id": "example.com ID",
-        },
-        {
-            "domain_name": "bar.com",
-            "health_check_id": "bar.com ID",
-        },
-    ]
-    service_instance.sns_notification_topic_arn = "fake-arn"
-    clean_db.session.add(service_instance)
-    clean_db.session.commit()
-
-    cloudwatch_commercial.expect_put_metric_alarm(
-        "example.com ID",
-        _get_alarm_name("example.com ID"),
-        tags,
-    )
-    cloudwatch_commercial.expect_describe_alarms(
-        _get_alarm_name("example.com ID"),
-        [{"AlarmArn": "example.com ID ARN"}],
-    )
-    cloudwatch_commercial.expect_put_metric_alarm(
-        expect_create_health_check_id,
-        _get_alarm_name(expect_create_health_check_id),
-        tags,
-    )
-    cloudwatch_commercial.expect_describe_alarms(
-        _get_alarm_name(expect_create_health_check_id),
-        [{"AlarmArn": f"{expect_create_health_check_id} ARN"}],
-    )
-
-    update_health_check_alarms.call_local(
-        unmigrated_cdn_dedicated_waf_service_instance_operation_id
-    )
-
-    # asserts that all the mocked calls above were made
-    cloudwatch_commercial.assert_no_pending_responses()
-
-    clean_db.session.expunge_all()
-
-    service_instance = clean_db.session.get(
-        CDNDedicatedWAFServiceInstance,
-        service_instance_id,
-    )
-    assert (
-        service_instance.cloudwatch_health_check_alarms == expected_health_check_alarms
-    )
-
-
-def test_update_health_check_alarms_no_topic(
-    clean_db,
-    service_instance,
-    operation_id,
-    cloudwatch_commercial,
-):
-    service_instance.sns_notification_topic_arn = None
-
-    clean_db.session.add(service_instance)
-    clean_db.session.commit()
-    clean_db.session.expunge_all()
-
-    with pytest.raises(RuntimeError):
-        update_health_check_alarms.call_local(operation_id)
 
     cloudwatch_commercial.assert_no_pending_responses()
 
@@ -833,6 +578,31 @@ def test_create_ddos_detection_alarm_unmigrated_instance(
         service_instance_id,
     )
     assert service_instance.ddos_detected_cloudwatch_alarm_name == alarm_name
+
+
+def test_create_ddos_detection_alarm_already_exists(
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    cloudwatch_commercial,
+):
+    service_instance.ddos_detected_cloudwatch_alarm_name = "fake-alarm"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    create_ddos_detected_alarm.call_local(operation_id)
+
+    cloudwatch_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.ddos_detected_cloudwatch_alarm_name == "fake-alarm"
 
 
 def test_delete_ddos_detection_alarm(

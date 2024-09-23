@@ -62,8 +62,10 @@ from tests.integration.cdn_dedicated_waf.update import (
     subtest_updates_associated_health_check_no_change,
     subtest_update_creates_new_health_checks,
     subtest_update_deletes_unused_health_checks,
-    subtest_updates_health_check_alarms,
-    subtest_updates_health_check_alarms_no_change,
+    subtest_update_deletes_health_check_alarms,
+    subtest_update_creates_health_check_alarms,
+    subtest_update_does_not_create_sns_notification_topic,
+    subtest_update_does_not_create_ddos_cloudwatch_alarm,
 )
 
 
@@ -195,6 +197,7 @@ def test_provision_happy_path(
         wafv2,
         shield,
         cloudwatch_commercial,
+        sns_commercial,
         instance_model,
     )
     subtest_update_same_domains(
@@ -206,6 +209,7 @@ def test_provision_happy_path(
         wafv2,
         shield,
         cloudwatch_commercial,
+        sns_commercial,
         instance_model,
     )
 
@@ -221,6 +225,7 @@ def subtest_update_happy_path(
     wafv2,
     shield,
     cloudwatch_commercial,
+    sns_commercial,
     instance_model,
 ):
     operation_id = subtest_update_creates_update_operation(client, dns, instance_model)
@@ -242,6 +247,9 @@ def subtest_update_happy_path(
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_update_removes_certificate_from_iam(tasks, iam_commercial, instance_model)
+    subtest_update_does_not_create_sns_notification_topic(
+        tasks, sns_commercial, instance_model
+    )
     subtest_update_creates_new_health_checks(tasks, route53, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Creating new health checks"
@@ -254,12 +262,32 @@ def subtest_update_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Deleting unused health checks"
     )
-    subtest_updates_health_check_alarms(tasks, cloudwatch_commercial, instance_model)
+    subtest_update_deletes_health_check_alarms(
+        tasks,
+        cloudwatch_commercial,
+        instance_model,
+        ["example.com ID", "foo.com ID"],
+    )
     check_last_operation_description(
         client,
         "4321",
         operation_id,
-        "Updating Cloudwatch alarms for Route53 health checks",
+        "Deleting Cloudwatch alarms for Route53 health checks",
+    )
+    subtest_update_creates_health_check_alarms(
+        tasks, cloudwatch_commercial, instance_model
+    )
+    check_last_operation_description(
+        client,
+        "4321",
+        operation_id,
+        "Creating Cloudwatch alarms for Route53 health checks",
+    )
+    subtest_update_does_not_create_ddos_cloudwatch_alarm(
+        tasks, cloudwatch_commercial, instance_model
+    )
+    check_last_operation_description(
+        client, "4321", operation_id, "Creating DDoS detection alarm"
     )
     subtest_update_marks_update_complete(tasks, instance_model)
 
@@ -273,6 +301,7 @@ def subtest_update_same_domains(
     wafv2,
     shield,
     cloudwatch_commercial,
+    sns_commercial,
     instance_model,
 ):
     subtest_update_same_domains_creates_update_operation(client, dns, instance_model)
@@ -295,9 +324,22 @@ def subtest_update_same_domains(
     subtest_update_same_domains_does_not_delete_server_certificate(
         tasks, instance_model
     )
+    subtest_update_does_not_create_sns_notification_topic(
+        tasks, sns_commercial, instance_model
+    )
     subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)
     subtest_updates_associated_health_check_no_change(tasks, shield, instance_model)
-    subtest_updates_health_check_alarms_no_change(
+    subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)
+    subtest_update_deletes_health_check_alarms(
+        tasks,
+        cloudwatch_commercial,
+        instance_model,
+        ["bar.com ID", "foo.com ID"],
+    )
+    subtest_update_creates_health_check_alarms(
+        tasks, cloudwatch_commercial, instance_model
+    )
+    subtest_update_does_not_create_ddos_cloudwatch_alarm(
         tasks, cloudwatch_commercial, instance_model
     )
     subtest_update_marks_update_complete(tasks, instance_model)
