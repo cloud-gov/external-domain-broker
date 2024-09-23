@@ -317,3 +317,96 @@ def test_create_sns_notification_topic_subscription(
         service_instance.sns_notification_topic_subscription_arn
         == f"{service_instance.id}-subscription-arn"
     )
+
+
+def test_create_sns_notification_topic_subscription_no_topic(
+    clean_db,
+    service_instance,
+    operation_id,
+    sns_commercial,
+):
+    service_instance.alarm_notification_email = "fake-email"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    assert service_instance.alarm_notification_email
+    assert not service_instance.sns_notification_topic_arn
+
+    with pytest.raises(RuntimeError):
+        create_notification_topic_subscription.call_local(operation_id)
+
+    sns_commercial.assert_no_pending_responses()
+
+
+def test_create_sns_notification_topic_subscription_no_email(
+    clean_db,
+    service_instance,
+    operation_id,
+    sns_commercial,
+):
+    service_instance.sns_notification_topic_arn = "fake-arn"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    assert not service_instance.alarm_notification_email
+    assert service_instance.sns_notification_topic_arn
+
+    with pytest.raises(RuntimeError):
+        create_notification_topic_subscription.call_local(operation_id)
+
+    sns_commercial.assert_no_pending_responses()
+
+
+def test_create_sns_notification_topic_subscription_already_exists(
+    clean_db,
+    service_instance,
+    operation_id,
+    sns_commercial,
+):
+    service_instance.sns_notification_topic_subscription_arn = "subscription-arn"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    assert service_instance.sns_notification_topic_subscription_arn
+
+    create_notification_topic_subscription.call_local(operation_id)
+
+    sns_commercial.assert_no_pending_responses()
+
+
+def test_create_sns_notification_topic_subscription_unmigrated_instance(
+    clean_db,
+    service_instance_id,
+    unmigrated_cdn_service_instance_operation_id,
+    sns_commercial,
+):
+    operation = clean_db.session.get(
+        Operation, unmigrated_cdn_service_instance_operation_id
+    )
+    service_instance = operation.service_instance
+
+    service_instance.sns_notification_topic_arn = "fake-arn"
+    service_instance.alarm_notification_email = "fake-email"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    sns_commercial.expect_create_topic_subscription(
+        "fake-arn", "fake-email", service_instance.id
+    )
+
+    create_notification_topic_subscription.call_local(
+        unmigrated_cdn_service_instance_operation_id
+    )
+
+    sns_commercial.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert (
+        service_instance.sns_notification_topic_subscription_arn
+        == f"{service_instance.id}-subscription-arn"
+    )
