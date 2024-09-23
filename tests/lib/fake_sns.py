@@ -44,6 +44,15 @@ class FakeSNS(FakeAWS):
             },
         )
 
+    def expect_unsubscribe_topic_not_found(self, subscription_arn):
+        self.stubber.add_client_error(
+            "unsubscribe",
+            service_error_code="NotFoundException",
+            service_message="Not found",
+            http_status_code=404,
+            expected_params={"SubscriptionArn": subscription_arn},
+        )
+
     def expect_create_topic_subscription(
         self, topic_arn, alarm_notification_email, service_instance_id
     ):

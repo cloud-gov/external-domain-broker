@@ -413,7 +413,7 @@ def test_create_sns_notification_topic_subscription_unmigrated_instance(
     )
 
 
-def test_delete_sns_notification_topic_subscription(
+def test_unsubscribe_notification_topic(
     clean_db,
     service_instance_id,
     service_instance,
@@ -434,6 +434,75 @@ def test_delete_sns_notification_topic_subscription(
 
     operation = clean_db.session.get(Operation, operation_id)
     assert operation.step_description == "Unsubscribing from SNS notification topic"
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.sns_notification_topic_subscription_arn == None
+
+
+def test_unsubscribe_notification_topic_no_subscription(
+    clean_db,
+    service_instance_id,
+    operation_id,
+    service_instance,
+    sns_commercial,
+):
+    assert service_instance.sns_notification_topic_subscription_arn == None
+    unsubscribe_notification_topic.call_local(operation_id)
+    sns_commercial.assert_no_pending_responses()
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.sns_notification_topic_subscription_arn == None
+
+
+def test_unsubscribe_notification_topic_not_found(
+    clean_db,
+    service_instance_id,
+    operation_id,
+    service_instance,
+    sns_commercial,
+):
+    service_instance.sns_notification_topic_subscription_arn = "fake-arn"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    sns_commercial.expect_unsubscribe_topic_not_found("fake-arn")
+
+    unsubscribe_notification_topic.call_local(operation_id)
+    sns_commercial.assert_no_pending_responses()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.sns_notification_topic_subscription_arn == None
+
+
+def test_unsubscribe_notification_topic_unmigrated_instance(
+    clean_db,
+    service_instance_id,
+    unmigrated_cdn_service_instance_operation_id,
+    sns_commercial,
+):
+    operation = clean_db.session.get(
+        Operation, unmigrated_cdn_service_instance_operation_id
+    )
+    service_instance = operation.service_instance
+
+    service_instance.sns_notification_topic_subscription_arn = "fake-arn"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    sns_commercial.expect_unsubscribe_topic("fake-arn")
+
+    unsubscribe_notification_topic.call_local(
+        unmigrated_cdn_service_instance_operation_id
+    )
+    sns_commercial.assert_no_pending_responses()
+
     service_instance = clean_db.session.get(
         CDNDedicatedWAFServiceInstance,
         service_instance_id,
