@@ -263,7 +263,10 @@ def subtest_update_happy_path(
         client, "4321", operation_id, "Deleting unused health checks"
     )
     subtest_update_deletes_health_check_alarms(
-        tasks, cloudwatch_commercial, instance_model
+        tasks,
+        cloudwatch_commercial,
+        instance_model,
+        ["example.com ID", "foo.com ID"],
     )
     check_last_operation_description(
         client,
@@ -328,7 +331,10 @@ def subtest_update_same_domains(
     subtest_updates_associated_health_check_no_change(tasks, shield, instance_model)
     subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)
     subtest_update_deletes_health_check_alarms(
-        tasks, cloudwatch_commercial, instance_model
+        tasks,
+        cloudwatch_commercial,
+        instance_model,
+        ["bar.com ID", "foo.com ID"],
     )
     subtest_update_creates_health_check_alarms(
         tasks, cloudwatch_commercial, instance_model

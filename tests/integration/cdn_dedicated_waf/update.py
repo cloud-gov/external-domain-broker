@@ -142,9 +142,9 @@ def subtest_update_deletes_health_check_alarms(
     tasks,
     cloudwatch_commercial,
     instance_model,
+    expect_delete_health_check_ids,
     service_instance_id="4321",
 ):
-    expect_delete_health_check_ids = ["example.com ID", "foo.com ID"]
     expect_delete_alarm_names = [
         _get_alarm_name(expect_delete_health_check_id)
         for expect_delete_health_check_id in expect_delete_health_check_ids
