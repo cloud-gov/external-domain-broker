@@ -3,8 +3,6 @@ import time
 
 from sqlalchemy import and_, select, func, null
 from sqlalchemy.orm import aliased
-from sqlalchemy.orm.attributes import flag_modified
-
 
 from broker.aws import alb
 from broker.extensions import config, db
@@ -14,7 +12,7 @@ from broker.models import (
     Certificate,
     Operation,
 )
-from broker.tasks import huey
+from broker.tasks.huey import pipeline_operation
 
 logger = logging.getLogger(__name__)
 
@@ -111,15 +109,9 @@ def get_lowest_dedicated_alb(service_instance, db):
     db.session.commit()
 
 
-@huey.retriable_task
-def select_dedicated_alb(operation_id, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Selecting load balancer")
+def select_dedicated_alb(operation_id, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Selecting load balancer"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if (
         service_instance.alb_arn
@@ -131,15 +123,9 @@ def select_dedicated_alb(operation_id, **kwargs):
     return get_lowest_dedicated_alb(service_instance, db)
 
 
-@huey.retriable_task
-def select_alb(operation_id, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Selecting load balancer")
+def select_alb(operation_id, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Selecting load balancer"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if (
         service_instance.alb_arn
@@ -156,16 +142,10 @@ def select_alb(operation_id, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def add_certificate_to_alb(operation_id, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Adding SSL certificate to load balancer")
+def add_certificate_to_alb(operation_id, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
-
-    operation.step_description = "Adding SSL certificate to load balancer"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     alb.add_listener_certificates(
         ListenerArn=service_instance.alb_listener_arn,
@@ -184,15 +164,9 @@ def add_certificate_to_alb(operation_id, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def remove_certificate_from_alb(operation_id, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Removing SSL certificate from load balancer")
+def remove_certificate_from_alb(operation_id, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Removing SSL certificate from load balancer"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if service_instance.alb_listener_arn is not None:
         alb.remove_listener_certificates(
@@ -208,9 +182,8 @@ def remove_certificate_from_alb(operation_id, **kwargs):
     time.sleep(config.IAM_CERTIFICATE_PROPAGATION_TIME)
 
 
-@huey.retriable_task
-def remove_certificate_from_previous_alb(operation_id, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Removing SSL certificate from load balancer")
+def remove_certificate_from_previous_alb(operation_id, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     remove_certificate = Certificate.query.filter(
         and_(
@@ -218,11 +191,6 @@ def remove_certificate_from_previous_alb(operation_id, **kwargs):
             Certificate.id != service_instance.current_certificate_id,
         )
     ).first()
-
-    operation.step_description = "Removing SSL certificate from load balancer"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if service_instance.previous_alb_listener_arn is not None:
         time.sleep(config.ALB_OVERLAP_SLEEP_TIME)
@@ -263,18 +231,12 @@ def remove_certificate_from_previous_alb(operation_id, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
+@pipeline_operation("Removing certificate from previous load balancer")
 def remove_certificate_from_previous_alb_during_update_to_dedicated(
-    operation_id, **kwargs
+    operation_id, *, operation, db, **kwargs
 ):
-    operation = db.session.get(Operation, operation_id)
     service_instance = operation.service_instance
     remove_certificate = service_instance.current_certificate
-
-    operation.step_description = "Removing SSL certificate from load balancer"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if service_instance.previous_alb_listener_arn is not None:
         time.sleep(config.ALB_OVERLAP_SLEEP_TIME)

@@ -1,13 +1,11 @@
 import logging
 import time
 
-from sqlalchemy.orm.attributes import flag_modified
-
 from broker.aws import cloudfront
-from broker.extensions import config, db
+from broker.extensions import config
 from broker.lib.tags import add_tag
-from broker.models import Operation, CDNServiceInstance, CDNDedicatedWAFServiceInstance
-from broker.tasks import huey
+from broker.models import CDNServiceInstance, CDNDedicatedWAFServiceInstance
+from broker.tasks.huey import pipeline_operation
 
 logger = logging.getLogger(__name__)
 
@@ -62,16 +60,10 @@ def get_custom_error_responses(service_instance):
         return {"Quantity": 0}
 
 
-@huey.retriable_task
-def create_distribution(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Creating CloudFront distribution")
+def create_distribution(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
-
-    operation.step_description = "Creating CloudFront distribution"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if service_instance.cloudfront_distribution_id:
         try:
@@ -183,15 +175,9 @@ def create_distribution(operation_id: int, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def disable_distribution(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Disabling CloudFront distribution")
+def disable_distribution(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Disabling CloudFront distribution"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if service_instance.cloudfront_distribution_id is None:
         return
@@ -210,15 +196,9 @@ def disable_distribution(operation_id: int, **kwargs):
         return
 
 
-@huey.retriable_task
-def wait_for_distribution_disabled(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Waiting for CloudFront distribution to disable")
+def wait_for_distribution_disabled(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Waiting for CloudFront distribution to disable"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if service_instance.cloudfront_distribution_id is None:
         return
@@ -244,20 +224,14 @@ def wait_for_distribution_disabled(operation_id: int, **kwargs):
         except cloudfront.exceptions.NoSuchDistribution:
             return
         distribution_disabled = (
-            status["Distribution"]["DistributionConfig"]["Enabled"] == False
+            not status["Distribution"]["DistributionConfig"]["Enabled"]
             and status["Distribution"]["Status"] == "Deployed"
         )
 
 
-@huey.retriable_task
-def delete_distribution(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Deleting CloudFront distribution")
+def delete_distribution(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Deleting CloudFront distribution"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     if service_instance.cloudfront_distribution_id is None:
         return
@@ -273,15 +247,9 @@ def delete_distribution(operation_id: int, **kwargs):
         return
 
 
-@huey.retriable_task
-def wait_for_distribution(operation_id: str, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Waiting for CloudFront distribution")
+def wait_for_distribution(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Waiting for CloudFront distribution"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     waiter = cloudfront.get_waiter("distribution_deployed")
     waiter.wait(
@@ -293,15 +261,9 @@ def wait_for_distribution(operation_id: str, **kwargs):
     )
 
 
-@huey.retriable_task
-def update_certificate(operation_id: str, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Updating CloudFront distribution certificate")
+def update_certificate(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Updating CloudFront distribution certificate"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     config = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id
@@ -320,16 +282,10 @@ def update_certificate(operation_id: str, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def update_distribution(operation_id: str, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Updating CloudFront distribution")
+def update_distribution(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     certificate = service_instance.new_certificate
-
-    operation.step_description = "Updating CloudFront distribution"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     config_response = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id
@@ -369,9 +325,10 @@ def update_distribution(operation_id: str, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def remove_s3_bucket_from_cdn_broker_instance(operation_id: str, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Removing s3 bucket binding")
+def remove_s3_bucket_from_cdn_broker_instance(
+    operation_id: str, *, operation, db, **kwargs
+):
     service_instance = operation.service_instance
     config_response = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id
@@ -414,9 +371,8 @@ def remove_s3_bucket_from_cdn_broker_instance(operation_id: str, **kwargs):
         )
 
 
-@huey.retriable_task
-def add_logging_to_bucket(operation_id: str, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Adding logging to Cloudfront distribution")
+def add_logging_to_bucket(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     config_response = cloudfront.get_distribution_config(
         Id=service_instance.cloudfront_distribution_id

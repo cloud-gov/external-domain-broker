@@ -3,25 +3,18 @@ import logging
 from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import shield
-from broker.extensions import db
 from broker.lib.shield_protections import ShieldProtections
-from broker.models import Operation
-from broker.tasks import huey
+from broker.tasks.huey import pipeline_operation
 
 logger = logging.getLogger(__name__)
 
 shield_protections = ShieldProtections(shield)
 
 
-@huey.retriable_task
-def associate_health_check(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
-    if not operation:
-        raise Exception(f'Could not load operation "{operation_id}" successfully')
-
+@pipeline_operation("Associating health check with Shield")
+def associate_health_check(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
 
-    operation.step_description = "Associating health check with Shield"
     flag_modified(operation, "step_description")
     db.session.add(operation)
     db.session.commit()
@@ -45,18 +38,9 @@ def associate_health_check(operation_id: int, **kwargs):
         db.session.commit()
 
 
-@huey.retriable_task
-def update_associated_health_check(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
-    if not operation:
-        raise Exception(f'Could not load operation "{operation_id}" successfully')
-
+@pipeline_operation("Updating associated health check with Shield")
+def update_associated_health_check(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Updating associated health check with Shield"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     logger.info(
         f'Updating associated health check(s) for "{service_instance.domain_names}"'
@@ -101,23 +85,14 @@ def update_associated_health_check(operation_id: int, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def disassociate_health_check(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
-    if not operation:
-        raise Exception(f'Could not load operation "{operation_id}" successfully')
-
+@pipeline_operation("Disassociating health check with Shield")
+def disassociate_health_check(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
 
     shield_associated_health_check = service_instance.shield_associated_health_check
     if shield_associated_health_check is None or shield_associated_health_check == {}:
         logger.info("No health check to disassociate from Shield")
         return
-
-    operation.step_description = "Disassociating health check with Shield"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     _disassociate_health_check(
         shield_associated_health_check,

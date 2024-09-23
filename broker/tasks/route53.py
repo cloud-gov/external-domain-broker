@@ -3,22 +3,15 @@ import logging
 from sqlalchemy.orm.attributes import flag_modified
 
 from broker.aws import route53
-from broker.extensions import config, db
-from broker.models import Operation
-from broker.tasks import huey
+from broker.extensions import config
+from broker.tasks.huey import pipeline_operation
 
 logger = logging.getLogger(__name__)
 
 
-@huey.retriable_task
-def create_TXT_records(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Updating DNS TXT records")
+def create_TXT_records(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Updating DNS TXT records"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     for challenge in [
         c for c in service_instance.new_certificate.challenges if not c.answered
@@ -51,30 +44,18 @@ def create_TXT_records(operation_id: int, **kwargs):
         db.session.commit()
 
 
-@huey.retriable_task
-def remove_TXT_records(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Removing DNS TXT records")
+def remove_TXT_records(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Removing DNS TXT records"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     for certificate in service_instance.certificates:
         for challenge in certificate.challenges:
             _delete_TXT_record(challenge)
 
 
-@huey.retriable_task
-def remove_old_DNS_records(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Removing old DNS records")
+def remove_old_DNS_records(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Removing old DNS records"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     # TODO: do we only need to look at the current certificate?
     current_cert = service_instance.current_certificate
@@ -90,15 +71,9 @@ def remove_old_DNS_records(operation_id: int, **kwargs):
         _delete_ALIAS_record(challenge.domain, service_instance)
 
 
-@huey.retriable_task
-def wait_for_changes(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Waiting for DNS changes")
+def wait_for_changes(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Waiting for DNS changes"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     change_ids = service_instance.route53_change_ids.copy()
     logger.info(f"Waiting for {len(change_ids)} Route53 change IDs: {change_ids}")
@@ -118,15 +93,9 @@ def wait_for_changes(operation_id: int, **kwargs):
         db.session.commit()
 
 
-@huey.retriable_task
-def create_ALIAS_records(operation_id: str, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Creating DNS ALIAS records")
+def create_ALIAS_records(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Creating DNS ALIAS records"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     logger.info(f"Creating ALIAS records for {service_instance.domain_names}")
 
@@ -173,15 +142,9 @@ def create_ALIAS_records(operation_id: str, **kwargs):
         db.session.commit()
 
 
-@huey.retriable_task
-def remove_ALIAS_records(operation_id: str, **kwargs):
-    operation = db.session.get(Operation, operation_id)
+@pipeline_operation("Removing DNS ALIAS records")
+def remove_ALIAS_records(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Removing DNS ALIAS records"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     logger.info(f"Removing ALIAS records for {service_instance.domain_names}")
 
@@ -189,18 +152,9 @@ def remove_ALIAS_records(operation_id: str, **kwargs):
         _delete_ALIAS_record(domain, service_instance)
 
 
-@huey.retriable_task
-def create_new_health_checks(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
-    if not operation:
-        return
-
+@pipeline_operation("Creating new health checks")
+def create_new_health_checks(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Creating new health checks"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     logger.info(f'Creating new health check(s) for "{service_instance.domain_names}"')
 
@@ -234,18 +188,9 @@ def create_new_health_checks(operation_id: int, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def delete_unused_health_checks(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
-    if not operation:
-        return
-
+@pipeline_operation("Deleting unused health checks")
+def delete_unused_health_checks(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    operation.step_description = "Deleting unused health checks"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     logger.info(
         f'Deleting unused health check(s) for "{service_instance.domain_names}"'
@@ -273,24 +218,16 @@ def delete_unused_health_checks(operation_id: int, **kwargs):
     db.session.commit()
 
 
-@huey.retriable_task
-def delete_health_checks(operation_id: int, **kwargs):
-    operation = db.session.get(Operation, operation_id)
-    if not operation:
-        return
+@pipeline_operation("Deleting health checks")
+def delete_health_checks(operation_id: int, *, operation, db, **kwargs):
 
     service_instance = operation.service_instance
-
-    operation.step_description = "Deleting health checks"
-    flag_modified(operation, "step_description")
-    db.session.add(operation)
-    db.session.commit()
 
     logger.info(f'Deleting health check(s) for "{service_instance.domain_names}"')
 
     existing_health_checks = service_instance.route53_health_checks
 
-    if existing_health_checks == None:
+    if existing_health_checks is None:
         logger.info("No Route53 health checks to delete")
         return
 
