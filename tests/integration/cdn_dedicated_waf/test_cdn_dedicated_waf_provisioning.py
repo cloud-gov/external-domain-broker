@@ -67,7 +67,7 @@ from tests.integration.cdn_dedicated_waf.update import (
     subtest_update_creates_health_check_alarms,
     subtest_update_does_not_create_sns_notification_topic,
     subtest_update_does_not_create_ddos_cloudwatch_alarm,
-    subtest_update_does_not_subscribe_sns_notification_topic,
+    subtest_update_unsubscribe_sns_notification_topic,
 )
 
 
@@ -258,7 +258,10 @@ def subtest_update_happy_path(
     subtest_update_does_not_create_sns_notification_topic(
         tasks, sns_commercial, instance_model
     )
-    subtest_update_does_not_subscribe_sns_notification_topic(
+    subtest_update_unsubscribe_sns_notification_topic(
+        tasks, sns_commercial, instance_model, service_instance_id="4321"
+    )
+    subtest_provision_subscribes_sns_notification_topic(
         tasks, sns_commercial, instance_model
     )
     subtest_update_creates_new_health_checks(tasks, route53, instance_model)
@@ -338,7 +341,10 @@ def subtest_update_same_domains(
     subtest_update_does_not_create_sns_notification_topic(
         tasks, sns_commercial, instance_model
     )
-    subtest_update_does_not_subscribe_sns_notification_topic(
+    subtest_update_unsubscribe_sns_notification_topic(
+        tasks, sns_commercial, instance_model, service_instance_id="4321"
+    )
+    subtest_provision_subscribes_sns_notification_topic(
         tasks, sns_commercial, instance_model
     )
     subtest_updates_health_checks_do_not_change(tasks, route53, instance_model)

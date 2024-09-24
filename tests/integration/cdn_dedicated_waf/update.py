@@ -247,7 +247,7 @@ def subtest_update_does_not_create_ddos_cloudwatch_alarm(
     assert service_instance.ddos_detected_cloudwatch_alarm_name
 
 
-def subtest_update_does_not_subscribe_sns_notification_topic(
+def subtest_update_unsubscribe_sns_notification_topic(
     tasks,
     sns_commercial,
     instance_model,
@@ -255,14 +255,15 @@ def subtest_update_does_not_subscribe_sns_notification_topic(
 ):
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
+    assert service_instance.sns_notification_topic_subscription_arn != None
 
-    subscription_arn = service_instance.sns_notification_topic_subscription_arn
-    assert subscription_arn is not None
+    sns_commercial.expect_unsubscribe_topic(
+        service_instance.sns_notification_topic_subscription_arn
+    )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
     sns_commercial.assert_no_pending_responses()
 
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
-
-    assert service_instance.sns_notification_topic_subscription_arn == subscription_arn
+    assert service_instance.sns_notification_topic_subscription_arn == None
