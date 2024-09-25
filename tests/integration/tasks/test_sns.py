@@ -508,3 +508,26 @@ def test_unsubscribe_notification_topic_unmigrated_instance(
         service_instance_id,
     )
     assert service_instance.sns_notification_topic_subscription_arn == None
+
+
+def test_unsubscribe_notification_topic_still_pending(
+    clean_db,
+    service_instance_id,
+    operation_id,
+    service_instance,
+    sns_commercial,
+):
+    service_instance.sns_notification_topic_subscription_arn = "fake-arn"
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    sns_commercial.expect_unsubscribe_topic_still_pending("fake-arn")
+
+    unsubscribe_notification_topic.call_local(operation_id)
+    sns_commercial.assert_no_pending_responses()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+    assert service_instance.sns_notification_topic_subscription_arn == None

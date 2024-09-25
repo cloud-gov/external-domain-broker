@@ -53,6 +53,15 @@ class FakeSNS(FakeAWS):
             expected_params={"SubscriptionArn": subscription_arn},
         )
 
+    def expect_unsubscribe_topic_still_pending(self, subscription_arn):
+        self.stubber.add_client_error(
+            "unsubscribe",
+            service_error_code="InvalidParameter",
+            service_message="Invalid parameter: SubscriptionArn Reason: Cannot unsubscribe a subscription that is pending confirmation",
+            http_status_code=400,
+            expected_params={"SubscriptionArn": subscription_arn},
+        )
+
     def expect_create_topic_subscription(
         self, topic_arn, alarm_notification_email, service_instance_id
     ):

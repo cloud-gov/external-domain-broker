@@ -116,6 +116,16 @@ def unsubscribe_notification_topic(operation_id: int, *, operation, db, **kwargs
                     "subscription_arn": service_instance.sns_notification_topic_subscription_arn
                 },
             )
+        elif (
+            "InvalidParameter" in e.response["Error"]["Code"]
+            and "pending confirmation" in e.response["Error"]["Message"]
+        ):
+            logger.info(
+                "No need to unsubscribe, subscription still pending",
+                extra={
+                    "subscription_arn": service_instance.sns_notification_topic_subscription_arn
+                },
+            )
         else:
             logger.error(
                 f"Got this error code unsubscribing {service_instance.sns_notification_topic_subscription_arn}: {e.response['Error']}"
