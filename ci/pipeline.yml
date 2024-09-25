@@ -254,7 +254,7 @@ jobs:
       text: |
         :x: Testing FAILED for external-domain-broker
         <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-      channel: ((slack-failure-channel))
+      channel: ((slack-channel-customer-success))
       username: ((slack-username))
       icon_url: ((slack-icon-url))
 
