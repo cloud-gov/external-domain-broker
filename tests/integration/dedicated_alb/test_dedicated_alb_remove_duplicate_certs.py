@@ -16,7 +16,6 @@ from broker.duplicate_certs import (
     get_matching_alb_listener_arns_for_cert_arns,
     delete_duplicate_cert_db_record,
     delete_cert_record_and_resource,
-    delete_iam_server_certificate,
     remove_certificate_from_listener_and_verify_removal,
 )
 from broker.models import Certificate
@@ -169,27 +168,6 @@ def test_delete_duplicate_cert_record_commit(no_context_app, no_context_clean_db
         assert len(Certificate.query.all()) == 0
 
 
-def test_delete_iam_server_certificate_success(iam_govcloud):
-    iam_govcloud.expects_delete_server_certificate("name1")
-
-    delete_iam_server_certificate("name1")
-
-
-def test_delete_iam_server_certificate_no_certificate(iam_govcloud):
-    iam_govcloud.expects_delete_server_certificate_returning_no_such_entity("name1")
-
-    delete_iam_server_certificate("name1")
-
-
-def test_delete_iam_server_certificate_unexpected_error(iam_govcloud):
-    with pytest.raises(ClientError):
-        iam_govcloud.expects_delete_server_certificate_returning_unexpected_error(
-            "name1"
-        )
-
-        delete_iam_server_certificate("name1")
-
-
 def test_delete_cert_record_and_resource_handle_exception(
     no_context_clean_db, no_context_app
 ):
@@ -238,6 +216,7 @@ def test_delete_cert_record_and_resource_success(
 
         alb.expect_remove_certificate_from_listener(service_instance.id, "arn1")
         alb.expect_get_certificates_for_listener(service_instance.id)
+        iam_govcloud.expect_get_server_certificate("name1")
         iam_govcloud.expects_delete_server_certificate("name1")
         delete_cert_record_and_resource(certificate, "1234")
 
@@ -279,7 +258,7 @@ def test_delete_cert_record_and_resource_no_certificate(
 
         alb.expect_remove_certificate_from_listener(service_instance.id, "arn1")
         alb.expect_get_certificates_for_listener(service_instance.id)
-        iam_govcloud.expects_delete_server_certificate_returning_no_such_entity("name1")
+        iam_govcloud.expects_get_server_certificate_returning_no_such_entity("name1")
         delete_cert_record_and_resource(certificate, "1234")
 
         assert len(Certificate.query.all()) == 0
