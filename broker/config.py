@@ -133,6 +133,8 @@ class AppConfig(Config):
         self.UAA_CLIENT_ID = self.env("UAA_CLIENT_ID")
         self.UAA_CLIENT_SECRET = self.env("UAA_CLIENT_SECRET")
 
+        self.WAF_CLOUDWATCH_LOG_GROUP_ARN = self.env("WAF_CLOUDWATCH_LOG_GROUP_ARN")
+
 
 class ProductionConfig(AppConfig):
     def __init__(self):
