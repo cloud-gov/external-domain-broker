@@ -10,6 +10,8 @@ services:
       - 5432:5432
     expose:
       - "5432"
+    networks:
+      - edb-testing
   redis:
     image: redis:5.0
     container_name: redis
@@ -20,6 +22,8 @@ services:
       - 6379:6379
     expose:
       - "6379"
+    networks:
+      - edb-testing
   pebble:
     image: ghcr.io/letsencrypt/pebble:latest
     container_name: pebble
@@ -35,6 +39,8 @@ services:
       - 14000:14000
     expose:
       - "14000"
+    networks:
+      - edb-testing
   pebble-challtestsrv:
     image: ghcr.io/letsencrypt/pebble-challtestsrv:latest
     command: -defaultIPv6 "" -defaultIPv4 "0.0.0.0"
@@ -45,3 +51,12 @@ services:
     expose:
       - "8053"
       - "8055"
+    networks:
+      - edb-testing
+
+networks:
+  edb-testing:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.16.0.0/16"
