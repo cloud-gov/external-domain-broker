@@ -254,6 +254,7 @@ class DockerConfig(Config):
         self.SMTP_PASS = None
 
         self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "rate-limit-rule-group-fake-arn"
+        self.WAF_CLOUDWATCH_LOG_GROUP_ARN = "fake-waf-cloudwatch-log-grou-arn"
 
         self.CF_API_URL = "http://mock.cf/"
         self.UAA_TOKEN_URL = "http://mock.uaa/token"

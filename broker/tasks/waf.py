@@ -76,12 +76,14 @@ def put_logging_configuration(operation_id: str, *, operation, db, **kwargs):
         return
 
     wafv2.put_logging_configuration(
-        ResourceArn=service_instance.dedicated_waf_web_acl_arn,
-        LogDestinationConfigs=[
-            config.WAF_CLOUDWATCH_LOG_GROUP_ARN,
-        ],
-        LogScope="CUSTOMER",
-        LogType="WAF_LOGS",
+        LoggingConfiguration={
+            "ResourceArn": service_instance.dedicated_waf_web_acl_arn,
+            "LogDestinationConfigs": [
+                config.WAF_CLOUDWATCH_LOG_GROUP_ARN,
+            ],
+            "LogScope": "CUSTOMER",
+            "LogType": "WAF_LOGS",
+        }
     )
 
 
