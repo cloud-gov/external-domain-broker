@@ -208,3 +208,72 @@ def test_waf_delete_web_acl_unmigrated_cdn_dedicated_waf_instance(
         unmigrated_cdn_dedicated_waf_service_instance_operation_id
     )
     wafv2.assert_no_pending_responses()
+
+
+def test_waf_put_logging_configuration_no_arn(
+    clean_db, service_instance, operation_id, wafv2
+):
+    assert not service_instance.dedicated_waf_web_acl_arn
+
+    waf.put_logging_configuration.call_local(operation_id)
+
+    wafv2.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+
+def test_waf_put_logging_configuration(
+    clean_db, service_instance_id, service_instance, operation_id, wafv2
+):
+    service_instance.dedicated_waf_web_acl_arn = "1234-dedicated-waf-arn"
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+
+    wafv2.expect_put_logging_configuration(
+        service_instance.dedicated_waf_web_acl_arn,
+        config.WAF_CLOUDWATCH_LOG_GROUP_ARN,
+    )
+
+    waf.put_logging_configuration.call_local(operation_id)
+
+    wafv2.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+
+def test_waf_put_logging_configuration_unmigrated_cdn_instance(
+    clean_db, service_instance_id, unmigrated_cdn_service_instance_operation_id, wafv2
+):
+    operation = clean_db.session.get(
+        Operation, unmigrated_cdn_service_instance_operation_id
+    )
+    service_instance = operation.service_instance
+
+    service_instance.dedicated_waf_web_acl_arn = "1234-dedicated-waf-arn"
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        CDNDedicatedWAFServiceInstance,
+        service_instance_id,
+    )
+
+    wafv2.expect_put_logging_configuration(
+        service_instance.dedicated_waf_web_acl_arn,
+        config.WAF_CLOUDWATCH_LOG_GROUP_ARN,
+    )
+
+    waf.put_logging_configuration.call_local(
+        unmigrated_cdn_service_instance_operation_id
+    )
+
+    wafv2.assert_no_pending_responses()

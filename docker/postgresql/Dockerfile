@@ -49,3 +49,4 @@ RUN rm /tmp/password
 
 # Trust connection from Docker for local development
 RUN echo "host local-development ${USER} 172.16.0.0/12 md5" >> /tmp/data/pg_hba.conf
+RUN echo "host test ${USER} 192.168.65.1/32 md5" >> /tmp/data/pg_hba.conf

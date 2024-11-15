@@ -67,6 +67,26 @@ def create_web_acl(operation_id: str, *, operation, db, **kwargs):
     db.session.commit()
 
 
+@pipeline_operation("Updating WAFv2 web ACL logging configuration")
+def put_logging_configuration(operation_id: str, *, operation, db, **kwargs):
+    service_instance = operation.service_instance
+
+    if not service_instance.dedicated_waf_web_acl_arn:
+        logger.info("Web ACL ARN is required")
+        return
+
+    wafv2.put_logging_configuration(
+        LoggingConfiguration={
+            "ResourceArn": service_instance.dedicated_waf_web_acl_arn,
+            "LogDestinationConfigs": [
+                config.WAF_CLOUDWATCH_LOG_GROUP_ARN,
+            ],
+            "LogScope": "CUSTOMER",
+            "LogType": "WAF_LOGS",
+        }
+    )
+
+
 @pipeline_operation("Deleting custom WAFv2 web ACL")
 def delete_web_acl(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance

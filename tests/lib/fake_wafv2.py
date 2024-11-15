@@ -96,6 +96,23 @@ class FakeWAFV2(FakeAWS):
             {"Name": name, "Id": id, "Scope": "CLOUDFRONT", "LockToken": "fake-token"},
         )
 
+    def expect_put_logging_configuration(self, resource_arn: str, log_group_arn: str):
+        method = "put_logging_configuration"
+
+        request = {
+            "LoggingConfiguration": {
+                "ResourceArn": resource_arn,
+                "LogDestinationConfigs": [
+                    log_group_arn,
+                ],
+                "LogScope": "CUSTOMER",
+                "LogType": "WAF_LOGS",
+            }
+        }
+
+        response = {}
+        self.stubber.add_response(method, response, request)
+
 
 @pytest.fixture(autouse=True)
 def wafv2():

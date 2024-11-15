@@ -37,6 +37,24 @@ def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
     )
 
 
+def subtest_provision_put_web_acl_logging_configuration(
+    tasks, wafv2, service_instance_id="4321"
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(
+        CDNDedicatedWAFServiceInstance, service_instance_id
+    )
+
+    wafv2.expect_put_logging_configuration(
+        service_instance.dedicated_waf_web_acl_arn,
+        config.WAF_CLOUDWATCH_LOG_GROUP_ARN,
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    wafv2.assert_no_pending_responses()
+
+
 def subtest_provision_creates_health_checks(
     tasks,
     route53,
