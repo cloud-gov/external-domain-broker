@@ -121,6 +121,9 @@ def mocked_env(
     monkeypatch.setenv("UAA_BASE_URL", "mock://uaa")
     monkeypatch.setenv("UAA_CLIENT_ID", uaa_client_id)
     monkeypatch.setenv("UAA_CLIENT_SECRET", uaa_client_secret)
+    monkeypatch.setenv(
+        "WAF_CLOUDWATCH_LOG_GROUP_ARN", "fake-waf-cloudwatch-log-group-arn"
+    )
 
 
 @pytest.mark.parametrize("env", ["production", "staging", "development"])
