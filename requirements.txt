@@ -28,8 +28,9 @@ charset-normalizer==3.4.0
     # via requests
 click==8.1.7
     # via flask
-cryptography==43.0.3
+cryptography==42.0.8
     # via
+    #   -r pip-tools/requirements.in
     #   acme
     #   josepy
     #   pyopenssl
@@ -90,8 +91,9 @@ psycopg2==2.9.10
     # via -r pip-tools/requirements.in
 pycparser==2.22
     # via cffi
-pyopenssl==24.2.1
+pyopenssl==24.1.0
     # via
+    #   -r pip-tools/requirements.in
     #   acme
     #   josepy
 pyrfc3339==2.0.1

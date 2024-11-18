@@ -2,6 +2,9 @@ Flask-Migrate
 Flask-SQLAlchemy>3
 flask
 sqlalchemy
+# see https://github.com/certbot/josepy/issues/181
+cryptography<43
+pyopenssl<24.2.1
 acme
 boto3
 cfenv

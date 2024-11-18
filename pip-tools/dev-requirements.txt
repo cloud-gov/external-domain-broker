@@ -49,7 +49,7 @@ click==8.1.7
     #   black
     #   flask
     #   pip-tools
-cryptography==43.0.3
+cryptography==42.0.8
     # via
     #   -r pip-tools/../requirements.txt
     #   acme
@@ -184,7 +184,7 @@ pycparser==2.22
     #   cffi
 pyflakes==3.2.0
     # via flake8
-pyopenssl==24.2.1
+pyopenssl==24.1.0
     # via
     #   -r pip-tools/../requirements.txt
     #   acme
