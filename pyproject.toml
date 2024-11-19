@@ -31,5 +31,6 @@ ignore_patterns = ["venv/*", ".venv/*"]
 addopts = ["-vv"]
 filterwarnings = [
   'error',
-  'ignore:X509Extension support in pyOpenSSL is deprecated. You should use the APIs in cryptography.:DeprecationWarning'
+  'ignore:X509Extension support in pyOpenSSL is deprecated. You should use the APIs in cryptography.:DeprecationWarning',
+  'ignore:CSR support in pyOpenSSL is deprecated:DeprecationWarning'
 ]
