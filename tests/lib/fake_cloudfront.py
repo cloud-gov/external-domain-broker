@@ -112,6 +112,50 @@ class FakeCloudFront(FakeAWS):
             {"Id": distribution_id},
         )
 
+    def expect_get_distribution_config_returning_cache_behavior_id(
+        self,
+        caller_reference: str,
+        domains: List[str],
+        certificate_id: str,
+        origin_hostname: str,
+        origin_path: str,
+        distribution_id: str,
+        cache_policy_id: str,
+        origin_request_policy_id: str,
+        forward_cookie_policy: str = "all",
+        forwarded_cookies: list = None,
+        forwarded_headers: list = None,
+        origin_protocol_policy: str = "https-only",
+        bucket_prefix: str = "",
+        custom_error_responses: str = None,
+        include_log_bucket: bool = True,
+    ):
+        if custom_error_responses is None:
+            custom_error_responses = {"Quantity": 0}
+        if forwarded_headers is None:
+            forwarded_headers = ["HOST"]
+        self.etag = str(datetime.now().timestamp())
+        self.stubber.add_response(
+            "get_distribution_config",
+            {
+                "DistributionConfig": self._distribution_config(
+                    caller_reference,
+                    domains,
+                    certificate_id,
+                    origin_hostname,
+                    origin_path,
+                    origin_protocol_policy=origin_protocol_policy,
+                    bucket_prefix=bucket_prefix,
+                    custom_error_responses=custom_error_responses,
+                    include_log_bucket=include_log_bucket,
+                    cache_policy_id=cache_policy_id,
+                    origin_request_policy_id=origin_request_policy_id,
+                ),
+                "ETag": self.etag,
+            },
+            {"Id": distribution_id},
+        )
+
     def expect_get_distribution_config_returning_no_such_distribution(
         self, distribution_id: str
     ):
@@ -289,6 +333,57 @@ class FakeCloudFront(FakeAWS):
             },
         )
 
+    def expect_update_distribution_with_cache_policy_id(
+        self,
+        caller_reference: str,
+        domains: List[str],
+        certificate_id: str,
+        origin_hostname: str,
+        origin_path: str,
+        distribution_id: str,
+        distribution_hostname: str,
+        cache_policy_id: str,
+        origin_request_policy_id: str,
+        origin_protocol_policy: str = "https-only",
+        bucket_prefix: str = "",
+        custom_error_responses: dict = None,
+    ):
+        if custom_error_responses is None:
+            custom_error_responses = {"Quantity": 0}
+        self.stubber.add_response(
+            "update_distribution",
+            self._distribution_response(
+                caller_reference,
+                domains,
+                certificate_id,
+                origin_hostname,
+                origin_path,
+                distribution_id,
+                distribution_hostname,
+                origin_protocol_policy=origin_protocol_policy,
+                bucket_prefix=bucket_prefix,
+                custom_error_responses=custom_error_responses,
+                cache_policy_id=cache_policy_id,
+                origin_request_policy_id=origin_request_policy_id,
+            ),
+            {
+                "DistributionConfig": self._distribution_config(
+                    caller_reference,
+                    domains,
+                    certificate_id,
+                    origin_hostname,
+                    origin_path,
+                    origin_protocol_policy=origin_protocol_policy,
+                    bucket_prefix=bucket_prefix,
+                    custom_error_responses=custom_error_responses,
+                    cache_policy_id=cache_policy_id,
+                    origin_request_policy_id=origin_request_policy_id,
+                ),
+                "Id": distribution_id,
+                "IfMatch": self.etag,
+            },
+        )
+
     def _distribution_config(
         self,
         caller_reference: str,
@@ -305,6 +400,8 @@ class FakeCloudFront(FakeAWS):
         custom_error_responses: dict = None,
         include_le_bucket: bool = False,
         include_log_bucket: bool = True,
+        cache_policy_id: str = None,
+        origin_request_policy_id: str = None,
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -314,6 +411,57 @@ class FakeCloudFront(FakeAWS):
                 "Quantity": len(forwarded_cookies),
                 "Items": forwarded_cookies,
             }
+        default_cache_behavior = {
+            "TargetOriginId": "default-origin",
+            "TrustedSigners": {"Enabled": False, "Quantity": 0},
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "AllowedMethods": {
+                "Quantity": 7,
+                "Items": [
+                    "GET",
+                    "HEAD",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "OPTIONS",
+                    "DELETE",
+                ],
+                "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
+            },
+            "SmoothStreaming": False,
+            "Compress": False,
+            "LambdaFunctionAssociations": {"Quantity": 0},
+        }
+        if cache_policy_id is None:
+            default_cache_behavior.update(
+                {
+                    "ForwardedValues": {
+                        "QueryString": True,
+                        "Cookies": cookies,
+                        "Headers": {
+                            "Quantity": len(forwarded_headers),
+                            "Items": forwarded_headers,
+                        },
+                        "QueryStringCacheKeys": {"Quantity": 0},
+                    },
+                    "MinTTL": 0,
+                    "DefaultTTL": 86400,
+                    "MaxTTL": 31536000,
+                }
+            )
+
+        else:
+            if origin_request_policy_id is None:
+                raise
+            default_cache_behavior.update(
+                {
+                    "FieldLevelEncryptionId": "",
+                    "CachePolicyId": cache_policy_id,
+                    "OriginRequestPolicyId": origin_request_policy_id,
+                    # "GrpcConfig": {"Enabled": False}, # this is a real-life differece I noticed in our samples. Seems unrelated but keeping it because it's real
+                }
+            )
+
         distribution_config = {
             "CallerReference": caller_reference,
             "Aliases": {"Quantity": len(domains), "Items": domains},
@@ -336,40 +484,8 @@ class FakeCloudFront(FakeAWS):
                     }
                 ],
             },
+            "DefaultCacheBehavior": default_cache_behavior,
             "OriginGroups": {"Quantity": 0},
-            "DefaultCacheBehavior": {
-                "TargetOriginId": "default-origin",
-                "ForwardedValues": {
-                    "QueryString": True,
-                    "Cookies": cookies,
-                    "Headers": {
-                        "Quantity": len(forwarded_headers),
-                        "Items": forwarded_headers,
-                    },
-                    "QueryStringCacheKeys": {"Quantity": 0},
-                },
-                "TrustedSigners": {"Enabled": False, "Quantity": 0},
-                "ViewerProtocolPolicy": "redirect-to-https",
-                "MinTTL": 0,
-                "AllowedMethods": {
-                    "Quantity": 7,
-                    "Items": [
-                        "GET",
-                        "HEAD",
-                        "POST",
-                        "PUT",
-                        "PATCH",
-                        "OPTIONS",
-                        "DELETE",
-                    ],
-                    "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
-                },
-                "SmoothStreaming": False,
-                "DefaultTTL": 86400,
-                "MaxTTL": 31536000,
-                "Compress": False,
-                "LambdaFunctionAssociations": {"Quantity": 0},
-            },
             "CacheBehaviors": {"Quantity": 0},
             "CustomErrorResponses": custom_error_responses,
             "Comment": "external domain service https://cloud-gov/external-domain-broker",
@@ -621,6 +737,8 @@ class FakeCloudFront(FakeAWS):
         custom_error_responses: dict = None,
         include_le_bucket: bool = False,
         dedicated_waf_web_acl_arn: str = "",
+        cache_policy_id: str = None,
+        origin_request_policy_id: str = None,
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -654,6 +772,8 @@ class FakeCloudFront(FakeAWS):
                     custom_error_responses,
                     include_le_bucket,
                     dedicated_waf_web_acl_arn,
+                    cache_policy_id,
+                    origin_request_policy_id,
                 ),
             }
         }

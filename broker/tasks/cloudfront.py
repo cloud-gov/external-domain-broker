@@ -304,12 +304,16 @@ def update_distribution(operation_id: str, *, operation, db, **kwargs):
     config["Origins"]["Items"][0]["CustomOriginConfig"][
         "OriginProtocolPolicy"
     ] = service_instance.origin_protocol_policy
-    config["DefaultCacheBehavior"]["ForwardedValues"]["Cookies"] = get_cookie_policy(
-        service_instance
-    )
-    config["DefaultCacheBehavior"]["ForwardedValues"]["Headers"] = get_header_policy(
-        service_instance
-    )
+    if "CachePolicyId" in config["DefaultCacheBehavior"]:
+        # handle cache policy id
+        pass
+    else:
+        config["DefaultCacheBehavior"]["ForwardedValues"]["Cookies"] = (
+            get_cookie_policy(service_instance)
+        )
+        config["DefaultCacheBehavior"]["ForwardedValues"]["Headers"] = (
+            get_header_policy(service_instance)
+        )
     config["Aliases"] = get_aliases(service_instance)
     config["CustomErrorResponses"] = get_custom_error_responses(service_instance)
 
