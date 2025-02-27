@@ -34,6 +34,12 @@ def get_header_policy(service_instance):
     }
 
 
+def has_default_cookie_and_header_policies(service_instance):
+    default_cookie_policy = {"Forward": "all"}
+    default_header_policy = {"Quantity": 0, "Items": []}
+    return all((default_cookie_policy == get_cookie_policy(service_instance), default_header_policy == get_header_policy(service_instance),))
+
+
 def get_aliases(service_instance):
     return {
         "Quantity": len(service_instance.domain_names),
@@ -305,8 +311,10 @@ def update_distribution(operation_id: str, *, operation, db, **kwargs):
         "OriginProtocolPolicy"
     ] = service_instance.origin_protocol_policy
     if "CachePolicyId" in config["DefaultCacheBehavior"]:
-        # handle cache policy id
-        pass
+        if not has_default_cookie_and_header_policies(service_instance):
+            # N.B. This is a really limited workaround. *currently* the only cache policy
+            # we're referencing uses 
+            raise NotImplementedError("Can't set non-default policy with cache-policy ID")
     else:
         config["DefaultCacheBehavior"]["ForwardedValues"]["Cookies"] = (
             get_cookie_policy(service_instance)
