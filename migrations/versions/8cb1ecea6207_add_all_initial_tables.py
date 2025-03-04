@@ -1,7 +1,7 @@
 """add all initial tables
 
 Revision ID: 8cb1ecea6207
-Revises: 
+Revises:
 Create Date: 2020-06-04 20:51:39.664779
 
 """

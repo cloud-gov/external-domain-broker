@@ -79,7 +79,12 @@ def test_no_service_duplicate_alb_certs(no_context_clean_db, no_context_app):
 
         no_context_clean_db.session.commit()
 
-        assert get_service_duplicate_alb_cert_count(service_instance.id, DedicatedALBServiceInstance) == 0
+        assert (
+            get_service_duplicate_alb_cert_count(
+                service_instance.id, DedicatedALBServiceInstance
+            )
+            == 0
+        )
 
 
 def test_service_duplicate_alb_certs(no_context_clean_db, no_context_app):
@@ -95,7 +100,12 @@ def test_service_duplicate_alb_certs(no_context_clean_db, no_context_app):
 
         no_context_clean_db.session.commit()
 
-        assert get_service_duplicate_alb_cert_count(service_instance.id, DedicatedALBServiceInstance) == 1
+        assert (
+            get_service_duplicate_alb_cert_count(
+                service_instance.id, DedicatedALBServiceInstance
+            )
+            == 1
+        )
 
 
 def test_service_duplicate_alb_certs_output(no_context_clean_db, no_context_app):
