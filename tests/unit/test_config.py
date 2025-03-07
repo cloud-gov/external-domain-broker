@@ -99,7 +99,7 @@ def mocked_env(
     # note - we're using the same listener arn twice - this allows us to test deduplication
     monkeypatch.setenv(
         "DEDICATED_ALB_LISTENER_ARNS",
-        "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456,arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456",
+        "org1;arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456,org1;arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456,org2;arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/7891011121314",
     )
     monkeypatch.setenv("AWS_COMMERCIAL_REGION", "us-west-1")
     monkeypatch.setenv("AWS_COMMERCIAL_GLOBAL_REGION", "global-1")
@@ -227,9 +227,16 @@ def test_config_provides_dedicated_alb_arns_deduplicated(env, monkeypatch, mocke
 
     # we have the same arn twice in the fixture, so we expect to see just one here
     assert type(config.DEDICATED_ALB_LISTENER_ARNS) == list
-    assert config.DEDICATED_ALB_LISTENER_ARNS == [
-        "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456"
-    ]
+    assert sorted(config.DEDICATED_ALB_LISTENER_ARNS) == sorted(
+        [
+            "org1;arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456",
+            "org2;arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/7891011121314",
+        ]
+    )
+    assert config.DEDICATED_ALB_LISTENER_ARN_MAP == {
+        "org1": "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456",
+        "org2": "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/7891011121314",
+    }
 
 
 @pytest.mark.parametrize("env", env_mappings().keys())
