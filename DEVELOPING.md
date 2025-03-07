@@ -75,7 +75,7 @@ cd docker
 docker-compose up -d  # Start up services in docker-compose.yml
 ```
 
-The `-d` flag is optional. If you omit, then logs from the PostgreSQL container will stream to your terminal, which may be helpful in debugging tests.
+The `-d` flag is optional. If you omit it, then logs from the PostgreSQL container will stream to your terminal, which may be helpful in debugging tests.
 
 ### Run + debug tests in VScode
 
