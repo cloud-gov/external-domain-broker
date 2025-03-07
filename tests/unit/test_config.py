@@ -234,8 +234,8 @@ def test_config_provides_dedicated_alb_arns_deduplicated(env, monkeypatch, mocke
         ]
     )
     assert config.DEDICATED_ALB_LISTENER_ARN_MAP == {
-        "org1": "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456",
-        "org2": "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/7891011121314",
+        "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/1234567890123456": "org1",
+        "arn:aws:elasticloadbalancing:us-east-2:123456789012:listener/app/my-other-load-balancer/7891011121314": "org2",
     }
 
 

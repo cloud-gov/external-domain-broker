@@ -75,7 +75,7 @@ class AppConfig(Config):
         self.SQLALCHEMY_DATABASE_URI = normalize_db_url(self.env("DATABASE_URL"))
         self.ALB_LISTENER_ARNS = self.env.list("ALB_LISTENER_ARNS")
         self.ALB_LISTENER_ARNS = list(set(self.ALB_LISTENER_ARNS))
-        # TODO: refactor config for dedicated ALB listeners
+        # TODO: remove old config for dedicated ALB listeners
         self.DEDICATED_ALB_LISTENER_ARNS = self.env.list("DEDICATED_ALB_LISTENER_ARNS")
         self.DEDICATED_ALB_LISTENER_ARNS = list(set(self.DEDICATED_ALB_LISTENER_ARNS))
         self.DEDICATED_ALB_LISTENER_ARN_MAP = {}
@@ -83,8 +83,8 @@ class AppConfig(Config):
             [organization_id, dedicated_alb_listener_arn] = (
                 dedicated_listener_arn_assignment.split(";")
             )
-            self.DEDICATED_ALB_LISTENER_ARN_MAP[organization_id] = (
-                dedicated_alb_listener_arn
+            self.DEDICATED_ALB_LISTENER_ARN_MAP[dedicated_alb_listener_arn] = (
+                organization_id
             )
 
         self.AWS_COMMERCIAL_REGION = self.env("AWS_COMMERCIAL_REGION")

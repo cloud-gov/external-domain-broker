@@ -4,7 +4,7 @@ from broker.models import DedicatedALBListener
 def test_load_albs_on_startup(clean_db):
     listeners = DedicatedALBListener.query.all()
     assert len(listeners) == 0
-    DedicatedALBListener.load_albs(["arn-1", "arn-2", "arn-3"])
+    DedicatedALBListener.load_albs({"arn-1": "org1", "arn-2": "org1", "arn-3": "org2"})
     listeners = DedicatedALBListener.query.all()
     assert len(listeners) == 3
 
