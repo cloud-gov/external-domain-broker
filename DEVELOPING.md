@@ -56,7 +56,7 @@ Create an `.env` file which minimally contains:
 
 ```env
 FLASK_APP="broker.app:create_app()"
-FLASK_ENV=local-debugging
+FLASK_ENV=test
 PGPASSWORD=<your-password>
 ```
 
