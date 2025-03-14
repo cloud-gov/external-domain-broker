@@ -1,7 +1,7 @@
 import pytest
 
 from broker.extensions import db
-from broker.models import ACMEUser, CDNServiceInstance, Challenge
+from broker.models import CDNServiceInstance, Challenge
 from broker.tasks.letsencrypt import (
     create_user,
     retrieve_certificate,

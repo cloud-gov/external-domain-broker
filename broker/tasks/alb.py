@@ -72,12 +72,6 @@ def get_potential_listeners_for_dedicated_instance(service_instance):
             for listener_id in dedicated_listener_ids
         ]
     else:
-        # Try to find listeners that are not dedicated to an org already
-        potential_listeners = DedicatedALBListener.query.filter(
-            DedicatedALBListener.dedicated_org == null()
-        ).all()
-
-    if len(potential_listeners) == 0:
         raise RuntimeError(
             f"Could not find potential listeners for org {service_instance.org_id}"
         )

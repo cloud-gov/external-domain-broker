@@ -108,7 +108,7 @@ def restart_stalled_pipelines():
 @huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="*"))
 def load_albs():
     with huey.huey.flask_app.app_context():
-        DedicatedALBListener.load_albs(config.DEDICATED_ALB_LISTENER_ARNS)
+        DedicatedALBListener.load_albs(config.DEDICATED_ALB_LISTENER_ARN_MAP)
 
 
 def scan_for_stalled_pipelines():

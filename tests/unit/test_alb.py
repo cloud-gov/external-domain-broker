@@ -81,28 +81,6 @@ def test_raises_error_on_empty_input_list_albs():
         get_lowest_used_alb([])
 
 
-def test_get_potential_listeners_with_no_listeners_for_instance_org(
-    no_context_clean_db, no_context_app
-):
-    with no_context_app.app_context():
-        listener = factories.DedicatedALBListenerFactory.create(
-            id=100, listener_arn="listener-arn-0"
-        )
-        service_instance = factories.DedicatedALBServiceInstanceFactory.create(
-            id=str(uuid.uuid4()),
-            org_id="org-1",
-        )
-
-        no_context_clean_db.session.add(listener)
-        no_context_clean_db.session.add(service_instance)
-        no_context_clean_db.session.commit()
-
-        potential_listeners = get_potential_listeners_for_dedicated_instance(
-            service_instance
-        )
-        assert potential_listeners == [listener]
-
-
 def test_get_potential_listeners_with_listeners_for_instance_org(
     no_context_clean_db, no_context_app
 ):
@@ -134,7 +112,7 @@ def test_get_potential_listeners_no_listeners_found(
         )
         service_instance = factories.DedicatedALBServiceInstanceFactory.create(
             id=str(uuid.uuid4()),
-            org_id="org-2",  # no listeners avaialble for this org
+            org_id="org-2",  # no listeners available for this org
         )
 
         no_context_clean_db.session.add(listener)
