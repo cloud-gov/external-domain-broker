@@ -75,17 +75,9 @@ class AppConfig(Config):
         self.SQLALCHEMY_DATABASE_URI = normalize_db_url(self.env("DATABASE_URL"))
         self.ALB_LISTENER_ARNS = self.env.list("ALB_LISTENER_ARNS")
         self.ALB_LISTENER_ARNS = list(set(self.ALB_LISTENER_ARNS))
-        # TODO: remove old config for dedicated ALB listeners
-        self.DEDICATED_ALB_LISTENER_ARNS = self.env.list("DEDICATED_ALB_LISTENER_ARNS")
-        self.DEDICATED_ALB_LISTENER_ARNS = list(set(self.DEDICATED_ALB_LISTENER_ARNS))
-        self.DEDICATED_ALB_LISTENER_ARN_MAP = {}
-        for dedicated_listener_arn_assignment in self.DEDICATED_ALB_LISTENER_ARNS:
-            [organization_id, dedicated_alb_listener_arn] = (
-                dedicated_listener_arn_assignment.split(";")
-            )
-            self.DEDICATED_ALB_LISTENER_ARN_MAP[dedicated_alb_listener_arn] = (
-                organization_id
-            )
+        self.DEDICATED_ALB_LISTENER_ARN_MAP = self.env.json(
+            "DEDICATED_ALB_LISTENER_ARN_MAP"
+        )
 
         self.AWS_COMMERCIAL_REGION = self.env("AWS_COMMERCIAL_REGION")
         self.AWS_COMMERCIAL_GLOBAL_REGION = self.env("AWS_COMMERCIAL_GLOBAL_REGION")
@@ -192,7 +184,7 @@ class UpgradeSchemaConfig(Config):
         self.AWS_GOVCLOUD_ACCESS_KEY_ID = "NONE"
         self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
         self.ALB_LISTENER_ARNS = []
-        self.DEDICATED_ALB_LISTENER_ARNS = []
+        self.DEDICATED_ALB_LISTENER_ARN_MAP = {}
         self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "NONE"
 
 
@@ -233,10 +225,7 @@ class DockerConfig(Config):
         self.DNS_ROOT_DOMAIN = "domains.cloud.test"
         self.DATABASE_ENCRYPTION_KEY = "Local Dev Encrytpion Key"
         self.DEFAULT_CLOUDFRONT_ORIGIN = "cloud.local"
-        self.DEDICATED_ALB_LISTENER_ARNS = [
-            "dedicated-listener-arn-0",
-            "dedicated-listener-arn-1",
-        ]
+        self.DEDICATED_ALB_LISTENER_ARN_MAP = {"dedicated-listener-arn-0": "org1"}
         self.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX = (
             "/cloudfront/external-domains-test/"
         )
