@@ -288,7 +288,11 @@ def test_remove_duplicate_certs_with_active_operations(
         )
         assert len(results) == 1
 
-        remove_duplicate_alb_certs(dedicated_listener_arns=[service_instance.id])
+        dedicated_listener_arn_map = {}
+        dedicated_listener_arn_map[service_instance.id] = "org1"
+        remove_duplicate_alb_certs(
+            dedicated_listener_arn_map=dedicated_listener_arn_map
+        )
 
         # nothing should get deleted if there are active operations for a service instance
         results = get_duplicate_certs_for_service(
@@ -299,9 +303,10 @@ def test_remove_duplicate_certs_with_active_operations(
 
 def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app, alb):
     with no_context_app.app_context():
-        alb_listener_arns = config.DEDICATED_ALB_LISTENER_ARNS
+        dedicated_alb_listener_arn_map = config.DEDICATED_ALB_LISTENER_ARN_MAP
+        dedicated_alb_listener_arns = list(dedicated_alb_listener_arn_map.keys())
         service_instance = DedicatedALBServiceInstanceFactory.create(
-            id="1234", alb_listener_arn=alb_listener_arns[0]
+            id="1234", alb_listener_arn=dedicated_alb_listener_arns[0]
         )
         certificate1 = CertificateFactory.create(
             service_instance=service_instance, iam_server_certificate_arn="arn1"
@@ -316,7 +321,7 @@ def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app,
         no_context_clean_db.session.commit()
 
         alb.expect_get_certificates_for_listener(
-            alb_listener_arns[0],
+            dedicated_alb_listener_arns[0],
             certificates=[{"CertificateArn": "arn2"}, {"CertificateArn": "arn3"}],
         )
 
@@ -327,10 +332,14 @@ def test_remove_duplicate_certs_for_service(no_context_clean_db, no_context_app,
         )
         assert len(results) == 2
 
-        alb.expect_remove_certificate_from_listener(alb_listener_arns[0], "arn2")
-        alb.expect_get_certificates_for_listener(alb_listener_arns[0])
-        alb.expect_remove_certificate_from_listener(alb_listener_arns[0], "arn3")
-        alb.expect_get_certificates_for_listener(alb_listener_arns[0])
+        alb.expect_remove_certificate_from_listener(
+            dedicated_alb_listener_arns[0], "arn2"
+        )
+        alb.expect_get_certificates_for_listener(dedicated_alb_listener_arns[0])
+        alb.expect_remove_certificate_from_listener(
+            dedicated_alb_listener_arns[0], "arn3"
+        )
+        alb.expect_get_certificates_for_listener(dedicated_alb_listener_arns[0])
 
         fakeLogger = FakeLogger()
 
