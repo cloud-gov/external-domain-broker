@@ -311,12 +311,17 @@ class DedicatedALBListener(Base):
     dedicated_org = mapped_column(db.String, nullable=True)
 
     @classmethod
-    def load_albs(cls, listener_arns: list[str]):
-        logger.info(f"Starting load_albs with {listener_arns}")
-        if listener_arns:
-            logger.info(f"Loading dedicated albs {listener_arns}")
+    def load_albs(cls, dedicated_listener_arn_map: dict[str]):
+        logger.info(f"Starting load_albs with {dedicated_listener_arn_map}")
+        for dedicated_listener_arn in dedicated_listener_arn_map:
+            organization_id = dedicated_listener_arn_map[dedicated_listener_arn]
             stmt = insert(DedicatedALBListener).values(
-                [dict(listener_arn=arn) for arn in listener_arns]
+                [
+                    dict(
+                        listener_arn=dedicated_listener_arn,
+                        dedicated_org=organization_id,
+                    )
+                ]
             )
             stmt = stmt.on_conflict_do_nothing(index_elements=["listener_arn"])
             db.session.execute(stmt)

@@ -174,8 +174,8 @@ def get_matching_alb_listener_arns_for_cert_arns(
 
 
 def remove_duplicate_alb_certs(
-    alb_listener_arns=config.ALB_LISTENER_ARNS,
-    dedicated_listener_arns=config.DEDICATED_ALB_LISTENER_ARNS,
+    alb_listener_arns: list[str] = config.ALB_LISTENER_ARNS,
+    dedicated_listener_arn_map: dict[str] = config.DEDICATED_ALB_LISTENER_ARN_MAP,
     logger=logger,
 ):
     service_instance_models = [ALBServiceInstance, DedicatedALBServiceInstance]
@@ -184,7 +184,7 @@ def remove_duplicate_alb_certs(
         if service_instance_model == ALBServiceInstance:
             listener_arns = alb_listener_arns
         elif service_instance_model == DedicatedALBServiceInstance:
-            listener_arns = dedicated_listener_arns
+            listener_arns = list(dedicated_listener_arn_map.keys())
         else:
             # It is not really possible for this condition to be reached, but adding belt/suspenders
             # in case of later code refactoring
