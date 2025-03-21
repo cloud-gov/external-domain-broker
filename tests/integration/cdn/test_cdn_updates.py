@@ -21,6 +21,7 @@ def cdn_instance_ready_for_update(clean_db):
         cloudfront_origin_hostname="newer-origin.com",
         cloudfront_origin_path="/somewhere-else",
         origin_protocol_policy="https-only",
+        forwarded_headers=["HOST"],
     )
     service_instance.new_certificate = factories.CertificateFactory.create(
         id="1",
