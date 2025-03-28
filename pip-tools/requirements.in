@@ -2,9 +2,6 @@ Flask-Migrate
 Flask-SQLAlchemy>3
 flask
 sqlalchemy
-# Josepy 2+ may introduce backward incompatible changes by droping usage of
-# deprecated PyOpenSSL APIs.
-josepy<2
 acme
 boto3
 cfenv
