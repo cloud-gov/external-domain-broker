@@ -79,7 +79,6 @@ def is_cdn_with_dedicated_waf_instance(service_instance) -> bool:
 
 
 def update_cdn_with_dedicated_waf_instance_tags(tags: list[Tag]) -> list[Tag]:
-    # tags = service_instance.tags if service_instance.tags else []
     tags = add_tag(tags, "has_dedicated_acl", "true")
     return tags
 
