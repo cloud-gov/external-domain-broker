@@ -18,6 +18,7 @@ def cdn_instance_ready_for_update(clean_db):
         domain_internal="fake1234.cloudfront.net",
         route53_alias_hosted_zone="Z2FDTNDATAQYW2",
         cloudfront_distribution_id="FakeDistributionId",
+        cloudfront_distribution_arn="fake-arn",
         cloudfront_origin_hostname="newer-origin.com",
         cloudfront_origin_path="/somewhere-else",
         origin_protocol_policy="https-only",
@@ -99,6 +100,9 @@ def test_update_with_new_style_response(
         cache_policy_id="my-cache-policy",
         origin_request_policy_id="my-origin-policy",
     )
+
+    tags = service_instance.tags or []
+    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn, tags)
 
     cloudfront_tasks.update_distribution.call_local("1")
     clean_db.session.expunge_all()
