@@ -1,9 +1,7 @@
 import pytest
 
-from broker.tasks.cloudfront import (
-    wait_for_distribution_disabled,
-)
-from broker.models import Operation
+from broker.tasks.cloudfront import wait_for_distribution_disabled, update_distribution
+from broker.models import Operation, ServiceInstanceTypes
 from broker.extensions import config
 
 from tests.lib import factories
@@ -15,20 +13,36 @@ def service_instance(
     operation_id,
     service_instance_id,
     cloudfront_distribution_arn,
+    dedicated_waf_web_acl_arn,
     instance_factory,
 ):
-    service_instance = instance_factory.create(
-        id=service_instance_id,
-        domain_names=["example.com", "foo.com"],
-        domain_internal="fake1234.cloudfront.net",
-        route53_alias_hosted_zone="Z2FDTNDATAQYW2",
-        cloudfront_distribution_id="FakeDistributionId",
-        cloudfront_distribution_arn=cloudfront_distribution_arn,
-        cloudfront_origin_hostname="origin_hostname",
-        cloudfront_origin_path="origin_path",
-        origin_protocol_policy="https-only",
-        forwarded_headers=["HOST"],
-    )
+    if instance_factory == factories.CDNServiceInstanceFactory:
+        service_instance = instance_factory.create(
+            id=service_instance_id,
+            domain_names=["example.com", "foo.com"],
+            domain_internal="fake1234.cloudfront.net",
+            route53_alias_hosted_zone="Z2FDTNDATAQYW2",
+            cloudfront_distribution_id="FakeDistributionId",
+            cloudfront_distribution_arn=cloudfront_distribution_arn,
+            cloudfront_origin_hostname="origin_hostname",
+            cloudfront_origin_path="origin_path",
+            origin_protocol_policy="https-only",
+            forwarded_headers=["HOST"],
+        )
+    elif instance_factory == factories.CDNDedicatedWAFServiceInstanceFactory:
+        service_instance = instance_factory.create(
+            id=service_instance_id,
+            domain_names=["example.com", "foo.com"],
+            domain_internal="fake1234.cloudfront.net",
+            route53_alias_hosted_zone="Z2FDTNDATAQYW2",
+            cloudfront_distribution_id="FakeDistributionId",
+            cloudfront_distribution_arn=cloudfront_distribution_arn,
+            cloudfront_origin_hostname="origin_hostname",
+            cloudfront_origin_path="origin_path",
+            origin_protocol_policy="https-only",
+            forwarded_headers=["HOST"],
+            dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
+        )
     new_cert = factories.CertificateFactory.create(
         service_instance=service_instance,
         private_key_pem="SOMEPRIVATEKEY",
@@ -142,3 +156,62 @@ def test_cloudfront_wait_distribution_disabled_error_max_retries(
 
     # asserts that all the mocked calls above were made
     cloudfront.assert_no_pending_responses()
+
+
+@pytest.mark.parametrize(
+    "instance_factory",
+    [
+        factories.CDNServiceInstanceFactory,
+        factories.CDNDedicatedWAFServiceInstanceFactory,
+    ],
+)
+def test_cloudfront_update_distribution(
+    clean_db,
+    service_instance,
+    operation_id,
+    cloudfront,
+):
+    cloudfront.expect_get_distribution_config(
+        caller_reference="asdf",
+        domains=service_instance.domain_names,
+        certificate_id=service_instance.new_certificate.iam_server_certificate_id,
+        origin_hostname=service_instance.cloudfront_origin_hostname,
+        origin_path=service_instance.cloudfront_origin_path,
+        distribution_id=service_instance.cloudfront_distribution_id,
+    )
+
+    if service_instance.instance_type == ServiceInstanceTypes.CDN.value:
+        cloudfront.expect_update_distribution(
+            caller_reference="asdf",
+            domains=service_instance.domain_names,
+            certificate_id=service_instance.new_certificate.iam_server_certificate_id,
+            origin_hostname=service_instance.cloudfront_origin_hostname,
+            origin_path=service_instance.cloudfront_origin_path,
+            distribution_id=service_instance.cloudfront_distribution_id,
+            distribution_hostname=service_instance.cloudfront_origin_hostname,
+        )
+        tags = []
+    if service_instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
+        cloudfront.expect_update_distribution(
+            caller_reference="asdf",
+            domains=service_instance.domain_names,
+            certificate_id=service_instance.new_certificate.iam_server_certificate_id,
+            origin_hostname=service_instance.cloudfront_origin_hostname,
+            origin_path=service_instance.cloudfront_origin_path,
+            distribution_id=service_instance.cloudfront_distribution_id,
+            distribution_hostname=service_instance.cloudfront_origin_hostname,
+            dedicated_waf_web_acl_arn=service_instance.dedicated_waf_web_acl_arn,
+        )
+        tags = [{"Key": "has_dedicated_acl", "Value": "true"}]
+
+    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn, tags)
+
+    update_distribution.call_local(operation_id)
+
+    # asserts that all the mocked calls above were made
+    cloudfront.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    operation = clean_db.session.get(Operation, operation_id)
+    assert operation.step_description == "Updating CloudFront distribution"

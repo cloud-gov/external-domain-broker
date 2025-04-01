@@ -35,6 +35,7 @@ from tests.lib.identifiers import (
     current_cert_id,
     cloudfront_distribution_arn,
     protection_id,
+    dedicated_waf_web_acl_arn,
 )  # noqa 41
 
 

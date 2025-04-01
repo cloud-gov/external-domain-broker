@@ -292,6 +292,7 @@ class FakeCloudFront(FakeAWS):
         origin_protocol_policy: str = "https-only",
         bucket_prefix: str = "",
         custom_error_responses: dict = None,
+        dedicated_waf_web_acl_arn: str = None,
     ):
         if custom_error_responses is None:
             custom_error_responses = {"Quantity": 0}
@@ -327,10 +328,18 @@ class FakeCloudFront(FakeAWS):
                     origin_protocol_policy=origin_protocol_policy,
                     bucket_prefix=bucket_prefix,
                     custom_error_responses=custom_error_responses,
+                    dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,
             },
+        )
+
+    def expect_tag_resource(self, cloudfront_distribution_arn: str, tags: list[Tag]):
+        self.stubber.add_response(
+            "tag_resource",
+            {},
+            {"Resource": cloudfront_distribution_arn, "Tags": {"Items": tags}},
         )
 
     def expect_update_distribution_with_cache_policy_id(
@@ -402,6 +411,7 @@ class FakeCloudFront(FakeAWS):
         include_log_bucket: bool = True,
         cache_policy_id: str = None,
         origin_request_policy_id: str = None,
+        dedicated_waf_web_acl_arn: str = None,
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -553,6 +563,8 @@ class FakeCloudFront(FakeAWS):
                 "Bucket": "",
                 "Prefix": "",
             }
+        if dedicated_waf_web_acl_arn:
+            distribution_config["WebACLId"] = dedicated_waf_web_acl_arn
         return distribution_config
 
     def _distribution_config_with_tags(

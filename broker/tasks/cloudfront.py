@@ -3,7 +3,7 @@ import time
 
 from broker.aws import cloudfront
 from broker.extensions import config
-from broker.lib.tags import add_tag
+from broker.lib.tags import add_tag, Tag
 from broker.models import CDNServiceInstance, CDNDedicatedWAFServiceInstance
 from broker.tasks.huey import pipeline_operation
 
@@ -69,6 +69,19 @@ def get_custom_error_responses(service_instance):
         return {"Quantity": len(items), "Items": items}
     else:
         return {"Quantity": 0}
+
+
+def is_cdn_with_dedicated_waf_instance(service_instance) -> bool:
+    return (
+        isinstance(service_instance, CDNDedicatedWAFServiceInstance)
+        and service_instance.dedicated_waf_web_acl_arn
+    )
+
+
+def update_cdn_with_dedicated_waf_instance_tags(tags: list[Tag]) -> list[Tag]:
+    # tags = service_instance.tags if service_instance.tags else []
+    tags = add_tag(tags, "has_dedicated_acl", "true")
+    return tags
 
 
 @pipeline_operation("Creating CloudFront distribution")
@@ -159,12 +172,9 @@ def create_distribution(operation_id: int, *, operation, db, **kwargs):
 
     tags = service_instance.tags if service_instance.tags else []
 
-    if (
-        isinstance(service_instance, CDNDedicatedWAFServiceInstance)
-        and service_instance.dedicated_waf_web_acl_arn
-    ):
+    if is_cdn_with_dedicated_waf_instance(service_instance):
         distribution_config["WebACLId"] = service_instance.dedicated_waf_web_acl_arn
-        tags = add_tag(tags, "has_dedicated_acl", "true")
+        tags = update_cdn_with_dedicated_waf_instance_tags(tags)
 
     distribution_config_with_tags = {
         "DistributionConfig": distribution_config,
@@ -332,10 +342,26 @@ def update_distribution(operation_id: str, *, operation, db, **kwargs):
     config["Aliases"] = get_aliases(service_instance)
     config["CustomErrorResponses"] = get_custom_error_responses(service_instance)
 
+    tags = service_instance.tags if service_instance.tags else []
+
+    if (
+        isinstance(service_instance, CDNDedicatedWAFServiceInstance)
+        and service_instance.dedicated_waf_web_acl_arn
+    ):
+        config["WebACLId"] = service_instance.dedicated_waf_web_acl_arn
+        tags = update_cdn_with_dedicated_waf_instance_tags(tags)
+
     cloudfront.update_distribution(
         DistributionConfig=config,
         Id=service_instance.cloudfront_distribution_id,
         IfMatch=etag,
+    )
+
+    cloudfront.tag_resource(
+        Resource=service_instance.cloudfront_distribution_arn,
+        Tags={
+            "Items": tags,
+        },
     )
 
     service_instance.current_certificate = certificate

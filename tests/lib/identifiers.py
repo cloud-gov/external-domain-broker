@@ -34,6 +34,11 @@ def protection_id():
     return str(uuid.uuid4())
 
 
+@pytest.fixture
+def dedicated_waf_web_acl_arn():
+    return str(uuid.uuid4())
+
+
 def get_server_certificate_name(instance_id, certificate_id):
     today = date.today().isoformat()
     return f"{instance_id}-{today}-{certificate_id}"
