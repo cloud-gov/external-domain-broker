@@ -46,16 +46,20 @@ def update_associated_health_check(operation_id: int, *, operation, db, **kwargs
         f'Updating associated health check(s) for "{service_instance.domain_names}"'
     )
 
-    shield_associated_health_check_domain_name = (
-        service_instance.shield_associated_health_check["domain_name"]
-    )
+    if service_instance.shield_associated_health_check:
+        shield_associated_health_check_domain_name = (
+            service_instance.shield_associated_health_check["domain_name"]
+        )
 
-    # IF the domain name for associated health check is NOT IN the list of domain names,
-    # THEN it needs to be DISASSOCIATED
-    if shield_associated_health_check_domain_name not in service_instance.domain_names:
-        _disassociate_health_check(service_instance.shield_associated_health_check)
-        service_instance.shield_associated_health_check = None
-        flag_modified(service_instance, "shield_associated_health_check")
+        # IF the domain name for associated health check is NOT IN the list of domain names,
+        # THEN it needs to be DISASSOCIATED
+        if (
+            shield_associated_health_check_domain_name
+            not in service_instance.domain_names
+        ):
+            _disassociate_health_check(service_instance.shield_associated_health_check)
+            service_instance.shield_associated_health_check = None
+            flag_modified(service_instance, "shield_associated_health_check")
 
     # IF the domain name for associated health check is IN the list of domain names
     # AND there is not already an existing associated health check,
