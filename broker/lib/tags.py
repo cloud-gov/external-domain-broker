@@ -22,17 +22,16 @@ class Tag(typing.TypedDict):
     Value: str
 
 
-def add_tag(tags: list[Tag], tag_key: str, tag_value: str) -> list[Tag]:
+def tag_key_exists(tags: list[Tag], tag_key: str) -> bool:
+    return tag_key in [tag["Key"] for tag in tags]
+
+
+def add_tag(tags: list[Tag], tag: Tag) -> list[Tag]:
     if not tags:
         tags = []
-    if tag_key in [tag["Key"] for tag in tags]:
-        raise RuntimeError(f"Tag value already exists for {tag_key}")
-    tags.append(
-        {
-            "Key": tag_key,
-            "Value": tag_value,
-        }
-    )
+    if tag_key_exists(tags, tag["Key"]):
+        raise RuntimeError(f"Tag value already exists for {tag['Key']}")
+    tags.append(tag)
     return tags
 
 

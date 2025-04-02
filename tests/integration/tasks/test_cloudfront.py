@@ -271,3 +271,53 @@ def test_cloudfront_update_distribution(
 
     operation = clean_db.session.get(Operation, operation_id)
     assert operation.step_description == "Updating CloudFront distribution"
+
+
+@pytest.mark.parametrize(
+    "instance_factory",
+    [
+        factories.CDNDedicatedWAFServiceInstanceFactory,
+    ],
+)
+def test_cloudfront_update_distribution_already_has_tags(
+    clean_db,
+    service_instance,
+    operation_id,
+    cloudfront,
+):
+    tags = [{"Key": "has_dedicated_acl", "Value": "true"}]
+    service_instance.tags = tags
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    cloudfront.expect_get_distribution_config(
+        caller_reference="asdf",
+        domains=service_instance.domain_names,
+        certificate_id=service_instance.new_certificate.iam_server_certificate_id,
+        origin_hostname=service_instance.cloudfront_origin_hostname,
+        origin_path=service_instance.cloudfront_origin_path,
+        distribution_id=service_instance.cloudfront_distribution_id,
+    )
+
+    cloudfront.expect_update_distribution(
+        caller_reference="asdf",
+        domains=service_instance.domain_names,
+        certificate_id=service_instance.new_certificate.iam_server_certificate_id,
+        origin_hostname=service_instance.cloudfront_origin_hostname,
+        origin_path=service_instance.cloudfront_origin_path,
+        distribution_id=service_instance.cloudfront_distribution_id,
+        distribution_hostname=service_instance.cloudfront_origin_hostname,
+        dedicated_waf_web_acl_arn=service_instance.dedicated_waf_web_acl_arn,
+    )
+
+    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn, tags)
+
+    update_distribution.call_local(operation_id)
+
+    # asserts that all the mocked calls above were made
+    cloudfront.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    operation = clean_db.session.get(Operation, operation_id)
+    assert operation.step_description == "Updating CloudFront distribution"

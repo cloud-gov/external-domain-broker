@@ -5,7 +5,6 @@ import pytest
 
 from broker.aws import cloudfront as real_cloudfront
 from broker.lib.tags import add_tag, Tag
-from broker.tasks.cloudfront import update_cdn_with_dedicated_waf_instance_tags
 from tests.lib.fake_aws import FakeAWS
 
 
@@ -337,6 +336,7 @@ class FakeCloudFront(FakeAWS):
         )
 
     def expect_tag_resource(self, cloudfront_distribution_arn: str, tags: list[Tag]):
+        tags = tags if tags else []
         self.stubber.add_response(
             "tag_resource",
             {},
@@ -721,7 +721,7 @@ class FakeCloudFront(FakeAWS):
 
         if dedicated_waf_web_acl_arn:
             distribution_config["WebACLId"] = dedicated_waf_web_acl_arn
-            tags = update_cdn_with_dedicated_waf_instance_tags(tags)
+            tags = add_tag(tags, {"Key": "has_dedicated_acl", "Value": "true"})
 
         distribution_config_with_tags = {
             "DistributionConfig": distribution_config,

@@ -3,8 +3,8 @@ from datetime import date
 import pytest  # noqa F401
 
 from broker.extensions import config, db
+from broker.lib.tags import add_tag
 from broker.models import Operation, CDNServiceInstance, CDNDedicatedWAFServiceInstance
-from broker.tasks.cloudfront import update_cdn_with_dedicated_waf_instance_tags
 
 from tests.lib.client import check_last_operation_description
 from tests.lib.update import (
@@ -161,11 +161,12 @@ def subtest_updates_cloudfront(
         dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
     )
 
-    tags = service_instance.tags
     if instance_model == CDNDedicatedWAFServiceInstance:
-        tags = update_cdn_with_dedicated_waf_instance_tags(service_instance.tags)
+        service_instance.add_dedicated_web_acl_tag()
 
-    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn, tags)
+    cloudfront.expect_tag_resource(
+        service_instance.cloudfront_distribution_arn, service_instance.tags
+    )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
@@ -409,9 +410,11 @@ def subtest_update_same_domains_updates_cloudfront(
 
     tags = service_instance.tags
     if instance_model == CDNDedicatedWAFServiceInstance:
-        tags = update_cdn_with_dedicated_waf_instance_tags(service_instance.tags)
+        service_instance.add_dedicated_web_acl_tag()
 
-    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn, tags)
+    cloudfront.expect_tag_resource(
+        service_instance.cloudfront_distribution_arn, service_instance.tags
+    )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()

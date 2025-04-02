@@ -13,6 +13,7 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import (
 )
 from openbrokerapi.service_broker import OperationState
 
+from broker.lib.tags import tag_key_exists, add_tag
 from broker.extensions import config, db
 
 
@@ -200,6 +201,16 @@ class CDNDedicatedWAFServiceInstance(CDNServiceInstance):
     __mapper_args__ = {
         "polymorphic_identity": ServiceInstanceTypes.CDN_DEDICATED_WAF.value
     }
+
+    def add_dedicated_web_acl_tag(self):
+        tags = self.tags if self.tags else []
+        has_dedicated_web_acl_tag = {"Key": "has_dedicated_acl", "Value": "true"}
+        if not tag_key_exists(tags, has_dedicated_web_acl_tag["Key"]):
+            tags = add_tag(
+                tags,
+                has_dedicated_web_acl_tag,
+            )
+        self.tags = tags
 
     def __repr__(self):
         return f"<CDNDedicatedWAFServiceInstance {self.id} {self.domain_names}>"

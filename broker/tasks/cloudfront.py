@@ -3,7 +3,6 @@ import time
 
 from broker.aws import cloudfront
 from broker.extensions import config
-from broker.lib.tags import add_tag, Tag
 from broker.models import CDNServiceInstance, CDNDedicatedWAFServiceInstance
 from broker.tasks.huey import pipeline_operation
 
@@ -76,11 +75,6 @@ def is_cdn_with_dedicated_waf_instance(service_instance) -> bool:
         isinstance(service_instance, CDNDedicatedWAFServiceInstance)
         and service_instance.dedicated_waf_web_acl_arn
     )
-
-
-def update_cdn_with_dedicated_waf_instance_tags(tags: list[Tag]) -> list[Tag]:
-    tags = add_tag(tags, "has_dedicated_acl", "true")
-    return tags
 
 
 @pipeline_operation("Creating CloudFront distribution")
@@ -169,11 +163,11 @@ def create_distribution(operation_id: int, *, operation, db, **kwargs):
         "IsIPV6Enabled": True,
     }
 
-    tags = service_instance.tags if service_instance.tags else []
-
     if is_cdn_with_dedicated_waf_instance(service_instance):
         distribution_config["WebACLId"] = service_instance.dedicated_waf_web_acl_arn
-        tags = update_cdn_with_dedicated_waf_instance_tags(tags)
+        service_instance.add_dedicated_web_acl_tag()
+
+    tags = service_instance.tags if service_instance.tags else []
 
     distribution_config_with_tags = {
         "DistributionConfig": distribution_config,
@@ -341,14 +335,14 @@ def update_distribution(operation_id: str, *, operation, db, **kwargs):
     config["Aliases"] = get_aliases(service_instance)
     config["CustomErrorResponses"] = get_custom_error_responses(service_instance)
 
-    tags = service_instance.tags if service_instance.tags else []
-
     if (
         isinstance(service_instance, CDNDedicatedWAFServiceInstance)
         and service_instance.dedicated_waf_web_acl_arn
     ):
         config["WebACLId"] = service_instance.dedicated_waf_web_acl_arn
-        tags = update_cdn_with_dedicated_waf_instance_tags(tags)
+        service_instance.add_dedicated_web_acl_tag()
+
+    tags = service_instance.tags if service_instance.tags else []
 
     cloudfront.update_distribution(
         DistributionConfig=config,
