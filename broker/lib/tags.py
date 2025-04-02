@@ -55,7 +55,7 @@ def generate_instance_tags(
 def create_resource_tags(tags: dict[str, str]) -> list[Tag]:
     resource_tags = []
     for tag_key, tag_value in tags.items():
-        resource_tags = add_tag(resource_tags, tag_key, tag_value)
+        resource_tags = add_tag(resource_tags, {"Key": tag_key, "Value": tag_value})
     return resource_tags
 
 

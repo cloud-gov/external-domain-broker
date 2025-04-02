@@ -56,14 +56,14 @@ def catalog(plan):
 
 
 def test_add_tag():
-    tags = add_tag([], "foo", "bar")
+    tags = add_tag([], {"Key": "foo", "Value": "bar"})
     assert tags == [{"Key": "foo", "Value": "bar"}]
 
 
 def test_add_tag_errors_on_existing_tag():
     tags = [{"Key": "foo", "Value": "bar"}]
     with pytest.raises(RuntimeError):
-        add_tag(tags, "foo", "bar")
+        add_tag(tags, {"Key": "foo", "Value": "bar"})
 
 
 def test_generate_instance_tags(
