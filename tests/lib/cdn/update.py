@@ -3,7 +3,8 @@ from datetime import date
 import pytest  # noqa F401
 
 from broker.extensions import config, db
-from broker.models import Operation, CDNServiceInstance
+from broker.lib.tags import add_tag
+from broker.models import Operation, CDNServiceInstance, CDNDedicatedWAFServiceInstance
 
 from tests.lib.client import check_last_operation_description
 from tests.lib.update import (
@@ -122,6 +123,11 @@ def subtest_updates_cloudfront(
             ],
         },
     )
+
+    dedicated_waf_web_acl_arn = None
+    if instance_model == CDNDedicatedWAFServiceInstance:
+        dedicated_waf_web_acl_arn = service_instance.dedicated_waf_web_acl_arn
+
     cloudfront.expect_update_distribution(
         caller_reference=service_instance_id,
         domains=["bar.com", "foo.com"],
@@ -152,6 +158,14 @@ def subtest_updates_cloudfront(
                 },
             ],
         },
+        dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
+    )
+
+    if instance_model == CDNDedicatedWAFServiceInstance:
+        service_instance.add_dedicated_web_acl_tag()
+
+    cloudfront.expect_tag_resource(
+        service_instance.cloudfront_distribution_arn, service_instance.tags
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -372,6 +386,11 @@ def subtest_update_same_domains_updates_cloudfront(
             ],
         },
     )
+
+    dedicated_waf_web_acl_arn = None
+    if instance_model == CDNDedicatedWAFServiceInstance:
+        dedicated_waf_web_acl_arn = service_instance.dedicated_waf_web_acl_arn
+
     cloudfront.expect_update_distribution(
         caller_reference=service_instance_id,
         domains=expect_update_domain_names,
@@ -386,6 +405,15 @@ def subtest_update_same_domains_updates_cloudfront(
         origin_protocol_policy=expect_origin_protocol_policy,
         bucket_prefix="4321/",
         custom_error_responses=expect_custom_error_responses,
+        dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
+    )
+
+    tags = service_instance.tags
+    if instance_model == CDNDedicatedWAFServiceInstance:
+        service_instance.add_dedicated_web_acl_tag()
+
+    cloudfront.expect_tag_resource(
+        service_instance.cloudfront_distribution_arn, service_instance.tags
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
