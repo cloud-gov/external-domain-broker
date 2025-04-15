@@ -175,6 +175,8 @@ class CDNServiceInstance(ServiceInstance):
     forwarded_headers = mapped_column(postgresql.JSONB, default=[])
     error_responses = mapped_column(postgresql.JSONB, default=[])
     origin_protocol_policy = mapped_column(db.String)
+    cache_policy_id = mapped_column(db.String)
+    origin_request_policy_id = mapped_column(db.String)
 
     __mapper_args__ = {"polymorphic_identity": ServiceInstanceTypes.CDN.value}
 
