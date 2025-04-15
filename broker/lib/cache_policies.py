@@ -10,11 +10,12 @@ class CachePolicies:
         return self.policies[policy_type]
 
     def _list_cache_policies(self, policy_type):
+        # TODO: do we need to handle paging?
         response = self.cloudfront.list_cache_policies(Type=policy_type)
+        policies = {}
         for item in response["CachePolicyList"]["Items"]:
             if "CachePolicy" not in item:
                 continue
             policy = item["CachePolicy"]
-            self.policies[policy_type][policy["CachePolicyConfig"]["Name"]] = policy[
-                "Id"
-            ]
+            policies[policy["CachePolicyConfig"]["Name"]] = policy["Id"]
+        self.policies[policy_type] = policies
