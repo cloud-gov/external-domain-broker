@@ -24,11 +24,13 @@ from sap import cf_logging
 
 
 from broker import validators
+from broker.aws import cloudfront
 from broker.extensions import config, db
 from broker.lib.alb import (
     validate_migration_to_alb_params,
     update_alb_params_for_migration,
 )
+from broker.lib.cache_policies import CachePolicies
 from broker.lib.cdn import (
     is_cdn_instance,
     provision_cdn_instance,
@@ -92,6 +94,7 @@ CDN_DEDICATED_WAF_PLAN_ID = "129c8332-02ce-460a-bd6d-bde10110c654"
 class API(ServiceBroker):
     def __init__(self):
         self.logger = logging.getLogger(__name__)
+        self.cache_policies = CachePolicies(cloudfront)
 
     def catalog(self) -> Service:
         return Service(
@@ -192,13 +195,16 @@ class API(ServiceBroker):
             validators.UniqueDomains(domain_names).validate()
 
         if details.plan_id == CDN_PLAN_ID:
-            instance = provision_cdn_instance(instance_id, domain_names, params)
+            instance = provision_cdn_instance(
+                instance_id, domain_names, params, self.cache_policies
+            )
             queue = queue_all_cdn_provision_tasks_for_operation
         elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
             instance = provision_cdn_instance(
                 instance_id,
                 domain_names,
                 params,
+                self.cache_policies,
                 instance_type_model=CDNDedicatedWAFServiceInstance,
             )
             queue = queue_all_cdn_dedicated_waf_provision_tasks_for_operation

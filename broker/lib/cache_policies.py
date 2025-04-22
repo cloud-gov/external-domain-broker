@@ -6,7 +6,7 @@ class CachePolicies:
         self.policies = {}
         self.cloudfront = cloudfront
 
-    def get_managed_cache_policies(self):
+    def get_managed_cache_policies(self) -> dict[str, str]:
         policy_type = "managed"
         if policy_type not in self.policies:
             self._list_cache_policies(policy_type)

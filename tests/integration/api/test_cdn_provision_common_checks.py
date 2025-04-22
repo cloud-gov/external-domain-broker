@@ -1,8 +1,7 @@
 import pytest  # noqa F401
-from openbrokerapi import errors
+import uuid
 
 from broker.extensions import config, db
-
 from broker.models import (
     CDNDedicatedWAFServiceInstance,
     CDNServiceInstance,
@@ -11,7 +10,16 @@ from broker.models import (
 
 @pytest.fixture
 def provision_params():
-    return {"domains": "example.com", "alarm_notification_email": "foo@bar.com"}
+    return {
+        "domains": "example.com",
+        "alarm_notification_email": "foo@bar.com",
+        "cache_policy": "CachingDisabled",
+    }
+
+
+@pytest.fixture(scope="module")
+def cache_policy_id():
+    return str(uuid.uuid4())
 
 
 @pytest.mark.parametrize(
@@ -416,3 +424,46 @@ def test_provision_no_alarm_notification_email(
     )
 
     assert client.response.status_code == response_status_code
+
+
+@pytest.mark.parametrize(
+    "instance_model, response_status_code",
+    [
+        [CDNServiceInstance, 202],
+        [CDNDedicatedWAFServiceInstance, 202],
+    ],
+)
+def test_provision_sets_cache_policy(
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    instance_model,
+    provision_params,
+    service_instance_id,
+    response_status_code,
+    cloudfront,
+    cache_policy_id,
+    mocked_cf_api,
+):
+    dns.add_cname("_acme-challenge.example.com")
+    cache_policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
+
+    # Request to fetch cache policies is cached, so only happens once for
+    # both test runs
+    if instance_model == CDNServiceInstance:
+        cloudfront.expect_list_cache_policies("managed", cache_policies)
+
+    client.provision_instance(
+        instance_model,
+        service_instance_id,
+        params=provision_params,
+        organization_guid=organization_guid,
+        space_guid=space_guid,
+    )
+
+    assert client.response.status_code == response_status_code
+    instance = db.session.get(instance_model, service_instance_id)
+    assert instance.cache_policy_id == cache_policy_id
+
+    cloudfront.assert_no_pending_responses()
