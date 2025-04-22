@@ -1,7 +1,7 @@
 from broker.extensions import config
 
 
-class CachePolicies:
+class CachePolicyManager:
     def __init__(self, cloudfront):
         self.policies = {}
         self.cloudfront = cloudfront

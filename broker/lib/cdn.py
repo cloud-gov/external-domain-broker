@@ -4,7 +4,7 @@ from broker import validators
 
 from broker.extensions import config
 
-from broker.lib.cache_policies import CachePolicies
+from broker.lib.cache_policy_manager import CachePolicyManager
 from broker.lib.client_error import ClientError
 from broker.lib.utils import (
     parse_cookie_options,
@@ -29,11 +29,27 @@ def is_cdn_dedicated_waf_instance(service_instance) -> bool:
     return isinstance(service_instance, CDNDedicatedWAFServiceInstance)
 
 
+def parse_alarm_notification_email(instance, params):
+    if not is_cdn_dedicated_waf_instance(instance):
+        return None
+
+    return params.get("alarm_notification_email")
+
+
+def parse_cache_policy(params, cache_policy_manager: CachePolicyManager):
+    cache_policy = params.get("cache_policy", None)
+    if cache_policy:
+        managed_cache_policies = cache_policy_manager.get_managed_cache_policies()
+        if cache_policy in managed_cache_policies.keys():
+            return managed_cache_policies[cache_policy]
+    return None
+
+
 def provision_cdn_instance(
     instance_id: str,
     domain_names: list,
     params: dict,
-    cache_policy_manager: CachePolicies,
+    cache_policy_manager: CachePolicyManager,
     instance_type_model: (
         CDNServiceInstance | CDNDedicatedWAFServiceInstance
     ) = CDNServiceInstance,
@@ -73,20 +89,11 @@ def provision_cdn_instance(
             f"'alarm_notification_email' is required for {ServiceInstanceTypes.CDN_DEDICATED_WAF.value} instances"
         )
 
-    cache_policy = params.get("cache_policy", None)
-    if cache_policy:
-        managed_cache_policies = cache_policy_manager.get_managed_cache_policies()
-        if cache_policy in managed_cache_policies.keys():
-            instance.cache_policy_id = managed_cache_policies[cache_policy]
+    cache_policy_id = parse_cache_policy(params, cache_policy_manager)
+    if cache_policy_id:
+        instance.cache_policy_id = cache_policy_id
 
     return instance
-
-
-def parse_alarm_notification_email(instance, params):
-    if not is_cdn_dedicated_waf_instance(instance):
-        return None
-
-    return params.get("alarm_notification_email")
 
 
 def update_cdn_instance(params, instance):
