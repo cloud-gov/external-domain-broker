@@ -394,9 +394,7 @@ class FakeCloudFront(FakeAWS):
             },
         )
 
-    def expect_list_cache_policies(
-        self, policy_type: str, policy_id: str, policy_name: str
-    ):
+    def expect_list_cache_policies(self, policy_type: str, policies: list[dict]):
         self.stubber.add_response(
             "list_cache_policies",
             {
@@ -405,16 +403,17 @@ class FakeCloudFront(FakeAWS):
                     "Quantity": 1,
                     "Items": [
                         {
-                            "Type": "managed",
+                            "Type": policy_type,
                             "CachePolicy": {
-                                "Id": policy_id,
+                                "Id": policy["id"],
                                 "CachePolicyConfig": {
-                                    "Name": policy_name,
+                                    "Name": policy["name"],
                                     "MinTTL": 0,
                                 },
                                 "LastModifiedTime": datetime.now(),
                             },
                         }
+                        for policy in policies
                     ],
                 }
             },
