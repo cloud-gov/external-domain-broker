@@ -1,3 +1,6 @@
+from broker.extensions import config
+
+
 class CachePolicies:
     def __init__(self, cloudfront):
         self.policies = {}
@@ -16,6 +19,11 @@ class CachePolicies:
         for item in response["CachePolicyList"]["Items"]:
             if "CachePolicy" not in item:
                 continue
+
             policy = item["CachePolicy"]
-            policies[policy["CachePolicyConfig"]["Name"]] = policy["Id"]
+            policy_name = policy["CachePolicyConfig"]["Name"]
+            if policy_name not in config.ALLOWED_AWS_MANAGED_CACHE_POLICIES:
+                continue
+
+            policies[policy_name] = policy["Id"]
         self.policies[policy_type] = policies
