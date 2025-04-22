@@ -10,11 +10,7 @@ from broker.models import (
 
 @pytest.fixture
 def provision_params():
-    return {
-        "domains": "example.com",
-        "alarm_notification_email": "foo@bar.com",
-        "cache_policy": "CachingDisabled",
-    }
+    return {"domains": "example.com", "alarm_notification_email": "foo@bar.com"}
 
 
 @pytest.fixture(scope="module")
@@ -446,6 +442,11 @@ def test_provision_sets_cache_policy(
     cache_policy_id,
     mocked_cf_api,
 ):
+    provision_params.update(
+        {
+            "cache_policy": "CachingDisabled",
+        }
+    )
     dns.add_cname("_acme-challenge.example.com")
     cache_policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
 
