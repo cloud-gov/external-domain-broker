@@ -3,7 +3,6 @@ import logging
 from broker import validators
 from broker.lib.cdn import is_cdn_dedicated_waf_instance
 from broker.models import (
-    ServiceInstanceTypes,
     CDNServiceInstance,
 )
 

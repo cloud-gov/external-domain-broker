@@ -25,7 +25,6 @@ from sap import cf_logging
 
 from broker import validators
 from broker.extensions import config, db
-from broker.lib.cdn import is_cdn_instance, is_cdn_dedicated_waf_instance
 from broker.lib.tags import generate_instance_tags
 from broker.models import (
     Operation,
@@ -36,7 +35,6 @@ from broker.models import (
     MigrationServiceInstance,
     ServiceInstance,
     change_instance_type,
-    Certificate,
     ServiceInstanceTypes,
 )
 from broker.pipelines.alb import (
@@ -67,11 +65,18 @@ from broker.pipelines.migration import (
     queue_all_domain_broker_migration_tasks_for_operation,
     queue_all_migration_deprovision_tasks_for_operation,
 )
+from broker.lib.alb import (
+    validate_migration_to_alb_params,
+    update_alb_params_for_migration,
+)
+from broker.lib.cdn import (
+    is_cdn_instance,
+    provision_cdn_instance,
+    update_cdn_instance,
+    validate_migration_to_cdn_params,
+    update_cdn_params_for_migration,
+)
 from broker.lib.utils import (
-    parse_alarm_notification_email,
-    parse_cookie_options,
-    parse_header_options,
-    normalize_header_list,
     parse_domain_options,
     validate_domain_name_changes,
 )
@@ -437,201 +442,3 @@ class API(ServiceBroker):
         **kwargs,
     ) -> UnbindSpec:
         pass
-
-
-def provision_cdn_instance(
-    instance_id: str,
-    domain_names: list,
-    params: dict,
-    instance_type_model: (
-        CDNServiceInstance | CDNDedicatedWAFServiceInstance
-    ) = CDNServiceInstance,
-):
-    instance = instance_type_model(id=instance_id, domain_names=domain_names)
-    instance.cloudfront_origin_hostname = params.get(
-        "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
-    )
-    validators.Hostname(instance.cloudfront_origin_hostname).validate()
-    instance.cloudfront_origin_path = params.get("path", "")
-    instance.route53_alias_hosted_zone = config.CLOUDFRONT_HOSTED_ZONE_ID
-    forward_cookie_policy, forwarded_cookies = parse_cookie_options(params)
-    instance.forward_cookie_policy = forward_cookie_policy
-    instance.forwarded_cookies = forwarded_cookies
-    forwarded_headers = parse_header_options(params)
-    if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
-        forwarded_headers.append("HOST")
-    forwarded_headers = normalize_header_list(forwarded_headers)
-
-    instance.forwarded_headers = forwarded_headers
-    instance.error_responses = params.get("error_responses", {})
-    validators.ErrorResponseConfig(instance.error_responses).validate()
-    if params.get("insecure_origin", False):
-        if params.get("origin") is None:
-            raise errors.ErrBadRequest(
-                "'insecure_origin' cannot be set when using the default origin."
-            )
-        instance.origin_protocol_policy = instance_type_model.ProtocolPolicy.HTTP.value
-    else:
-        instance.origin_protocol_policy = instance_type_model.ProtocolPolicy.HTTPS.value
-
-    alarm_notification_email = parse_alarm_notification_email(instance, params)
-    if alarm_notification_email:
-        instance.alarm_notification_email = alarm_notification_email
-    elif is_cdn_dedicated_waf_instance(instance) and not alarm_notification_email:
-        raise errors.ErrBadRequest(
-            f"'alarm_notification_email' is required for {ServiceInstanceTypes.CDN_DEDICATED_WAF.value} instances"
-        )
-
-    return instance
-
-
-def update_cdn_instance(params, instance):
-    # N.B. we're using "param" in params rather than
-    # params.get("param") because the OSBAPI spec
-    # requires we do not mess with params that were not
-    # specified, so unset and set to None have different meanings
-    if "origin" in params:
-        if params["origin"]:
-            origin_hostname = params["origin"]
-            validators.Hostname(origin_hostname).validate()
-        else:
-            origin_hostname = config.DEFAULT_CLOUDFRONT_ORIGIN
-        instance.cloudfront_origin_hostname = origin_hostname
-
-    if "path" in params:
-        if params["path"]:
-            cloudfront_origin_path = params["path"]
-        else:
-            cloudfront_origin_path = ""
-        instance.cloudfront_origin_path = cloudfront_origin_path
-    if "forward_cookies" in params:
-        forward_cookie_policy, forwarded_cookies = parse_cookie_options(params)
-        instance.forward_cookie_policy = forward_cookie_policy
-        instance.forwarded_cookies = forwarded_cookies
-
-    if "forward_headers" in params:
-        forwarded_headers = parse_header_options(params)
-    else:
-        # .copy() so sqlalchemy recognizes the field has changed
-        forwarded_headers = instance.forwarded_headers.copy()
-    if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
-        forwarded_headers.append("HOST")
-    forwarded_headers = normalize_header_list(forwarded_headers)
-    instance.forwarded_headers = forwarded_headers
-    if "insecure_origin" in params:
-        origin_protocol_policy = "https-only"
-        if params["insecure_origin"]:
-            if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
-                raise errors.ErrBadRequest(
-                    "Cannot use insecure_origin with default origin"
-                )
-            origin_protocol_policy = "http-only"
-        instance.origin_protocol_policy = origin_protocol_policy
-    if "error_responses" in params:
-        instance.error_responses = params["error_responses"]
-        validators.ErrorResponseConfig(instance.error_responses).validate()
-
-    alarm_notification_email = parse_alarm_notification_email(instance, params)
-    if alarm_notification_email:
-        instance.alarm_notification_email = alarm_notification_email
-    elif (
-        is_cdn_dedicated_waf_instance(instance)
-        and not instance.alarm_notification_email
-    ):
-        raise errors.ErrBadRequest(
-            f"'alarm_notification_email' is required for {ServiceInstanceTypes.CDN_DEDICATED_WAF.value}"
-        )
-
-    return instance
-
-
-def validate_migration_to_cdn_params(params):
-    required = [
-        "origin",
-        "path",
-        "forwarded_cookies",
-        "forward_cookie_policy",
-        "forwarded_headers",
-        "insecure_origin",
-        "error_responses",
-        "cloudfront_distribution_id",
-        "cloudfront_distribution_arn",
-        "iam_server_certificate_name",
-        "iam_server_certificate_id",
-        "iam_server_certificate_arn",
-        "domain_internal",
-    ]
-    for param in required:
-        # since this should only be hit by another app, it seems
-        # fair and smart to require all params
-        if param not in params:
-            raise ClientError(f"Missing parameter {param}")
-
-
-def validate_migration_to_alb_params(params):
-    required = [
-        "iam_server_certificate_name",
-        "iam_server_certificate_id",
-        "iam_server_certificate_arn",
-        "domain_internal",
-        "alb_arn",
-        "alb_listener_arn",
-        "hosted_zone_id",
-    ]
-    for param in required:
-        # since this should only be hit by another app, it seems
-        # fair and smart to require all params
-        if param not in params:
-            raise ClientError(f"Missing parameter {param}")
-
-
-def update_alb_params_for_migration(instance, params):
-    instance.current_certificate = Certificate(service_instance_id=instance.id)
-    instance.current_certificate.iam_server_certificate_id = params[
-        "iam_server_certificate_id"
-    ]
-    instance.current_certificate.iam_server_certificate_arn = params[
-        "iam_server_certificate_arn"
-    ]
-    instance.current_certificate.iam_server_certificate_name = params[
-        "iam_server_certificate_name"
-    ]
-    instance.domain_internal = params["domain_internal"]
-    instance.route53_alias_hosted_zone = params["hosted_zone_id"]
-    instance.alb_listener_arn = params["alb_listener_arn"]
-    instance.alb_arn = params["alb_arn"]
-
-
-def update_cdn_params_for_migration(instance, params):
-    instance.cloudfront_origin_hostname = params["origin"]
-    instance.cloudfront_origin_path = params["path"]
-    instance.forwarded_cookies = params["forwarded_cookies"]
-    instance.forward_cookie_policy = params["forward_cookie_policy"]
-    instance.route53_alias_hosted_zone = config.CLOUDFRONT_HOSTED_ZONE_ID
-    if params["insecure_origin"]:
-        instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTP.value
-    else:
-        instance.origin_protocol_policy = CDNServiceInstance.ProtocolPolicy.HTTPS.value
-    instance.forwarded_headers = params["forwarded_headers"]
-    instance.error_responses = params["error_responses"]
-    instance.cloudfront_distribution_id = params["cloudfront_distribution_id"]
-    instance.cloudfront_distribution_arn = params["cloudfront_distribution_arn"]
-    instance.domain_internal = params["domain_internal"]
-    instance.current_certificate = Certificate(service_instance_id=instance.id)
-    instance.current_certificate.iam_server_certificate_id = params[
-        "iam_server_certificate_id"
-    ]
-    instance.current_certificate.iam_server_certificate_arn = params[
-        "iam_server_certificate_arn"
-    ]
-    instance.current_certificate.iam_server_certificate_name = params[
-        "iam_server_certificate_name"
-    ]
-
-
-class ClientError(Exception):
-    """
-    This class is used for errors that have messaging that clients are allowed to see.
-    """
-
-    pass
