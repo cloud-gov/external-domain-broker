@@ -42,3 +42,8 @@ def dedicated_waf_web_acl_arn():
 def get_server_certificate_name(instance_id, certificate_id):
     today = date.today().isoformat()
     return f"{instance_id}-{today}-{certificate_id}"
+
+
+@pytest.fixture(scope="module")
+def cache_policy_id():
+    return str(uuid.uuid4())

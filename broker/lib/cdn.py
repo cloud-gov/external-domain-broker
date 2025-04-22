@@ -96,7 +96,7 @@ def provision_cdn_instance(
     return instance
 
 
-def update_cdn_instance(params, instance):
+def update_cdn_instance(params, instance, cache_policy_manager: CachePolicyManager):
     # N.B. we're using "param" in params rather than
     # params.get("param") because the OSBAPI spec
     # requires we do not mess with params that were not
@@ -152,6 +152,10 @@ def update_cdn_instance(params, instance):
         raise errors.ErrBadRequest(
             f"'alarm_notification_email' is required for {ServiceInstanceTypes.CDN_DEDICATED_WAF.value}"
         )
+
+    cache_policy_id = parse_cache_policy(params, cache_policy_manager)
+    if cache_policy_id:
+        instance.cache_policy_id = cache_policy_id
 
     return instance
 
