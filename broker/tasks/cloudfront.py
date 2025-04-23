@@ -318,18 +318,26 @@ def update_distribution(operation_id: str, *, operation, db, **kwargs):
     config["Origins"]["Items"][0]["CustomOriginConfig"][
         "OriginProtocolPolicy"
     ] = service_instance.origin_protocol_policy
+
     if service_instance.cache_policy_id:
         config["DefaultCacheBehavior"][
             "CachePolicyId"
         ] = service_instance.cache_policy_id
         config["DefaultCacheBehavior"].pop("ForwardedValues")
-    else:
+
+    # ForwardedValues and CachePolicyId are mutually exclusive
+    # see https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DefaultCacheBehavior.html#cloudfront-Type-DefaultCacheBehavior-ForwardedValues
+    if (
+        "CachePolicyId" not in config["DefaultCacheBehavior"]
+        or not config["DefaultCacheBehavior"]["CachePolicyId"]
+    ):
         config["DefaultCacheBehavior"]["ForwardedValues"]["Cookies"] = (
             get_cookie_policy(service_instance)
         )
         config["DefaultCacheBehavior"]["ForwardedValues"]["Headers"] = (
             get_header_policy(service_instance)
         )
+
     config["Aliases"] = get_aliases(service_instance)
     config["CustomErrorResponses"] = get_custom_error_responses(service_instance)
 
