@@ -101,8 +101,7 @@ def test_update_with_new_style_response(
         origin_request_policy_id="my-origin-policy",
     )
 
-    tags = service_instance.tags or []
-    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn, tags)
+    cloudfront.expect_tag_resource(service_instance, service_instance.tags)
 
     cloudfront_tasks.update_distribution.call_local("1")
     clean_db.session.expunge_all()

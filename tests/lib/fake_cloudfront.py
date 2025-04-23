@@ -331,12 +331,20 @@ class FakeCloudFront(FakeAWS):
             },
         )
 
-    def expect_tag_resource(self, cloudfront_distribution_arn: str, tags: list[Tag]):
+    def expect_tag_resource(self, service_instance, tags: list[Tag] = []):
         tags = tags if tags else []
+        if (
+            hasattr(service_instance, "dedicated_waf_web_acl_arn")
+            and service_instance.dedicated_waf_web_acl_arn
+        ):
+            tags = add_tag(tags, {"Key": "has_dedicated_acl", "Value": "true"})
         self.stubber.add_response(
             "tag_resource",
             {},
-            {"Resource": cloudfront_distribution_arn, "Tags": {"Items": tags}},
+            {
+                "Resource": service_instance.cloudfront_distribution_arn,
+                "Tags": {"Items": tags},
+            },
         )
 
     def expect_update_distribution_with_cache_policy_id(

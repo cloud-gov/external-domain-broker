@@ -301,7 +301,6 @@ def test_cloudfront_update_distribution(
             distribution_id=service_instance.cloudfront_distribution_id,
             distribution_hostname=service_instance.cloudfront_origin_hostname,
         )
-        tags = []
     if service_instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
         cloudfront.expect_update_distribution(
             caller_reference="asdf",
@@ -313,9 +312,8 @@ def test_cloudfront_update_distribution(
             distribution_hostname=service_instance.cloudfront_origin_hostname,
             dedicated_waf_web_acl_arn=service_instance.dedicated_waf_web_acl_arn,
         )
-        tags = [{"Key": "has_dedicated_acl", "Value": "true"}]
 
-    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn, tags)
+    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn)
 
     update_distribution.call_local(operation_id)
 
@@ -366,7 +364,6 @@ def test_cloudfront_update_distribution_sets_cache_policy(
             distribution_hostname=service_instance.cloudfront_origin_hostname,
             cache_policy_id=cache_policy_id,
         )
-        tags = []
     if service_instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
         cloudfront.expect_update_distribution(
             caller_reference="asdf",
@@ -379,9 +376,8 @@ def test_cloudfront_update_distribution_sets_cache_policy(
             dedicated_waf_web_acl_arn=service_instance.dedicated_waf_web_acl_arn,
             cache_policy_id=cache_policy_id,
         )
-        tags = [{"Key": "has_dedicated_acl", "Value": "true"}]
 
-    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn, tags)
+    cloudfront.expect_tag_resource(service_instance)
 
     update_distribution.call_local(operation_id)
 
