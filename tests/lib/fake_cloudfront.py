@@ -334,7 +334,8 @@ class FakeCloudFront(FakeAWS):
     def expect_tag_resource(self, service_instance, tags: list[Tag] = []):
         tags = tags if tags else []
         if (
-            hasattr(service_instance, "dedicated_waf_web_acl_arn")
+            len(tags) == 0
+            and hasattr(service_instance, "dedicated_waf_web_acl_arn")
             and service_instance.dedicated_waf_web_acl_arn
         ):
             tags = add_tag(tags, {"Key": "has_dedicated_acl", "Value": "true"})
@@ -640,7 +641,6 @@ class FakeCloudFront(FakeAWS):
             dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
         )
         if dedicated_waf_web_acl_arn:
-            distribution_config["WebACLId"] = dedicated_waf_web_acl_arn
             tags = add_tag(tags, {"Key": "has_dedicated_acl", "Value": "true"})
 
         distribution_config_with_tags = {

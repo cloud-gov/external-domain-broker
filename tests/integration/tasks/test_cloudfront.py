@@ -313,7 +313,7 @@ def test_cloudfront_update_distribution(
             dedicated_waf_web_acl_arn=service_instance.dedicated_waf_web_acl_arn,
         )
 
-    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn)
+    cloudfront.expect_tag_resource(service_instance)
 
     update_distribution.call_local(operation_id)
 
@@ -427,7 +427,7 @@ def test_cloudfront_update_distribution_already_has_tags(
         dedicated_waf_web_acl_arn=service_instance.dedicated_waf_web_acl_arn,
     )
 
-    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn, tags)
+    cloudfront.expect_tag_resource(service_instance, tags)
 
     update_distribution.call_local(operation_id)
 
