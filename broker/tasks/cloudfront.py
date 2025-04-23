@@ -77,6 +77,46 @@ def is_cdn_with_dedicated_waf_instance(service_instance) -> bool:
     )
 
 
+def get_default_cache_behavior(service_instance):
+    default_cache_behavior = {
+        "TargetOriginId": "default-origin",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "AllowedMethods": {
+            "Quantity": 7,
+            "Items": [
+                "GET",
+                "HEAD",
+                "POST",
+                "PUT",
+                "PATCH",
+                "OPTIONS",
+                "DELETE",
+            ],
+            "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
+        },
+        "DefaultTTL": 86400,
+        "MinTTL": 0,
+        "MaxTTL": 31536000,
+    }
+    if service_instance.cache_policy_id:
+        default_cache_behavior.update(
+            {"CachePolicyId": service_instance.cache_policy_id}
+        )
+    else:
+        cookies = get_cookie_policy(service_instance)
+        default_cache_behavior.update(
+            {
+                "ForwardedValues": {
+                    "QueryString": True,
+                    "Cookies": cookies,
+                    "Headers": get_header_policy(service_instance),
+                    "QueryStringCacheKeys": {"Quantity": 0},
+                }
+            }
+        )
+    return default_cache_behavior
+
+
 @pipeline_operation("Creating CloudFront distribution")
 def create_distribution(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
@@ -89,7 +129,7 @@ def create_distribution(operation_id: int, *, operation, db, **kwargs):
             pass
         else:
             return
-    cookies = get_cookie_policy(service_instance)
+
     distribution_config = {
         "CallerReference": service_instance.id,
         "Aliases": get_aliases(service_instance),
@@ -113,36 +153,7 @@ def create_distribution(operation_id: int, *, operation, db, **kwargs):
             ],
         },
         "OriginGroups": {"Quantity": 0},
-        "DefaultCacheBehavior": {
-            "TargetOriginId": "default-origin",
-            "ForwardedValues": {
-                "QueryString": True,
-                "Cookies": cookies,
-                "Headers": get_header_policy(service_instance),
-                "QueryStringCacheKeys": {"Quantity": 0},
-            },
-            "TrustedSigners": {"Enabled": False, "Quantity": 0},
-            "ViewerProtocolPolicy": "redirect-to-https",
-            "MinTTL": 0,
-            "AllowedMethods": {
-                "Quantity": 7,
-                "Items": [
-                    "GET",
-                    "HEAD",
-                    "POST",
-                    "PUT",
-                    "PATCH",
-                    "OPTIONS",
-                    "DELETE",
-                ],
-                "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
-            },
-            "SmoothStreaming": False,
-            "DefaultTTL": 86400,
-            "MaxTTL": 31536000,
-            "Compress": False,
-            "LambdaFunctionAssociations": {"Quantity": 0},
-        },
+        "DefaultCacheBehavior": get_default_cache_behavior(service_instance),
         "CacheBehaviors": {"Quantity": 0},
         "CustomErrorResponses": get_custom_error_responses(service_instance),
         "Comment": "external domain service https://cloud-gov/external-domain-broker",
