@@ -451,7 +451,6 @@ class FakeCloudFront(FakeAWS):
 
         default_cache_behavior = {
             "TargetOriginId": "default-origin",
-            "TrustedSigners": {"Enabled": False, "Quantity": 0},
             "ViewerProtocolPolicy": "redirect-to-https",
             "AllowedMethods": {
                 "Quantity": 7,
@@ -466,9 +465,6 @@ class FakeCloudFront(FakeAWS):
                 ],
                 "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
             },
-            "SmoothStreaming": False,
-            "Compress": False,
-            "LambdaFunctionAssociations": {"Quantity": 0},
             "MinTTL": 0,
             "DefaultTTL": 86400,
             "MaxTTL": 31536000,
@@ -613,149 +609,28 @@ class FakeCloudFront(FakeAWS):
         include_log_bucket: bool = True,
         dedicated_waf_web_acl_arn: str = "",
         tags: list[Tag] = [],
+        origin_request_policy_id: str = None,
         cache_policy_id: str = None,
     ) -> Dict[str, Any]:
-        if custom_error_responses is None:
-            custom_error_responses = {"Quantity": 0}
-
-        if forwarded_headers is None:
-            forwarded_headers = ["HOST"]
-
-        distribution_config = {
-            "CallerReference": caller_reference,
-            "Aliases": {"Quantity": len(domains), "Items": domains},
-            "DefaultRootObject": "",
-            "Origins": {
-                "Quantity": 1,
-                "Items": [
-                    {
-                        "Id": "default-origin",
-                        "DomainName": origin_hostname,
-                        "OriginPath": origin_path,
-                        "CustomOriginConfig": {
-                            "HTTPPort": 80,
-                            "HTTPSPort": 443,
-                            "OriginProtocolPolicy": origin_protocol_policy,
-                            "OriginSslProtocols": {"Quantity": 1, "Items": ["TLSv1.2"]},
-                            "OriginReadTimeout": 30,
-                            "OriginKeepaliveTimeout": 5,
-                        },
-                    }
-                ],
-            },
-            "OriginGroups": {"Quantity": 0},
-            "DefaultCacheBehavior": {
-                "TargetOriginId": "default-origin",
-                "ViewerProtocolPolicy": "redirect-to-https",
-                "MinTTL": 0,
-                "AllowedMethods": {
-                    "Quantity": 7,
-                    "Items": [
-                        "GET",
-                        "HEAD",
-                        "POST",
-                        "PUT",
-                        "PATCH",
-                        "OPTIONS",
-                        "DELETE",
-                    ],
-                    "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
-                },
-                "DefaultTTL": 86400,
-                "MaxTTL": 31536000,
-            },
-            "CacheBehaviors": {"Quantity": 0},
-            "CustomErrorResponses": custom_error_responses,
-            "Comment": "external domain service https://cloud-gov/external-domain-broker",
-            "PriceClass": "PriceClass_100",
-            "Enabled": enabled,
-            "ViewerCertificate": {
-                "CloudFrontDefaultCertificate": False,
-                "IAMCertificateId": iam_server_certificate_id,
-                "SSLSupportMethod": "sni-only",
-                "MinimumProtocolVersion": "TLSv1.2_2018",
-            },
-            "IsIPV6Enabled": True,
-        }
-
-        if not cache_policy_id:
-            if forwarded_headers is None:
-                forwarded_headers = ["HOST"]
-            cookies = {"Forward": forward_cookie_policy}
-            if forward_cookie_policy == "whitelist":
-                cookies["WhitelistedNames"] = {
-                    "Quantity": len(forwarded_cookies),
-                    "Items": forwarded_cookies,
-                }
-            distribution_config["DefaultCacheBehavior"]["ForwardedValues"] = {
-                "QueryString": True,
-                "Cookies": cookies,
-                "Headers": {
-                    "Quantity": len(forwarded_headers),
-                    "Items": forwarded_headers,
-                },
-                "QueryStringCacheKeys": {"Quantity": 0},
-            }
-        else:
-            distribution_config["DefaultCacheBehavior"][
-                "CachePolicyId"
-            ] = cache_policy_id
-
-        if include_le_bucket:
-            distribution_config["Origins"]["Quantity"] += 1
-            distribution_config["Origins"]["Items"].append(
-                {
-                    "Id": "s3-cdn-broker-le-test-some-other-stuff",
-                    "DomainName": "cdn-broker-le-test.s3.amazonaws.com",
-                    "OriginPath": "",
-                    "CustomHeaders": {"Quantity": 0},
-                    "S3OriginConfig": {"OriginAccessIdentity": ""},
-                }
-            )
-            distribution_config["CacheBehaviors"] = {
-                "Quantity": 1,
-                "Items": [
-                    {
-                        "PathPattern": "/.well-known/acme-challenge/*",
-                        "TargetOriginId": "s3-cdn-broker-le-test-some-other-stuff",
-                        "ForwardedValues": {
-                            "QueryString": False,
-                            "Cookies": {"Forward": "none"},
-                            "Headers": {"Quantity": 0},
-                            "QueryStringCacheKeys": {"Quantity": 0},
-                        },
-                        "TrustedSigners": {"Enabled": False, "Quantity": 0},
-                        "ViewerProtocolPolicy": "allow-all",
-                        "MinTTL": 0,
-                        "AllowedMethods": {
-                            "Quantity": 2,
-                            "Items": ["HEAD", "GET"],
-                            "CachedMethods": {"Quantity": 2, "Items": ["HEAD", "GET"]},
-                        },
-                        "SmoothStreaming": False,
-                        "DefaultTTL": 86400,
-                        "MaxTTL": 31536000,
-                        "Compress": False,
-                        "LambdaFunctionAssociations": {"Quantity": 0},
-                        "FieldLevelEncryptionId": "",
-                    }
-                ],
-            }
-        if include_log_bucket:
-            distribution_config["Logging"] = {
-                "Enabled": True,
-                "IncludeCookies": False,
-                "Bucket": "mybucket.s3.amazonaws.com",
-                "Prefix": bucket_prefix,
-            }
-        else:
-            distribution_config["Logging"] = {
-                "Enabled": False,
-                "IncludeCookies": False,
-                "Bucket": "",
-                "Prefix": "",
-            }
-
+        distribution_config = self._distribution_config(
+            caller_reference,
+            domains,
+            iam_server_certificate_id,
+            origin_hostname,
+            origin_path,
+            enabled,
+            forward_cookie_policy=forward_cookie_policy,
+            forwarded_cookies=forwarded_cookies,
+            forwarded_headers=forwarded_headers,
+            origin_protocol_policy=origin_protocol_policy,
+            bucket_prefix=bucket_prefix,
+            custom_error_responses=custom_error_responses,
+            include_le_bucket=include_le_bucket,
+            include_log_bucket=include_log_bucket,
+            cache_policy_id=cache_policy_id,
+            origin_request_policy_id=origin_request_policy_id,
+            dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
+        )
         if dedicated_waf_web_acl_arn:
             distribution_config["WebACLId"] = dedicated_waf_web_acl_arn
             tags = add_tag(tags, {"Key": "has_dedicated_acl", "Value": "true"})
