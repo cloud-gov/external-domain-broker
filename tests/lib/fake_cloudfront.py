@@ -26,6 +26,7 @@ class FakeCloudFront(FakeAWS):
         custom_error_responses: dict = None,
         dedicated_waf_web_acl_arn: str = "",
         tags: list[Tag] = [],
+        cache_policy_id: str = "",
     ):
         if custom_error_responses is None:
             custom_error_responses = {"Quantity": 0}
@@ -63,6 +64,7 @@ class FakeCloudFront(FakeAWS):
                     custom_error_responses=custom_error_responses,
                     dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
                     tags=tags,
+                    cache_policy_id=cache_policy_id,
                 ),
             },
         )
@@ -612,15 +614,9 @@ class FakeCloudFront(FakeAWS):
         include_log_bucket: bool = True,
         dedicated_waf_web_acl_arn: str = "",
         tags: list[Tag] = [],
+        cache_policy_id: str = "",
     ) -> Dict[str, Any]:
-        if forwarded_headers is None:
-            forwarded_headers = ["HOST"]
-        cookies = {"Forward": forward_cookie_policy}
-        if forward_cookie_policy == "whitelist":
-            cookies["WhitelistedNames"] = {
-                "Quantity": len(forwarded_cookies),
-                "Items": forwarded_cookies,
-            }
+
         distribution_config = {
             "CallerReference": caller_reference,
             "Aliases": {"Quantity": len(domains), "Items": domains},
@@ -646,15 +642,6 @@ class FakeCloudFront(FakeAWS):
             "OriginGroups": {"Quantity": 0},
             "DefaultCacheBehavior": {
                 "TargetOriginId": "default-origin",
-                "ForwardedValues": {
-                    "QueryString": True,
-                    "Cookies": cookies,
-                    "Headers": {
-                        "Quantity": len(forwarded_headers),
-                        "Items": forwarded_headers,
-                    },
-                    "QueryStringCacheKeys": {"Quantity": 0},
-                },
                 "ViewerProtocolPolicy": "redirect-to-https",
                 "MinTTL": 0,
                 "AllowedMethods": {
@@ -686,6 +673,30 @@ class FakeCloudFront(FakeAWS):
             },
             "IsIPV6Enabled": True,
         }
+
+        if not cache_policy_id:
+            if forwarded_headers is None:
+                forwarded_headers = ["HOST"]
+            cookies = {"Forward": forward_cookie_policy}
+            if forward_cookie_policy == "whitelist":
+                cookies["WhitelistedNames"] = {
+                    "Quantity": len(forwarded_cookies),
+                    "Items": forwarded_cookies,
+                }
+            distribution_config["DefaultCacheBehavior"]["ForwardedValues"] = {
+                "QueryString": True,
+                "Cookies": cookies,
+                "Headers": {
+                    "Quantity": len(forwarded_headers),
+                    "Items": forwarded_headers,
+                },
+                "QueryStringCacheKeys": {"Quantity": 0},
+            }
+        else:
+            distribution_config["DefaultCacheBehavior"][
+                "CachePolicyId"
+            ] = cache_policy_id
+
         if include_le_bucket:
             distribution_config["Origins"]["Quantity"] += 1
             distribution_config["Origins"]["Items"].append(
