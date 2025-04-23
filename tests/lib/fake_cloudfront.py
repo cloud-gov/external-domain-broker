@@ -26,12 +26,8 @@ class FakeCloudFront(FakeAWS):
         custom_error_responses: dict = None,
         dedicated_waf_web_acl_arn: str = "",
         tags: list[Tag] = [],
-        cache_policy_id: str = "",
+        cache_policy_id: str = None,
     ):
-        if custom_error_responses is None:
-            custom_error_responses = {"Quantity": 0}
-        if forwarded_headers is None:
-            forwarded_headers = ["HOST"]
         self.stubber.add_response(
             "create_distribution_with_tags",
             self._distribution_response(
@@ -295,11 +291,8 @@ class FakeCloudFront(FakeAWS):
         bucket_prefix: str = "",
         custom_error_responses: dict = None,
         dedicated_waf_web_acl_arn: str = None,
+        cache_policy_id: str = None,
     ):
-        if custom_error_responses is None:
-            custom_error_responses = {"Quantity": 0}
-        if forwarded_headers is None:
-            forwarded_headers = ["HOST"]
         self.stubber.add_response(
             "update_distribution",
             self._distribution_response(
@@ -331,6 +324,7 @@ class FakeCloudFront(FakeAWS):
                     bucket_prefix=bucket_prefix,
                     custom_error_responses=custom_error_responses,
                     dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
+                    cache_policy_id=cache_policy_id,
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,
@@ -444,12 +438,17 @@ class FakeCloudFront(FakeAWS):
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
+
+        if custom_error_responses is None:
+            custom_error_responses = {"Quantity": 0}
+
         cookies = {"Forward": forward_cookie_policy}
         if forward_cookie_policy == "whitelist":
             cookies["WhitelistedNames"] = {
                 "Quantity": len(forwarded_cookies),
                 "Items": forwarded_cookies,
             }
+
         default_cache_behavior = {
             "TargetOriginId": "default-origin",
             "TrustedSigners": {"Enabled": False, "Quantity": 0},
@@ -470,6 +469,9 @@ class FakeCloudFront(FakeAWS):
             "SmoothStreaming": False,
             "Compress": False,
             "LambdaFunctionAssociations": {"Quantity": 0},
+            "MinTTL": 0,
+            "DefaultTTL": 86400,
+            "MaxTTL": 31536000,
         }
         if cache_policy_id is None:
             default_cache_behavior.update(
@@ -483,15 +485,12 @@ class FakeCloudFront(FakeAWS):
                         },
                         "QueryStringCacheKeys": {"Quantity": 0},
                     },
-                    "MinTTL": 0,
-                    "DefaultTTL": 86400,
-                    "MaxTTL": 31536000,
                 }
             )
-
         else:
-            if origin_request_policy_id is None:
-                raise
+            default_cache_behavior.update({"CachePolicyId": cache_policy_id})
+
+        if origin_request_policy_id:
             default_cache_behavior.update(
                 {
                     "FieldLevelEncryptionId": "",
@@ -614,8 +613,13 @@ class FakeCloudFront(FakeAWS):
         include_log_bucket: bool = True,
         dedicated_waf_web_acl_arn: str = "",
         tags: list[Tag] = [],
-        cache_policy_id: str = "",
+        cache_policy_id: str = None,
     ) -> Dict[str, Any]:
+        if custom_error_responses is None:
+            custom_error_responses = {"Quantity": 0}
+
+        if forwarded_headers is None:
+            forwarded_headers = ["HOST"]
 
         distribution_config = {
             "CallerReference": caller_reference,
