@@ -161,12 +161,7 @@ def subtest_updates_cloudfront(
         dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
     )
 
-    if instance_model == CDNDedicatedWAFServiceInstance:
-        service_instance.add_dedicated_web_acl_tag()
-
-    cloudfront.expect_tag_resource(
-        service_instance.cloudfront_distribution_arn, service_instance.tags
-    )
+    cloudfront.expect_tag_resource(service_instance, service_instance.tags)
 
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
@@ -408,13 +403,7 @@ def subtest_update_same_domains_updates_cloudfront(
         dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
     )
 
-    tags = service_instance.tags
-    if instance_model == CDNDedicatedWAFServiceInstance:
-        service_instance.add_dedicated_web_acl_tag()
-
-    cloudfront.expect_tag_resource(
-        service_instance.cloudfront_distribution_arn, service_instance.tags
-    )
+    cloudfront.expect_tag_resource(service_instance, service_instance.tags)
 
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()

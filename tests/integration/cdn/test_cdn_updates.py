@@ -23,6 +23,7 @@ def cdn_instance_ready_for_update(clean_db):
         cloudfront_origin_path="/somewhere-else",
         origin_protocol_policy="https-only",
         forwarded_headers=["HOST"],
+        cache_policy_id="my-cache-policy",
     )
     service_instance.new_certificate = factories.CertificateFactory.create(
         id="1",
@@ -101,8 +102,7 @@ def test_update_with_new_style_response(
         origin_request_policy_id="my-origin-policy",
     )
 
-    tags = service_instance.tags or []
-    cloudfront.expect_tag_resource(service_instance.cloudfront_distribution_arn, tags)
+    cloudfront.expect_tag_resource(service_instance, service_instance.tags)
 
     cloudfront_tasks.update_distribution.call_local("1")
     clean_db.session.expunge_all()

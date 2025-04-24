@@ -33,17 +33,6 @@ def get_header_policy(service_instance):
     }
 
 
-def has_default_cookie_and_header_policies(service_instance):
-    default_cookie_policy = {"Forward": "all"}
-    default_header_policy = {"Quantity": 1, "Items": ["HOST"]}
-    return all(
-        (
-            default_cookie_policy == get_cookie_policy(service_instance),
-            default_header_policy == get_header_policy(service_instance),
-        )
-    )
-
-
 def get_aliases(service_instance):
     return {
         "Quantity": len(service_instance.domain_names),
@@ -77,6 +66,54 @@ def is_cdn_with_dedicated_waf_instance(service_instance) -> bool:
     )
 
 
+def default_cache_behavior():
+    return {
+        "TargetOriginId": "default-origin",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "AllowedMethods": {
+            "Quantity": 7,
+            "Items": [
+                "GET",
+                "HEAD",
+                "POST",
+                "PUT",
+                "PATCH",
+                "OPTIONS",
+                "DELETE",
+            ],
+            "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
+        },
+        "DefaultTTL": 86400,
+        "MinTTL": 0,
+        "MaxTTL": 31536000,
+    }
+
+
+def update_default_cache_behavior(service_instance, default_cache_behavior):
+    updated_default_cache_behavior = default_cache_behavior
+
+    # ForwardedValues and CachePolicyId are mutually exclusive
+    # see https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DefaultCacheBehavior.html#cloudfront-Type-DefaultCacheBehavior-ForwardedValues
+    if service_instance.cache_policy_id:
+        updated_default_cache_behavior.update(
+            {"CachePolicyId": service_instance.cache_policy_id}
+        )
+        updated_default_cache_behavior.pop("ForwardedValues", None)
+    else:
+        updated_default_cache_behavior.update(
+            {
+                "ForwardedValues": {
+                    "QueryString": True,
+                    "Cookies": get_cookie_policy(service_instance),
+                    "Headers": get_header_policy(service_instance),
+                    "QueryStringCacheKeys": {"Quantity": 0},
+                }
+            }
+        )
+        updated_default_cache_behavior.pop("CachePolicyId", None)
+    return updated_default_cache_behavior
+
+
 @pipeline_operation("Creating CloudFront distribution")
 def create_distribution(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
@@ -89,7 +126,7 @@ def create_distribution(operation_id: int, *, operation, db, **kwargs):
             pass
         else:
             return
-    cookies = get_cookie_policy(service_instance)
+
     distribution_config = {
         "CallerReference": service_instance.id,
         "Aliases": get_aliases(service_instance),
@@ -113,36 +150,7 @@ def create_distribution(operation_id: int, *, operation, db, **kwargs):
             ],
         },
         "OriginGroups": {"Quantity": 0},
-        "DefaultCacheBehavior": {
-            "TargetOriginId": "default-origin",
-            "ForwardedValues": {
-                "QueryString": True,
-                "Cookies": cookies,
-                "Headers": get_header_policy(service_instance),
-                "QueryStringCacheKeys": {"Quantity": 0},
-            },
-            "TrustedSigners": {"Enabled": False, "Quantity": 0},
-            "ViewerProtocolPolicy": "redirect-to-https",
-            "MinTTL": 0,
-            "AllowedMethods": {
-                "Quantity": 7,
-                "Items": [
-                    "GET",
-                    "HEAD",
-                    "POST",
-                    "PUT",
-                    "PATCH",
-                    "OPTIONS",
-                    "DELETE",
-                ],
-                "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
-            },
-            "SmoothStreaming": False,
-            "DefaultTTL": 86400,
-            "MaxTTL": 31536000,
-            "Compress": False,
-            "LambdaFunctionAssociations": {"Quantity": 0},
-        },
+        "DefaultCacheBehavior": default_cache_behavior(),
         "CacheBehaviors": {"Quantity": 0},
         "CustomErrorResponses": get_custom_error_responses(service_instance),
         "Comment": "external domain service https://cloud-gov/external-domain-broker",
@@ -162,6 +170,10 @@ def create_distribution(operation_id: int, *, operation, db, **kwargs):
         },
         "IsIPV6Enabled": True,
     }
+
+    distribution_config["DefaultCacheBehavior"] = update_default_cache_behavior(
+        service_instance, distribution_config["DefaultCacheBehavior"]
+    )
 
     if is_cdn_with_dedicated_waf_instance(service_instance):
         distribution_config["WebACLId"] = service_instance.dedicated_waf_web_acl_arn
@@ -318,20 +330,11 @@ def update_distribution(operation_id: str, *, operation, db, **kwargs):
     config["Origins"]["Items"][0]["CustomOriginConfig"][
         "OriginProtocolPolicy"
     ] = service_instance.origin_protocol_policy
-    if "CachePolicyId" in config["DefaultCacheBehavior"]:
-        if not has_default_cookie_and_header_policies(service_instance):
-            # N.B. This is a really limited workaround. *currently* the only cache policy
-            # we're referencing uses
-            raise NotImplementedError(
-                "Can't set non-default policy with cache-policy ID"
-            )
-    else:
-        config["DefaultCacheBehavior"]["ForwardedValues"]["Cookies"] = (
-            get_cookie_policy(service_instance)
-        )
-        config["DefaultCacheBehavior"]["ForwardedValues"]["Headers"] = (
-            get_header_policy(service_instance)
-        )
+
+    config["DefaultCacheBehavior"] = update_default_cache_behavior(
+        service_instance, config["DefaultCacheBehavior"]
+    )
+
     config["Aliases"] = get_aliases(service_instance)
     config["CustomErrorResponses"] = get_custom_error_responses(service_instance)
 

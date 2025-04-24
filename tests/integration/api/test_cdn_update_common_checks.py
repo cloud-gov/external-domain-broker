@@ -370,3 +370,71 @@ def test_update_no_alarm_notification_email(
         },
     )
     assert client.response.status_code == expected_response_status
+
+
+@pytest.mark.parametrize(
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
+)
+def test_update_sets_cache_policy_id(
+    dns,
+    client,
+    instance_model,
+    service_instance,
+    cache_policy_id,
+    cloudfront,
+    mocked_cf_api,
+):
+    dns.add_cname("_acme-challenge.example.com")
+    cache_policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
+
+    # Request to fetch cache policies is cached, so only happens once for
+    # both test runs
+    if instance_model == CDNServiceInstance:
+        cloudfront.expect_list_cache_policies("managed", cache_policies)
+
+    client.update_instance(
+        instance_model,
+        service_instance.id,
+        params={
+            "domains": ["example.com"],
+            "cache_policy": "CachingDisabled",
+            "alarm_notification_email": "foo@bar",
+        },
+    )
+
+    assert client.response.status_code == 202
+
+    instance = db.session.get(instance_model, service_instance.id)
+    assert cache_policy_id == instance.cache_policy_id
+
+
+@pytest.mark.parametrize(
+    "instance_model, response_status_code",
+    [
+        [CDNServiceInstance, 400],
+        [CDNDedicatedWAFServiceInstance, 400],
+    ],
+)
+def test_update_error_invalid_cache_policy(
+    dns,
+    client,
+    instance_model,
+    service_instance,
+    response_status_code,
+    cloudfront,
+    mocked_cf_api,
+):
+    dns.add_cname("_acme-challenge.example.com")
+
+    client.update_instance(
+        instance_model,
+        service_instance.id,
+        params={
+            "domains": ["example.com"],
+            "cache_policy": "FakePolicy",
+            "alarm_notification_email": "foo@bar",
+        },
+    )
+
+    assert client.response.status_code == response_status_code

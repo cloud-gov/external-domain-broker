@@ -61,6 +61,15 @@ class Config:
         # see https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
         self.REQUEST_TIMEOUT = 30
 
+        # see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
+        self.ALLOWED_AWS_MANAGED_CACHE_POLICIES = [
+            "CachingDisabled",
+            "CachingOptimized",
+            "CachingOptimizedForUncompressedObjects",
+            "UseOriginCacheControlHeaders",
+            "UseOriginCacheControlHeaders-QueryStrings",
+        ]
+
 
 class AppConfig(Config):
     """Base class for apps running in Cloud Foundry"""

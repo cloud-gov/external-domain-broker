@@ -175,6 +175,8 @@ class CDNServiceInstance(ServiceInstance):
     forwarded_headers = mapped_column(postgresql.JSONB, default=[])
     error_responses = mapped_column(postgresql.JSONB, default=[])
     origin_protocol_policy = mapped_column(db.String)
+    cache_policy_id = mapped_column(db.String)
+    origin_request_policy_id = mapped_column(db.String)
 
     __mapper_args__ = {"polymorphic_identity": ServiceInstanceTypes.CDN.value}
 
@@ -202,13 +204,18 @@ class CDNDedicatedWAFServiceInstance(CDNServiceInstance):
         "polymorphic_identity": ServiceInstanceTypes.CDN_DEDICATED_WAF.value
     }
 
+    def dedicated_web_acl_tag(self):
+        return {"Key": "has_dedicated_acl", "Value": "true"}
+
+    def has_dedicated_web_acl_tag(self, tags):
+        return tag_key_exists(tags, self.dedicated_web_acl_tag()["Key"])
+
     def add_dedicated_web_acl_tag(self):
         tags = self.tags if self.tags else []
-        has_dedicated_web_acl_tag = {"Key": "has_dedicated_acl", "Value": "true"}
-        if not tag_key_exists(tags, has_dedicated_web_acl_tag["Key"]):
+        if not self.has_dedicated_web_acl_tag(tags):
             tags = add_tag(
                 tags,
-                has_dedicated_web_acl_tag,
+                self.dedicated_web_acl_tag(),
             )
         self.tags = tags
 

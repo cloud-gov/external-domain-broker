@@ -36,6 +36,7 @@ from tests.lib.identifiers import (
     cloudfront_distribution_arn,
     protection_id,
     dedicated_waf_web_acl_arn,
+    cache_policy_id,
 )  # noqa 41
 
 
