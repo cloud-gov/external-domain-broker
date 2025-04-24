@@ -44,9 +44,7 @@ def parse_cache_policy(params, cache_policy_manager: CachePolicyManager) -> str:
         raise errors.ErrBadRequest(
             f"'{cache_policy}' is not an allowed value for cache_policy."
         )
-    managed_cache_policies = cache_policy_manager.get_managed_cache_policies()
-    if cache_policy in managed_cache_policies.keys():
-        return managed_cache_policies[cache_policy]
+    return cache_policy_manager.get_managed_policy_id(cache_policy)
 
 
 def provision_cdn_instance(
