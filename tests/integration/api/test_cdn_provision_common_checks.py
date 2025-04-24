@@ -468,3 +468,42 @@ def test_provision_sets_cache_policy(
     assert instance.cache_policy_id == cache_policy_id
 
     cloudfront.assert_no_pending_responses()
+
+
+@pytest.mark.parametrize(
+    "instance_model, response_status_code",
+    [
+        [CDNServiceInstance, 400],
+        [CDNDedicatedWAFServiceInstance, 400],
+    ],
+)
+def test_provision_error_invalid_cache_policy(
+    dns,
+    client,
+    organization_guid,
+    space_guid,
+    instance_model,
+    provision_params,
+    service_instance_id,
+    response_status_code,
+    cloudfront,
+    mocked_cf_api,
+):
+    provision_params.update(
+        {
+            "cache_policy": "FakePolicy",
+        }
+    )
+    dns.add_cname("_acme-challenge.example.com")
+
+    client.provision_instance(
+        instance_model,
+        service_instance_id,
+        params=provision_params,
+        organization_guid=organization_guid,
+        space_guid=space_guid,
+    )
+
+    assert client.response.status_code == response_status_code
+
+    cloudfront.assert_no_pending_responses()

@@ -407,3 +407,34 @@ def test_update_sets_cache_policy_id(
 
     instance = db.session.get(instance_model, service_instance.id)
     assert cache_policy_id == instance.cache_policy_id
+
+
+@pytest.mark.parametrize(
+    "instance_model, response_status_code",
+    [
+        [CDNServiceInstance, 400],
+        [CDNDedicatedWAFServiceInstance, 400],
+    ],
+)
+def test_update_error_invalid_cache_policy(
+    dns,
+    client,
+    instance_model,
+    service_instance,
+    response_status_code,
+    cloudfront,
+    mocked_cf_api,
+):
+    dns.add_cname("_acme-challenge.example.com")
+
+    client.update_instance(
+        instance_model,
+        service_instance.id,
+        params={
+            "domains": ["example.com"],
+            "cache_policy": "FakePolicy",
+            "alarm_notification_email": "foo@bar",
+        },
+    )
+
+    assert client.response.status_code == response_status_code
