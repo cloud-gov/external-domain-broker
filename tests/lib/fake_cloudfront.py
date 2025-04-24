@@ -5,6 +5,7 @@ import pytest
 
 from broker.aws import cloudfront as real_cloudfront
 from broker.lib.tags import add_tag, Tag
+from broker.tasks.cloudfront import is_cdn_with_dedicated_waf_instance
 from tests.lib.fake_aws import FakeAWS
 
 
@@ -333,11 +334,9 @@ class FakeCloudFront(FakeAWS):
 
     def expect_tag_resource(self, service_instance, tags: list[Tag] = []):
         tags = tags if tags else []
-        if (
-            not service_instance.has_dedicated_web_acl_tag(tags)
-            and hasattr(service_instance, "dedicated_waf_web_acl_arn")
-            and service_instance.dedicated_waf_web_acl_arn
-        ):
+        if is_cdn_with_dedicated_waf_instance(
+            service_instance
+        ) and not service_instance.has_dedicated_web_acl_tag(tags):
             tags = add_tag(tags, {"Key": "has_dedicated_acl", "Value": "true"})
         self.stubber.add_response(
             "tag_resource",
