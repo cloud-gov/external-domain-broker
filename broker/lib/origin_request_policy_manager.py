@@ -1,21 +1,18 @@
 from broker.extensions import config
 
 
-class CachePolicyManager:
+class OriginRequestPolicyManager:
     def __init__(self, cloudfront):
-        self._managed_policies = None
+        self.policies = {}
         self.cloudfront = cloudfront
 
-    def get_managed_policy_id(self, policy) -> str:
-        return self.managed_policies[policy]
+    def get_managed_cache_policies(self) -> dict[str, str]:
+        policy_type = "managed"
+        if policy_type not in self.policies:
+            self._list_cache_policies(policy_type)
+        return self.policies[policy_type]
 
-    @property
-    def managed_policies(self) -> dict[str, str]:
-        if self._managed_policies is None:
-            self._managed_policies = self._list_cache_policies("managed")
-        return self._managed_policies
-
-    def _list_cache_policies(self, policy_type) -> dict[str, str]:
+    def _list_cache_policies(self, policy_type):
         # TODO: do we need to handle paging?
         response = self.cloudfront.list_cache_policies(Type=policy_type)
         policies = {}
@@ -29,4 +26,4 @@ class CachePolicyManager:
                 continue
 
             policies[policy_name] = policy["Id"]
-        return policies
+        self.policies[policy_type] = policies
