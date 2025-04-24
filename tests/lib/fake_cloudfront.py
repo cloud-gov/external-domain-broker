@@ -334,7 +334,7 @@ class FakeCloudFront(FakeAWS):
     def expect_tag_resource(self, service_instance, tags: list[Tag] = []):
         tags = tags if tags else []
         if (
-            len(tags) == 0
+            not service_instance.has_dedicated_web_acl_tag(tags)
             and hasattr(service_instance, "dedicated_waf_web_acl_arn")
             and service_instance.dedicated_waf_web_acl_arn
         ):
