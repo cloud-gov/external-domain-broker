@@ -16,15 +16,15 @@ class CachePolicyManager:
         return self._managed_policies
 
     def _list_cache_policies(self, policy_type) -> dict[str, str]:
+        cache_policies = []
+
         response = self.cloudfront.list_cache_policies(Type=policy_type)
-        cache_policy_list = response.get("CachePolicyList", {})
-        cache_policies = cache_policy_list.get("Items", [])
-        while "NextMarker" in cache_policy_list:
+        cache_policies.extend(response.get("CachePolicyList", {}).get("Items", []))
+        while "NextMarker" in response.get("CachePolicyList", {}):
             response = self.cloudfront.list_cache_policies(
                 Type=policy_type, Marker=response["NextMarker"]
             )
-            cache_policy_list = response.get("CachePolicyList", {})
-            cache_policies.extend(cache_policy_list.get("Items", []))
+            cache_policies.extend(response.get("CachePolicyList", {}).get("Items", []))
 
         cache_policies_map = {}
         for item in cache_policies:
