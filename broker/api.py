@@ -24,13 +24,11 @@ from sap import cf_logging
 
 
 from broker import validators
-from broker.aws import cloudfront
-from broker.extensions import config, db
+from broker.extensions import config, db, cache_policy_manager
 from broker.lib.alb import (
     validate_migration_to_alb_params,
     update_alb_params_for_migration,
 )
-from broker.lib.cache_policy_manager import CachePolicyManager
 from broker.lib.cdn import (
     is_cdn_instance,
     provision_cdn_instance,
@@ -94,7 +92,7 @@ CDN_DEDICATED_WAF_PLAN_ID = "129c8332-02ce-460a-bd6d-bde10110c654"
 class API(ServiceBroker):
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.cache_policy_manager = CachePolicyManager(cloudfront)
+        self.cache_policy_manager = cache_policy_manager
 
     def catalog(self) -> Service:
         return Service(
