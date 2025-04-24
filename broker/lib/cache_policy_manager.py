@@ -22,7 +22,7 @@ class CachePolicyManager:
         cache_policies.extend(response.get("CachePolicyList", {}).get("Items", []))
         while "NextMarker" in response.get("CachePolicyList", {}):
             response = self.cloudfront.list_cache_policies(
-                Type=policy_type, Marker=response["NextMarker"]
+                Type=policy_type, Marker=response["CachePolicyList"]["NextMarker"]
             )
             cache_policies.extend(response.get("CachePolicyList", {}).get("Items", []))
 

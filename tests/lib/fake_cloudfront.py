@@ -398,6 +398,63 @@ class FakeCloudFront(FakeAWS):
             },
         )
 
+    def expect_list_cache_policies_has_next_page(
+        self, policy_type: str, policies: list[dict], next_marker: str
+    ):
+        self.stubber.add_response(
+            "list_cache_policies",
+            {
+                "CachePolicyList": {
+                    "NextMarker": next_marker,
+                    "MaxItems": 1,
+                    "Quantity": 1,
+                    "Items": [
+                        {
+                            "Type": policy_type,
+                            "CachePolicy": {
+                                "Id": policy["id"],
+                                "CachePolicyConfig": {
+                                    "Name": policy["name"],
+                                    "MinTTL": 0,
+                                },
+                                "LastModifiedTime": datetime.now(),
+                            },
+                        }
+                        for policy in policies
+                    ],
+                }
+            },
+            {"Type": policy_type},
+        )
+
+    def expect_list_cache_policies_last_page(
+        self, policy_type: str, policies: list[dict], marker: str
+    ):
+        self.stubber.add_response(
+            "list_cache_policies",
+            {
+                "CachePolicyList": {
+                    "MaxItems": 1,
+                    "Quantity": 1,
+                    "Items": [
+                        {
+                            "Type": policy_type,
+                            "CachePolicy": {
+                                "Id": policy["id"],
+                                "CachePolicyConfig": {
+                                    "Name": policy["name"],
+                                    "MinTTL": 0,
+                                },
+                                "LastModifiedTime": datetime.now(),
+                            },
+                        }
+                        for policy in policies
+                    ],
+                }
+            },
+            {"Type": policy_type, "Marker": marker},
+        )
+
     def expect_list_cache_policies(self, policy_type: str, policies: list[dict]):
         self.stubber.add_response(
             "list_cache_policies",
