@@ -36,13 +36,17 @@ def parse_alarm_notification_email(instance, params):
     return params.get("alarm_notification_email")
 
 
-def parse_cache_policy(params, cache_policy_manager: CachePolicyManager):
+def parse_cache_policy(params, cache_policy_manager: CachePolicyManager) -> str:
     cache_policy = params.get("cache_policy", None)
-    if cache_policy:
-        managed_cache_policies = cache_policy_manager.get_managed_cache_policies()
-        if cache_policy in managed_cache_policies.keys():
-            return managed_cache_policies[cache_policy]
-    return None
+    if not cache_policy:
+        return None
+    if cache_policy not in config.ALLOWED_AWS_MANAGED_CACHE_POLICIES:
+        raise errors.ErrBadRequest(
+            f"'{cache_policy}' is not an allowed value for cache_policy."
+        )
+    managed_cache_policies = cache_policy_manager.get_managed_cache_policies()
+    if cache_policy in managed_cache_policies.keys():
+        return managed_cache_policies[cache_policy]
 
 
 def provision_cdn_instance(
