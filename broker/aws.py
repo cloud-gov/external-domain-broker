@@ -1,6 +1,7 @@
 import boto3
 
 from broker.extensions import config
+from broker.lib.cache_policy_manager import CachePolicyManager
 
 commercial_session = boto3.Session(
     region_name=config.AWS_COMMERCIAL_REGION,
@@ -31,3 +32,5 @@ govcloud_session = boto3.Session(
 alb = govcloud_session.client("elbv2")
 # iam for albs needs to be govcloud
 iam_govcloud = govcloud_session.client("iam")
+
+cache_policy_manager = CachePolicyManager(cloudfront)
