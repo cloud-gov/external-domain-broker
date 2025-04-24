@@ -8,7 +8,7 @@ def test_managed_cache_policies(cloudfront, cache_policy_id):
     policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
 
     cache_policy_manager = CachePolicyManager(cloudfront_svc)
-    cloudfront.expect_list_cache_policy_manager("managed", policies)
+    cloudfront.expect_list_cache_policies("managed", policies)
     assert cache_policy_manager.managed_policies == {
         "CachingDisabled": cache_policy_id,
     }
