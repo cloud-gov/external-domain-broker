@@ -24,7 +24,6 @@ from sap import cf_logging
 
 
 from broker import validators
-from broker.aws import cache_policy_manager
 from broker.extensions import config, db
 from broker.lib.alb import (
     validate_migration_to_alb_params,
@@ -93,7 +92,6 @@ CDN_DEDICATED_WAF_PLAN_ID = "129c8332-02ce-460a-bd6d-bde10110c654"
 class API(ServiceBroker):
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.cache_policy_manager = CachePolicyManager(cloudfront)
 
     def catalog(self) -> Service:
         return Service(
@@ -194,16 +192,13 @@ class API(ServiceBroker):
             validators.UniqueDomains(domain_names).validate()
 
         if details.plan_id == CDN_PLAN_ID:
-            instance = provision_cdn_instance(
-                instance_id, domain_names, params, cache_policy_manager
-            )
+            instance = provision_cdn_instance(instance_id, domain_names, params)
             queue = queue_all_cdn_provision_tasks_for_operation
         elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
             instance = provision_cdn_instance(
                 instance_id,
                 domain_names,
                 params,
-                cache_policy_manager,
                 instance_type_model=CDNDedicatedWAFServiceInstance,
             )
             queue = queue_all_cdn_dedicated_waf_provision_tasks_for_operation
@@ -343,7 +338,7 @@ class API(ServiceBroker):
             noop = False
 
             if details.plan_id == CDN_PLAN_ID:
-                instance = update_cdn_instance(params, instance, cache_policy_manager)
+                instance = update_cdn_instance(params, instance)
                 queue = queue_all_cdn_update_tasks_for_operation
             elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
                 queue = queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation
@@ -356,7 +351,7 @@ class API(ServiceBroker):
                 instance = change_instance_type(
                     instance, CDNDedicatedWAFServiceInstance, db.session
                 )
-                instance = update_cdn_instance(params, instance, cache_policy_manager)
+                instance = update_cdn_instance(params, instance)
                 db.session.add(instance)
                 db.session.commit()
             else:
@@ -367,7 +362,7 @@ class API(ServiceBroker):
             if details.plan_id != CDN_DEDICATED_WAF_PLAN_ID:
                 raise ClientError("Updating service plan is not supported")
 
-            instance = update_cdn_instance(params, instance, cache_policy_manager)
+            instance = update_cdn_instance(params, instance)
 
             queue = queue_all_cdn_dedicated_waf_update_tasks_for_operation
         elif instance.instance_type == ServiceInstanceTypes.ALB.value:

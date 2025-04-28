@@ -2,6 +2,7 @@ from openbrokerapi import errors
 
 from broker import validators
 
+from broker.aws import cache_policy_manager
 from broker.extensions import config
 
 from broker.lib.cache_policy_manager import CachePolicyManager
@@ -51,7 +52,6 @@ def provision_cdn_instance(
     instance_id: str,
     domain_names: list,
     params: dict,
-    cache_policy_manager: CachePolicyManager,
     instance_type_model: (
         CDNServiceInstance | CDNDedicatedWAFServiceInstance
     ) = CDNServiceInstance,
@@ -98,7 +98,7 @@ def provision_cdn_instance(
     return instance
 
 
-def update_cdn_instance(params, instance, cache_policy_manager: CachePolicyManager):
+def update_cdn_instance(params, instance):
     # N.B. we're using "param" in params rather than
     # params.get("param") because the OSBAPI spec
     # requires we do not mess with params that were not
