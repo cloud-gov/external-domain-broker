@@ -47,3 +47,8 @@ def get_server_certificate_name(instance_id, certificate_id):
 @pytest.fixture(scope="session")
 def cache_policy_id():
     return str(uuid.uuid4())
+
+
+@pytest.fixture(scope="session")
+def origin_request_policy_id():
+    return str(uuid.uuid4())

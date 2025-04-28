@@ -7,6 +7,7 @@ from broker.extensions import config
 
 from broker.lib.cache_policy_manager import CachePolicyManager
 from broker.lib.client_error import ClientError
+from broker.lib.origin_request_policy_manager import OriginRequestPolicyManager
 from broker.lib.utils import (
     parse_cookie_options,
     parse_header_options,
@@ -46,6 +47,22 @@ def parse_cache_policy(params, cache_policy_manager: CachePolicyManager) -> str:
             f"'{cache_policy}' is not an allowed value for cache_policy."
         )
     return cache_policy_manager.get_managed_policy_id(cache_policy)
+
+
+def parse_origin_request_policy(
+    params, origin_request_policy_manager: OriginRequestPolicyManager
+) -> str:
+    origin_request_policy = params.get("origin_request_policy", None)
+    if not origin_request_policy:
+        return None
+    if (
+        origin_request_policy
+        not in config.ALLOWED_AWS_MANAGED_ORIGIN_VIEWER_REQUEST_POLICIES
+    ):
+        raise errors.ErrBadRequest(
+            f"'{origin_request_policy}' is not an allowed value for origin_request_policy."
+        )
+    return origin_request_policy_manager.get_managed_policy_id(origin_request_policy)
 
 
 def provision_cdn_instance(
