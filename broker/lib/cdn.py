@@ -2,7 +2,7 @@ from openbrokerapi import errors
 
 from broker import validators
 
-from broker.aws import cache_policy_manager, origin_request_policy_manager
+from broker.aws import cloudfront
 from broker.extensions import config
 
 from broker.lib.cache_policy_manager import CachePolicyManager
@@ -19,6 +19,9 @@ from broker.models import (
     Certificate,
     ServiceInstanceTypes,
 )
+
+cache_policy_manager = CachePolicyManager(cloudfront)
+origin_request_policy_manager = OriginRequestPolicyManager(cloudfront)
 
 
 def is_cdn_instance(service_instance) -> bool:

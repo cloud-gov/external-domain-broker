@@ -33,6 +33,3 @@ govcloud_session = boto3.Session(
 alb = govcloud_session.client("elbv2")
 # iam for albs needs to be govcloud
 iam_govcloud = govcloud_session.client("iam")
-
-cache_policy_manager = CachePolicyManager(cloudfront)
-origin_request_policy_manager = OriginRequestPolicyManager(cloudfront)
