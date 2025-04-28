@@ -182,6 +182,12 @@ def update_cdn_instance(params, instance):
     if cache_policy_id:
         instance.cache_policy_id = cache_policy_id
 
+    origin_request_policy_id = parse_origin_request_policy(
+        params, origin_request_policy_manager
+    )
+    if origin_request_policy_id:
+        instance.origin_request_policy_id = origin_request_policy_id
+
     return instance
 
 
