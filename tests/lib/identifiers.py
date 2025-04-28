@@ -44,6 +44,6 @@ def get_server_certificate_name(instance_id, certificate_id):
     return f"{instance_id}-{today}-{certificate_id}"
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def cache_policy_id():
     return str(uuid.uuid4())
