@@ -16,12 +16,12 @@ def test_managed_cache_policies(cloudfront, cache_policy_id):
 
 def test_managed_cache_policies_handles_paging(cloudfront, cache_policy_id):
     policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
-    cloudfront.expect_list_cache_policies_has_next_page("managed", policies, "next")
+    cloudfront.expect_list_cache_policies("managed", policies, next_marker="next")
 
     policy2_id = str(uuid.uuid4())
     policies = [{"id": policy2_id, "name": "CachingOptimized"}]
 
-    cloudfront.expect_list_cache_policies_last_page("managed", policies, "next")
+    cloudfront.expect_list_cache_policies("managed", policies, marker="next")
 
     cache_policy_manager = CachePolicyManager(cloudfront_svc)
 
