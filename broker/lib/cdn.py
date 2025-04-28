@@ -2,7 +2,7 @@ from openbrokerapi import errors
 
 from broker import validators
 
-from broker.aws import cache_policy_manager
+from broker.aws import cache_policy_manager, origin_request_policy_manager
 from broker.extensions import config
 
 from broker.lib.cache_policy_manager import CachePolicyManager
@@ -111,6 +111,12 @@ def provision_cdn_instance(
     cache_policy_id = parse_cache_policy(params, cache_policy_manager)
     if cache_policy_id:
         instance.cache_policy_id = cache_policy_id
+
+    origin_request_policy_id = parse_origin_request_policy(
+        params, origin_request_policy_manager
+    )
+    if origin_request_policy_id:
+        instance.origin_request_policy_id = origin_request_policy_id
 
     return instance
 
