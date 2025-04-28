@@ -438,3 +438,73 @@ def test_update_error_invalid_cache_policy(
     )
 
     assert client.response.status_code == response_status_code
+
+
+@pytest.mark.parametrize(
+    "instance_model",
+    [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
+)
+def test_update_sets_origin_request_policy_id(
+    dns,
+    client,
+    instance_model,
+    service_instance,
+    origin_request_policy_id,
+    cloudfront,
+    mocked_cf_api,
+):
+    dns.add_cname("_acme-challenge.example.com")
+    origin_request_policies = [{"id": origin_request_policy_id, "name": "AllViewer"}]
+
+    # Request to fetch cache policies is cached, so only happens once for
+    # both test runs
+    if instance_model == CDNServiceInstance:
+        cloudfront.expect_list_origin_request_policies(
+            "managed", origin_request_policies
+        )
+
+    client.update_instance(
+        instance_model,
+        service_instance.id,
+        params={
+            "domains": ["example.com"],
+            "origin_request_policy": "AllViewer",
+            "alarm_notification_email": "foo@bar",
+        },
+    )
+
+    assert client.response.status_code == 202
+
+    instance = db.session.get(instance_model, service_instance.id)
+    assert origin_request_policy_id == instance.origin_request_policy_id
+
+
+@pytest.mark.parametrize(
+    "instance_model, response_status_code",
+    [
+        [CDNServiceInstance, 400],
+        [CDNDedicatedWAFServiceInstance, 400],
+    ],
+)
+def test_update_error_invalid_origin_request_policy(
+    dns,
+    client,
+    instance_model,
+    service_instance,
+    response_status_code,
+    cloudfront,
+    mocked_cf_api,
+):
+    dns.add_cname("_acme-challenge.example.com")
+
+    client.update_instance(
+        instance_model,
+        service_instance.id,
+        params={
+            "domains": ["example.com"],
+            "origin_request_policy": "FakePolicy",
+            "alarm_notification_email": "foo@bar",
+        },
+    )
+
+    assert client.response.status_code == response_status_code
