@@ -13,11 +13,6 @@ def provision_params():
     return {"domains": "example.com", "alarm_notification_email": "foo@bar.com"}
 
 
-@pytest.fixture(scope="module")
-def cache_policy_id():
-    return str(uuid.uuid4())
-
-
 @pytest.mark.parametrize(
     "instance_model",
     [CDNServiceInstance, CDNDedicatedWAFServiceInstance],
