@@ -436,6 +436,46 @@ class FakeCloudFront(FakeAWS):
             request,
         )
 
+    def expect_list_origin_request_policies(
+        self,
+        policy_type: str,
+        policies: list[dict],
+        next_marker: str = "",
+        marker: str = "",
+    ):
+        response = {
+            "OriginRequestPolicyList": {
+                "MaxItems": 1,
+                "Quantity": 1,
+                "Items": [
+                    {
+                        "Type": policy_type,
+                        "OriginRequestPolicy": {
+                            "Id": policy["id"],
+                            "OriginRequestPolicyConfig": {
+                                "Name": policy["name"],
+                                "HeadersConfig": {"HeaderBehavior": "none"},
+                                "CookiesConfig": {"CookieBehavior": "none"},
+                                "QueryStringsConfig": {"QueryStringBehavior": "none"},
+                            },
+                            "LastModifiedTime": datetime.now(),
+                        },
+                    }
+                    for policy in policies
+                ],
+            }
+        }
+        if next_marker:
+            response["OriginRequestPolicyList"]["NextMarker"] = next_marker
+        request = {"Type": policy_type}
+        if marker:
+            request["Marker"] = marker
+        self.stubber.add_response(
+            "list_origin_request_policies",
+            response,
+            request,
+        )
+
     def _distribution_config(
         self,
         caller_reference: str,
