@@ -1,8 +1,10 @@
-from datetime import datetime
-
+from unittest.mock import patch
 import pytest  # noqa F401
 
+from broker.aws import cloudfront as real_cloudfront
 from broker.extensions import config, db
+from broker.lib import cdn
+from broker.lib.cache_policy_manager import CachePolicyManager
 from broker.models import (
     CDNServiceInstance,
     CDNDedicatedWAFServiceInstance,
@@ -388,25 +390,24 @@ def test_update_sets_cache_policy_id(
     dns.add_cname("_acme-challenge.example.com")
     cache_policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
 
-    # Request to fetch cache policies is cached, so only happens once for
-    # both test runs
-    if instance_model == CDNServiceInstance:
+    with patch.object(cdn, "cache_policy_manager", CachePolicyManager(real_cloudfront)):
         cloudfront.expect_list_cache_policies("managed", cache_policies)
 
-    client.update_instance(
-        instance_model,
-        service_instance.id,
-        params={
-            "domains": ["example.com"],
-            "cache_policy": "CachingDisabled",
-            "alarm_notification_email": "foo@bar",
-        },
-    )
+        client.update_instance(
+            instance_model,
+            service_instance.id,
+            params={
+                "domains": ["example.com"],
+                "cache_policy": "CachingDisabled",
+                "alarm_notification_email": "foo@bar",
+            },
+        )
 
-    assert client.response.status_code == 202
+        assert client.response.status_code == 202
 
-    instance = db.session.get(instance_model, service_instance.id)
-    assert cache_policy_id == instance.cache_policy_id
+        instance = db.session.get(instance_model, service_instance.id)
+        assert cache_policy_id == instance.cache_policy_id
+        cloudfront.assert_no_pending_responses()
 
 
 @pytest.mark.parametrize(
