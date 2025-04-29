@@ -5,6 +5,7 @@ from broker.aws import cloudfront as real_cloudfront
 from broker.extensions import config, db
 from broker.lib import cdn
 from broker.lib.cache_policy_manager import CachePolicyManager
+from broker.lib.origin_request_policy_manager import OriginRequestPolicyManager
 from broker.models import (
     CDNServiceInstance,
     CDNDedicatedWAFServiceInstance,
@@ -390,6 +391,10 @@ def test_update_sets_cache_policy_id(
     dns.add_cname("_acme-challenge.example.com")
     cache_policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
 
+    # cache_policy_manager is managed in global state, so that in real API usage
+    # it caches the cache policies fetched by AWS. For testing purposes, we mock
+    # the cache_policy_manager and re-initialize it in every test so that we can
+    # consistently expect it to make mocked requests to AWS
     with patch.object(cdn, "cache_policy_manager", CachePolicyManager(real_cloudfront)):
         cloudfront.expect_list_cache_policies("managed", cache_policies)
 
@@ -457,27 +462,33 @@ def test_update_sets_origin_request_policy_id(
     dns.add_cname("_acme-challenge.example.com")
     origin_request_policies = [{"id": origin_request_policy_id, "name": "AllViewer"}]
 
-    # Request to fetch cache policies is cached, so only happens once for
-    # both test runs
-    if instance_model == CDNServiceInstance:
+    # origin_request_policy_manager is managed in global state, so that in real API usage
+    # it caches the origin request policies fetched by AWS. For testing purposes, we mock
+    # the origin_request_policy_manager and re-initialize it in every test so that we can
+    # consistently expect it to make mocked requests to AWS
+    with patch.object(
+        cdn,
+        "origin_request_policy_manager",
+        OriginRequestPolicyManager(real_cloudfront),
+    ):
         cloudfront.expect_list_origin_request_policies(
             "managed", origin_request_policies
         )
 
-    client.update_instance(
-        instance_model,
-        service_instance.id,
-        params={
-            "domains": ["example.com"],
-            "origin_request_policy": "AllViewer",
-            "alarm_notification_email": "foo@bar",
-        },
-    )
+        client.update_instance(
+            instance_model,
+            service_instance.id,
+            params={
+                "domains": ["example.com"],
+                "origin_request_policy": "AllViewer",
+                "alarm_notification_email": "foo@bar",
+            },
+        )
 
-    assert client.response.status_code == 202
+        assert client.response.status_code == 202
 
-    instance = db.session.get(instance_model, service_instance.id)
-    assert origin_request_policy_id == instance.origin_request_policy_id
+        instance = db.session.get(instance_model, service_instance.id)
+        assert origin_request_policy_id == instance.origin_request_policy_id
 
 
 @pytest.mark.parametrize(

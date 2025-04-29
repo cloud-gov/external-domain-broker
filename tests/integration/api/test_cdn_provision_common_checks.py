@@ -4,6 +4,7 @@ from unittest.mock import patch
 from broker.aws import cloudfront as real_cloudfront
 from broker.lib import cdn
 from broker.lib.cache_policy_manager import CachePolicyManager
+from broker.lib.origin_request_policy_manager import OriginRequestPolicyManager
 from broker.extensions import config, db
 from broker.models import (
     CDNDedicatedWAFServiceInstance,
@@ -448,6 +449,10 @@ def test_provision_sets_cache_policy(
     dns.add_cname("_acme-challenge.example.com")
     cache_policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
 
+    # cache_policy_manager is managed in global state, so that in real API usage
+    # it caches the cache policies fetched by AWS. For testing purposes, we mock
+    # the cache_policy_manager and re-initialize it in every test so that we can
+    # consistently expect it to make mocked requests to AWS
     with patch.object(cdn, "cache_policy_manager", CachePolicyManager(real_cloudfront)):
         cloudfront.expect_list_cache_policies("managed", cache_policies)
 
@@ -533,26 +538,32 @@ def test_provision_sets_origin_request_policy(
     dns.add_cname("_acme-challenge.example.com")
     origin_request_policies = [{"id": origin_request_policy_id, "name": "AllViewer"}]
 
-    # Request to fetch origin_request policies is cached, so only happens once for
-    # both test runs
-    if instance_model == CDNServiceInstance:
+    # origin_request_policy_manager is managed in global state, so that in real API usage
+    # it caches the origin request policies fetched by AWS. For testing purposes, we mock
+    # the origin_request_policy_manager and re-initialize it in every test so that we can
+    # consistently expect it to make mocked requests to AWS
+    with patch.object(
+        cdn,
+        "origin_request_policy_manager",
+        OriginRequestPolicyManager(real_cloudfront),
+    ):
         cloudfront.expect_list_origin_request_policies(
             "managed", origin_request_policies
         )
 
-    client.provision_instance(
-        instance_model,
-        service_instance_id,
-        params=provision_params,
-        organization_guid=organization_guid,
-        space_guid=space_guid,
-    )
+        client.provision_instance(
+            instance_model,
+            service_instance_id,
+            params=provision_params,
+            organization_guid=organization_guid,
+            space_guid=space_guid,
+        )
 
-    assert client.response.status_code == response_status_code
-    instance = db.session.get(instance_model, service_instance_id)
-    assert instance.origin_request_policy_id == origin_request_policy_id
+        assert client.response.status_code == response_status_code
+        instance = db.session.get(instance_model, service_instance_id)
+        assert instance.origin_request_policy_id == origin_request_policy_id
 
-    cloudfront.assert_no_pending_responses()
+        cloudfront.assert_no_pending_responses()
 
 
 @pytest.mark.parametrize(
