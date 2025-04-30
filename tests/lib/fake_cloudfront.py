@@ -28,6 +28,7 @@ class FakeCloudFront(FakeAWS):
         dedicated_waf_web_acl_arn: str = "",
         tags: list[Tag] = [],
         cache_policy_id: str = None,
+        origin_request_policy_id: str = None,
     ):
         self.stubber.add_response(
             "create_distribution_with_tags",
@@ -62,6 +63,7 @@ class FakeCloudFront(FakeAWS):
                     dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
                     tags=tags,
                     cache_policy_id=cache_policy_id,
+                    origin_request_policy_id=origin_request_policy_id,
                 ),
             },
         )
@@ -549,10 +551,7 @@ class FakeCloudFront(FakeAWS):
         if origin_request_policy_id:
             default_cache_behavior.update(
                 {
-                    "FieldLevelEncryptionId": "",
-                    "CachePolicyId": cache_policy_id,
                     "OriginRequestPolicyId": origin_request_policy_id,
-                    # "GrpcConfig": {"Enabled": False}, # this is a real-life differece I noticed in our samples. Seems unrelated but keeping it because it's real
                 }
             )
 

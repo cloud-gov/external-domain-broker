@@ -111,6 +111,12 @@ def update_default_cache_behavior(service_instance, default_cache_behavior):
             }
         )
         updated_default_cache_behavior.pop("CachePolicyId", None)
+
+    if service_instance.origin_request_policy_id:
+        updated_default_cache_behavior.update(
+            {"OriginRequestPolicyId": service_instance.origin_request_policy_id}
+        )
+
     return updated_default_cache_behavior
 
 
