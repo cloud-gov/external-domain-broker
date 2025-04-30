@@ -295,6 +295,7 @@ class FakeCloudFront(FakeAWS):
         custom_error_responses: dict = None,
         dedicated_waf_web_acl_arn: str = None,
         cache_policy_id: str = None,
+        origin_request_policy_id: str = None,
     ):
         self.stubber.add_response(
             "update_distribution",
@@ -328,6 +329,7 @@ class FakeCloudFront(FakeAWS):
                     custom_error_responses=custom_error_responses,
                     dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
                     cache_policy_id=cache_policy_id,
+                    origin_request_policy_id=origin_request_policy_id,
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,

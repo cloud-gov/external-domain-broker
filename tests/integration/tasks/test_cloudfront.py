@@ -448,6 +448,70 @@ def test_cloudfront_update_distribution_sets_cache_policy(
 @pytest.mark.parametrize(
     "instance_factory",
     [
+        factories.CDNServiceInstanceFactory,
+        factories.CDNDedicatedWAFServiceInstanceFactory,
+    ],
+)
+def test_cloudfront_update_distribution_sets_origin_request_policy(
+    clean_db,
+    service_instance,
+    operation_id,
+    cloudfront,
+    origin_request_policy_id,
+):
+    cloudfront.expect_get_distribution_config(
+        caller_reference="asdf",
+        domains=service_instance.domain_names,
+        certificate_id=service_instance.new_certificate.iam_server_certificate_id,
+        origin_hostname=service_instance.cloudfront_origin_hostname,
+        origin_path=service_instance.cloudfront_origin_path,
+        distribution_id=service_instance.cloudfront_distribution_id,
+    )
+
+    service_instance.origin_request_policy_id = origin_request_policy_id
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+
+    if service_instance.instance_type == ServiceInstanceTypes.CDN.value:
+        cloudfront.expect_update_distribution(
+            caller_reference="asdf",
+            domains=service_instance.domain_names,
+            certificate_id=service_instance.new_certificate.iam_server_certificate_id,
+            origin_hostname=service_instance.cloudfront_origin_hostname,
+            origin_path=service_instance.cloudfront_origin_path,
+            distribution_id=service_instance.cloudfront_distribution_id,
+            distribution_hostname=service_instance.cloudfront_origin_hostname,
+            origin_request_policy_id=origin_request_policy_id,
+        )
+    if service_instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
+        cloudfront.expect_update_distribution(
+            caller_reference="asdf",
+            domains=service_instance.domain_names,
+            certificate_id=service_instance.new_certificate.iam_server_certificate_id,
+            origin_hostname=service_instance.cloudfront_origin_hostname,
+            origin_path=service_instance.cloudfront_origin_path,
+            distribution_id=service_instance.cloudfront_distribution_id,
+            distribution_hostname=service_instance.cloudfront_origin_hostname,
+            dedicated_waf_web_acl_arn=service_instance.dedicated_waf_web_acl_arn,
+            origin_request_policy_id=origin_request_policy_id,
+        )
+
+    cloudfront.expect_tag_resource(service_instance)
+
+    update_distribution.call_local(operation_id)
+
+    # asserts that all the mocked calls above were made
+    cloudfront.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    operation = clean_db.session.get(Operation, operation_id)
+    assert operation.step_description == "Updating CloudFront distribution"
+
+
+@pytest.mark.parametrize(
+    "instance_factory",
+    [
         factories.CDNDedicatedWAFServiceInstanceFactory,
     ],
 )

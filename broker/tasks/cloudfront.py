@@ -90,7 +90,7 @@ def default_cache_behavior():
 
 
 def update_default_cache_behavior(service_instance, default_cache_behavior):
-    updated_default_cache_behavior = default_cache_behavior
+    updated_default_cache_behavior = default_cache_behavior.copy()
 
     # ForwardedValues and CachePolicyId are mutually exclusive
     # see https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DefaultCacheBehavior.html#cloudfront-Type-DefaultCacheBehavior-ForwardedValues
