@@ -70,6 +70,12 @@ class Config:
             "UseOriginCacheControlHeaders-QueryStrings",
         ]
 
+        # see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html
+        self.ALLOWED_AWS_MANAGED_ORIGIN_VIEWER_REQUEST_POLICIES = [
+            "AllViewer",
+            "AllViewerAndCloudFrontHeaders-2022-06",
+        ]
+
 
 class AppConfig(Config):
     """Base class for apps running in Cloud Foundry"""

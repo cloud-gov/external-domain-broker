@@ -2,10 +2,12 @@ from openbrokerapi import errors
 
 from broker import validators
 
+from broker.aws import cloudfront
 from broker.extensions import config
 
 from broker.lib.cache_policy_manager import CachePolicyManager
 from broker.lib.client_error import ClientError
+from broker.lib.origin_request_policy_manager import OriginRequestPolicyManager
 from broker.lib.utils import (
     parse_cookie_options,
     parse_header_options,
@@ -17,6 +19,9 @@ from broker.models import (
     Certificate,
     ServiceInstanceTypes,
 )
+
+cache_policy_manager = CachePolicyManager(cloudfront)
+origin_request_policy_manager = OriginRequestPolicyManager(cloudfront)
 
 
 def is_cdn_instance(service_instance) -> bool:
@@ -47,11 +52,26 @@ def parse_cache_policy(params, cache_policy_manager: CachePolicyManager) -> str:
     return cache_policy_manager.get_managed_policy_id(cache_policy)
 
 
+def parse_origin_request_policy(
+    params, origin_request_policy_manager: OriginRequestPolicyManager
+) -> str:
+    origin_request_policy = params.get("origin_request_policy", None)
+    if not origin_request_policy:
+        return None
+    if (
+        origin_request_policy
+        not in config.ALLOWED_AWS_MANAGED_ORIGIN_VIEWER_REQUEST_POLICIES
+    ):
+        raise errors.ErrBadRequest(
+            f"'{origin_request_policy}' is not an allowed value for origin_request_policy."
+        )
+    return origin_request_policy_manager.get_managed_policy_id(origin_request_policy)
+
+
 def provision_cdn_instance(
     instance_id: str,
     domain_names: list,
     params: dict,
-    cache_policy_manager: CachePolicyManager,
     instance_type_model: (
         CDNServiceInstance | CDNDedicatedWAFServiceInstance
     ) = CDNServiceInstance,
@@ -95,10 +115,16 @@ def provision_cdn_instance(
     if cache_policy_id:
         instance.cache_policy_id = cache_policy_id
 
+    origin_request_policy_id = parse_origin_request_policy(
+        params, origin_request_policy_manager
+    )
+    if origin_request_policy_id:
+        instance.origin_request_policy_id = origin_request_policy_id
+
     return instance
 
 
-def update_cdn_instance(params, instance, cache_policy_manager: CachePolicyManager):
+def update_cdn_instance(params, instance):
     # N.B. we're using "param" in params rather than
     # params.get("param") because the OSBAPI spec
     # requires we do not mess with params that were not
@@ -158,6 +184,12 @@ def update_cdn_instance(params, instance, cache_policy_manager: CachePolicyManag
     cache_policy_id = parse_cache_policy(params, cache_policy_manager)
     if cache_policy_id:
         instance.cache_policy_id = cache_policy_id
+
+    origin_request_policy_id = parse_origin_request_policy(
+        params, origin_request_policy_manager
+    )
+    if origin_request_policy_id:
+        instance.origin_request_policy_id = origin_request_policy_id
 
     return instance
 

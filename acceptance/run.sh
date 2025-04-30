@@ -160,7 +160,7 @@ tests() {
       "$SERVICE_NAME" \
       "$PLAN_NAME" \
       "$INSTANCE" \
-      -c "{\"domains\": \"$DOMAIN_0, $DOMAIN_1\", \"alarm_notification_email\": \"$ALARM_NOTIFICATION_EMAIL\", \"forward_cookies\": \"cookieone, cookietwo\", \"forward_headers\": \"x-one-header,x-two-header\", \"error_responses\": {\"404\": \"/errors/404.html\"}}"
+      -c "{\"domains\": \"$DOMAIN_0, $DOMAIN_1\", \"alarm_notification_email\": \"$ALARM_NOTIFICATION_EMAIL\", \"cache_policy\": \"CachingDisabled\", \"origin_request_policy\": \"AllViewer\", \"error_responses\": {\"404\": \"/errors/404.html\"}}"
   else
     echo "Creating the service instance"
     cf create-service \

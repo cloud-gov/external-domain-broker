@@ -3,27 +3,46 @@ from broker.extensions import config
 
 class OriginRequestPolicyManager:
     def __init__(self, cloudfront):
-        self.policies = {}
+        self._managed_policies = None
         self.cloudfront = cloudfront
 
-    def get_managed_cache_policies(self) -> dict[str, str]:
-        policy_type = "managed"
-        if policy_type not in self.policies:
-            self._list_cache_policies(policy_type)
-        return self.policies[policy_type]
+    def get_managed_policy_id(self, policy) -> str:
+        return self.managed_policies[policy]
 
-    def _list_cache_policies(self, policy_type):
-        # TODO: do we need to handle paging?
-        response = self.cloudfront.list_cache_policies(Type=policy_type)
-        policies = {}
-        for item in response["CachePolicyList"]["Items"]:
-            if "CachePolicy" not in item:
+    @property
+    def managed_policies(self) -> dict[str, str]:
+        if self._managed_policies is None:
+            self._managed_policies = self._list_origin_request_policies("managed")
+        return self._managed_policies
+
+    def _list_origin_request_policies(self, policy_type):
+        origin_request_policies = []
+
+        response = self.cloudfront.list_origin_request_policies(Type=policy_type)
+        origin_request_policies.extend(
+            response.get("OriginRequestPolicyList", {}).get("Items", [])
+        )
+        while "NextMarker" in response.get("OriginRequestPolicyList", {}):
+            response = self.cloudfront.list_origin_request_policies(
+                Type=policy_type,
+                Marker=response["OriginRequestPolicyList"]["NextMarker"],
+            )
+            origin_request_policies.extend(
+                response.get("OriginRequestPolicyList", {}).get("Items", [])
+            )
+
+        origin_request_policies_map = {}
+        for item in origin_request_policies:
+            if "OriginRequestPolicy" not in item:
                 continue
 
-            policy = item["CachePolicy"]
-            policy_name = policy["CachePolicyConfig"]["Name"]
-            if policy_name not in config.ALLOWED_AWS_MANAGED_CACHE_POLICIES:
+            policy = item["OriginRequestPolicy"]
+            policy_name = policy["OriginRequestPolicyConfig"]["Name"]
+            if (
+                policy_name
+                not in config.ALLOWED_AWS_MANAGED_ORIGIN_VIEWER_REQUEST_POLICIES
+            ):
                 continue
 
-            policies[policy_name] = policy["Id"]
-        self.policies[policy_type] = policies
+            origin_request_policies_map[policy_name] = policy["Id"]
+        return origin_request_policies_map

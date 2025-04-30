@@ -28,6 +28,7 @@ class FakeCloudFront(FakeAWS):
         dedicated_waf_web_acl_arn: str = "",
         tags: list[Tag] = [],
         cache_policy_id: str = None,
+        origin_request_policy_id: str = None,
     ):
         self.stubber.add_response(
             "create_distribution_with_tags",
@@ -62,6 +63,7 @@ class FakeCloudFront(FakeAWS):
                     dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
                     tags=tags,
                     cache_policy_id=cache_policy_id,
+                    origin_request_policy_id=origin_request_policy_id,
                 ),
             },
         )
@@ -293,6 +295,7 @@ class FakeCloudFront(FakeAWS):
         custom_error_responses: dict = None,
         dedicated_waf_web_acl_arn: str = None,
         cache_policy_id: str = None,
+        origin_request_policy_id: str = None,
     ):
         self.stubber.add_response(
             "update_distribution",
@@ -326,6 +329,7 @@ class FakeCloudFront(FakeAWS):
                     custom_error_responses=custom_error_responses,
                     dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
                     cache_policy_id=cache_policy_id,
+                    origin_request_policy_id=origin_request_policy_id,
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,
@@ -347,138 +351,82 @@ class FakeCloudFront(FakeAWS):
             },
         )
 
-    def expect_update_distribution_with_cache_policy_id(
+    def expect_list_cache_policies(
         self,
-        caller_reference: str,
-        domains: List[str],
-        certificate_id: str,
-        origin_hostname: str,
-        origin_path: str,
-        distribution_id: str,
-        distribution_hostname: str,
-        cache_policy_id: str,
-        origin_request_policy_id: str,
-        origin_protocol_policy: str = "https-only",
-        bucket_prefix: str = "",
-        custom_error_responses: dict = None,
+        policy_type: str,
+        policies: list[dict],
+        next_marker: str = "",
+        marker: str = "",
     ):
-        if custom_error_responses is None:
-            custom_error_responses = {"Quantity": 0}
-        self.stubber.add_response(
-            "update_distribution",
-            self._distribution_response(
-                caller_reference,
-                domains,
-                certificate_id,
-                origin_hostname,
-                origin_path,
-                distribution_id,
-                distribution_hostname,
-                origin_protocol_policy=origin_protocol_policy,
-                bucket_prefix=bucket_prefix,
-                custom_error_responses=custom_error_responses,
-                cache_policy_id=cache_policy_id,
-                origin_request_policy_id=origin_request_policy_id,
-            ),
-            {
-                "DistributionConfig": self._distribution_config(
-                    caller_reference,
-                    domains,
-                    certificate_id,
-                    origin_hostname,
-                    origin_path,
-                    origin_protocol_policy=origin_protocol_policy,
-                    bucket_prefix=bucket_prefix,
-                    custom_error_responses=custom_error_responses,
-                    cache_policy_id=cache_policy_id,
-                    origin_request_policy_id=origin_request_policy_id,
-                ),
-                "Id": distribution_id,
-                "IfMatch": self.etag,
-            },
-        )
-
-    def expect_list_cache_policies_has_next_page(
-        self, policy_type: str, policies: list[dict], next_marker: str
-    ):
+        response = {
+            "CachePolicyList": {
+                "MaxItems": 1,
+                "Quantity": 1,
+                "Items": [
+                    {
+                        "Type": policy_type,
+                        "CachePolicy": {
+                            "Id": policy["id"],
+                            "CachePolicyConfig": {
+                                "Name": policy["name"],
+                                "MinTTL": 0,
+                            },
+                            "LastModifiedTime": datetime.now(),
+                        },
+                    }
+                    for policy in policies
+                ],
+            }
+        }
+        if next_marker:
+            response["CachePolicyList"]["NextMarker"] = next_marker
+        request = {"Type": policy_type}
+        if marker:
+            request["Marker"] = marker
         self.stubber.add_response(
             "list_cache_policies",
-            {
-                "CachePolicyList": {
-                    "NextMarker": next_marker,
-                    "MaxItems": 1,
-                    "Quantity": 1,
-                    "Items": [
-                        {
-                            "Type": policy_type,
-                            "CachePolicy": {
-                                "Id": policy["id"],
-                                "CachePolicyConfig": {
-                                    "Name": policy["name"],
-                                    "MinTTL": 0,
-                                },
-                                "LastModifiedTime": datetime.now(),
-                            },
-                        }
-                        for policy in policies
-                    ],
-                }
-            },
-            {"Type": policy_type},
+            response,
+            request,
         )
 
-    def expect_list_cache_policies_last_page(
-        self, policy_type: str, policies: list[dict], marker: str
+    def expect_list_origin_request_policies(
+        self,
+        policy_type: str,
+        policies: list[dict],
+        next_marker: str = "",
+        marker: str = "",
     ):
-        self.stubber.add_response(
-            "list_cache_policies",
-            {
-                "CachePolicyList": {
-                    "MaxItems": 1,
-                    "Quantity": 1,
-                    "Items": [
-                        {
-                            "Type": policy_type,
-                            "CachePolicy": {
-                                "Id": policy["id"],
-                                "CachePolicyConfig": {
-                                    "Name": policy["name"],
-                                    "MinTTL": 0,
-                                },
-                                "LastModifiedTime": datetime.now(),
+        response = {
+            "OriginRequestPolicyList": {
+                "MaxItems": 1,
+                "Quantity": 1,
+                "Items": [
+                    {
+                        "Type": policy_type,
+                        "OriginRequestPolicy": {
+                            "Id": policy["id"],
+                            "OriginRequestPolicyConfig": {
+                                "Name": policy["name"],
+                                "HeadersConfig": {"HeaderBehavior": "none"},
+                                "CookiesConfig": {"CookieBehavior": "none"},
+                                "QueryStringsConfig": {"QueryStringBehavior": "none"},
                             },
-                        }
-                        for policy in policies
-                    ],
-                }
-            },
-            {"Type": policy_type, "Marker": marker},
-        )
-
-    def expect_list_cache_policies(self, policy_type: str, policies: list[dict]):
+                            "LastModifiedTime": datetime.now(),
+                        },
+                    }
+                    for policy in policies
+                ],
+            }
+        }
+        if next_marker:
+            response["OriginRequestPolicyList"]["NextMarker"] = next_marker
+        request = {"Type": policy_type}
+        if marker:
+            request["Marker"] = marker
         self.stubber.add_response(
-            "list_cache_policies",
-            {
-                "CachePolicyList": {
-                    "MaxItems": 1,
-                    "Quantity": 1,
-                    "Items": [
-                        {
-                            "Type": policy_type,
-                            "CachePolicy": {
-                                "Id": policy["id"],
-                                "CachePolicyConfig": {
-                                    "Name": policy["name"],
-                                    "MinTTL": 0,
-                                },
-                                "LastModifiedTime": datetime.now(),
-                            },
-                        }
-                        for policy in policies
-                    ],
-                }
-            },
-            {"Type": policy_type},
+            "list_origin_request_policies",
+            response,
+            request,
         )
 
     def _distribution_config(
@@ -554,10 +502,7 @@ class FakeCloudFront(FakeAWS):
         if origin_request_policy_id:
             default_cache_behavior.update(
                 {
-                    "FieldLevelEncryptionId": "",
-                    "CachePolicyId": cache_policy_id,
                     "OriginRequestPolicyId": origin_request_policy_id,
-                    # "GrpcConfig": {"Enabled": False}, # this is a real-life differece I noticed in our samples. Seems unrelated but keeping it because it's real
                 }
             )
 
