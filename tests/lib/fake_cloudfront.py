@@ -351,57 +351,6 @@ class FakeCloudFront(FakeAWS):
             },
         )
 
-    def expect_update_distribution_with_cache_policy_id(
-        self,
-        caller_reference: str,
-        domains: List[str],
-        certificate_id: str,
-        origin_hostname: str,
-        origin_path: str,
-        distribution_id: str,
-        distribution_hostname: str,
-        cache_policy_id: str,
-        origin_request_policy_id: str,
-        origin_protocol_policy: str = "https-only",
-        bucket_prefix: str = "",
-        custom_error_responses: dict = None,
-    ):
-        if custom_error_responses is None:
-            custom_error_responses = {"Quantity": 0}
-        self.stubber.add_response(
-            "update_distribution",
-            self._distribution_response(
-                caller_reference,
-                domains,
-                certificate_id,
-                origin_hostname,
-                origin_path,
-                distribution_id,
-                distribution_hostname,
-                origin_protocol_policy=origin_protocol_policy,
-                bucket_prefix=bucket_prefix,
-                custom_error_responses=custom_error_responses,
-                cache_policy_id=cache_policy_id,
-                origin_request_policy_id=origin_request_policy_id,
-            ),
-            {
-                "DistributionConfig": self._distribution_config(
-                    caller_reference,
-                    domains,
-                    certificate_id,
-                    origin_hostname,
-                    origin_path,
-                    origin_protocol_policy=origin_protocol_policy,
-                    bucket_prefix=bucket_prefix,
-                    custom_error_responses=custom_error_responses,
-                    cache_policy_id=cache_policy_id,
-                    origin_request_policy_id=origin_request_policy_id,
-                ),
-                "Id": distribution_id,
-                "IfMatch": self.etag,
-            },
-        )
-
     def expect_list_cache_policies(
         self,
         policy_type: str,

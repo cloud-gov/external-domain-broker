@@ -87,7 +87,7 @@ def test_update_with_new_style_response(
             ],
         },
     )
-    cloudfront.expect_update_distribution_with_cache_policy_id(
+    cloudfront.expect_update_distribution(
         caller_reference=service_instance_id,
         domains=expect_update_domain_names,
         certificate_id=certificate.iam_server_certificate_id,
