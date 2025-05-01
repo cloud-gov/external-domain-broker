@@ -62,10 +62,14 @@ class Config:
         self.REQUEST_TIMEOUT = 30
 
         # see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
+        # NOTE: The values in the list are not the same as the policy names on the AWS documentation. These values
+        # are the actual policy names as returned by a CloudFront ListCachePolicies request. Since our code will
+        # check for allowed policies against the list of names returned by the API, we use the names from the API
+        # response instead of the documentation.
         self.ALLOWED_AWS_MANAGED_CACHE_POLICIES = [
-            "CachingDisabled",
-            "CachingOptimized",
-            "CachingOptimizedForUncompressedObjects",
+            "Managed-CachingDisabled",
+            "Managed-CachingOptimized",
+            "Managed-CachingOptimizedForUncompressedObjects",
             "UseOriginCacheControlHeaders",
             "UseOriginCacheControlHeaders-QueryStrings",
         ]
