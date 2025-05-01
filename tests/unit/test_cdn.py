@@ -48,12 +48,13 @@ def test_parse_origin_request_policy_returns_none(origin_request_policy_manager)
 def test_parse_origin_request_policy_returns_valid_origin_request_policy(
     origin_request_policy_manager, origin_request_policy_id, cloudfront
 ):
-    policies = [{"id": origin_request_policy_id, "name": "AllViewer"}]
+    policies = [{"id": origin_request_policy_id, "name": "Managed-AllViewer"}]
     cloudfront.expect_list_origin_request_policies("managed", policies)
 
     assert (
         parse_origin_request_policy(
-            {"origin_request_policy": "AllViewer"}, origin_request_policy_manager
+            {"origin_request_policy": "Managed-AllViewer"},
+            origin_request_policy_manager,
         )
         == origin_request_policy_id
     )
