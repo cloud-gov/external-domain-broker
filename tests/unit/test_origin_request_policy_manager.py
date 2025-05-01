@@ -1,7 +1,15 @@
 import uuid
 
 from broker.aws import cloudfront as cloudfront_svc
-from broker.lib.origin_request_policy_manager import OriginRequestPolicyManager
+from broker.lib.origin_request_policy_manager import (
+    is_origin_request_policy_allowed,
+    OriginRequestPolicyManager,
+)
+
+
+def test_is_origin_request_policy_allowed():
+    assert is_origin_request_policy_allowed("Policy1", ["Policy1"]) == True
+    assert is_origin_request_policy_allowed("Policy1", ["Policy2"]) == False
 
 
 def test_managed_cache_policies(cloudfront, cache_policy_id):
