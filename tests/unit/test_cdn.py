@@ -25,11 +25,13 @@ def test_parse_cache_policy_returns_none(cache_policy_manager):
 def test_parse_cache_policy_returns_valid_cache_policy(
     cache_policy_manager, cache_policy_id, cloudfront
 ):
-    policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
+    policies = [{"id": cache_policy_id, "name": "Managed-CachingDisabled"}]
     cloudfront.expect_list_cache_policies("managed", policies)
 
     assert (
-        parse_cache_policy({"cache_policy": "CachingDisabled"}, cache_policy_manager)
+        parse_cache_policy(
+            {"cache_policy": "Managed-CachingDisabled"}, cache_policy_manager
+        )
         == cache_policy_id
     )
 
