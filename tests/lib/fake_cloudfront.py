@@ -84,6 +84,7 @@ class FakeCloudFront(FakeAWS):
         custom_error_responses: str = None,
         include_le_bucket: bool = False,
         include_log_bucket: bool = True,
+        compress: bool = None,
     ):
         if custom_error_responses is None:
             custom_error_responses = {"Quantity": 0}
@@ -107,6 +108,7 @@ class FakeCloudFront(FakeAWS):
                     custom_error_responses=custom_error_responses,
                     include_le_bucket=include_le_bucket,
                     include_log_bucket=include_log_bucket,
+                    compress=compress,
                 ),
                 "ETag": self.etag,
             },
@@ -296,6 +298,7 @@ class FakeCloudFront(FakeAWS):
         dedicated_waf_web_acl_arn: str = None,
         cache_policy_id: str = None,
         origin_request_policy_id: str = None,
+        compress: bool = None,
     ):
         self.stubber.add_response(
             "update_distribution",
@@ -330,6 +333,7 @@ class FakeCloudFront(FakeAWS):
                     dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
                     cache_policy_id=cache_policy_id,
                     origin_request_policy_id=origin_request_policy_id,
+                    compress=compress,
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,
@@ -448,6 +452,7 @@ class FakeCloudFront(FakeAWS):
         cache_policy_id: str = None,
         origin_request_policy_id: str = None,
         dedicated_waf_web_acl_arn: str = None,
+        compress: bool = None,
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -482,6 +487,10 @@ class FakeCloudFront(FakeAWS):
             "DefaultTTL": 86400,
             "MaxTTL": 31536000,
         }
+
+        if compress:
+            default_cache_behavior.update({"Compress": True})
+
         if cache_policy_id is None:
             default_cache_behavior.update(
                 {
