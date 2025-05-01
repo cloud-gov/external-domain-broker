@@ -1,7 +1,12 @@
 import uuid
 
 from broker.aws import cloudfront as cloudfront_svc
-from broker.lib.cache_policy_manager import CachePolicyManager
+from broker.lib.cache_policy_manager import CachePolicyManager, is_cache_policy_allowed
+
+
+def test_is_cache_policy_allowed():
+    assert is_cache_policy_allowed("Policy1", ["Policy1"]) == True
+    assert is_cache_policy_allowed("Policy1", ["Policy2"]) == False
 
 
 def test_managed_cache_policies(cloudfront, cache_policy_id):
