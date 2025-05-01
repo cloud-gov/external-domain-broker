@@ -1,6 +1,10 @@
 from broker.extensions import config
 
 
+def is_cache_policy_supported(aws_policy_name, allowed_aws_policy_names):
+    return aws_policy_name in allowed_aws_policy_names
+
+
 class CachePolicyManager:
     def __init__(self, cloudfront):
         self._managed_policies = None
@@ -33,7 +37,9 @@ class CachePolicyManager:
 
             policy = item["CachePolicy"]
             policy_name = policy["CachePolicyConfig"]["Name"]
-            if policy_name not in config.ALLOWED_AWS_MANAGED_CACHE_POLICIES:
+            if not is_cache_policy_supported(
+                policy_name, config.ALLOWED_AWS_MANAGED_CACHE_POLICIES
+            ):
                 continue
 
             cache_policies_map[policy_name] = policy["Id"]
