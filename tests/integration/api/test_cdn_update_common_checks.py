@@ -389,7 +389,7 @@ def test_update_sets_cache_policy_id(
     mocked_cf_api,
 ):
     dns.add_cname("_acme-challenge.example.com")
-    cache_policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
+    cache_policies = [{"id": cache_policy_id, "name": "Managed-CachingDisabled"}]
 
     # cache_policy_manager is managed in global state, so that in real API usage
     # it caches the cache policies fetched by AWS. For testing purposes, we mock
@@ -403,7 +403,7 @@ def test_update_sets_cache_policy_id(
             service_instance.id,
             params={
                 "domains": ["example.com"],
-                "cache_policy": "CachingDisabled",
+                "cache_policy": "Managed-CachingDisabled",
                 "alarm_notification_email": "foo@bar",
             },
         )
