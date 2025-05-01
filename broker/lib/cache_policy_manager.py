@@ -1,7 +1,7 @@
 from broker.extensions import config
 
 
-def is_cache_policy_supported(aws_policy_name, allowed_aws_policy_names):
+def is_cache_policy_allowed(aws_policy_name, allowed_aws_policy_names):
     return aws_policy_name in allowed_aws_policy_names
 
 
@@ -37,7 +37,7 @@ class CachePolicyManager:
 
             policy = item["CachePolicy"]
             policy_name = policy["CachePolicyConfig"]["Name"]
-            if not is_cache_policy_supported(
+            if not is_cache_policy_allowed(
                 policy_name, config.ALLOWED_AWS_MANAGED_CACHE_POLICIES
             ):
                 continue
