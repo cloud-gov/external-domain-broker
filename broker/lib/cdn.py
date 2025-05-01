@@ -5,9 +5,12 @@ from broker import validators
 from broker.aws import cloudfront
 from broker.extensions import config
 
-from broker.lib.cache_policy_manager import CachePolicyManager
+from broker.lib.cache_policy_manager import CachePolicyManager, is_cache_policy_allowed
 from broker.lib.client_error import ClientError
-from broker.lib.origin_request_policy_manager import OriginRequestPolicyManager
+from broker.lib.origin_request_policy_manager import (
+    is_origin_request_policy_allowed,
+    OriginRequestPolicyManager,
+)
 from broker.lib.utils import (
     parse_cookie_options,
     parse_header_options,
@@ -45,7 +48,9 @@ def parse_cache_policy(params, cache_policy_manager: CachePolicyManager) -> str:
     cache_policy = params.get("cache_policy", None)
     if not cache_policy:
         return None
-    if cache_policy not in config.ALLOWED_AWS_MANAGED_CACHE_POLICIES:
+    if not is_cache_policy_allowed(
+        cache_policy, config.ALLOWED_AWS_MANAGED_CACHE_POLICIES
+    ):
         raise errors.ErrBadRequest(
             f"'{cache_policy}' is not an allowed value for cache_policy."
         )
@@ -58,9 +63,8 @@ def parse_origin_request_policy(
     origin_request_policy = params.get("origin_request_policy", None)
     if not origin_request_policy:
         return None
-    if (
-        origin_request_policy
-        not in config.ALLOWED_AWS_MANAGED_ORIGIN_VIEWER_REQUEST_POLICIES
+    if not is_origin_request_policy_allowed(
+        origin_request_policy, config.ALLOWED_AWS_MANAGED_ORIGIN_VIEWER_REQUEST_POLICIES
     ):
         raise errors.ErrBadRequest(
             f"'{origin_request_policy}' is not an allowed value for origin_request_policy."

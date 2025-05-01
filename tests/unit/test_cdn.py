@@ -25,11 +25,13 @@ def test_parse_cache_policy_returns_none(cache_policy_manager):
 def test_parse_cache_policy_returns_valid_cache_policy(
     cache_policy_manager, cache_policy_id, cloudfront
 ):
-    policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
+    policies = [{"id": cache_policy_id, "name": "Managed-CachingDisabled"}]
     cloudfront.expect_list_cache_policies("managed", policies)
 
     assert (
-        parse_cache_policy({"cache_policy": "CachingDisabled"}, cache_policy_manager)
+        parse_cache_policy(
+            {"cache_policy": "Managed-CachingDisabled"}, cache_policy_manager
+        )
         == cache_policy_id
     )
 
@@ -46,12 +48,13 @@ def test_parse_origin_request_policy_returns_none(origin_request_policy_manager)
 def test_parse_origin_request_policy_returns_valid_origin_request_policy(
     origin_request_policy_manager, origin_request_policy_id, cloudfront
 ):
-    policies = [{"id": origin_request_policy_id, "name": "AllViewer"}]
+    policies = [{"id": origin_request_policy_id, "name": "Managed-AllViewer"}]
     cloudfront.expect_list_origin_request_policies("managed", policies)
 
     assert (
         parse_origin_request_policy(
-            {"origin_request_policy": "AllViewer"}, origin_request_policy_manager
+            {"origin_request_policy": "Managed-AllViewer"},
+            origin_request_policy_manager,
         )
         == origin_request_policy_id
     )

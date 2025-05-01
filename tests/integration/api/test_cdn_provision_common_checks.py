@@ -443,11 +443,11 @@ def test_provision_sets_cache_policy(
 ):
     provision_params.update(
         {
-            "cache_policy": "CachingDisabled",
+            "cache_policy": "Managed-CachingDisabled",
         }
     )
     dns.add_cname("_acme-challenge.example.com")
-    cache_policies = [{"id": cache_policy_id, "name": "CachingDisabled"}]
+    cache_policies = [{"id": cache_policy_id, "name": "Managed-CachingDisabled"}]
 
     # cache_policy_manager is managed in global state, so that in real API usage
     # it caches the cache policies fetched by AWS. For testing purposes, we mock
@@ -532,11 +532,13 @@ def test_provision_sets_origin_request_policy(
 ):
     provision_params.update(
         {
-            "origin_request_policy": "AllViewer",
+            "origin_request_policy": "Managed-AllViewer",
         }
     )
     dns.add_cname("_acme-challenge.example.com")
-    origin_request_policies = [{"id": origin_request_policy_id, "name": "AllViewer"}]
+    origin_request_policies = [
+        {"id": origin_request_policy_id, "name": "Managed-AllViewer"}
+    ]
 
     # origin_request_policy_manager is managed in global state, so that in real API usage
     # it caches the origin request policies fetched by AWS. For testing purposes, we mock

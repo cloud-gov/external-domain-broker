@@ -1,6 +1,10 @@
 from broker.extensions import config
 
 
+def is_origin_request_policy_allowed(aws_policy_name, allowed_aws_policy_names):
+    return aws_policy_name in allowed_aws_policy_names
+
+
 class OriginRequestPolicyManager:
     def __init__(self, cloudfront):
         self._managed_policies = None
@@ -38,9 +42,8 @@ class OriginRequestPolicyManager:
 
             policy = item["OriginRequestPolicy"]
             policy_name = policy["OriginRequestPolicyConfig"]["Name"]
-            if (
-                policy_name
-                not in config.ALLOWED_AWS_MANAGED_ORIGIN_VIEWER_REQUEST_POLICIES
+            if not is_origin_request_policy_allowed(
+                policy_name, config.ALLOWED_AWS_MANAGED_ORIGIN_VIEWER_REQUEST_POLICIES
             ):
                 continue
 

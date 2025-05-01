@@ -402,6 +402,7 @@ def test_cloudfront_update_distribution_sets_cache_policy(
         origin_hostname=service_instance.cloudfront_origin_hostname,
         origin_path=service_instance.cloudfront_origin_path,
         distribution_id=service_instance.cloudfront_distribution_id,
+        compress=True,  # ensure that pre-existing DefaultCacheBehavior["Compress"] value gets preserved on update
     )
 
     service_instance.cache_policy_id = cache_policy_id
@@ -418,6 +419,7 @@ def test_cloudfront_update_distribution_sets_cache_policy(
             distribution_id=service_instance.cloudfront_distribution_id,
             distribution_hostname=service_instance.cloudfront_origin_hostname,
             cache_policy_id=cache_policy_id,
+            compress=True,
         )
     if service_instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
         cloudfront.expect_update_distribution(
@@ -430,6 +432,7 @@ def test_cloudfront_update_distribution_sets_cache_policy(
             distribution_hostname=service_instance.cloudfront_origin_hostname,
             dedicated_waf_web_acl_arn=service_instance.dedicated_waf_web_acl_arn,
             cache_policy_id=cache_policy_id,
+            compress=True,
         )
 
     cloudfront.expect_tag_resource(service_instance)
