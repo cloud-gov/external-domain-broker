@@ -402,7 +402,7 @@ def test_cloudfront_update_distribution_sets_cache_policy(
         origin_hostname=service_instance.cloudfront_origin_hostname,
         origin_path=service_instance.cloudfront_origin_path,
         distribution_id=service_instance.cloudfront_distribution_id,
-        compress=True,  # ensure that any pre-existing settings get preserved on update
+        compress=True,  # ensure that pre-existing DefaultCacheBehavior["Compress"] value gets preserved on update
     )
 
     service_instance.cache_policy_id = cache_policy_id
