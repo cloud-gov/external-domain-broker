@@ -532,11 +532,13 @@ def test_provision_sets_origin_request_policy(
 ):
     provision_params.update(
         {
-            "origin_request_policy": "AllViewer",
+            "origin_request_policy": "Managed-AllViewer",
         }
     )
     dns.add_cname("_acme-challenge.example.com")
-    origin_request_policies = [{"id": origin_request_policy_id, "name": "AllViewer"}]
+    origin_request_policies = [
+        {"id": origin_request_policy_id, "name": "Managed-AllViewer"}
+    ]
 
     # origin_request_policy_manager is managed in global state, so that in real API usage
     # it caches the origin request policies fetched by AWS. For testing purposes, we mock
