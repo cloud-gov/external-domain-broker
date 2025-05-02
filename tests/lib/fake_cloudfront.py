@@ -507,6 +507,9 @@ class FakeCloudFront(FakeAWS):
             )
         else:
             default_cache_behavior.update({"CachePolicyId": cache_policy_id})
+            default_cache_behavior.pop("DefaultTTL", None)
+            default_cache_behavior.pop("MinTTL", None)
+            default_cache_behavior.pop("MaxTTL", None)
 
         if origin_request_policy_id:
             default_cache_behavior.update(
