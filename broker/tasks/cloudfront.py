@@ -92,13 +92,17 @@ def default_cache_behavior():
 def update_default_cache_behavior(service_instance, default_cache_behavior):
     updated_default_cache_behavior = default_cache_behavior.copy()
 
-    # ForwardedValues and CachePolicyId are mutually exclusive
-    # see https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DefaultCacheBehavior.html#cloudfront-Type-DefaultCacheBehavior-ForwardedValues
     if service_instance.cache_policy_id:
         updated_default_cache_behavior.update(
             {"CachePolicyId": service_instance.cache_policy_id}
         )
+        # see https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DefaultCacheBehavior.html#cloudfront-Type-DefaultCacheBehavior-ForwardedValues
+        # ForwardedValues and CachePolicyId are mutually exclusive
         updated_default_cache_behavior.pop("ForwardedValues", None)
+        # These fields are set by the cache policy identified by the CachePolicyId
+        updated_default_cache_behavior.pop("DefaultTTL", None)
+        updated_default_cache_behavior.pop("MinTTL", None)
+        updated_default_cache_behavior.pop("MaxTTL", None)
     else:
         updated_default_cache_behavior.update(
             {
