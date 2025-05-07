@@ -92,10 +92,18 @@ def default_cache_behavior():
 def update_default_cache_behavior(service_instance, default_cache_behavior):
     updated_default_cache_behavior = default_cache_behavior.copy()
 
-    if service_instance.cache_policy_id:
-        updated_default_cache_behavior.update(
-            {"CachePolicyId": service_instance.cache_policy_id}
-        )
+    # Even if properties are not set on the service instance, preserve any values
+    # from the existing DefaultCacheBehavior
+    cache_policy_id = service_instance.cache_policy_id or default_cache_behavior.get(
+        "CachePolicyId", None
+    )
+    origin_request_policy_id = (
+        service_instance.origin_request_policy_id
+        or default_cache_behavior.get("OriginRequestPolicyId", None)
+    )
+
+    if cache_policy_id:
+        updated_default_cache_behavior.update({"CachePolicyId": cache_policy_id})
         # see https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DefaultCacheBehavior.html#cloudfront-Type-DefaultCacheBehavior-ForwardedValues
         # ForwardedValues and CachePolicyId are mutually exclusive
         updated_default_cache_behavior.pop("ForwardedValues", None)
@@ -116,9 +124,9 @@ def update_default_cache_behavior(service_instance, default_cache_behavior):
         )
         updated_default_cache_behavior.pop("CachePolicyId", None)
 
-    if service_instance.origin_request_policy_id:
+    if origin_request_policy_id:
         updated_default_cache_behavior.update(
-            {"OriginRequestPolicyId": service_instance.origin_request_policy_id}
+            {"OriginRequestPolicyId": origin_request_policy_id}
         )
 
     return updated_default_cache_behavior
