@@ -89,6 +89,7 @@ class FakeCloudFront(FakeAWS):
         origin_request_policy_id: str = None,
         allowed_methods: list[str] = [],
         cached_methods: list[str] = [],
+        grpc_enabled: bool = None,
     ):
         if custom_error_responses is None:
             custom_error_responses = {"Quantity": 0}
@@ -117,6 +118,7 @@ class FakeCloudFront(FakeAWS):
                     origin_request_policy_id=origin_request_policy_id,
                     allowed_methods=allowed_methods,
                     cached_methods=cached_methods,
+                    grpc_enabled=grpc_enabled,
                 ),
                 "ETag": self.etag,
             },
@@ -309,6 +311,7 @@ class FakeCloudFront(FakeAWS):
         compress: bool = None,
         allowed_methods: list[str] = [],
         cached_methods: list[str] = [],
+        grpc_enabled: bool = None,
     ):
         self.stubber.add_response(
             "update_distribution",
@@ -346,6 +349,7 @@ class FakeCloudFront(FakeAWS):
                     compress=compress,
                     allowed_methods=allowed_methods,
                     cached_methods=cached_methods,
+                    grpc_enabled=grpc_enabled,
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,
@@ -467,6 +471,7 @@ class FakeCloudFront(FakeAWS):
         compress: bool = None,
         allowed_methods: list[str] = [],
         cached_methods: list[str] = [],
+        grpc_enabled: bool = None,
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -542,6 +547,15 @@ class FakeCloudFront(FakeAWS):
             default_cache_behavior.update(
                 {
                     "OriginRequestPolicyId": origin_request_policy_id,
+                }
+            )
+
+        if grpc_enabled:
+            default_cache_behavior.update(
+                {
+                    "GrpcConfig": {
+                        "Enabled": True,
+                    }
                 }
             )
 

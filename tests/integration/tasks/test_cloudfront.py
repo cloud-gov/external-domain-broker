@@ -542,6 +542,7 @@ def test_cloudfront_update_distribution_preserves_existing_settings(
         compress=True,
         allowed_methods=allowed_methods,
         cached_methods=cached_methods,
+        grpc_enabled=True,
     )
 
     if service_instance.instance_type == ServiceInstanceTypes.CDN.value:
@@ -558,6 +559,7 @@ def test_cloudfront_update_distribution_preserves_existing_settings(
             compress=True,
             allowed_methods=allowed_methods,
             cached_methods=cached_methods,
+            grpc_enabled=True,
         )
     if service_instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
         cloudfront.expect_update_distribution(
@@ -574,6 +576,7 @@ def test_cloudfront_update_distribution_preserves_existing_settings(
             compress=True,
             allowed_methods=allowed_methods,
             cached_methods=cached_methods,
+            grpc_enabled=True,
         )
 
     cloudfront.expect_tag_resource(service_instance)
