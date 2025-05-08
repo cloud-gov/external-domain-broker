@@ -85,6 +85,11 @@ class FakeCloudFront(FakeAWS):
         include_le_bucket: bool = False,
         include_log_bucket: bool = True,
         compress: bool = None,
+        cache_policy_id: str = None,
+        origin_request_policy_id: str = None,
+        allowed_methods: list[str] = [],
+        cached_methods: list[str] = [],
+        grpc_enabled: bool = None,
     ):
         if custom_error_responses is None:
             custom_error_responses = {"Quantity": 0}
@@ -109,6 +114,11 @@ class FakeCloudFront(FakeAWS):
                     include_le_bucket=include_le_bucket,
                     include_log_bucket=include_log_bucket,
                     compress=compress,
+                    cache_policy_id=cache_policy_id,
+                    origin_request_policy_id=origin_request_policy_id,
+                    allowed_methods=allowed_methods,
+                    cached_methods=cached_methods,
+                    grpc_enabled=grpc_enabled,
                 ),
                 "ETag": self.etag,
             },
@@ -299,6 +309,9 @@ class FakeCloudFront(FakeAWS):
         cache_policy_id: str = None,
         origin_request_policy_id: str = None,
         compress: bool = None,
+        allowed_methods: list[str] = [],
+        cached_methods: list[str] = [],
+        grpc_enabled: bool = None,
     ):
         self.stubber.add_response(
             "update_distribution",
@@ -334,6 +347,9 @@ class FakeCloudFront(FakeAWS):
                     cache_policy_id=cache_policy_id,
                     origin_request_policy_id=origin_request_policy_id,
                     compress=compress,
+                    allowed_methods=allowed_methods,
+                    cached_methods=cached_methods,
+                    grpc_enabled=grpc_enabled,
                 ),
                 "Id": distribution_id,
                 "IfMatch": self.etag,
@@ -453,6 +469,9 @@ class FakeCloudFront(FakeAWS):
         origin_request_policy_id: str = None,
         dedicated_waf_web_acl_arn: str = None,
         compress: bool = None,
+        allowed_methods: list[str] = [],
+        cached_methods: list[str] = [],
+        grpc_enabled: bool = None,
     ) -> Dict[str, Any]:
         if forwarded_headers is None:
             forwarded_headers = ["HOST"]
@@ -467,21 +486,34 @@ class FakeCloudFront(FakeAWS):
                 "Items": forwarded_cookies,
             }
 
+        default_allowed_methods = [
+            "GET",
+            "HEAD",
+            "POST",
+            "PUT",
+            "PATCH",
+            "OPTIONS",
+            "DELETE",
+        ]
+        allowed_methods = (
+            allowed_methods if len(allowed_methods) > 0 else default_allowed_methods
+        )
+
+        default_cached_methods = ["GET", "HEAD"]
+        cached_methods = (
+            cached_methods if len(cached_methods) > 0 else default_cached_methods
+        )
+
         default_cache_behavior = {
             "TargetOriginId": "default-origin",
             "ViewerProtocolPolicy": "redirect-to-https",
             "AllowedMethods": {
-                "Quantity": 7,
-                "Items": [
-                    "GET",
-                    "HEAD",
-                    "POST",
-                    "PUT",
-                    "PATCH",
-                    "OPTIONS",
-                    "DELETE",
-                ],
-                "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
+                "Quantity": len(allowed_methods),
+                "Items": allowed_methods,
+                "CachedMethods": {
+                    "Quantity": len(cached_methods),
+                    "Items": cached_methods,
+                },
             },
             "MinTTL": 0,
             "DefaultTTL": 86400,
@@ -515,6 +547,15 @@ class FakeCloudFront(FakeAWS):
             default_cache_behavior.update(
                 {
                     "OriginRequestPolicyId": origin_request_policy_id,
+                }
+            )
+
+        if grpc_enabled:
+            default_cache_behavior.update(
+                {
+                    "GrpcConfig": {
+                        "Enabled": True,
+                    }
                 }
             )
 
