@@ -176,32 +176,6 @@ class CFAPIClient(FlaskClient):
             method = self.update_dedicated_alb_instance
         return method(*args, **kwargs)
 
-    def update_dedicated_alb_to_cdn_dedicated_waf_instance(
-        self,
-        id: str,
-        accepts_incomplete: str = "true",
-        params: dict = None,
-        organization_guid: str = "abc",
-        space_guid: str = "123",
-    ):
-        json = {
-            "service_id": "8c16de31-104a-47b0-ba79-25e747be91d6",
-            "plan_id": CDN_DEDICATED_WAF_PLAN_ID,
-            "context": {
-                "organization_guid": organization_guid,
-                "space_guid": space_guid,
-            },
-        }
-
-        if params is not None:
-            json["parameters"] = params
-
-        self.patch(
-            f"/v2/service_instances/{id}",
-            json=json,
-            query_string={"accepts_incomplete": accepts_incomplete},
-        )
-
     def update_cdn_instance(
         self, id: str, accepts_incomplete: str = "true", params: dict = None
     ):
@@ -448,6 +422,9 @@ class CFAPIClient(FlaskClient):
     update_instance_to_cdn = update_cdn_instance
     update_instance_to_alb = update_alb_instance
     update_instance_to_dedicated_alb = update_dedicated_alb_instance
+    update_dedicated_alb_to_cdn_dedicated_waf_instance = (
+        update_cdn_dedicated_waf_instance
+    )
 
 
 @pytest.fixture(scope="session")
