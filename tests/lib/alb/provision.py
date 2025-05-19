@@ -14,10 +14,10 @@ from tests.lib.tags import sort_instance_tags
 
 
 def subtest_provision_uploads_certificate_to_iam(
-    tasks, iam_govcloud, simple_regex, instance_model
+    tasks, iam_govcloud, simple_regex, instance_model, service_instance_id="4321"
 ):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
@@ -38,10 +38,10 @@ def subtest_provision_uploads_certificate_to_iam(
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
     assert certificate.iam_server_certificate_name
-    assert certificate.iam_server_certificate_name.startswith("4321")
+    assert certificate.iam_server_certificate_name.startswith(service_instance_id)
     assert certificate.iam_server_certificate_id
     assert certificate.iam_server_certificate_id.startswith("FAKE_CERT_ID")
     assert certificate.iam_server_certificate_arn
@@ -49,7 +49,12 @@ def subtest_provision_uploads_certificate_to_iam(
 
 
 def subtest_provision_creates_provision_operation(
-    client, dns, organization_guid, space_guid, instance_model
+    client,
+    dns,
+    organization_guid,
+    space_guid,
+    instance_model,
+    service_instance_id="4321",
 ):
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
@@ -60,6 +65,7 @@ def subtest_provision_creates_provision_operation(
         organization_guid,
         space_guid,
         params={"domains": "example.com, Foo.com"},
+        id=service_instance_id,
     )
     db.session.expunge_all()
 
@@ -72,7 +78,7 @@ def subtest_provision_creates_provision_operation(
     assert operation is not None
     assert operation.state == "in progress"
     assert operation.action == "Provision"
-    assert operation.service_instance_id == "4321"
+    assert operation.service_instance_id == service_instance_id
 
     instance = db.session.get(instance_model, operation.service_instance_id)
     assert instance is not None
@@ -89,7 +95,7 @@ def subtest_provision_creates_provision_operation(
             {"Key": "environment", "Value": "test"},
             {"Key": "Service offering name", "Value": "external-domain"},
             {"Key": "Service plan name", "Value": service_plan_name},
-            {"Key": "Instance GUID", "Value": "4321"},
+            {"Key": "Instance GUID", "Value": service_instance_id},
             {"Key": "Organization GUID", "Value": organization_guid},
             {"Key": "Space GUID", "Value": space_guid},
             {"Key": "Space name", "Value": "space-1234"},
@@ -100,9 +106,11 @@ def subtest_provision_creates_provision_operation(
     return operation_id
 
 
-def subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model):
+def subtest_provision_provisions_ALIAS_records(
+    tasks, route53, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     example_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
         "example.com.domains.cloud.test", "alb.cloud.test", "ALBHOSTEDZONEID"
     )
@@ -112,11 +120,13 @@ def subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
 
-def subtest_provision_retrieves_certificate(tasks, instance_model):
+def subtest_provision_retrieves_certificate(
+    tasks, instance_model, service_instance_id="4321"
+):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
 
     assert certificate.fullchain_pem.count("BEGIN CERTIFICATE") == 1

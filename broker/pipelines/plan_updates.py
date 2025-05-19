@@ -45,8 +45,7 @@ def queue_all_dedicated_alb_to_cdn_dedicated_waf_update_tasks_for_operation(
         raise RuntimeError("operation_id must be set")
     correlation = {"correlation_id": correlation_id}
     task_pipeline = (
-        letsencrypt.create_user.s(operation_id, **correlation)
-        .then(letsencrypt.generate_private_key, operation_id, **correlation)
+        letsencrypt.generate_private_key.s(operation_id, **correlation)
         .then(letsencrypt.initiate_challenges, operation_id, **correlation)
         .then(route53.create_TXT_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
