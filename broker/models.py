@@ -257,7 +257,7 @@ class DedicatedALBServiceInstance(AbstractALBServiceInstance):
 
     @classmethod
     def update_targets(self) -> List[type]:
-        return [DedicatedALBServiceInstance]
+        return [DedicatedALBServiceInstance, CDNDedicatedWAFServiceInstance]
 
     def __repr__(self):
         return f"<DedicatedALBServiceInstance {self.id} {self.domain_names}>"
