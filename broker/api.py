@@ -75,6 +75,7 @@ from broker.pipelines.dedicated_alb import (
 from broker.pipelines.plan_updates import (
     queue_all_alb_to_dedicated_alb_update_tasks_for_operation,
     queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation,
+    queue_all_dedicated_alb_to_cdn_dedicated_waf_update_tasks_for_operation,
 )
 from broker.pipelines.migration import (
     queue_all_cdn_broker_migration_tasks_for_operation,
@@ -382,9 +383,21 @@ class API(ServiceBroker):
             else:
                 raise ClientError("Updating service plan is not supported")
         elif instance.instance_type == ServiceInstanceTypes.DEDICATED_ALB.value:
-            if details.plan_id != DEDICATED_ALB_PLAN_ID:
+            if details.plan_id == DEDICATED_ALB_PLAN_ID:
+                queue = queue_all_dedicated_alb_update_tasks_for_operation
+            elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
+                queue = queue_all_dedicated_alb_to_cdn_dedicated_waf_update_tasks_for_operation
+                instance = change_instance_type(
+                    instance, CDNDedicatedWAFServiceInstance, db.session
+                )
+                db.session.refresh(instance)
+                instance.org_id = details.context["organization_guid"]
+                instance.new_certificate_id = (
+                    instance.current_certificate_id
+                )  # this lets us reuse renewal logic for updates
+                noop = False
+            else:
                 raise ClientError("Updating service plan is not supported")
-            queue = queue_all_dedicated_alb_update_tasks_for_operation
         elif instance.instance_type == ServiceInstanceTypes.MIGRATION.value:
             if details.plan_id == CDN_PLAN_ID:
                 noop = False
