@@ -21,6 +21,7 @@ from broker.models import (
     CDNDedicatedWAFServiceInstance,
     Certificate,
     ServiceInstanceTypes,
+    MigrateDedicatedALBToCDNDedicatedWafServiceInstance,
 )
 
 cache_policy_manager = CachePolicyManager(cloudfront)
@@ -34,7 +35,9 @@ def is_cdn_instance(service_instance) -> bool:
 
 
 def is_cdn_dedicated_waf_instance(service_instance) -> bool:
-    return isinstance(service_instance, CDNDedicatedWAFServiceInstance)
+    return isinstance(service_instance, CDNDedicatedWAFServiceInstance) or isinstance(
+        service_instance, MigrateDedicatedALBToCDNDedicatedWafServiceInstance
+    )
 
 
 def parse_alarm_notification_email(instance, params):
@@ -81,23 +84,40 @@ def provision_cdn_instance(
     ) = CDNServiceInstance,
 ):
     instance = instance_type_model(id=instance_id, domain_names=domain_names)
+    instance = _provision_cdn_instance(params, instance, instance_type_model)
+    return instance
+
+
+def migrate_dedicated_alb_to_cdn_dedicated_waf_instance(params, instance):
+    instance = _provision_cdn_instance(
+        params, instance, MigrateDedicatedALBToCDNDedicatedWafServiceInstance
+    )
+    return instance
+
+
+def _provision_cdn_instance(params, instance, instance_type_model=CDNServiceInstance):
+    instance.route53_alias_hosted_zone = config.CLOUDFRONT_HOSTED_ZONE_ID
+
     instance.cloudfront_origin_hostname = params.get(
         "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
     )
     validators.Hostname(instance.cloudfront_origin_hostname).validate()
+
     instance.cloudfront_origin_path = params.get("path", "")
-    instance.route53_alias_hosted_zone = config.CLOUDFRONT_HOSTED_ZONE_ID
+
     forward_cookie_policy, forwarded_cookies = parse_cookie_options(params)
     instance.forward_cookie_policy = forward_cookie_policy
     instance.forwarded_cookies = forwarded_cookies
+
     forwarded_headers = parse_header_options(params)
     if instance.cloudfront_origin_hostname == config.DEFAULT_CLOUDFRONT_ORIGIN:
         forwarded_headers.append("HOST")
     forwarded_headers = normalize_header_list(forwarded_headers)
-
     instance.forwarded_headers = forwarded_headers
+
     instance.error_responses = params.get("error_responses", {})
     validators.ErrorResponseConfig(instance.error_responses).validate()
+
     if params.get("insecure_origin", False):
         if params.get("origin") is None:
             raise errors.ErrBadRequest(
@@ -147,6 +167,7 @@ def update_cdn_instance(params, instance):
         else:
             cloudfront_origin_path = ""
         instance.cloudfront_origin_path = cloudfront_origin_path
+
     if "forward_cookies" in params:
         forward_cookie_policy, forwarded_cookies = parse_cookie_options(params)
         instance.forward_cookie_policy = forward_cookie_policy
@@ -161,6 +182,7 @@ def update_cdn_instance(params, instance):
         forwarded_headers.append("HOST")
     forwarded_headers = normalize_header_list(forwarded_headers)
     instance.forwarded_headers = forwarded_headers
+
     if "insecure_origin" in params:
         origin_protocol_policy = "https-only"
         if params["insecure_origin"]:

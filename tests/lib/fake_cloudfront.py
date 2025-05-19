@@ -4,8 +4,8 @@ from typing import Any, Dict, List
 import pytest
 
 from broker.aws import cloudfront as real_cloudfront
+from broker.lib.cdn import is_cdn_dedicated_waf_instance
 from broker.lib.tags import add_tag, Tag
-from broker.tasks.cloudfront import is_cdn_with_dedicated_waf_instance
 from tests.lib.fake_aws import FakeAWS
 
 
@@ -358,7 +358,7 @@ class FakeCloudFront(FakeAWS):
 
     def expect_tag_resource(self, service_instance, tags: list[Tag] = []):
         tags = tags if tags else []
-        if is_cdn_with_dedicated_waf_instance(
+        if is_cdn_dedicated_waf_instance(
             service_instance
         ) and not service_instance.has_dedicated_web_acl_tag(tags):
             tags = add_tag(tags, {"Key": "has_dedicated_acl", "Value": "true"})
@@ -732,7 +732,7 @@ class FakeCloudFront(FakeAWS):
         cookies = {"Forward": forward_cookie_policy}
         if forward_cookie_policy == "whitelist":
             cookies["WhitelistedNames"] = {
-                "Quantity": len(forwarded_cookies),
+                "Quantity": len(forwarded_cookies) if forwarded_cookies else 0,
                 "Items": forwarded_cookies,
             }
         return {

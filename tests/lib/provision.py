@@ -23,28 +23,34 @@ def subtest_provision_creates_LE_user(
     assert "body" in json.loads(acme_user.registration_json)
 
 
-def subtest_provision_creates_private_key_and_csr(tasks, instance_model):
+def subtest_provision_creates_private_key_and_csr(
+    tasks, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     assert len(service_instance.certificates) == 1
 
     assert "BEGIN PRIVATE KEY" in service_instance.new_certificate.private_key_pem
     assert "BEGIN CERTIFICATE REQUEST" in service_instance.new_certificate.csr_pem
 
 
-def subtest_provision_initiates_LE_challenge(tasks, instance_model):
+def subtest_provision_initiates_LE_challenge(
+    tasks, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
 
     assert service_instance.new_certificate.challenges.count() == 2
     assert service_instance.new_certificate.order_json is not None
 
 
-def subtest_provision_updates_TXT_records(tasks, route53, instance_model):
+def subtest_provision_updates_TXT_records(
+    tasks, route53, instance_model, service_instance_id="4321"
+):
     example_com_change_id = route53.expect_create_TXT_and_return_change_id(
         "_acme-challenge.example.com.domains.cloud.test"
     )
@@ -56,16 +62,18 @@ def subtest_provision_updates_TXT_records(tasks, route53, instance_model):
 
     route53.assert_no_pending_responses()
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     assert service_instance.route53_change_ids == [
         example_com_change_id,
         foo_com_change_id,
     ]
 
 
-def subtest_provision_waits_for_route53_changes(tasks, route53, instance_model):
+def subtest_provision_waits_for_route53_changes(
+    tasks, route53, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
 
     for change_id in service_instance.route53_change_ids:
         route53.expect_wait_for_change_insync(change_id)
@@ -73,14 +81,16 @@ def subtest_provision_waits_for_route53_changes(tasks, route53, instance_model):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     assert service_instance.route53_change_ids == []
     route53.assert_no_pending_responses()
 
 
-def subtest_provision_answers_challenges(tasks, dns, instance_model):
+def subtest_provision_answers_challenges(
+    tasks, dns, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
 
     example_com_challenge = certificate.challenges.filter(
@@ -104,16 +114,18 @@ def subtest_provision_answers_challenges(tasks, dns, instance_model):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
     answered = [c.answered for c in certificate.challenges]
     assert answered == [True, True]
 
 
-def subtest_provision_marks_operation_as_succeeded(tasks, instance_model):
+def subtest_provision_marks_operation_as_succeeded(
+    tasks, instance_model, service_instance_id="4321"
+):
     tasks.run_queued_tasks_and_enqueue_dependents()
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     operation = service_instance.operations.first()
     assert operation
     assert "succeeded" == operation.state

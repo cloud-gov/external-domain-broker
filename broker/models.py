@@ -26,6 +26,9 @@ class ServiceInstanceTypes(Enum):
     CDN_DEDICATED_WAF = "cdn_dedicated_waf_service_instance"
     DEDICATED_ALB = "dedicated_alb_service_instance"
     MIGRATION = "migration_service_instance"
+    DEDICATED_ALB_CDN_DEDICATED_WAF_MIGRATION = (
+        "dedicated_alb_to_cdn_dedicated_waf_migration_service_instance"
+    )
 
 
 def db_encryption_key():
@@ -257,10 +260,49 @@ class DedicatedALBServiceInstance(AbstractALBServiceInstance):
 
     @classmethod
     def update_targets(self) -> List[type]:
-        return [DedicatedALBServiceInstance]
+        return [
+            DedicatedALBServiceInstance,
+            MigrateDedicatedALBToCDNDedicatedWafServiceInstance,
+        ]
 
     def __repr__(self):
         return f"<DedicatedALBServiceInstance {self.id} {self.domain_names}>"
+
+
+class MigrateDedicatedALBToCDNDedicatedWafServiceInstance(
+    CDNDedicatedWAFServiceInstance
+):
+    # model can only have one parent, so manually include DedicatedALBServiceInstance columns
+    alb_arn = mapped_column(db.String, use_existing_column=True)
+    alb_listener_arn = mapped_column(db.String, use_existing_column=True)
+    previous_alb_arn = mapped_column(db.String, use_existing_column=True)
+    previous_alb_listener_arn = mapped_column(db.String, use_existing_column=True)
+    org_id = mapped_column(db.String, use_existing_column=True)
+
+    alb_certificate_id = mapped_column(
+        db.Integer,
+        db.ForeignKey(
+            "certificate.id",
+            name="fk__service_instance__certificate__alb_certificate_id",
+        ),
+    )
+    alb_certificate = db.relation(
+        Certificate,
+        primaryjoin=alb_certificate_id == Certificate.id,
+        foreign_keys=alb_certificate_id,
+        post_update=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": ServiceInstanceTypes.DEDICATED_ALB_CDN_DEDICATED_WAF_MIGRATION.value
+    }
+
+    @classmethod
+    def update_targets(self) -> List[type]:
+        return [CDNDedicatedWAFServiceInstance]
+
+    def __repr__(self):
+        return f"<MigrateDedicatedALBToCDNDedicatedWafServiceInstance {self.id} {self.domain_names}>"
 
 
 class MigrationServiceInstance(ServiceInstance):
