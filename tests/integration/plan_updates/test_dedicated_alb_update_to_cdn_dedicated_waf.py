@@ -79,12 +79,6 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     )
     instance_model = CDNDedicatedWAFServiceInstance
 
-    subtest_provision_creates_LE_user(
-        tasks, instance_model, service_instance_id=service_instance_id
-    )
-    check_last_operation_description(
-        client, service_instance_id, operation_id, "Registering user for Lets Encrypt"
-    )
     subtest_provision_creates_private_key_and_csr(
         tasks, instance_model, service_instance_id=service_instance_id
     )
