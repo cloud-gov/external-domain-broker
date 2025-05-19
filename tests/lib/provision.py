@@ -23,11 +23,13 @@ def subtest_provision_creates_LE_user(
     assert "body" in json.loads(acme_user.registration_json)
 
 
-def subtest_provision_creates_private_key_and_csr(tasks, instance_model):
+def subtest_provision_creates_private_key_and_csr(
+    tasks, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
     tasks.run_queued_tasks_and_enqueue_dependents()
 
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     assert len(service_instance.certificates) == 1
 
     assert "BEGIN PRIVATE KEY" in service_instance.new_certificate.private_key_pem
