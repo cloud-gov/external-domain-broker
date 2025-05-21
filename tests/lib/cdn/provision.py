@@ -321,11 +321,13 @@ def subtest_provision_waits_for_cloudfront_distribution(
     tasks.run_queued_tasks_and_enqueue_dependents()
 
 
-def subtest_provision_retrieves_certificate(tasks, instance_model):
+def subtest_provision_retrieves_certificate(
+    tasks, instance_model, service_instance_id="4321"
+):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
 
     assert len(service_instance.certificates) == 1
     certificate = service_instance.new_certificate
