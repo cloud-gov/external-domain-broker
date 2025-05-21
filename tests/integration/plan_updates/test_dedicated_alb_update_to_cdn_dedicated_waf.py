@@ -1,6 +1,10 @@
 import pytest
 
-from broker.models import CDNDedicatedWAFServiceInstance, Operation
+from broker.models import (
+    DedicatedALBServiceInstance,
+    CDNDedicatedWAFServiceInstance,
+    Operation,
+)
 
 from tests.lib.client import check_last_operation_description
 
@@ -53,6 +57,9 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
         space_guid,
         service_instance_id=service_instance_id,
     )
+
+    instance = clean_db.session.get(DedicatedALBServiceInstance, service_instance_id)
+    assert instance is not None
 
     client.update_dedicated_alb_to_cdn_dedicated_waf_instance(
         service_instance_id,
