@@ -176,10 +176,10 @@ def subtest_provision_creates_provision_operation(
 
 
 def subtest_provision_uploads_certificate_to_iam(
-    tasks, iam_commercial, simple_regex, instance_model
+    tasks, iam_commercial, simple_regex, instance_model, service_instance_id="4321"
 ):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
@@ -200,10 +200,10 @@ def subtest_provision_uploads_certificate_to_iam(
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
     assert certificate.iam_server_certificate_name
-    assert certificate.iam_server_certificate_name.startswith("4321")
+    assert certificate.iam_server_certificate_name.startswith(service_instance_id)
     assert certificate.iam_server_certificate_id
     assert certificate.iam_server_certificate_id.startswith("FAKE_CERT_ID")
     assert certificate.iam_server_certificate_arn

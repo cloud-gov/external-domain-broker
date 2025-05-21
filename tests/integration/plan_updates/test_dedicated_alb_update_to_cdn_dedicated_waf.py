@@ -21,6 +21,7 @@ from tests.lib.cdn.update import (
 
 from tests.lib.cdn.provision import (
     subtest_provision_retrieves_certificate,
+    subtest_provision_uploads_certificate_to_iam,
 )
 
 from tests.integration.dedicated_alb.test_dedicated_alb_provisioning import (
@@ -44,6 +45,7 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     space_guid,
     clean_db,
     service_instance_id,
+    iam_commercial,
 ):
     subtest_provision_dedicated_alb_instance(
         client,
@@ -117,4 +119,11 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     )
     subtest_provision_retrieves_certificate(
         tasks, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_provision_uploads_certificate_to_iam(
+        tasks,
+        iam_commercial,
+        simple_regex,
+        instance_model,
+        service_instance_id=service_instance_id,
     )
