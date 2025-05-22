@@ -52,6 +52,7 @@ from broker.models import (
     ServiceInstance,
     change_instance_type,
     ServiceInstanceTypes,
+    DedicatedALBToCDNDedicatedWafMigrationServiceInstance,
 )
 from broker.pipelines.alb import (
     queue_all_alb_provision_tasks_for_operation,
@@ -386,13 +387,13 @@ class API(ServiceBroker):
             if details.plan_id == DEDICATED_ALB_PLAN_ID:
                 queue = queue_all_dedicated_alb_update_tasks_for_operation
             elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
-                # change_instance_type is called within this pipeline
                 queue = queue_all_dedicated_alb_to_cdn_dedicated_waf_update_tasks_for_operation
-                # instance = change_instance_type(
-                #     instance, CDNDedicatedWAFServiceInstance, db.session
-                # )
-                # db.session.refresh(instance)
-                # instance.org_id = details.context["organization_guid"]
+                instance = change_instance_type(
+                    instance,
+                    DedicatedALBToCDNDedicatedWafMigrationServiceInstance,
+                    db.session,
+                )
+                db.session.refresh(instance)
                 instance.new_certificate_id = (
                     instance.current_certificate_id
                 )  # this lets us reuse renewal logic for updates
