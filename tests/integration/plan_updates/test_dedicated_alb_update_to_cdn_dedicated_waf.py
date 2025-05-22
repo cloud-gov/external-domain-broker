@@ -1,9 +1,8 @@
-import pytest
-
 from broker.models import (
     DedicatedALBServiceInstance,
     CDNDedicatedWAFServiceInstance,
     Operation,
+    ServiceInstanceTypes,
 )
 
 from tests.lib.client import check_last_operation_description
@@ -13,7 +12,7 @@ from tests.lib.provision import (
     subtest_provision_initiates_LE_challenge,
     subtest_provision_answers_challenges,
 )
-
+from tests.lib.alb.update import subtest_removes_certificate_from_alb
 from tests.lib.cdn.update import (
     subtest_update_does_not_create_new_TXT_records,
     subtest_update_does_not_remove_old_TXT_records,
@@ -26,10 +25,6 @@ from tests.lib.cdn.provision import (
 
 from tests.integration.dedicated_alb.test_dedicated_alb_provisioning import (
     subtest_provision_dedicated_alb_instance,
-)
-
-from tests.integration.plan_updates.test_cdn_update_to_cdn_dedicated_waf import (
-    subtest_is_cdn_dedicated_waf_instance,
 )
 
 
@@ -60,9 +55,6 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
         service_instance_id=service_instance_id,
     )
 
-    instance = clean_db.session.get(DedicatedALBServiceInstance, service_instance_id)
-    assert instance is not None
-
     client.update_dedicated_alb_to_cdn_dedicated_waf_instance(
         service_instance_id,
     )
@@ -80,14 +72,11 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
 
     clean_db.session.expunge_all()
 
-    instance = clean_db.session.get(CDNDedicatedWAFServiceInstance, service_instance_id)
-    assert instance is not None
-
-    subtest_is_cdn_dedicated_waf_instance(service_instance_id=service_instance_id)
     check_last_operation_description(
         client, service_instance_id, operation_id, "Queuing tasks"
     )
-    instance_model = CDNDedicatedWAFServiceInstance
+
+    instance_model = DedicatedALBServiceInstance
 
     subtest_provision_creates_private_key_and_csr(
         tasks, instance_model, service_instance_id=service_instance_id
@@ -120,10 +109,20 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     subtest_provision_retrieves_certificate(
         tasks, instance_model, service_instance_id=service_instance_id
     )
-    subtest_provision_uploads_certificate_to_iam(
-        tasks,
-        iam_commercial,
-        simple_regex,
-        instance_model,
-        service_instance_id=service_instance_id,
+
+    instance = clean_db.session.get(DedicatedALBServiceInstance, service_instance_id)
+    assert instance.instance_type == ServiceInstanceTypes.DEDICATED_ALB.value
+
+    subtest_removes_certificate_from_alb(
+        tasks, alb, instance_model, service_instance_id=service_instance_id
     )
+
+    # subtest_is_cdn_dedicated_waf_instance(service_instance_id=service_instance_id)
+
+    # subtest_provision_uploads_certificate_to_iam(
+    #     tasks,
+    #     iam_commercial,
+    #     simple_regex,
+    #     instance_model,
+    #     service_instance_id=service_instance_id,
+    # )

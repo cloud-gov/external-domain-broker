@@ -67,6 +67,23 @@ def subtest_removes_previous_certificate_from_alb(
     alb.assert_no_pending_responses()
 
 
+def subtest_removes_certificate_from_alb(
+    tasks, alb, instance_model, service_instance_id="4321"
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    alb.expect_remove_certificate_from_listener(
+        service_instance.alb_listener_arn,
+        service_instance.current_certificate.iam_server_certificate_arn,
+    )
+    alb.expect_get_certificates_for_listener(service_instance.alb_listener_arn, 0)
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    alb.assert_no_pending_responses()
+
+
 def subtest_update_removes_old_DNS_records(
     tasks, route53, instance_model, service_instance_id="4321"
 ):

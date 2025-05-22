@@ -9,6 +9,7 @@ from broker.tasks import (
     shield,
     cloudwatch,
     sns,
+    update_instances,
 )
 from broker.tasks.huey import huey
 
@@ -52,13 +53,18 @@ def queue_all_dedicated_alb_to_cdn_dedicated_waf_update_tasks_for_operation(
         .then(route53.remove_old_DNS_records, operation_id, **correlation)
         .then(letsencrypt.answer_challenges, operation_id, **correlation)
         .then(letsencrypt.retrieve_certificate, operation_id, **correlation)
-        .then(iam.upload_server_certificate, operation_id, **correlation)
         .then(
-            alb.remove_certificate_from_previous_alb_during_update_to_dedicated,
+            alb.remove_certificate_from_alb,
             operation_id,
             **correlation,
         )
         .then(iam.delete_previous_server_certificate, operation_id, **correlation)
+        .then(
+            update_instances.change_to_cdn_dedicated_waf_instance_type,
+            operation_id,
+            **correlation,
+        )
+        .then(iam.upload_server_certificate, operation_id, **correlation)
         .then(waf.create_web_acl, operation_id, **correlation)
         .then(waf.put_logging_configuration, operation_id, **correlation)
         .then(cloudfront.create_distribution, operation_id, **correlation)
