@@ -199,6 +199,8 @@ def subtest_provision_uploads_certificate_to_iam(
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
+    iam_commercial.assert_no_pending_responses()
+
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate

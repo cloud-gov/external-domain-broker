@@ -13,6 +13,7 @@ from tests.lib.provision import (
     subtest_provision_initiates_LE_challenge,
     subtest_provision_answers_challenges,
 )
+from tests.lib.update import subtest_update_creates_private_key_and_csr
 from tests.lib.alb.update import subtest_removes_certificate_from_alb
 from tests.lib.cdn.update import (
     subtest_update_does_not_create_new_TXT_records,
@@ -23,7 +24,9 @@ from tests.lib.cdn.provision import (
     subtest_provision_retrieves_certificate,
     subtest_provision_uploads_certificate_to_iam,
 )
-
+from tests.integration.cdn_dedicated_waf.provision import (
+    subtest_provision_create_web_acl,
+)
 from tests.integration.dedicated_alb.test_dedicated_alb_provisioning import (
     subtest_provision_dedicated_alb_instance,
 )
@@ -42,6 +45,7 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     clean_db,
     service_instance_id,
     iam_commercial,
+    wafv2,
 ):
     subtest_provision_dedicated_alb_instance(
         client,
@@ -79,7 +83,7 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
 
     instance_model = MigrateDedicatedALBToCDNDedicatedWafServiceInstance
 
-    subtest_provision_creates_private_key_and_csr(
+    subtest_update_creates_private_key_and_csr(
         tasks, instance_model, service_instance_id=service_instance_id
     )
     check_last_operation_description(
@@ -110,13 +114,15 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     subtest_provision_retrieves_certificate(
         tasks, instance_model, service_instance_id=service_instance_id
     )
-
     subtest_provision_uploads_certificate_to_iam(
         tasks,
         iam_commercial,
         simple_regex,
         instance_model,
         service_instance_id=service_instance_id,
+    )
+    subtest_provision_create_web_acl(
+        tasks, wafv2, instance_model, service_instance_id=service_instance_id
     )
 
     # instance = clean_db.session.get(DedicatedALBServiceInstance, service_instance_id)

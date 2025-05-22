@@ -136,7 +136,7 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Uploading SSL certificate to AWS"
     )
-    subtest_provision_create_web_acl(tasks, wafv2)
+    subtest_provision_create_web_acl(tasks, wafv2, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Creating custom WAFv2 web ACL"
     )

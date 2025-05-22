@@ -94,7 +94,7 @@ def test_update_plan_only(
     subtest_update_does_not_create_new_TXT_records(tasks, route53, instance_model)
     subtest_update_same_domains_does_not_retrieve_new_certificate(tasks)
     subtest_update_same_domains_does_not_update_iam(tasks)
-    subtest_provision_create_web_acl(tasks, wafv2)
+    subtest_provision_create_web_acl(tasks, wafv2, instance_model)
     subtest_update_same_domains_updates_cloudfront(
         tasks,
         cloudfront,
@@ -196,7 +196,7 @@ def test_update_plan_and_domains(
     subtest_update_answers_challenges(tasks, dns, instance_model)
     subtest_update_retrieves_new_cert(tasks, instance_model)
     subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex, instance_model)
-    subtest_provision_create_web_acl(tasks, wafv2)
+    subtest_provision_create_web_acl(tasks, wafv2, instance_model)
     subtest_updates_cloudfront(tasks, cloudfront, instance_model)
     subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)

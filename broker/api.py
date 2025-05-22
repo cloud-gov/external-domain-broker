@@ -394,9 +394,6 @@ class API(ServiceBroker):
                     db.session,
                 )
                 db.session.refresh(instance)
-                instance.new_certificate_id = (
-                    instance.current_certificate_id
-                )  # this lets us reuse renewal logic for updates
                 noop = False
             else:
                 raise ClientError("Updating service plan is not supported")
