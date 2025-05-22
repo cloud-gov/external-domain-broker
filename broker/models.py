@@ -262,16 +262,23 @@ class DedicatedALBServiceInstance(AbstractALBServiceInstance):
     def update_targets(self) -> List[type]:
         return [
             DedicatedALBServiceInstance,
-            DedicatedALBToCDNDedicatedWafMigrationServiceInstance,
+            MigrateDedicatedALBToCDNDedicatedWafServiceInstance,
         ]
 
     def __repr__(self):
         return f"<DedicatedALBServiceInstance {self.id} {self.domain_names}>"
 
 
-class DedicatedALBToCDNDedicatedWafMigrationServiceInstance(
-    DedicatedALBServiceInstance, CDNDedicatedWAFServiceInstance
+class MigrateDedicatedALBToCDNDedicatedWafServiceInstance(
+    CDNDedicatedWAFServiceInstance
 ):
+    # model can only have one parent, so manually include DedicatedALBServiceInstance columns
+    alb_arn = mapped_column(db.String, use_existing_column=True)
+    alb_listener_arn = mapped_column(db.String, use_existing_column=True)
+    previous_alb_arn = mapped_column(db.String, use_existing_column=True)
+    previous_alb_listener_arn = mapped_column(db.String, use_existing_column=True)
+    org_id = mapped_column(db.String, use_existing_column=True)
+
     __mapper_args__ = {
         "polymorphic_identity": ServiceInstanceTypes.DEDICATED_ALB_CDN_DEDICATED_WAF_MIGRATION.value
     }
@@ -281,7 +288,7 @@ class DedicatedALBToCDNDedicatedWafMigrationServiceInstance(
         return [CDNDedicatedWAFServiceInstance]
 
     def __repr__(self):
-        return f"<DedicatedALBToCDNDedicatedWafMigrationServivceInstance {self.id} {self.domain_names}>"
+        return f"<MigrateDedicatedALBToCDNDedicatedWafServiceInstance {self.id} {self.domain_names}>"
 
 
 class MigrationServiceInstance(ServiceInstance):

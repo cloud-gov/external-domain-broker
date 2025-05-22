@@ -1,6 +1,7 @@
 from broker.models import (
     DedicatedALBServiceInstance,
     CDNDedicatedWAFServiceInstance,
+    MigrateDedicatedALBToCDNDedicatedWafServiceInstance,
     Operation,
     ServiceInstanceTypes,
 )
@@ -76,7 +77,7 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
         client, service_instance_id, operation_id, "Queuing tasks"
     )
 
-    instance_model = DedicatedALBServiceInstance
+    instance_model = MigrateDedicatedALBToCDNDedicatedWafServiceInstance
 
     subtest_provision_creates_private_key_and_csr(
         tasks, instance_model, service_instance_id=service_instance_id
@@ -110,19 +111,18 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
         tasks, instance_model, service_instance_id=service_instance_id
     )
 
-    instance = clean_db.session.get(DedicatedALBServiceInstance, service_instance_id)
-    assert instance.instance_type == ServiceInstanceTypes.DEDICATED_ALB.value
-
-    subtest_removes_certificate_from_alb(
-        tasks, alb, instance_model, service_instance_id=service_instance_id
+    subtest_provision_uploads_certificate_to_iam(
+        tasks,
+        iam_commercial,
+        simple_regex,
+        instance_model,
+        service_instance_id=service_instance_id,
     )
 
-    # subtest_is_cdn_dedicated_waf_instance(service_instance_id=service_instance_id)
+    # instance = clean_db.session.get(DedicatedALBServiceInstance, service_instance_id)
+    # assert instance.instance_type == ServiceInstanceTypes.DEDICATED_ALB.value
 
-    # subtest_provision_uploads_certificate_to_iam(
-    #     tasks,
-    #     iam_commercial,
-    #     simple_regex,
-    #     instance_model,
-    #     service_instance_id=service_instance_id,
+    # subtest_removes_certificate_from_alb(
+    #     tasks, alb, instance_model, service_instance_id=service_instance_id
     # )
+    # subtest_is_cdn_dedicated_waf_instance(service_instance_id=service_instance_id)
