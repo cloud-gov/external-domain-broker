@@ -732,7 +732,7 @@ class FakeCloudFront(FakeAWS):
         cookies = {"Forward": forward_cookie_policy}
         if forward_cookie_policy == "whitelist":
             cookies["WhitelistedNames"] = {
-                "Quantity": len(forwarded_cookies),
+                "Quantity": len(forwarded_cookies) if forwarded_cookies else 0,
                 "Items": forwarded_cookies,
             }
         return {

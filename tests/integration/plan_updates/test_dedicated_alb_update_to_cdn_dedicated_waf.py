@@ -1,3 +1,4 @@
+from broker.extensions import db
 from broker.models import (
     DedicatedALBServiceInstance,
     CDNDedicatedWAFServiceInstance,
@@ -138,7 +139,7 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     subtest_provision_put_web_acl_logging_configuration(
         tasks, wafv2, instance_model, service_instance_id=service_instance_id
     )
-    subtest_provision_creates_cloudfront_distribution(
+    subtest_migrate_creates_cloudfront_distribution(
         tasks, cloudfront, instance_model, service_instance_id=service_instance_id
     )
 
@@ -149,3 +150,43 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     #     tasks, alb, instance_model, service_instance_id=service_instance_id
     # )
     # subtest_is_cdn_dedicated_waf_instance(service_instance_id=service_instance_id)
+
+
+def subtest_migrate_creates_cloudfront_distribution(
+    tasks, cloudfront, instance_model, service_instance_id="4321"
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+    certificate = service_instance.new_certificate
+
+    id_ = certificate.id
+
+    dedicated_waf_web_acl_arn = service_instance.dedicated_waf_web_acl_arn
+
+    cloudfront.expect_create_distribution_with_tags(
+        caller_reference=service_instance.id,
+        domains=service_instance.domain_names,
+        certificate_id=certificate.iam_server_certificate_id,
+        origin_hostname=service_instance.cloudfront_origin_hostname,
+        origin_path=service_instance.cloudfront_origin_path,
+        distribution_id="FakeDistributionId",
+        distribution_hostname="fake1234.cloudfront.net",
+        bucket_prefix=f"{service_instance_id}/",
+        dedicated_waf_web_acl_arn=dedicated_waf_web_acl_arn,
+        tags=service_instance.tags,
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    assert service_instance.cloudfront_distribution_arn
+    assert service_instance.cloudfront_distribution_arn.startswith("arn:aws:cloudfront")
+    assert service_instance.cloudfront_distribution_arn.endswith("FakeDistributionId")
+    assert service_instance.cloudfront_distribution_id == "FakeDistributionId"
+    assert service_instance.domain_internal == "fake1234.cloudfront.net"
+    assert service_instance.new_certificate is None
+    assert service_instance.current_certificate is not None
+    assert service_instance.current_certificate.id == id_
+    assert service_instance.tags is not None
