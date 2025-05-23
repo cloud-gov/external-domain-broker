@@ -21,6 +21,7 @@ from broker.models import (
     CDNDedicatedWAFServiceInstance,
     Certificate,
     ServiceInstanceTypes,
+    MigrateDedicatedALBToCDNDedicatedWafServiceInstance,
 )
 
 cache_policy_manager = CachePolicyManager(cloudfront)
@@ -34,7 +35,9 @@ def is_cdn_instance(service_instance) -> bool:
 
 
 def is_cdn_dedicated_waf_instance(service_instance) -> bool:
-    return isinstance(service_instance, CDNDedicatedWAFServiceInstance)
+    return isinstance(service_instance, CDNDedicatedWAFServiceInstance) or isinstance(
+        service_instance, MigrateDedicatedALBToCDNDedicatedWafServiceInstance
+    )
 
 
 def parse_alarm_notification_email(instance, params):
@@ -77,10 +80,24 @@ def provision_cdn_instance(
     domain_names: list,
     params: dict,
     instance_type_model: (
-        CDNServiceInstance | CDNDedicatedWAFServiceInstance
+        CDNServiceInstance
+        | CDNDedicatedWAFServiceInstance
+        | MigrateDedicatedALBToCDNDedicatedWafServiceInstance
     ) = CDNServiceInstance,
 ):
     instance = instance_type_model(id=instance_id, domain_names=domain_names)
+    instance = _provision_cdn_instance(params, instance, instance_type_model)
+    return instance
+
+
+def provision_migrate_dedicated_alb_cdn_dedicated_waf_instance(params, instance):
+    instance = _provision_cdn_instance(
+        params, instance, MigrateDedicatedALBToCDNDedicatedWafServiceInstance
+    )
+    return instance
+
+
+def _provision_cdn_instance(params, instance, instance_type_model=CDNServiceInstance):
     instance.cloudfront_origin_hostname = params.get(
         "origin", config.DEFAULT_CLOUDFRONT_ORIGIN
     )

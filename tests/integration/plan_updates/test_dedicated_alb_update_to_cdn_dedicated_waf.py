@@ -20,16 +20,16 @@ from tests.lib.update import (
 )
 from tests.lib.alb.update import subtest_removes_certificate_from_alb
 from tests.lib.cdn.update import (
-    subtest_update_does_not_create_new_TXT_records,
     subtest_update_does_not_remove_old_TXT_records,
 )
 
 from tests.lib.cdn.provision import (
-    subtest_provision_retrieves_certificate,
     subtest_provision_uploads_certificate_to_iam,
+    subtest_provision_creates_cloudfront_distribution,
 )
 from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
+    subtest_provision_put_web_acl_logging_configuration,
 )
 from tests.integration.dedicated_alb.test_dedicated_alb_provisioning import (
     subtest_provision_dedicated_alb_instance,
@@ -50,6 +50,7 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     service_instance_id,
     iam_commercial,
     wafv2,
+    cloudfront,
 ):
     subtest_provision_dedicated_alb_instance(
         client,
@@ -65,7 +66,7 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     )
 
     client.update_dedicated_alb_to_cdn_dedicated_waf_instance(
-        service_instance_id,
+        service_instance_id, params={"alarm_notification_email": "fake@local.host"}
     )
     assert client.response.status_code == 202, client.response.json
     assert "operation" in client.response.json
@@ -133,6 +134,12 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     )
     subtest_provision_create_web_acl(
         tasks, wafv2, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_provision_put_web_acl_logging_configuration(
+        tasks, wafv2, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_provision_creates_cloudfront_distribution(
+        tasks, cloudfront, instance_model, service_instance_id=service_instance_id
     )
 
     # instance = clean_db.session.get(DedicatedALBServiceInstance, service_instance_id)

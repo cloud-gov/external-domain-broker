@@ -232,10 +232,10 @@ def subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model):
 
 
 def subtest_provision_creates_cloudfront_distribution(
-    tasks, cloudfront, instance_model
+    tasks, cloudfront, instance_model, service_instance_id="4321"
 ):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
 
     id_ = certificate.id
@@ -281,7 +281,7 @@ def subtest_provision_creates_cloudfront_distribution(
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
 
     assert service_instance.cloudfront_distribution_arn
     assert service_instance.cloudfront_distribution_arn.startswith("arn:aws:cloudfront")

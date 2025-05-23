@@ -36,7 +36,7 @@ def subtest_provision_create_web_acl(
 
 
 def subtest_provision_put_web_acl_logging_configuration(
-    tasks, wafv2, service_instance_id="4321"
+    tasks, wafv2, instance_model, service_instance_id="4321"
 ):
     db.session.expunge_all()
     service_instance = db.session.get(
