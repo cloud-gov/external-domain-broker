@@ -9,11 +9,15 @@ from broker.models import (
 from tests.lib.client import check_last_operation_description
 
 from tests.lib.provision import (
-    subtest_provision_creates_private_key_and_csr,
     subtest_provision_initiates_LE_challenge,
     subtest_provision_answers_challenges,
+    subtest_provision_updates_TXT_records,
+    subtest_provision_waits_for_route53_changes,
 )
-from tests.lib.update import subtest_update_creates_private_key_and_csr
+from tests.lib.update import (
+    subtest_update_creates_private_key_and_csr,
+    subtest_update_retrieves_new_cert,
+)
 from tests.lib.alb.update import subtest_removes_certificate_from_alb
 from tests.lib.cdn.update import (
     subtest_update_does_not_create_new_TXT_records,
@@ -98,7 +102,13 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     check_last_operation_description(
         client, service_instance_id, operation_id, "Initiating Lets Encrypt challenges"
     )
-    subtest_update_does_not_create_new_TXT_records(
+    subtest_provision_updates_TXT_records(
+        tasks, route53, instance_model, service_instance_id=service_instance_id
+    )
+    check_last_operation_description(
+        client, service_instance_id, operation_id, "Updating DNS TXT records"
+    )
+    subtest_provision_waits_for_route53_changes(
         tasks, route53, instance_model, service_instance_id=service_instance_id
     )
     check_last_operation_description(
@@ -111,7 +121,7 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     check_last_operation_description(
         client, service_instance_id, operation_id, "Answering Lets Encrypt challenges"
     )
-    subtest_provision_retrieves_certificate(
+    subtest_update_retrieves_new_cert(
         tasks, instance_model, service_instance_id=service_instance_id
     )
     subtest_provision_uploads_certificate_to_iam(
