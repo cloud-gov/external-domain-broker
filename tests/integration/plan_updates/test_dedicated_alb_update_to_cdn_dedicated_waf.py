@@ -26,7 +26,8 @@ from tests.lib.cdn.update import (
 
 from tests.lib.cdn.provision import (
     subtest_provision_uploads_certificate_to_iam,
-    subtest_provision_creates_cloudfront_distribution,
+    subtest_provision_waits_for_cloudfront_distribution,
+    subtest_provision_provisions_ALIAS_records,
 )
 from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
@@ -141,6 +142,12 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     )
     subtest_migrate_creates_cloudfront_distribution(
         tasks, cloudfront, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_provision_waits_for_cloudfront_distribution(
+        tasks, cloudfront, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_provision_provisions_ALIAS_records(
+        tasks, route53, instance_model, service_instance_id=service_instance_id
     )
 
     # instance = clean_db.session.get(DedicatedALBServiceInstance, service_instance_id)

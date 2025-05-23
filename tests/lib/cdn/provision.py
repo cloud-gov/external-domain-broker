@@ -212,7 +212,9 @@ def subtest_provision_uploads_certificate_to_iam(
     assert certificate.iam_server_certificate_arn.startswith("arn:aws:iam")
 
 
-def subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model):
+def subtest_provision_provisions_ALIAS_records(
+    tasks, route53, instance_model, service_instance_id="4321"
+):
     example_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
         "example.com.domains.cloud.test", "fake1234.cloudfront.net"
     )
@@ -224,7 +226,7 @@ def subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model):
 
     route53.assert_no_pending_responses()
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     assert service_instance.route53_change_ids == [
         example_com_change_id,
         foo_com_change_id,
@@ -295,10 +297,10 @@ def subtest_provision_creates_cloudfront_distribution(
 
 
 def subtest_provision_waits_for_cloudfront_distribution(
-    tasks, cloudfront, instance_model
+    tasks, cloudfront, instance_model, service_instance_id="4321"
 ):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.current_certificate
 
     cloudfront.expect_get_distribution(

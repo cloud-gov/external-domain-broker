@@ -3,7 +3,12 @@ import time
 
 from broker.aws import cloudfront
 from broker.extensions import config
-from broker.models import CDNServiceInstance, CDNDedicatedWAFServiceInstance
+from broker.lib.cdn import is_cdn_dedicated_waf_instance
+from broker.models import (
+    CDNServiceInstance,
+    CDNDedicatedWAFServiceInstance,
+    MigrateDedicatedALBToCDNDedicatedWafServiceInstance,
+)
 from broker.tasks.huey import pipeline_operation
 
 logger = logging.getLogger(__name__)
@@ -57,13 +62,6 @@ def get_custom_error_responses(service_instance):
         return {"Quantity": len(items), "Items": items}
     else:
         return {"Quantity": 0}
-
-
-def is_cdn_with_dedicated_waf_instance(service_instance) -> bool:
-    return (
-        isinstance(service_instance, CDNDedicatedWAFServiceInstance)
-        and service_instance.dedicated_waf_web_acl_arn
-    )
 
 
 def default_cache_behavior():
@@ -193,7 +191,10 @@ def create_distribution(operation_id: int, *, operation, db, **kwargs):
         service_instance, distribution_config["DefaultCacheBehavior"]
     )
 
-    if is_cdn_with_dedicated_waf_instance(service_instance):
+    if (
+        is_cdn_dedicated_waf_instance(service_instance)
+        and service_instance.dedicated_waf_web_acl_arn
+    ):
         distribution_config["WebACLId"] = service_instance.dedicated_waf_web_acl_arn
         service_instance.add_dedicated_web_acl_tag()
 
