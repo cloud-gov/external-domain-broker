@@ -32,7 +32,7 @@ from broker.lib.alb import (
 from broker.lib.cdn import (
     is_cdn_instance,
     provision_cdn_instance,
-    provision_migrate_dedicated_alb_cdn_dedicated_waf_instance,
+    migrate_dedicated_alb_to_cdn_dedicated_waf_instance,
     update_cdn_instance,
     validate_migration_to_cdn_params,
     update_cdn_params_for_migration,
@@ -395,7 +395,7 @@ class API(ServiceBroker):
                     db.session,
                 )
                 db.session.refresh(instance)
-                instance = provision_migrate_dedicated_alb_cdn_dedicated_waf_instance(
+                instance = migrate_dedicated_alb_to_cdn_dedicated_waf_instance(
                     params, instance
                 )
                 noop = False

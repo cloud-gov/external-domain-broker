@@ -90,7 +90,7 @@ def provision_cdn_instance(
     return instance
 
 
-def provision_migrate_dedicated_alb_cdn_dedicated_waf_instance(params, instance):
+def migrate_dedicated_alb_to_cdn_dedicated_waf_instance(params, instance):
     instance = _provision_cdn_instance(
         params, instance, MigrateDedicatedALBToCDNDedicatedWafServiceInstance
     )
