@@ -1,10 +1,7 @@
 from broker.extensions import db
 from broker.models import (
-    DedicatedALBServiceInstance,
-    CDNDedicatedWAFServiceInstance,
     MigrateDedicatedALBToCDNDedicatedWafServiceInstance,
     Operation,
-    ServiceInstanceTypes,
 )
 
 from tests.lib.client import check_last_operation_description
@@ -19,7 +16,6 @@ from tests.lib.update import (
     subtest_update_creates_private_key_and_csr,
     subtest_update_retrieves_new_cert,
 )
-from tests.lib.alb.update import subtest_removes_certificate_from_alb
 from tests.lib.cdn.update import (
     subtest_update_does_not_remove_old_TXT_records,
 )
@@ -28,6 +24,7 @@ from tests.lib.cdn.provision import (
     subtest_provision_uploads_certificate_to_iam,
     subtest_provision_waits_for_cloudfront_distribution,
     subtest_provision_provisions_ALIAS_records,
+    subtest_provision_waits_for_route53_changes,
 )
 from tests.integration.cdn_dedicated_waf.provision import (
     subtest_provision_create_web_acl,
@@ -149,14 +146,33 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     subtest_provision_provisions_ALIAS_records(
         tasks, route53, instance_model, service_instance_id=service_instance_id
     )
+    subtest_provision_waits_for_route53_changes(
+        tasks, route53, instance_model, service_instance_id=service_instance_id
+    )
+    subtest_migrate_removes_certificate_from_alb(
+        tasks, alb, instance_model, service_instance_id=service_instance_id
+    )
 
     # instance = clean_db.session.get(DedicatedALBServiceInstance, service_instance_id)
     # assert instance.instance_type == ServiceInstanceTypes.DEDICATED_ALB.value
 
-    # subtest_removes_certificate_from_alb(
-    #     tasks, alb, instance_model, service_instance_id=service_instance_id
-    # )
     # subtest_is_cdn_dedicated_waf_instance(service_instance_id=service_instance_id)
+
+
+def subtest_migrate_removes_certificate_from_alb(
+    tasks, alb, instance_model, service_instance_id="4321"
+):
+    db.session.expunge_all()
+    service_instance = db.session.get(instance_model, service_instance_id)
+
+    alb.expect_remove_certificate_from_listener(
+        service_instance.alb_listener_arn,
+        service_instance.current_certificate.iam_server_certificate_arn,
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    alb.assert_no_pending_responses()
 
 
 def subtest_migrate_creates_cloudfront_distribution(

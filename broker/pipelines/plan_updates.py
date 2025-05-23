@@ -60,8 +60,10 @@ def queue_all_dedicated_alb_to_cdn_dedicated_waf_update_tasks_for_operation(
         .then(cloudfront.wait_for_distribution, operation_id, **correlation)
         .then(route53.create_ALIAS_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
+        # FIXME: this task needs to remove the old certificate from the ALB, which is no longer
+        # available after create_distribution
         .then(
-            alb.remove_certificate_from_previous_alb_during_update_to_dedicated,
+            alb.remove_certificate_from_previous_alb_during_update_to_cdn_dedicated_waf,
             operation_id,
             **correlation,
         )

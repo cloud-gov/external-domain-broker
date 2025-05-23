@@ -213,16 +213,16 @@ def remove_certificate_from_previous_alb(operation_id, *, operation, db, **kwarg
 
 
 @pipeline_operation("Removing certificate from previous load balancer")
-def remove_certificate_from_previous_alb_during_update_to_dedicated(
+def remove_certificate_from_previous_alb_during_update_to_cdn_dedicated_waf(
     operation_id, *, operation, db, **kwargs
 ):
     service_instance = operation.service_instance
     remove_certificate = service_instance.current_certificate
 
-    if service_instance.previous_alb_listener_arn is not None:
+    if service_instance.alb_listener_arn is not None:
         time.sleep(config.ALB_OVERLAP_SLEEP_TIME)
         alb.remove_listener_certificates(
-            ListenerArn=service_instance.previous_alb_listener_arn,
+            ListenerArn=service_instance.alb_listener_arn,
             Certificates=[
                 {"CertificateArn": remove_certificate.iam_server_certificate_arn}
             ],
