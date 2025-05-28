@@ -176,10 +176,10 @@ def subtest_provision_creates_provision_operation(
 
 
 def subtest_provision_uploads_certificate_to_iam(
-    tasks, iam_commercial, simple_regex, instance_model
+    tasks, iam_commercial, simple_regex, instance_model, service_instance_id="4321"
 ):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
     today = date.today().isoformat()
     assert today == simple_regex(r"^\d\d\d\d-\d\d-\d\d$")
@@ -199,18 +199,22 @@ def subtest_provision_uploads_certificate_to_iam(
 
     tasks.run_queued_tasks_and_enqueue_dependents()
 
+    iam_commercial.assert_no_pending_responses()
+
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
     assert certificate.iam_server_certificate_name
-    assert certificate.iam_server_certificate_name.startswith("4321")
+    assert certificate.iam_server_certificate_name.startswith(service_instance_id)
     assert certificate.iam_server_certificate_id
     assert certificate.iam_server_certificate_id.startswith("FAKE_CERT_ID")
     assert certificate.iam_server_certificate_arn
     assert certificate.iam_server_certificate_arn.startswith("arn:aws:iam")
 
 
-def subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model):
+def subtest_provision_provisions_ALIAS_records(
+    tasks, route53, instance_model, service_instance_id="4321"
+):
     example_com_change_id = route53.expect_create_ALIAS_and_return_change_id(
         "example.com.domains.cloud.test", "fake1234.cloudfront.net"
     )
@@ -222,7 +226,7 @@ def subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model):
 
     route53.assert_no_pending_responses()
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     assert service_instance.route53_change_ids == [
         example_com_change_id,
         foo_com_change_id,
@@ -230,10 +234,10 @@ def subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model):
 
 
 def subtest_provision_creates_cloudfront_distribution(
-    tasks, cloudfront, instance_model
+    tasks, cloudfront, instance_model, service_instance_id="4321"
 ):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.new_certificate
 
     id_ = certificate.id
@@ -254,7 +258,7 @@ def subtest_provision_creates_cloudfront_distribution(
         forwarded_cookies=["mycookie", "myothercookie"],
         forwarded_headers=["X-MY-HEADER", "X-YOUR-HEADER"],
         origin_protocol_policy="http-only",
-        bucket_prefix="4321/",
+        bucket_prefix=f"{service_instance_id}/",
         custom_error_responses={
             "Quantity": 2,
             "Items": [
@@ -279,7 +283,7 @@ def subtest_provision_creates_cloudfront_distribution(
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
 
     assert service_instance.cloudfront_distribution_arn
     assert service_instance.cloudfront_distribution_arn.startswith("arn:aws:cloudfront")
@@ -293,10 +297,10 @@ def subtest_provision_creates_cloudfront_distribution(
 
 
 def subtest_provision_waits_for_cloudfront_distribution(
-    tasks, cloudfront, instance_model
+    tasks, cloudfront, instance_model, service_instance_id="4321"
 ):
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
     certificate = service_instance.current_certificate
 
     cloudfront.expect_get_distribution(
@@ -321,11 +325,13 @@ def subtest_provision_waits_for_cloudfront_distribution(
     tasks.run_queued_tasks_and_enqueue_dependents()
 
 
-def subtest_provision_retrieves_certificate(tasks, instance_model):
+def subtest_provision_retrieves_certificate(
+    tasks, instance_model, service_instance_id="4321"
+):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(instance_model, "4321")
+    service_instance = db.session.get(instance_model, service_instance_id)
 
     assert len(service_instance.certificates) == 1
     certificate = service_instance.new_certificate

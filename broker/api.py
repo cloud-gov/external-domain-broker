@@ -32,6 +32,7 @@ from broker.lib.alb import (
 from broker.lib.cdn import (
     is_cdn_instance,
     provision_cdn_instance,
+    migrate_dedicated_alb_to_cdn_dedicated_waf_instance,
     update_cdn_instance,
     validate_migration_to_cdn_params,
     update_cdn_params_for_migration,
@@ -52,6 +53,7 @@ from broker.models import (
     ServiceInstance,
     change_instance_type,
     ServiceInstanceTypes,
+    MigrateDedicatedALBToCDNDedicatedWafServiceInstance,
 )
 from broker.pipelines.alb import (
     queue_all_alb_provision_tasks_for_operation,
@@ -75,6 +77,7 @@ from broker.pipelines.dedicated_alb import (
 from broker.pipelines.plan_updates import (
     queue_all_alb_to_dedicated_alb_update_tasks_for_operation,
     queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation,
+    queue_all_dedicated_alb_to_cdn_dedicated_waf_update_tasks_for_operation,
 )
 from broker.pipelines.migration import (
     queue_all_cdn_broker_migration_tasks_for_operation,
@@ -382,9 +385,22 @@ class API(ServiceBroker):
             else:
                 raise ClientError("Updating service plan is not supported")
         elif instance.instance_type == ServiceInstanceTypes.DEDICATED_ALB.value:
-            if details.plan_id != DEDICATED_ALB_PLAN_ID:
+            if details.plan_id == DEDICATED_ALB_PLAN_ID:
+                queue = queue_all_dedicated_alb_update_tasks_for_operation
+            elif details.plan_id == CDN_DEDICATED_WAF_PLAN_ID:
+                queue = queue_all_dedicated_alb_to_cdn_dedicated_waf_update_tasks_for_operation
+                instance = change_instance_type(
+                    instance,
+                    MigrateDedicatedALBToCDNDedicatedWafServiceInstance,
+                    db.session,
+                )
+                db.session.refresh(instance)
+                instance = migrate_dedicated_alb_to_cdn_dedicated_waf_instance(
+                    params, instance
+                )
+                noop = False
+            else:
                 raise ClientError("Updating service plan is not supported")
-            queue = queue_all_dedicated_alb_update_tasks_for_operation
         elif instance.instance_type == ServiceInstanceTypes.MIGRATION.value:
             if details.plan_id == CDN_PLAN_ID:
                 noop = False

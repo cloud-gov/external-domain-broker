@@ -7,11 +7,11 @@ from broker.models import (
 from broker.tasks.cloudwatch import _get_alarm_name, generate_ddos_alarm_name
 
 
-def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
+def subtest_provision_create_web_acl(
+    tasks, wafv2, instance_model, service_instance_id="4321"
+):
     db.session.expunge_all()
-    service_instance = db.session.get(
-        CDNDedicatedWAFServiceInstance, service_instance_id
-    )
+    service_instance = db.session.get(instance_model, service_instance_id)
 
     wafv2.expect_create_web_acl(
         service_instance.id,
@@ -22,9 +22,7 @@ def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     db.session.expunge_all()
-    service_instance = db.session.get(
-        CDNDedicatedWAFServiceInstance, service_instance_id
-    )
+    service_instance = db.session.get(instance_model, service_instance_id)
     assert service_instance.dedicated_waf_web_acl_id
     web_acl_name = f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-dedicated-waf"
     assert service_instance.dedicated_waf_web_acl_id == f"{web_acl_name}-id"
@@ -38,7 +36,7 @@ def subtest_provision_create_web_acl(tasks, wafv2, service_instance_id="4321"):
 
 
 def subtest_provision_put_web_acl_logging_configuration(
-    tasks, wafv2, service_instance_id="4321"
+    tasks, wafv2, instance_model, service_instance_id="4321"
 ):
     db.session.expunge_all()
     service_instance = db.session.get(

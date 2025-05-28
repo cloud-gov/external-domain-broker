@@ -17,20 +17,85 @@ logger = logging.getLogger(__name__)
 @pipeline_operation("Uploading SSL certificate to AWS")
 def upload_server_certificate(operation_id: int, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-    certificate = service_instance.new_certificate
+    iam = _get_iam_client(service_instance)
 
-    today = date.today().isoformat()
     if is_cdn_instance(service_instance):
-        iam = iam_commercial
         iam_server_certificate_prefix = config.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX
         propagation_time = 0
     else:
-        iam = iam_govcloud
         iam_server_certificate_prefix = config.ALB_IAM_SERVER_CERTIFICATE_PREFIX
         propagation_time = config.IAM_CERTIFICATE_PROPAGATION_TIME
 
+    _upload_server_certificate(
+        db,
+        iam,
+        service_instance,
+        iam_server_certificate_prefix,
+        propagation_time,
+    )
+
+
+@pipeline_operation("Uploading SSL certificate to AWS")
+def upload_cloudfront_server_certificate(operation_id: int, *, operation, db, **kwargs):
+    service_instance = operation.service_instance
+    iam_server_certificate_prefix = config.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX
+    propagation_time = 0
+
+    _upload_server_certificate(
+        db,
+        iam_commercial,
+        service_instance,
+        iam_server_certificate_prefix,
+        propagation_time,
+    )
+
+
+@pipeline_operation("Removing SSL certificate from AWS")
+def delete_server_certificate(operation_id: str, *, operation, db, **kwargs):
+    service_instance = operation.service_instance
+    iam = _get_iam_client(service_instance)
+
+    if (
+        service_instance.new_certificate is not None
+        and service_instance.new_certificate.iam_server_certificate_name is not None
+    ):
+        _delete_server_certificate(iam, service_instance.new_certificate)
+
+    if (
+        service_instance.current_certificate is not None
+        and service_instance.current_certificate.iam_server_certificate_name is not None
+    ):
+        _delete_server_certificate(iam, service_instance.current_certificate)
+
+
+@pipeline_operation("Removing SSL certificate from AWS")
+def delete_previous_server_certificate(operation_id: str, *, operation, db, **kwargs):
+    service_instance = operation.service_instance
+    iam = _get_iam_client(service_instance)
+    _delete_previous_server_ceritficate(service_instance, iam, db)
+
+
+@pipeline_operation("Removing SSL certificate from AWS")
+def delete_previous_alb_server_certificate(
+    operation_id: str, *, operation, db, **kwargs
+):
+    service_instance = operation.service_instance
+    _delete_previous_server_ceritficate(service_instance, iam_govcloud, db)
+
+
+def _upload_server_certificate(
+    db,
+    iam,
+    service_instance,
+    iam_server_certificate_prefix,
+    propagation_time,
+):
     if service_instance.new_certificate.iam_server_certificate_arn is not None:
         return
+
+    certificate = service_instance.new_certificate
+
+    today = date.today().isoformat()
 
     certificate.iam_server_certificate_name = (
         f"{service_instance.id}-{today}-{certificate.id}"
@@ -75,37 +140,7 @@ def upload_server_certificate(operation_id: int, *, operation, db, **kwargs):
     time.sleep(propagation_time)
 
 
-@pipeline_operation("Removing SSL certificate from AWS")
-def delete_server_certificate(operation_id: str, *, operation, db, **kwargs):
-    service_instance = operation.service_instance
-
-    if is_cdn_instance(service_instance):
-        iam = iam_commercial
-    else:
-        iam = iam_govcloud
-
-    if (
-        service_instance.new_certificate is not None
-        and service_instance.new_certificate.iam_server_certificate_name is not None
-    ):
-        _delete_server_certificate(iam, service_instance.new_certificate)
-
-    if (
-        service_instance.current_certificate is not None
-        and service_instance.current_certificate.iam_server_certificate_name is not None
-    ):
-        _delete_server_certificate(iam, service_instance.current_certificate)
-
-
-@pipeline_operation("Removing SSL certificate from AWS")
-def delete_previous_server_certificate(operation_id: str, *, operation, db, **kwargs):
-    service_instance = operation.service_instance
-
-    if is_cdn_instance(service_instance):
-        iam = iam_commercial
-    else:
-        iam = iam_govcloud
-
+def _delete_previous_server_ceritficate(service_instance, iam, db):
     certificates_to_delete = Certificate.query.filter(
         and_(
             Certificate.service_instance_id == service_instance.id,
@@ -137,3 +172,11 @@ def _delete_server_certificate(iam, certificate):
         iam.delete_server_certificate(
             ServerCertificateName=certificate.iam_server_certificate_name
         )
+
+
+def _get_iam_client(service_instance):
+    if is_cdn_instance(service_instance):
+        iam = iam_commercial
+    else:
+        iam = iam_govcloud
+    return iam

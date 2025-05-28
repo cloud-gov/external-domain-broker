@@ -422,6 +422,9 @@ class CFAPIClient(FlaskClient):
     update_instance_to_cdn = update_cdn_instance
     update_instance_to_alb = update_alb_instance
     update_instance_to_dedicated_alb = update_dedicated_alb_instance
+    update_dedicated_alb_to_cdn_dedicated_waf_instance = (
+        update_cdn_to_cdn_dedicated_waf_instance
+    )
 
 
 @pytest.fixture(scope="session")

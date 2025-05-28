@@ -171,6 +171,7 @@ def remove_certificate_from_alb(operation_id, *, operation, db, **kwargs):
                 }
             ],
         )
+
     db.session.add(service_instance)
     db.session.commit()
     time.sleep(config.IAM_CERTIFICATE_PROPAGATION_TIME)
@@ -195,30 +196,34 @@ def remove_certificate_from_previous_alb(operation_id, *, operation, db, **kwarg
             ],
         )
 
-    removed_from_alb = False
-    attempts = 0
-    while not removed_from_alb and attempts < config.AWS_POLL_MAX_ATTEMPTS:
-        paginator = alb.get_paginator("describe_listener_certificates")
-        response_iterator = paginator.paginate(
-            ListenerArn=service_instance.previous_alb_listener_arn,
-        )
-        certificate_arns = []
-        for response in response_iterator:
-            certificate_arns += [
-                certificate["CertificateArn"]
-                for certificate in response["Certificates"]
-            ]
-        removed_from_alb = (
-            remove_certificate.iam_server_certificate_arn not in certificate_arns
-        )
-        attempts += 1
-        time.sleep(config.AWS_POLL_WAIT_TIME_IN_SECONDS)
+    _wait_for_certificate_removal(
+        service_instance.previous_alb_listener_arn,
+        remove_certificate.iam_server_certificate_arn,
+    )
 
-    if not removed_from_alb:
-        raise RuntimeError(
-            f"Could not verify removal of certificate {remove_certificate.iam_server_certificate_arn} from listener {service_instance.previous_alb_listener_arn}"
+    service_instance.previous_alb_arn = None
+    service_instance.previous_alb_listener_arn = None
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+@pipeline_operation("Removing SSL certificate from previous load balancer")
+def remove_alb_certificate_during_update_to_cdn_dedicated_waf(
+    operation_id, *, operation, db, **kwargs
+):
+    service_instance = operation.service_instance
+    remove_certificate = service_instance.alb_certificate
+
+    if service_instance.alb_listener_arn is not None:
+        time.sleep(config.ALB_OVERLAP_SLEEP_TIME)
+        alb.remove_listener_certificates(
+            ListenerArn=service_instance.alb_listener_arn,
+            Certificates=[
+                {"CertificateArn": remove_certificate.iam_server_certificate_arn}
+            ],
         )
 
+    service_instance.alb_certificate = None
     service_instance.previous_alb_arn = None
     service_instance.previous_alb_listener_arn = None
     db.session.add(service_instance)
@@ -245,3 +250,35 @@ def remove_certificate_from_previous_alb_during_update_to_dedicated(
     service_instance.previous_alb_listener_arn = None
     db.session.add(service_instance)
     db.session.commit()
+
+
+@pipeline_operation("Storing ALB certificate information")
+def store_alb_certificate(operation_id, *, operation, db, **kwargs):
+    service_instance = operation.service_instance
+    service_instance.alb_certificate = service_instance.current_certificate
+    db.session.add(service_instance)
+    db.session.commit()
+
+
+def _wait_for_certificate_removal(listener_arn, certificate_arn):
+    removed_from_alb = False
+    attempts = 0
+    while not removed_from_alb and attempts < config.AWS_POLL_MAX_ATTEMPTS:
+        paginator = alb.get_paginator("describe_listener_certificates")
+        response_iterator = paginator.paginate(
+            ListenerArn=listener_arn,
+        )
+        certificate_arns = []
+        for response in response_iterator:
+            certificate_arns += [
+                certificate["CertificateArn"]
+                for certificate in response["Certificates"]
+            ]
+        removed_from_alb = certificate_arn not in certificate_arns
+        attempts += 1
+        time.sleep(config.AWS_POLL_WAIT_TIME_IN_SECONDS)
+
+    if not removed_from_alb:
+        raise RuntimeError(
+            f"Could not verify removal of certificate {certificate_arn} from listener {listener_arn}"
+        )

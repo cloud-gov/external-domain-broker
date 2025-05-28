@@ -136,11 +136,11 @@ def test_provision_happy_path(
     check_last_operation_description(
         client, "4321", operation_id, "Uploading SSL certificate to AWS"
     )
-    subtest_provision_create_web_acl(tasks, wafv2)
+    subtest_provision_create_web_acl(tasks, wafv2, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Creating custom WAFv2 web ACL"
     )
-    subtest_provision_put_web_acl_logging_configuration(tasks, wafv2)
+    subtest_provision_put_web_acl_logging_configuration(tasks, wafv2, instance_model)
     check_last_operation_description(
         client, "4321", operation_id, "Updating WAFv2 web ACL logging configuration"
     )
@@ -255,7 +255,7 @@ def subtest_update_happy_path(
     subtest_update_retrieves_new_cert(tasks, instance_model)
     subtest_update_uploads_new_cert(tasks, iam_commercial, simple_regex, instance_model)
     subtest_update_web_acl_does_not_update(tasks, wafv2)
-    subtest_provision_put_web_acl_logging_configuration(tasks, wafv2)
+    subtest_provision_put_web_acl_logging_configuration(tasks, wafv2, instance_model)
     subtest_updates_cloudfront(tasks, cloudfront, instance_model)
     subtest_update_waits_for_cloudfront_update(tasks, cloudfront, instance_model)
     subtest_update_updates_ALIAS_records(tasks, route53, instance_model)
@@ -332,7 +332,7 @@ def subtest_update_same_domains(
     subtest_update_same_domains_does_not_retrieve_new_certificate(tasks)
     subtest_update_same_domains_does_not_update_iam(tasks)
     subtest_update_web_acl_does_not_update(tasks, wafv2)
-    subtest_provision_put_web_acl_logging_configuration(tasks, wafv2)
+    subtest_provision_put_web_acl_logging_configuration(tasks, wafv2, instance_model)
     subtest_update_same_domains_updates_cloudfront(
         tasks,
         cloudfront,
