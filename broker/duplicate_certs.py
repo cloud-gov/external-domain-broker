@@ -1,4 +1,5 @@
 import logging
+import backoff
 
 from sqlalchemy import func, select, desc
 
@@ -8,6 +9,10 @@ from broker.models import ALBServiceInstance, DedicatedALBServiceInstance, Certi
 from broker.tasks.iam import _delete_server_certificate
 
 logger = logging.getLogger(__name__)
+
+backoff_logger = logging.getLogger("backoff")
+backoff_logger.addHandler(logging.StreamHandler())
+backoff_logger.setLevel(logging.ERROR)
 
 
 def find_duplicate_alb_certs(service_instance_model):
@@ -103,23 +108,30 @@ def get_listener_cert_arns(listener_arn, alb=alb):
     return listener_cert_arns
 
 
+@backoff.on_predicate(backoff.expo, max_tries=config.AWS_POLL_MAX_ATTEMPTS)
+def verify_listener_certificate_is_removed(listener_arn, certificate_arn, alb=alb):
+    listener_cert_arns = get_listener_cert_arns(listener_arn, alb=alb)
+    return certificate_arn not in listener_cert_arns
+
+
 def remove_certificate_from_listener_and_verify_removal(
     listener_arn, certificate_arn, alb=alb
 ):
     alb.remove_listener_certificates(
         ListenerArn=listener_arn, Certificates=[{"CertificateArn": certificate_arn}]
     )
-    max_attempts = 10
-    for _ in range(max_attempts):
-        listener_cert_arns = get_listener_cert_arns(listener_arn, alb=alb)
-        if certificate_arn not in listener_cert_arns:
-            logger.info(
-                f"Removed certificate {certificate_arn} from listener {listener_arn}"
-            )
-            return
-    logger.info(
-        f"Could not verify certificate {certificate_arn} was removed from listener {listener_arn} after {max_attempts} tries, giving up"
+    is_removed = verify_listener_certificate_is_removed(
+        listener_arn, certificate_arn, alb=alb
     )
+    if is_removed:
+        logger.info(
+            f"Removed certificate {certificate_arn} from listener {listener_arn}"
+        )
+    else:
+        logger.info(
+            f"Could not verify certificate {certificate_arn} was removed from listener {listener_arn} after {config.AWS_POLL_MAX_ATTEMPTS} tries, giving up"
+        )
+    return is_removed
 
 
 def delete_cert_record_and_resource(
