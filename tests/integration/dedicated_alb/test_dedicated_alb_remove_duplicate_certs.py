@@ -371,8 +371,9 @@ def test_remove_certificate_from_listener_and_verify_removal_correctly_breaks():
             }
 
     fakeAlbTester = FakeALBTest()
-    remove_certificate_from_listener_and_verify_removal(
+    is_removed = remove_certificate_from_listener_and_verify_removal(
         "listener-arn-0", "listener-arn-0/certificate-arn", alb=fakeAlbTester
     )
+    assert is_removed == False
     # Only 10 attempts were made because the code breaks after 10 tries
     assert fakeAlbTester.attempts == 10
