@@ -10,10 +10,6 @@ from broker.tasks.iam import _delete_server_certificate
 
 logger = logging.getLogger(__name__)
 
-backoff_logger = logging.getLogger("backoff")
-backoff_logger.addHandler(logging.StreamHandler())
-backoff_logger.setLevel(logging.ERROR)
-
 
 def find_duplicate_alb_certs(service_instance_model):
     query = (
