@@ -131,7 +131,7 @@ def remove_certificate_from_listener_and_verify_removal(
             f"Removed certificate {certificate_arn} from listener {listener_arn}"
         )
     else:
-        logger.info(
+        logger.error(
             f"Could not verify certificate {certificate_arn} was removed from listener {listener_arn} after {config.AWS_POLL_MAX_ATTEMPTS} tries, giving up"
         )
     return is_removed
