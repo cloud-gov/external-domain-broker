@@ -10,8 +10,6 @@ alembic==1.15.2
     # via
     #   -r pip-tools/../requirements.txt
     #   flask-migrate
-backoff==2.2.1
-    # via -r pip-tools/../requirements.txt
 black==25.1.0
     # via -r pip-tools/dev-requirements.in
 blinker==1.9.0
@@ -84,6 +82,10 @@ furl==2.1.4
     #   cfenv
 gprof2dot==2024.6.6
     # via pytest-profiling
+greenlet==3.2.2
+    # via
+    #   -r pip-tools/../requirements.txt
+    #   sqlalchemy
 gunicorn==23.0.0
     # via -r pip-tools/../requirements.txt
 huey==2.5.3
