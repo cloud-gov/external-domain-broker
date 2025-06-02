@@ -1,5 +1,5 @@
 import logging
-import backoff
+import time
 
 from sqlalchemy import func, select, desc
 
@@ -108,7 +108,6 @@ def get_listener_cert_arns(listener_arn, alb=alb):
     return listener_cert_arns
 
 
-@backoff.on_predicate(backoff.expo, max_tries=config.AWS_POLL_MAX_ATTEMPTS)
 def verify_listener_certificate_is_removed(listener_arn, certificate_arn, alb=alb):
     listener_cert_arns = get_listener_cert_arns(listener_arn, alb=alb)
     return certificate_arn not in listener_cert_arns
@@ -120,9 +119,17 @@ def remove_certificate_from_listener_and_verify_removal(
     alb.remove_listener_certificates(
         ListenerArn=listener_arn, Certificates=[{"CertificateArn": certificate_arn}]
     )
-    is_removed = verify_listener_certificate_is_removed(
-        listener_arn, certificate_arn, alb=alb
-    )
+
+    is_removed = False
+    attempts = 0
+
+    while not is_removed and attempts < config.AWS_POLL_MAX_ATTEMPTS:
+        attempts += 1
+        is_removed = verify_listener_certificate_is_removed(
+            listener_arn, certificate_arn, alb=alb
+        )
+        time.sleep(config.AWS_POLL_WAIT_TIME_IN_SECONDS)
+
     if is_removed:
         logger.info(
             f"Removed certificate {certificate_arn} from listener {listener_arn}"
