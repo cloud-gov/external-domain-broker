@@ -10,6 +10,7 @@ from acme import challenges, client, crypto_util, messages, errors
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from huey import CancelExecution
 
 from broker.extensions import config
 from broker.models import ACMEUser, Certificate, Challenge, Operation
@@ -258,6 +259,12 @@ def retrieve_certificate(operation_id: int, *, operation, db, **kwargs):
     acme_user = service_instance.acme_user
     certificate = service_instance.new_certificate
 
+    # Cancel the task execution and do not retry if there is no new certificate.
+    # Likely this condition is reached by the handling of errors.ValidationError
+    # exceptions below
+    if certificate is None:
+        raise CancelExecution(retry=False)
+
     if certificate.leaf_pem is not None:
         return
 
@@ -309,8 +316,9 @@ def retrieve_certificate(operation_id: int, *, operation, db, **kwargs):
             f"failed to retrieve certificate for {service_instance.domain_names} with errors {e.failed_authzrs}"
         )
         # if we fail validation, nuke the cert record and its challenges.
-        # this way, when we retry from the beginning, we won't try to reuse them
-        # the bad new is that we'll still retry this task a bunch of times before the pipeline fails
+        # this way, when we retry from the beginning, we won't try to reuse them.
+        # this state should cause the task to be canceled for further retries when
+        # CancelExecution is raised above.
         new_cert = service_instance.new_certificate
         service_instance.new_certificate = None
         db.session.delete(new_cert)
