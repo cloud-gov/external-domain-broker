@@ -127,7 +127,7 @@ typing-extensions==4.13.0
     #   alembic
     #   pyopenssl
     #   sqlalchemy
-urllib3==2.3.0
+urllib3==2.5.0
     # via
     #   botocore
     #   requests
