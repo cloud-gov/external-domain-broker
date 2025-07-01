@@ -266,7 +266,7 @@ ujson==5.10.0
     # via
     #   python-jsonrpc-server
     #   python-language-server
-urllib3==2.3.0
+urllib3==2.5.0
     # via
     #   -r pip-tools/../requirements.txt
     #   botocore
