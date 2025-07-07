@@ -363,15 +363,42 @@ class Challenge(Base):
         return f"<Challenge {self.id} {self.domain}>"
 
 
+class DedicatedALB(Base):
+    __tablename__ = "dedicated_alb"
+    id = mapped_column(db.Integer, primary_key=True)
+    alb_arn = mapped_column(db.String, nullable=True)
+    dedicated_org = mapped_column(db.String, nullable=True)
+    dedicated_waf_web_acl_arn = mapped_column(db.String)
+
+    @classmethod
+    def load_albs(cls, dedicated_listener_arn_map: dict[str]):
+        logger.info(f"Starting load_albs with {dedicated_listener_arn_map}")
+        for dedicated_listener_arn in dedicated_listener_arn_map:
+            organization_id = dedicated_listener_arn_map[dedicated_listener_arn]
+            stmt = insert(DedicatedALBListener).values(
+                [
+                    dict(
+                        listener_arn=dedicated_listener_arn,
+                        dedicated_org=organization_id,
+                    )
+                ]
+            )
+            stmt = stmt.on_conflict_do_nothing(index_elements=["listener_arn"])
+            db.session.execute(stmt)
+            db.session.commit()
+
+
 class DedicatedALBListener(Base):
     __tablename__ = "dedicated_alb_listener"
     id = mapped_column(db.Integer, primary_key=True)
     listener_arn = mapped_column(db.String, nullable=False, unique=True)
-    alb_arn = mapped_column(db.String, nullable=True)
+    alb_arn = mapped_column(
+        db.String, db.ForeignKey("dedicated_alb.alb_arn"), nullable=False
+    )
     dedicated_org = mapped_column(db.String, nullable=True)
 
     @classmethod
-    def load_albs(cls, dedicated_listener_arn_map: dict[str]):
+    def load_alb_listeners(cls, dedicated_listener_arn_map: dict[str]):
         logger.info(f"Starting load_albs with {dedicated_listener_arn_map}")
         for dedicated_listener_arn in dedicated_listener_arn_map:
             organization_id = dedicated_listener_arn_map[dedicated_listener_arn]
