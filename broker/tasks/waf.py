@@ -3,7 +3,7 @@ import time
 
 from broker.aws import wafv2
 from broker.extensions import config
-from broker.models import ServiceInstanceTypes
+from broker.models import ModelTypes, ServiceInstanceTypes
 from broker.tasks.huey import pipeline_operation
 
 logger = logging.getLogger(__name__)
@@ -83,6 +83,123 @@ def _get_web_acl_rules(instance, web_acl_name: str):
                 },
             }
         ]
+    if instance.instance_type == ModelTypes.DEDICATED_ALB.value:
+        return [
+            {
+                "Name": "AWS-AWSManagedRulesAntiDDoSRuleSet",
+                "Priority": 0,
+                "Statement": {
+                    "ManagedRuleGroupStatement": {
+                        "VendorName": "AWS",
+                        "Name": "AWSManagedRulesAntiDDoSRuleSet",
+                        "ManagedRuleGroupConfigs": [
+                            {
+                                "AWSManagedRulesAntiDDoSRuleSet": {
+                                    "ClientSideActionConfig": {
+                                        "Challenge": {
+                                            "UsageOfAction": "ENABLED",
+                                            "Sensitivity": "HIGH",
+                                            "ExemptUriRegularExpressions": [
+                                                {
+                                                    "RegexString": "\\/api\\/|\\.(acc|avi|css|gif|ico|jpe?g|js|json|mp[34]|ogg|otf|pdf|png|tiff?|ttf|webm|webp|woff2?|xml)$"
+                                                }
+                                            ],
+                                        }
+                                    },
+                                    "SensitivityToBlock": "LOW",
+                                }
+                            }
+                        ],
+                    }
+                },
+                "OverrideAction": {"None": {}},
+                "VisibilityConfig": {
+                    "SampledRequestsEnabled": True,
+                    "CloudWatchMetricsEnabled": True,
+                    "MetricName": f"{web_acl_name}-AWS-AWSManagedRulesAntiDDoSRuleSet",
+                },
+            },
+            {
+                "Name": "AWSManagedRule-CoreRuleSet",
+                "Priority": 0,
+                "Statement": {
+                    "ManagedRuleGroupStatement": {
+                        "VendorName": "AWS",
+                        "Name": "AWSManagedRulesCommonRuleSet",
+                    }
+                },
+                "OverrideAction": {"None": {}},
+                "VisibilityConfig": {
+                    "SampledRequestsEnabled": True,
+                    "CloudWatchMetricsEnabled": True,
+                    "MetricName": f"{web_acl_name}-AWS-AWSManagedRulesCommonRuleSet",
+                },
+            },
+            {
+                "Name": "AWS-AWSManagedRulesAnonymousIpList",
+                "Priority": 10,
+                "Statement": {
+                    "ManagedRuleGroupStatement": {
+                        "VendorName": "AWS",
+                        "Name": "AWSManagedRulesAnonymousIpList",
+                    }
+                },
+                "OverrideAction": {"None": {}},
+                "VisibilityConfig": {
+                    "SampledRequestsEnabled": True,
+                    "CloudWatchMetricsEnabled": True,
+                    "MetricName": f"{web_acl_name}-AWS-AWSManagedRulesAnonymousIpList",
+                },
+            },
+            {
+                "Name": "AWS-AWSManagedRulesAmazonIpReputationList",
+                "Priority": 20,
+                "Statement": {
+                    "ManagedRuleGroupStatement": {
+                        "VendorName": "AWS",
+                        "Name": "AWSManagedRulesAmazonIpReputationList",
+                    }
+                },
+                "OverrideAction": {"None": {}},
+                "VisibilityConfig": {
+                    "SampledRequestsEnabled": True,
+                    "CloudWatchMetricsEnabled": True,
+                    "MetricName": f"{web_acl_name}-AWS-ManagedRulesAmazonIpReputationList",
+                },
+            },
+            {
+                "Name": "AWS-KnownBadInputsRuleSet",
+                "Priority": 30,
+                "Statement": {
+                    "ManagedRuleGroupStatement": {
+                        "VendorName": "AWS",
+                        "Name": "AWSManagedRulesKnownBadInputsRuleSet",
+                    }
+                },
+                "OverrideAction": {"None": {}},
+                "VisibilityConfig": {
+                    "SampledRequestsEnabled": True,
+                    "CloudWatchMetricsEnabled": True,
+                    "MetricName": f"{web_acl_name}-AWS-KnownBadInputsRuleSet",
+                },
+            },
+            {
+                "Name": "AWSManagedRule-CoreRuleSet",
+                "Priority": 40,
+                "Statement": {
+                    "ManagedRuleGroupStatement": {
+                        "VendorName": "AWS",
+                        "Name": "AWSManagedRulesCommonRuleSet",
+                    }
+                },
+                "OverrideAction": {"None": {}},
+                "VisibilityConfig": {
+                    "SampledRequestsEnabled": True,
+                    "CloudWatchMetricsEnabled": True,
+                    "MetricName": f"{web_acl_name}-AWS-AWSManagedRulesCommonRuleSet",
+                },
+            },
+        ]
     else:
         raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
 
@@ -90,6 +207,8 @@ def _get_web_acl_rules(instance, web_acl_name: str):
 def _get_web_acl_scope(instance):
     if instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
         return "CLOUDFRONT"
+    elif instance.instance_type == ModelTypes.DEDICATED_ALB.value:
+        return "REGIONAL"
     else:
         raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
 

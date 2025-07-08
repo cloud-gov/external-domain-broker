@@ -262,7 +262,7 @@ def store_alb_certificate(operation_id, *, operation, db, **kwargs):
 
 
 @pipeline_operation("Associate dedicated ALB WAF")
-def associate_dedicated_alb_waf(operation_id, *, operation, db, **kwargs):
+def create_and_associate_dedicated_alb_waf(operation_id, *, operation, db, **kwargs):
     service_instance = operation.service_instance
 
     query = select(DedicatedALB).where(

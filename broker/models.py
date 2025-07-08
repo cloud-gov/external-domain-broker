@@ -31,6 +31,10 @@ class ServiceInstanceTypes(Enum):
     )
 
 
+class ModelTypes(Enum):
+    DEDICATED_ALB = "dedicated_alb"
+
+
 def db_encryption_key():
     return config.DATABASE_ENCRYPTION_KEY
 
@@ -372,9 +376,7 @@ class DedicatedALB(Base):
     dedicated_waf_web_acl_id = mapped_column(db.String)
     dedicated_waf_web_acl_name = mapped_column(db.String)
 
-    __mapper_args__ = {
-        "polymorphic_identity": ServiceInstanceTypes.CDN_DEDICATED_WAF.value
-    }
+    __mapper_args__ = {"polymorphic_identity": ModelTypes.DEDICATED_ALB.value}
 
     @classmethod
     def load_albs(cls, dedicated_listeners: list[tuple]):
