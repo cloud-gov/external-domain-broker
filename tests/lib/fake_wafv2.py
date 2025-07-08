@@ -7,9 +7,9 @@ from tests.lib.fake_aws import FakeAWS
 
 
 class FakeWAFV2(FakeAWS):
-    def expect_create_web_acl(self, id: str, rule_group_arn: str, tags: list[Tag]):
+    def expect_cdn_create_web_acl(self, id: str, rule_group_arn: str, tags: list[Tag]):
         method = "create_web_acl"
-        waf_name = f"{config.AWS_RESOURCE_PREFIX}-{id}-dedicated-waf"
+        waf_name = f"{config.AWS_RESOURCE_PREFIX}-cdn-{id}-dedicated-waf"
 
         request = {
             "Name": waf_name,

@@ -89,7 +89,7 @@ def test_waf_generate_web_acl_name_alb(clean_db):
 def test_waf_create_web_acl_no_tags(
     clean_db, service_instance_id, service_instance, operation_id, wafv2
 ):
-    wafv2.expect_create_web_acl(
+    wafv2.expect_cdn_create_web_acl(
         service_instance.id,
         config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
         service_instance.tags,
@@ -118,7 +118,7 @@ def test_waf_create_web_acl_unmigrated_cdn_instance(
     )
     service_instance = operation.service_instance
 
-    wafv2.expect_create_web_acl(
+    wafv2.expect_cdn_create_web_acl(
         service_instance.id,
         config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
         service_instance.tags,

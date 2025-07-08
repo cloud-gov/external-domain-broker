@@ -13,7 +13,7 @@ def subtest_provision_create_web_acl(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
 
-    wafv2.expect_create_web_acl(
+    wafv2.expect_cdn_create_web_acl(
         service_instance.id,
         config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
         service_instance.tags,
