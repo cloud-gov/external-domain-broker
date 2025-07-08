@@ -372,6 +372,10 @@ class DedicatedALB(Base):
     dedicated_waf_web_acl_id = mapped_column(db.String)
     dedicated_waf_web_acl_name = mapped_column(db.String)
 
+    __mapper_args__ = {
+        "polymorphic_identity": ServiceInstanceTypes.CDN_DEDICATED_WAF.value
+    }
+
     @classmethod
     def load_albs(cls, dedicated_listeners: list[tuple]):
         if not dedicated_listeners:

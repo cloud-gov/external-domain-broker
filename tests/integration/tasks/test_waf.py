@@ -89,6 +89,8 @@ def test_waf_create_web_acl_no_tags(
         service_instance_id,
     )
     assert service_instance.dedicated_waf_web_acl_arn
+    assert service_instance.dedicated_waf_web_acl_id
+    assert service_instance.dedicated_waf_web_acl_name
 
 
 def test_waf_create_web_acl_unmigrated_cdn_instance(
@@ -116,6 +118,8 @@ def test_waf_create_web_acl_unmigrated_cdn_instance(
         service_instance_id,
     )
     assert service_instance.dedicated_waf_web_acl_arn
+    assert service_instance.dedicated_waf_web_acl_id
+    assert service_instance.dedicated_waf_web_acl_name
 
 
 def test_waf_delete_web_acl_gives_up_after_max_retries(

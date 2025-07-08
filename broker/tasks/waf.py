@@ -3,6 +3,7 @@ import time
 
 from broker.aws import wafv2
 from broker.extensions import config
+from broker.models import ServiceInstanceTypes
 from broker.tasks.huey import pipeline_operation
 
 logger = logging.getLogger(__name__)
@@ -11,60 +12,10 @@ logger = logging.getLogger(__name__)
 @pipeline_operation("Creating custom WAFv2 web ACL")
 def create_web_acl(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-
-    if (
-        service_instance.dedicated_waf_web_acl_arn
-        and service_instance.dedicated_waf_web_acl_id
-        and service_instance.dedicated_waf_web_acl_name
-    ):
-        logger.info(
-            "Web ACL already exists",
-            extra={
-                "web_acl_name": service_instance.dedicated_waf_web_acl_name,
-            },
-        )
-        return
-
-    web_acl_name = generate_web_acl_name(service_instance)
-
     kwargs = {}
     if service_instance.tags is not None:
         kwargs["Tags"] = service_instance.tags
-
-    response = wafv2.create_web_acl(
-        Name=web_acl_name,
-        Scope="CLOUDFRONT",
-        DefaultAction={"Allow": {}},
-        Rules=[
-            {
-                "Name": "RateLimit",
-                "Priority": 1000,
-                "Statement": {
-                    "RuleGroupReferenceStatement": {
-                        "ARN": config.WAF_RATE_LIMIT_RULE_GROUP_ARN
-                    },
-                },
-                "OverrideAction": {"None": {}},
-                "VisibilityConfig": {
-                    "SampledRequestsEnabled": True,
-                    "CloudWatchMetricsEnabled": True,
-                    "MetricName": f"{web_acl_name}-rate-limit-rule-group",
-                },
-            }
-        ],
-        VisibilityConfig={
-            "SampledRequestsEnabled": True,
-            "CloudWatchMetricsEnabled": True,
-            "MetricName": web_acl_name,
-        },
-        **kwargs,
-    )
-
-    service_instance.dedicated_waf_web_acl_arn = response["Summary"]["ARN"]
-    service_instance.dedicated_waf_web_acl_id = response["Summary"]["Id"]
-    service_instance.dedicated_waf_web_acl_name = response["Summary"]["Name"]
-    db.session.add(service_instance)
-    db.session.commit()
+    _create_web_acl(db, service_instance, **kwargs)
 
 
 @pipeline_operation("Updating WAFv2 web ACL logging configuration")
@@ -111,6 +62,72 @@ def delete_web_acl(operation_id: str, *, operation, db, **kwargs):
 
 def generate_web_acl_name(service_instance):
     return f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-dedicated-waf"
+
+
+def _get_web_acl_rules(instance, web_acl_name: str):
+    if instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
+        return [
+            {
+                "Name": "RateLimit",
+                "Priority": 1000,
+                "Statement": {
+                    "RuleGroupReferenceStatement": {
+                        "ARN": config.WAF_RATE_LIMIT_RULE_GROUP_ARN
+                    },
+                },
+                "OverrideAction": {"None": {}},
+                "VisibilityConfig": {
+                    "SampledRequestsEnabled": True,
+                    "CloudWatchMetricsEnabled": True,
+                    "MetricName": f"{web_acl_name}-rate-limit-rule-group",
+                },
+            }
+        ]
+    else:
+        raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
+
+
+def _get_web_acl_scope(instance):
+    if instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
+        return "CLOUDFRONT"
+    else:
+        raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
+
+
+def _create_web_acl(db, instance, **kwargs):
+    if (
+        instance.dedicated_waf_web_acl_arn
+        and instance.dedicated_waf_web_acl_id
+        and instance.dedicated_waf_web_acl_name
+    ):
+        logger.info(
+            "Web ACL already exists",
+            extra={
+                "web_acl_name": instance.dedicated_waf_web_acl_name,
+            },
+        )
+        return
+
+    web_acl_name = generate_web_acl_name(instance)
+
+    response = wafv2.create_web_acl(
+        Name=web_acl_name,
+        Scope=_get_web_acl_scope(instance),
+        DefaultAction={"Allow": {}},
+        Rules=_get_web_acl_rules(instance, web_acl_name),
+        VisibilityConfig={
+            "SampledRequestsEnabled": True,
+            "CloudWatchMetricsEnabled": True,
+            "MetricName": web_acl_name,
+        },
+        **kwargs,
+    )
+
+    instance.dedicated_waf_web_acl_arn = response["Summary"]["ARN"]
+    instance.dedicated_waf_web_acl_id = response["Summary"]["Id"]
+    instance.dedicated_waf_web_acl_name = response["Summary"]["Name"]
+    db.session.add(instance)
+    db.session.commit()
 
 
 def _delete_web_acl_with_retries(operation_id, service_instance):
