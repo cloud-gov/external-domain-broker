@@ -375,8 +375,12 @@ class DedicatedALB(Base):
     dedicated_waf_web_acl_arn = mapped_column(db.String)
     dedicated_waf_web_acl_id = mapped_column(db.String)
     dedicated_waf_web_acl_name = mapped_column(db.String)
+    instance_type = mapped_column(db.Text)
 
-    __mapper_args__ = {"polymorphic_identity": ModelTypes.DEDICATED_ALB.value}
+    __mapper_args__ = {
+        "polymorphic_identity": ModelTypes.DEDICATED_ALB.value,
+        "polymorphic_on": instance_type,
+    }
 
     @classmethod
     def load_albs(cls, dedicated_listeners: list[tuple]):
