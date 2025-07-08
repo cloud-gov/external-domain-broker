@@ -10,6 +10,7 @@ from broker.models import (
     CDNServiceInstance,
     CDNDedicatedWAFServiceInstance,
     ALBServiceInstance,
+    DedicatedALB,
     DedicatedALBListener,
     DedicatedALBServiceInstance,
     MigrationServiceInstance,
@@ -50,6 +51,13 @@ class DedicatedALBServiceInstanceFactory(BaseFactory):
         model = DedicatedALBServiceInstance
 
     id = Sequence(lambda n: "UUID {}".format(n))
+
+
+class DedicatedALBFactory(BaseFactory):
+    class Meta(object):
+        model = DedicatedALB
+
+    id = Sequence(int)
 
 
 class DedicatedALBListenerFactory(BaseFactory):
