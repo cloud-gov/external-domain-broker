@@ -60,8 +60,20 @@ def delete_web_acl(operation_id: str, *, operation, db, **kwargs):
     db.session.commit()
 
 
-def generate_web_acl_name(service_instance):
-    return f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-dedicated-waf"
+def generate_web_acl_name(instance):
+    name_parts = [config.AWS_RESOURCE_PREFIX]
+    type = ""
+
+    if instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
+        type = "cdn"
+    elif instance.instance_type == ModelTypes.DEDICATED_ALB.value:
+        type = "alb"
+
+    if type:
+        name_parts.append(type)
+
+    name_parts = name_parts + [instance.id, "dedicated-waf"]
+    return "-".join(name_parts)
 
 
 def _get_web_acl_rules(instance, web_acl_name: str):
