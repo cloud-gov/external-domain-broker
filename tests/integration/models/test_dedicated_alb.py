@@ -13,9 +13,9 @@ def test_load_albs_on_startup(clean_db):
     assert len(albs) == 0
     DedicatedALB.load_albs(
         [
-            ("org1", "arn-1", "alb-1"),
-            ("org1", "arn-2", "alb-2"),
-            ("org2", "arn-3", "alb-3"),
+            ("org1", "alb-1", "arn-1"),
+            ("org1", "alb-2", "arn-2"),
+            ("org2", "alb-3", "arn-3"),
         ]
     )
     albs = DedicatedALB.query.all()
@@ -33,11 +33,21 @@ def test_load_albs_on_startup(clean_db):
 def test_load_albs_on_startup_doesnt_modify_assigned_org(clean_db):
     listeners = DedicatedALB.query.all()
     assert len(listeners) == 0
-    DedicatedALB.load_albs([("org1", "arn-1", "alb-1"), ("org1", "arn-2", "alb-2")])
+    DedicatedALB.load_albs(
+        [
+            ("org1", "alb-1", "arn-1"),
+            ("org1", "alb-2", "arn-2"),
+        ]
+    )
     listeners = DedicatedALB.query.all()
     assert len(listeners) == 2
 
-    DedicatedALB.load_albs([("org1", "arn-1", "alb-1"), ("org2", "arn-2", "alb-2")])
+    DedicatedALB.load_albs(
+        [
+            ("org1", "alb-1", "arn-1"),
+            ("org2", "alb-2", "arn-2"),
+        ]
+    )
     listeners = DedicatedALB.query.all()
     assert len(listeners) == 2
 

@@ -28,9 +28,9 @@ def test_load_albs_on_startup(clean_db, create_dedicated_alb_records):
     assert len(listeners) == 0
     DedicatedALBListener.load_alb_listeners(
         [
-            ("org1", "arn-1", "alb-1"),
-            ("org1", "arn-2", "alb-2"),
-            ("org2", "arn-3", "alb-3"),
+            ("org1", "alb-1", "arn-1"),
+            ("org1", "alb-2", "arn-2"),
+            ("org2", "alb-3", "arn-3"),
         ]
     )
     listeners = DedicatedALBListener.query.all()
@@ -51,13 +51,19 @@ def test_load_albs_on_startup_doesnt_modify_assigned_instances(
     listeners = DedicatedALBListener.query.all()
     assert len(listeners) == 0
     DedicatedALBListener.load_alb_listeners(
-        [("org1", "arn-1", "alb-1"), ("org1", "arn-2", "alb-2")]
+        [
+            ("org1", "alb-1", "arn-1"),
+            ("org1", "alb-2", "arn-2"),
+        ]
     )
     listeners = DedicatedALBListener.query.all()
     assert len(listeners) == 2
 
     DedicatedALBListener.load_alb_listeners(
-        [("org1", "arn-1", "alb-1"), ("org2", "arn-2", "alb-2")]
+        [
+            ("org1", "alb-1", "arn-1"),
+            ("org2", "alb-2", "arn-2"),
+        ]
     )
     listeners = DedicatedALBListener.query.all()
     assert len(listeners) == 2

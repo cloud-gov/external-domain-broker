@@ -379,7 +379,7 @@ class DedicatedALB(Base):
 
         logger.info(f"Starting load_albs with {dedicated_listeners}")
         for dedicated_listener_info in dedicated_listeners:
-            (organization_id, _, dedicated_alb_arn) = dedicated_listener_info
+            (organization_id, dedicated_alb_arn, _) = dedicated_listener_info
             stmt = insert(DedicatedALB).values(
                 [
                     dict(
@@ -411,7 +411,7 @@ class DedicatedALBListener(Base):
 
         logger.info(f"Starting load_alb_listeners with {dedicated_listeners}")
         for dedicated_listener_info in dedicated_listeners:
-            (organization_id, dedicated_listener_arn, dedicated_alb_arn) = (
+            (organization_id, dedicated_alb_arn, dedicated_listener_arn) = (
                 dedicated_listener_info
             )
             stmt = insert(DedicatedALBListener).values(

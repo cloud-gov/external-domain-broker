@@ -131,8 +131,8 @@ def _load_albs(alb_client, dedicated_listener_arn_map: dict[str]):
         dedicated_listeners.append(
             (
                 organization_id,
-                listener_data["ListenerArn"],
                 listener_data["LoadBalancerArn"],
+                listener_data["ListenerArn"],
             )
         )
 
