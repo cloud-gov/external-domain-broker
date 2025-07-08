@@ -2,7 +2,7 @@ import pytest  # noqa F401
 
 from broker.extensions import config
 
-from broker.models import CDNDedicatedWAFServiceInstance, Operation
+from broker.models import CDNDedicatedWAFServiceInstance, DedicatedALB, Operation
 from broker.tasks import waf
 from tests.lib import factories
 
@@ -133,6 +133,30 @@ def test_waf_create_web_acl_unmigrated_cdn_instance(
     service_instance = clean_db.session.get(
         CDNDedicatedWAFServiceInstance,
         service_instance_id,
+    )
+    assert service_instance.dedicated_waf_web_acl_arn
+    assert service_instance.dedicated_waf_web_acl_id
+    assert service_instance.dedicated_waf_web_acl_name
+
+
+def test_waf_create_web_acl_for_alb(clean_db, service_instance, operation_id, wafv2):
+    dedicated_alb = factories.DedicatedALBFactory.create(
+        alb_arn="alb-1", dedicated_org="org-1"
+    )
+
+    wafv2.expect_alb_create_web_acl(
+        dedicated_alb.id,
+    )
+
+    waf._create_web_acl(clean_db, dedicated_alb)
+
+    wafv2.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        DedicatedALB,
+        dedicated_alb.id,
     )
     assert service_instance.dedicated_waf_web_acl_arn
     assert service_instance.dedicated_waf_web_acl_id

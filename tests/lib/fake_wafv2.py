@@ -49,6 +49,146 @@ class FakeWAFV2(FakeAWS):
         }
         self.stubber.add_response(method, response, request)
 
+    def expect_alb_create_web_acl(self, id: str):
+        method = "create_web_acl"
+        waf_name = f"{config.AWS_RESOURCE_PREFIX}-alb-{id}-dedicated-waf"
+
+        request = {
+            "Name": waf_name,
+            "Scope": "REGIONAL",
+            "DefaultAction": {"Allow": {}},
+            "Rules": [
+                {
+                    "Name": "AWS-AWSManagedRulesAntiDDoSRuleSet",
+                    "Priority": 0,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesAntiDDoSRuleSet",
+                            "ManagedRuleGroupConfigs": [
+                                {
+                                    "AWSManagedRulesAntiDDoSRuleSet": {
+                                        "ClientSideActionConfig": {
+                                            "Challenge": {
+                                                "UsageOfAction": "ENABLED",
+                                                "Sensitivity": "HIGH",
+                                                "ExemptUriRegularExpressions": [
+                                                    {
+                                                        "RegexString": "\\/api\\/|\\.(acc|avi|css|gif|ico|jpe?g|js|json|mp[34]|ogg|otf|pdf|png|tiff?|ttf|webm|webp|woff2?|xml)$"
+                                                    }
+                                                ],
+                                            }
+                                        },
+                                        "SensitivityToBlock": "LOW",
+                                    }
+                                }
+                            ],
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-AWSManagedRulesAntiDDoSRuleSet",
+                    },
+                },
+                {
+                    "Name": "AWSManagedRule-CoreRuleSet",
+                    "Priority": 0,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesCommonRuleSet",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-AWSManagedRulesCommonRuleSet",
+                    },
+                },
+                {
+                    "Name": "AWS-AWSManagedRulesAnonymousIpList",
+                    "Priority": 10,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesAnonymousIpList",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-AWSManagedRulesAnonymousIpList",
+                    },
+                },
+                {
+                    "Name": "AWS-AWSManagedRulesAmazonIpReputationList",
+                    "Priority": 20,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesAmazonIpReputationList",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-ManagedRulesAmazonIpReputationList",
+                    },
+                },
+                {
+                    "Name": "AWS-KnownBadInputsRuleSet",
+                    "Priority": 30,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesKnownBadInputsRuleSet",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-KnownBadInputsRuleSet",
+                    },
+                },
+                {
+                    "Name": "AWSManagedRule-CoreRuleSet",
+                    "Priority": 40,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesCommonRuleSet",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-AWSManagedRulesCommonRuleSet",
+                    },
+                },
+            ],
+            "VisibilityConfig": {
+                "SampledRequestsEnabled": True,
+                "CloudWatchMetricsEnabled": True,
+                "MetricName": waf_name,
+            },
+        }
+
+        response = {
+            "Summary": {
+                "Id": f"{waf_name}-id",
+                "Name": waf_name,
+                "ARN": f"arn:aws:wafv2::000000000000:global/webacl/{waf_name}",
+            }
+        }
+        self.stubber.add_response(method, response, request)
+
     def expect_get_web_acl(self, id: str, name: str):
         self.stubber.add_response(
             "get_web_acl",
