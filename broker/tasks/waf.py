@@ -60,8 +60,8 @@ def delete_web_acl(operation_id: str, *, operation, db, **kwargs):
     db.session.commit()
 
 
-def generate_web_acl_name(instance):
-    name_parts = [config.AWS_RESOURCE_PREFIX]
+def generate_web_acl_name(instance, resource_prefix):
+    name_parts = [resource_prefix]
     type = ""
 
     if instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
@@ -72,7 +72,7 @@ def generate_web_acl_name(instance):
     if type:
         name_parts.append(type)
 
-    name_parts = name_parts + [instance.id, "dedicated-waf"]
+    name_parts = name_parts + [str(instance.id), "dedicated-waf"]
     return "-".join(name_parts)
 
 
@@ -95,7 +95,7 @@ def _get_web_acl_rules(instance, web_acl_name: str):
                 },
             }
         ]
-    if instance.instance_type == ModelTypes.DEDICATED_ALB.value:
+    elif instance.instance_type == ModelTypes.DEDICATED_ALB.value:
         return [
             {
                 "Name": "AWS-AWSManagedRulesAntiDDoSRuleSet",
@@ -239,7 +239,7 @@ def _create_web_acl(db, instance, **kwargs):
         )
         return
 
-    web_acl_name = generate_web_acl_name(instance)
+    web_acl_name = generate_web_acl_name(instance, config.AWS_RESOURCE_PREFIX)
 
     response = wafv2.create_web_acl(
         Name=web_acl_name,

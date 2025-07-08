@@ -69,6 +69,23 @@ def service_instance(
     return service_instance
 
 
+def test_waf_generate_web_acl_name_cdn(service_instance):
+    assert (
+        waf.generate_web_acl_name(service_instance, "cg-external-domains")
+        == f"cg-external-domains-cdn-{service_instance.id}-dedicated-waf"
+    )
+
+
+def test_waf_generate_web_acl_name_alb(clean_db):
+    dedicated_alb = factories.DedicatedALBFactory.create(
+        alb_arn="alb-1", dedicated_org="org-1"
+    )
+    assert (
+        waf.generate_web_acl_name(dedicated_alb, "cg-external-domains")
+        == f"cg-external-domains-alb-{dedicated_alb.id}-dedicated-waf"
+    )
+
+
 def test_waf_create_web_acl_no_tags(
     clean_db, service_instance_id, service_instance, operation_id, wafv2
 ):
