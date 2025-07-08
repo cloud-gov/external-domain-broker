@@ -9,6 +9,7 @@ from broker.lib.cdn import is_cdn_instance
 from broker.models import (
     Certificate,
     Operation,
+    DedicatedALB,
     DedicatedALBListener,
     ServiceInstance,
     ServiceInstanceTypes,
@@ -128,6 +129,7 @@ def load_albs():
                 )
             )
 
+        DedicatedALB.load_albs(dedicated_listeners)
         DedicatedALBListener.load_alb_listeners(dedicated_listeners)
 
 

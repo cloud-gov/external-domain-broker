@@ -367,7 +367,7 @@ class DedicatedALB(Base):
     __tablename__ = "dedicated_alb"
     id = mapped_column(db.Integer, primary_key=True)
     alb_arn = mapped_column(db.String, nullable=False, unique=True)
-    dedicated_org = mapped_column(db.String, nullable=True)
+    dedicated_org = mapped_column(db.String, nullable=False)
     dedicated_waf_web_acl_arn = mapped_column(db.String)
     dedicated_waf_web_acl_id = mapped_column(db.String)
     dedicated_waf_web_acl_name = mapped_column(db.String)
@@ -375,7 +375,7 @@ class DedicatedALB(Base):
     @classmethod
     def load_albs(cls, dedicated_listeners: list[tuple]):
         if not dedicated_listeners:
-            raise RuntimeError("Could not prepare list of listeners")
+            raise RuntimeError("load_albs: List of dedicated listeners is empty")
 
         logger.info(f"Starting load_albs with {dedicated_listeners}")
         for dedicated_listener_info in dedicated_listeners:
@@ -400,14 +400,16 @@ class DedicatedALBListener(Base):
     alb_arn = mapped_column(
         db.String, db.ForeignKey("dedicated_alb.alb_arn"), nullable=False
     )
-    dedicated_org = mapped_column(db.String, nullable=True)
+    dedicated_org = mapped_column(db.String, nullable=False)
 
     @classmethod
     def load_alb_listeners(cls, dedicated_listeners: list[tuple]):
         if not dedicated_listeners:
-            raise RuntimeError("Could not prepare list of listeners")
+            raise RuntimeError(
+                "load_alb_listeners: List of dedicated listeners is empty"
+            )
 
-        logger.info(f"Starting load_albs with {dedicated_listeners}")
+        logger.info(f"Starting load_alb_listeners with {dedicated_listeners}")
         for dedicated_listener_info in dedicated_listeners:
             (organization_id, dedicated_listener_arn, dedicated_alb_arn) = (
                 dedicated_listener_info
