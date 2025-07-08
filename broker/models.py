@@ -366,24 +366,29 @@ class Challenge(Base):
 class DedicatedALB(Base):
     __tablename__ = "dedicated_alb"
     id = mapped_column(db.Integer, primary_key=True)
-    alb_arn = mapped_column(db.String, nullable=True)
+    alb_arn = mapped_column(db.String, nullable=False, unique=True)
     dedicated_org = mapped_column(db.String, nullable=True)
     dedicated_waf_web_acl_arn = mapped_column(db.String)
+    dedicated_waf_web_acl_id = mapped_column(db.String)
+    dedicated_waf_web_acl_name = mapped_column(db.String)
 
     @classmethod
-    def load_albs(cls, dedicated_listener_arn_map: dict[str]):
-        logger.info(f"Starting load_albs with {dedicated_listener_arn_map}")
-        for dedicated_listener_arn in dedicated_listener_arn_map:
-            organization_id = dedicated_listener_arn_map[dedicated_listener_arn]
-            stmt = insert(DedicatedALBListener).values(
+    def load_albs(cls, dedicated_listeners: list[tuple]):
+        if not dedicated_listeners:
+            raise RuntimeError("Could not prepare list of listeners")
+
+        logger.info(f"Starting load_albs with {dedicated_listeners}")
+        for dedicated_listener_info in dedicated_listeners:
+            (organization_id, _, dedicated_alb_arn) = dedicated_listener_info
+            stmt = insert(DedicatedALB).values(
                 [
                     dict(
-                        listener_arn=dedicated_listener_arn,
                         dedicated_org=organization_id,
+                        alb_arn=dedicated_alb_arn,
                     )
                 ]
             )
-            stmt = stmt.on_conflict_do_nothing(index_elements=["listener_arn"])
+            stmt = stmt.on_conflict_do_nothing(index_elements=["alb_arn"])
             db.session.execute(stmt)
             db.session.commit()
 
@@ -398,15 +403,21 @@ class DedicatedALBListener(Base):
     dedicated_org = mapped_column(db.String, nullable=True)
 
     @classmethod
-    def load_alb_listeners(cls, dedicated_listener_arn_map: dict[str]):
-        logger.info(f"Starting load_albs with {dedicated_listener_arn_map}")
-        for dedicated_listener_arn in dedicated_listener_arn_map:
-            organization_id = dedicated_listener_arn_map[dedicated_listener_arn]
+    def load_alb_listeners(cls, dedicated_listeners: list[tuple]):
+        if not dedicated_listeners:
+            raise RuntimeError("Could not prepare list of listeners")
+
+        logger.info(f"Starting load_albs with {dedicated_listeners}")
+        for dedicated_listener_info in dedicated_listeners:
+            (organization_id, dedicated_listener_arn, dedicated_alb_arn) = (
+                dedicated_listener_info
+            )
             stmt = insert(DedicatedALBListener).values(
                 [
                     dict(
                         listener_arn=dedicated_listener_arn,
                         dedicated_org=organization_id,
+                        alb_arn=dedicated_alb_arn,
                     )
                 ]
             )
