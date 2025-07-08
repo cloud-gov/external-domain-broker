@@ -9,9 +9,9 @@ from broker.models import DedicatedALB, DedicatedALBListener
 def create_dedicated_alb_records(clean_db):
     stmt = insert(DedicatedALB).values(
         [
-            dict(alb_arn="alb-1", dedicated_org="org-1"),
-            dict(alb_arn="alb-2", dedicated_org="org-1"),
-            dict(alb_arn="alb-3", dedicated_org="org-2"),
+            dict(alb_arn="alb-1", dedicated_org="org1"),
+            dict(alb_arn="alb-2", dedicated_org="org1"),
+            dict(alb_arn="alb-3", dedicated_org="org2"),
         ]
     )
     stmt = stmt.on_conflict_do_nothing(index_elements=["alb_arn"])
