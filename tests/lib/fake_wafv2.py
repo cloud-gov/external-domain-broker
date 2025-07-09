@@ -1,6 +1,6 @@
 import pytest
 
-from broker.aws import wafv2 as real_wafv2
+from broker.aws import wafv2_commercial as real_wafv2_c, wafv2_govcloud as real_wafv2_g
 from broker.lib.tags import Tag
 from broker.extensions import config
 from tests.lib.fake_aws import FakeAWS
@@ -221,6 +221,12 @@ class FakeWAFV2(FakeAWS):
 
 
 @pytest.fixture(autouse=True)
-def wafv2():
-    with FakeWAFV2.stubbing(real_wafv2) as wafv2_stubber:
+def wafv2_commercial():
+    with FakeWAFV2.stubbing(real_wafv2_c) as wafv2_stubber:
+        yield wafv2_stubber
+
+
+@pytest.fixture(autouse=True)
+def wafv2_govcloud():
+    with FakeWAFV2.stubbing(real_wafv2_g) as wafv2_stubber:
         yield wafv2_stubber

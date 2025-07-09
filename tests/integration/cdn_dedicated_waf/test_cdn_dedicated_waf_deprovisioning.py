@@ -129,7 +129,7 @@ def test_deprovision_continues_when_resources_dont_exist(
     iam_commercial,
     cloudfront,
     shield,
-    wafv2,
+    wafv2_commercial,
     cloudwatch_commercial,
     sns_commercial,
 ):
@@ -166,7 +166,7 @@ def test_deprovision_continues_when_resources_dont_exist(
         instance_model, tasks, service_instance, cloudfront
     )
     subtest_deprovision_delete_web_acl_success_when_missing(
-        instance_model, tasks, service_instance, wafv2
+        instance_model, tasks, service_instance, wafv2_commercial
     )
     subtest_deprovision_removes_certificate_from_iam_when_missing(
         instance_model, tasks, service_instance, iam_commercial
@@ -181,7 +181,7 @@ def test_deprovision_happy_path(
     iam_commercial,
     cloudfront,
     shield,
-    wafv2,
+    wafv2_commercial,
     cloudwatch_commercial,
     sns_commercial,
 ):
@@ -255,7 +255,9 @@ def test_deprovision_happy_path(
     check_last_operation_description(
         client, "1234", operation_id, "Deleting CloudFront distribution"
     )
-    subtest_deprovision_deletes_web_acl(instance_model, tasks, service_instance, wafv2)
+    subtest_deprovision_deletes_web_acl(
+        instance_model, tasks, service_instance, wafv2_commercial
+    )
     check_last_operation_description(
         client, "1234", operation_id, "Deleting custom WAFv2 web ACL"
     )

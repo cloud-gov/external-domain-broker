@@ -21,7 +21,7 @@ commercial_global_session = boto3.Session(
     aws_access_key_id=config.AWS_COMMERCIAL_ACCESS_KEY_ID,
     aws_secret_access_key=config.AWS_COMMERCIAL_SECRET_ACCESS_KEY,
 )
-wafv2 = commercial_global_session.client("wafv2")
+wafv2_commercial = commercial_global_session.client("wafv2")
 cloudwatch_commercial = commercial_global_session.client("cloudwatch")
 sns_commercial = commercial_global_session.client("sns")
 
@@ -33,3 +33,4 @@ govcloud_session = boto3.Session(
 alb = govcloud_session.client("elbv2")
 # iam for albs needs to be govcloud
 iam_govcloud = govcloud_session.client("iam")
+wafv2_govcloud = govcloud_session.client("wafv2")

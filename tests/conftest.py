@@ -9,7 +9,7 @@ from tests.lib.fake_alb import alb  # noqa F401
 from tests.lib.fake_cloudfront import cloudfront  # noqa F401
 from tests.lib.fake_iam import iam_commercial, iam_govcloud  # noqa F401
 from tests.lib.fake_route53 import route53  # noqa F401
-from tests.lib.fake_wafv2 import wafv2  # noqa F401
+from tests.lib.fake_wafv2 import wafv2_commercial, wafv2_govcloud  # noqa F401
 from tests.lib.fake_shield import shield  # noqa F401
 from tests.lib.fake_cloudwatch import cloudwatch_commercial  # noqa F401
 from tests.lib.fake_sns import sns_commercial  # noqa F401

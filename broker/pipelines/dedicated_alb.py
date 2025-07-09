@@ -4,6 +4,7 @@ from broker.tasks import (
     iam,
     letsencrypt,
     route53,
+    waf,
 )
 from broker.tasks.huey import huey
 
@@ -27,6 +28,8 @@ def queue_all_dedicated_alb_provision_tasks_for_operation(
         .then(iam.upload_server_certificate, operation_id, **correlation)
         .then(alb.select_dedicated_alb, operation_id, **correlation)
         .then(alb.add_certificate_to_alb, operation_id, **correlation)
+        .then(waf.create_alb_web_acl, operation_id, **correlation)
+        .then(waf.put_logging_configuration, operation_id, **correlation)
         .then(route53.create_ALIAS_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
         .then(update_operations.provision, operation_id, **correlation)

@@ -2,7 +2,7 @@ import logging
 import time
 from sqlalchemy import select, and_
 
-from broker.aws import wafv2
+from broker.aws import wafv2_commercial, wafv2_govcloud
 from broker.extensions import config
 from broker.models import DedicatedALB, ModelTypes, ServiceInstanceTypes
 from broker.tasks.huey import pipeline_operation
@@ -28,7 +28,7 @@ def create_alb_web_acl(operation_id, *, operation, db, **kwargs):
         )
 
     dedicated_alb = result[0]
-    _create_web_acl(db, dedicated_alb, **kwargs)
+    _create_web_acl(wafv2_govcloud, db, dedicated_alb, **kwargs)
 
 
 @pipeline_operation("Creating custom WAFv2 web ACL")
@@ -37,7 +37,7 @@ def create_cdn_web_acl(operation_id: str, *, operation, db, **kwargs):
     kwargs = {}
     if service_instance.tags is not None:
         kwargs["Tags"] = service_instance.tags
-    _create_web_acl(db, service_instance, **kwargs)
+    _create_web_acl(wafv2_commercial, db, service_instance, **kwargs)
 
 
 @pipeline_operation("Updating WAFv2 web ACL logging configuration")
@@ -48,7 +48,7 @@ def put_logging_configuration(operation_id: str, *, operation, db, **kwargs):
         logger.info("Web ACL ARN is required")
         return
 
-    wafv2.put_logging_configuration(
+    wafv2_commercial.put_logging_configuration(
         LoggingConfiguration={
             "ResourceArn": service_instance.dedicated_waf_web_acl_arn,
             "LogDestinationConfigs": [
@@ -213,7 +213,7 @@ def _get_web_acl_scope(instance):
         raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
 
 
-def _create_web_acl(db, instance, **kwargs):
+def _create_web_acl(waf_client, db, instance, **kwargs):
     if (
         instance.dedicated_waf_web_acl_arn
         and instance.dedicated_waf_web_acl_id
@@ -229,7 +229,7 @@ def _create_web_acl(db, instance, **kwargs):
 
     web_acl_name = generate_web_acl_name(instance, config.AWS_RESOURCE_PREFIX)
 
-    response = wafv2.create_web_acl(
+    response = waf_client.create_web_acl(
         Name=web_acl_name,
         Scope=_get_web_acl_scope(instance),
         DefaultAction={"Allow": {}},
@@ -266,20 +266,20 @@ def _delete_web_acl_with_retries(operation_id, service_instance):
             raise RuntimeError("Failed to delete WAFv2 web ACL")
         time.sleep(config.DELETE_WEB_ACL_WAIT_RETRY_TIME)
         try:
-            response = wafv2.get_web_acl(
+            response = wafv2_commercial.get_web_acl(
                 Name=service_instance.dedicated_waf_web_acl_name,
                 Id=service_instance.dedicated_waf_web_acl_id,
                 Scope="CLOUDFRONT",
             )
-            wafv2.delete_web_acl(
+            wafv2_commercial.delete_web_acl(
                 Name=service_instance.dedicated_waf_web_acl_name,
                 Id=service_instance.dedicated_waf_web_acl_id,
                 Scope="CLOUDFRONT",
                 LockToken=response["LockToken"],
             )
             notDeleted = False
-        except wafv2.exceptions.WAFOptimisticLockException:
+        except wafv2_commercial.exceptions.WAFOptimisticLockException:
             continue
-        except wafv2.exceptions.WAFNonexistentItemException:
+        except wafv2_commercial.exceptions.WAFNonexistentItemException:
             notDeleted = False
             return
