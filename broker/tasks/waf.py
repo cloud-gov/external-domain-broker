@@ -1,12 +1,39 @@
 import logging
 import time
+from sqlalchemy import select, and_
 
 from broker.aws import wafv2
 from broker.extensions import config
-from broker.models import ModelTypes, ServiceInstanceTypes
+from broker.models import DedicatedALB, ModelTypes, ServiceInstanceTypes
 from broker.tasks.huey import pipeline_operation
 
 logger = logging.getLogger(__name__)
+
+
+@pipeline_operation("Creating WAFv2 web ACL for ALB")
+def create_alb_web_acl(operation_id, *, operation, db, **kwargs):
+    service_instance = operation.service_instance
+
+    query = select(DedicatedALB).where(
+        and_(
+            DedicatedALB.dedicated_org == service_instance.org_id,
+            DedicatedALB.alb_arn == service_instance.alb_arn,
+        )
+    )
+    result = db.session.execute(query).first()
+
+    if len(result) == 0:
+        raise RuntimeError(
+            f"Could not find dedicated ALB listener for org {service_instance.org_id}"
+        )
+
+    dedicated_alb = result[0]
+
+    # If we already have a web ACL, return
+    if dedicated_alb.dedicated_waf_web_acl_arn:
+        return
+
+    _create_web_acl(db, dedicated_alb, **kwargs)
 
 
 @pipeline_operation("Creating custom WAFv2 web ACL")

@@ -7,7 +7,6 @@ from sqlalchemy.orm import aliased
 from broker.aws import alb
 from broker.extensions import config, db
 from broker.models import (
-    DedicatedALB,
     DedicatedALBListener,
     DedicatedALBServiceInstance,
     Certificate,
@@ -259,27 +258,6 @@ def store_alb_certificate(operation_id, *, operation, db, **kwargs):
     service_instance.alb_certificate = service_instance.current_certificate
     db.session.add(service_instance)
     db.session.commit()
-
-
-@pipeline_operation("Associate dedicated ALB WAF")
-def create_and_associate_dedicated_alb_waf(operation_id, *, operation, db, **kwargs):
-    service_instance = operation.service_instance
-
-    query = select(DedicatedALB).where(
-        DedicatedALB.dedicated_org == service_instance.org_id
-    )
-    result = db.session.execute(query).all()
-
-    if len(result) == 0:
-        raise RuntimeError(
-            f"Could not find dedicated ALB listener for org {service_instance.org_id}"
-        )
-
-    dedicated_alb = result[0]
-    if dedicated_alb.dedicated_waf_web_acl_arn:
-        return
-
-    # TODO: add logic to create custom WAF when necessary
 
 
 def _wait_for_certificate_removal(listener_arn, certificate_arn):
