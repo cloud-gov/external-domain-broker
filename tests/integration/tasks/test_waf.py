@@ -359,7 +359,7 @@ def test_waf_put_logging_configuration_no_arn(
 ):
     assert not service_instance.dedicated_waf_web_acl_arn
 
-    waf.put_logging_configuration.call_local(operation_id)
+    waf.put_cdn_waf_logging_configuration.call_local(operation_id)
 
     wafv2_commercial.assert_no_pending_responses()
 
@@ -382,10 +382,10 @@ def test_waf_put_logging_configuration(
 
     wafv2_commercial.expect_put_logging_configuration(
         service_instance.dedicated_waf_web_acl_arn,
-        config.WAF_CLOUDWATCH_LOG_GROUP_ARN,
+        config.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN,
     )
 
-    waf.put_logging_configuration.call_local(operation_id)
+    waf.put_cdn_waf_logging_configuration.call_local(operation_id)
 
     wafv2_commercial.assert_no_pending_responses()
 
@@ -416,10 +416,10 @@ def test_waf_put_logging_configuration_unmigrated_cdn_instance(
 
     wafv2_commercial.expect_put_logging_configuration(
         service_instance.dedicated_waf_web_acl_arn,
-        config.WAF_CLOUDWATCH_LOG_GROUP_ARN,
+        config.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN,
     )
 
-    waf.put_logging_configuration.call_local(
+    waf.put_cdn_waf_logging_configuration.call_local(
         unmigrated_cdn_service_instance_operation_id
     )
 

@@ -158,7 +158,12 @@ class AppConfig(Config):
         self.UAA_CLIENT_ID = self.env("UAA_CLIENT_ID")
         self.UAA_CLIENT_SECRET = self.env("UAA_CLIENT_SECRET")
 
-        self.WAF_CLOUDWATCH_LOG_GROUP_ARN = self.env("WAF_CLOUDWATCH_LOG_GROUP_ARN")
+        self.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN = self.env(
+            "CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN"
+        )
+        self.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN = self.env(
+            "ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN"
+        )
 
 
 class ProductionConfig(AppConfig):
@@ -276,7 +281,8 @@ class DockerConfig(Config):
         self.SMTP_PASS = None
 
         self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "rate-limit-rule-group-fake-arn"
-        self.WAF_CLOUDWATCH_LOG_GROUP_ARN = "fake-waf-cloudwatch-log-grou-arn"
+        self.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN = "fake-waf-cloudwatch-log-grou-arn"
+        self.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN = "fake-alb-waf-cloudwatch-log-group-arn"
 
         self.CF_API_URL = "http://mock.cf/"
         self.UAA_TOKEN_URL = "http://mock.uaa/token"

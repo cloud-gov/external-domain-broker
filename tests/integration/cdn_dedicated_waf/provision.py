@@ -47,7 +47,7 @@ def subtest_provision_put_web_acl_logging_configuration(
 
     wafv2.expect_put_logging_configuration(
         service_instance.dedicated_waf_web_acl_arn,
-        config.WAF_CLOUDWATCH_LOG_GROUP_ARN,
+        config.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

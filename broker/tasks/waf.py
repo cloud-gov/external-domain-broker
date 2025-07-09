@@ -41,19 +41,30 @@ def create_cdn_web_acl(operation_id: str, *, operation, db, **kwargs):
 
 
 @pipeline_operation("Updating WAFv2 web ACL logging configuration")
-def put_logging_configuration(operation_id: str, *, operation, db, **kwargs):
+def put_alb_waf_logging_configuration(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
+    _put_waf_logging_configuration(
+        wafv2_govcloud, service_instance, config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN
+    )
 
-    if not service_instance.dedicated_waf_web_acl_arn:
+
+@pipeline_operation("Updating WAFv2 web ACL logging configuration")
+def put_cdn_waf_logging_configuration(operation_id: str, *, operation, db, **kwargs):
+    service_instance = operation.service_instance
+    _put_waf_logging_configuration(
+        wafv2_commercial, service_instance, config.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN
+    )
+
+
+def _put_waf_logging_configuration(waf_client, instance, log_group_arn):
+    if not instance.dedicated_waf_web_acl_arn:
         logger.info("Web ACL ARN is required")
         return
 
-    wafv2_commercial.put_logging_configuration(
+    waf_client.put_logging_configuration(
         LoggingConfiguration={
-            "ResourceArn": service_instance.dedicated_waf_web_acl_arn,
-            "LogDestinationConfigs": [
-                config.WAF_CLOUDWATCH_LOG_GROUP_ARN,
-            ],
+            "ResourceArn": instance.dedicated_waf_web_acl_arn,
+            "LogDestinationConfigs": [log_group_arn],
             "LogScope": "CUSTOMER",
             "LogType": "WAF_LOGS",
         }
