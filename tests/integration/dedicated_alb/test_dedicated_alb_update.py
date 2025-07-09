@@ -89,7 +89,7 @@ def subtest_update_selects_alb(tasks, alb):
     db.session.expunge_all()
     alb.expect_get_certificates_for_listener("our-arn-0", 1)
     alb.expect_get_certificates_for_listener("our-arn-1", 5)
-    alb.expect_get_listeners("our-arn-0")
+    alb.expect_get_listeners("our-arn-0", "alb-our-arn-0")
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
     service_instance = db.session.get(DedicatedALBServiceInstance, "4321")

@@ -6,7 +6,7 @@ from tests.lib.fake_aws import FakeAWS
 
 
 class FakeALB(FakeAWS):
-    def expect_get_listeners(self, listener_arn):
+    def expect_get_listeners(self, listener_arn, alb_arn):
         certificates = [{"CertificateArn": "certificate-arn", "IsDefault": True}]
         self.stubber.add_response(
             "describe_listeners",
@@ -14,7 +14,7 @@ class FakeALB(FakeAWS):
                 "Listeners": [
                     {
                         "ListenerArn": listener_arn,
-                        "LoadBalancerArn": f"alb-{listener_arn}",
+                        "LoadBalancerArn": alb_arn,
                         "Port": 123,
                         "Protocol": "HTTPS",
                         "Certificates": certificates,
@@ -101,7 +101,7 @@ class FakeALB(FakeAWS):
             {
                 "LoadBalancers": [
                     {
-                        "LoadBalancerArn": "alb_arn",
+                        "LoadBalancerArn": alb_arn,
                         "DNSName": returned_domain,
                         "CanonicalHostedZoneId": "ALBHOSTEDZONEID",
                         "CreatedTime": datetime(2015, 1, 1),

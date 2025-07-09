@@ -1,6 +1,7 @@
 from broker.extensions import db
 from broker.models import (
     DedicatedALBServiceInstance,
+    DedicatedALB,
     DedicatedALBListener,
 )
 
@@ -186,29 +187,37 @@ def subtest_provision_dedicated_alb_instance(
 def subtest_provision_selects_dedicated_alb(
     tasks, alb, organization_guid, service_instance_id="4321"
 ):
+    alb_0 = DedicatedALB(
+        alb_arn="alb-our-arn-0",
+        dedicated_org=organization_guid,
+    )
+    alb_1 = DedicatedALB(
+        alb_arn="alb-our-arn-1",
+        dedicated_org=organization_guid,
+    )
+    db.session.add_all(
+        [
+            alb_0,
+            alb_1,
+        ]
+    )
+    db.session.commit()
+
     our_listener_0 = DedicatedALBListener(
         listener_arn="our-arn-0",
+        alb_arn="alb-our-arn-0",
         dedicated_org=organization_guid,
     )
     our_listener_1 = DedicatedALBListener(
         listener_arn="our-arn-1",
+        alb_arn="alb-our-arn-1",
         dedicated_org=organization_guid,
-    )
-    empty_listener_0 = DedicatedALBListener(listener_arn="empty-arn-0")
-    other_listener_0 = DedicatedALBListener(
-        listener_arn="other-arn-0", dedicated_org="other-org"
-    )
-    other_listener_1 = DedicatedALBListener(
-        listener_arn="other-arn-1", dedicated_org="other-org"
     )
 
     db.session.add_all(
         [
             our_listener_0,
             our_listener_1,
-            empty_listener_0,
-            other_listener_0,
-            other_listener_1,
         ]
     )
     db.session.commit()
@@ -216,7 +225,7 @@ def subtest_provision_selects_dedicated_alb(
     db.session.expunge_all()
     alb.expect_get_certificates_for_listener("our-arn-0", 1)
     alb.expect_get_certificates_for_listener("our-arn-1", 5)
-    alb.expect_get_listeners("our-arn-0")
+    alb.expect_get_listeners("our-arn-0", "alb-our-arn-0")
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
     service_instance = db.session.get(DedicatedALBServiceInstance, service_instance_id)
