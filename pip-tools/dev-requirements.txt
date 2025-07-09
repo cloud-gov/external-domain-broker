@@ -45,6 +45,8 @@ click==8.2.1
     #   black
     #   flask
     #   pip-tools
+coverage[toml]==7.9.2
+    # via pytest-cov
 cryptography==45.0.5
     # via
     #   -r pip-tools/../requirements.txt
@@ -163,6 +165,7 @@ platformdirs==4.3.8
 pluggy==1.6.0
     # via
     #   pytest
+    #   pytest-cov
     #   python-language-server
 pp-ez==0.2.0
     # via -r pip-tools/dev-requirements.in
@@ -195,7 +198,10 @@ pyrfc3339==2.0.1
 pytest==8.4.1
     # via
     #   -r pip-tools/dev-requirements.in
+    #   pytest-cov
     #   pytest-profiling
+pytest-cov==6.2.1
+    # via -r pip-tools/dev-requirements.in
 pytest-profiling==1.8.1
     # via -r pip-tools/dev-requirements.in
 pytest-watcher==0.4.3
