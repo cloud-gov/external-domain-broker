@@ -82,4 +82,6 @@ def create_app():
     def remove_duplicate_alb_certs_command():
         remove_duplicate_alb_certs()
 
+    # TODO: add command to associate WAF with dedicated ALBs
+
     return app
