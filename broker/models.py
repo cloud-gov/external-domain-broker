@@ -395,6 +395,7 @@ class DedicatedALB(Base):
                     dict(
                         dedicated_org=organization_id,
                         alb_arn=dedicated_alb_arn,
+                        instance_type=ModelTypes.DEDICATED_ALB.value,
                     )
                 ]
             )
