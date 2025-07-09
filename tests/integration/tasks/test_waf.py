@@ -1,5 +1,5 @@
 import pytest  # noqa F401
-import uuid
+import random
 
 from broker.extensions import config
 
@@ -68,6 +68,36 @@ def service_instance(
         id=operation_id, service_instance=service_instance
     )
     return service_instance
+
+
+@pytest.fixture
+def dedicated_alb_id():
+    return str(random.randrange(0, 10000))
+
+
+@pytest.fixture
+def dedicated_alb(clean_db, dedicated_alb_id, service_instance_id, operation_id):
+    dedicated_alb = factories.DedicatedALBFactory.create(
+        id=dedicated_alb_id, alb_arn="alb-1", dedicated_org="org-1"
+    )
+
+    service_instance = factories.DedicatedALBServiceInstanceFactory.create(
+        id=service_instance_id,
+        org_id="org-1",
+        alb_arn="alb-1",
+        alb_listener_arn="listener-1",
+    )
+
+    clean_db.session.add(dedicated_alb)
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    factories.OperationFactory.create(
+        id=operation_id, service_instance=service_instance
+    )
+
+    return dedicated_alb
 
 
 def test_waf_generate_web_acl_name_cdn(service_instance):
@@ -164,29 +194,12 @@ def test_waf_create_web_acl_unmigrated_cdn_instance(
 
 
 def test_waf_create_alb_web_acl(
-    clean_db, operation_id, service_instance_id, wafv2_govcloud
+    clean_db,
+    operation_id,
+    dedicated_alb_id,
+    dedicated_alb,
+    wafv2_govcloud,
 ):
-    dedicated_alb = factories.DedicatedALBFactory.create(
-        alb_arn="alb-1", dedicated_org="org-1"
-    )
-    dedicated_alb_id = dedicated_alb.id
-
-    service_instance = factories.DedicatedALBServiceInstanceFactory.create(
-        id=service_instance_id,
-        org_id="org-1",
-        alb_arn="alb-1",
-        alb_listener_arn="listener-1",
-    )
-
-    clean_db.session.add(dedicated_alb)
-    clean_db.session.add(service_instance)
-    clean_db.session.commit()
-    clean_db.session.expunge_all()
-
-    factories.OperationFactory.create(
-        id=operation_id, service_instance=service_instance
-    )
-
     wafv2_govcloud.expect_alb_create_web_acl(
         dedicated_alb_id,
     )
@@ -240,7 +253,6 @@ def test_waf_create_alb_web_acl_returns_early(
         dedicated_waf_web_acl_id="waf-id",
         dedicated_waf_web_acl_name="waf-name",
     )
-    # dedicated_alb_id = dedicated_alb.id
     service_instance = factories.DedicatedALBServiceInstanceFactory.create(
         id=service_instance_id,
         org_id="org-1",
@@ -424,3 +436,26 @@ def test_waf_put_logging_configuration_unmigrated_cdn_instance(
     )
 
     wafv2_commercial.assert_no_pending_responses()
+
+
+def test_put_alb_waf_logging_configuration(
+    clean_db,
+    operation_id,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    dedicated_alb.dedicated_waf_web_acl_arn = "1234-dedicated-waf-arn"
+
+    clean_db.session.add(dedicated_alb)
+    clean_db.session.commit()
+
+    wafv2_govcloud.expect_put_logging_configuration(
+        dedicated_alb.dedicated_waf_web_acl_arn,
+        config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN,
+    )
+
+    waf.put_alb_waf_logging_configuration.call_local(operation_id)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()

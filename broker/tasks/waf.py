@@ -10,10 +10,7 @@ from broker.tasks.huey import pipeline_operation
 logger = logging.getLogger(__name__)
 
 
-@pipeline_operation("Creating WAFv2 web ACL for ALB")
-def create_alb_web_acl(operation_id, *, operation, db, **kwargs):
-    service_instance = operation.service_instance
-
+def _find_dedicated_alb_for_instance(db, service_instance) -> DedicatedALB:
     query = select(DedicatedALB).where(
         and_(
             DedicatedALB.dedicated_org == service_instance.org_id,
@@ -28,6 +25,13 @@ def create_alb_web_acl(operation_id, *, operation, db, **kwargs):
         )
 
     dedicated_alb = result[0]
+    return dedicated_alb
+
+
+@pipeline_operation("Creating WAFv2 web ACL for ALB")
+def create_alb_web_acl(operation_id, *, operation, db, **kwargs):
+    service_instance = operation.service_instance
+    dedicated_alb = _find_dedicated_alb_for_instance(db, service_instance)
     _create_web_acl(wafv2_govcloud, db, dedicated_alb, **kwargs)
 
 
@@ -43,8 +47,9 @@ def create_cdn_web_acl(operation_id: str, *, operation, db, **kwargs):
 @pipeline_operation("Updating WAFv2 web ACL logging configuration")
 def put_alb_waf_logging_configuration(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
+    dedicated_alb = _find_dedicated_alb_for_instance(db, service_instance)
     _put_waf_logging_configuration(
-        wafv2_govcloud, service_instance, config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN
+        wafv2_govcloud, dedicated_alb, config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN
     )
 
 
