@@ -32,7 +32,7 @@ def create_alb_web_acl(operation_id, *, operation, db, **kwargs):
 
 
 @pipeline_operation("Creating custom WAFv2 web ACL")
-def create_web_acl(operation_id: str, *, operation, db, **kwargs):
+def create_cdn_web_acl(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     kwargs = {}
     if service_instance.tags is not None:

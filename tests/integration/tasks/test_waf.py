@@ -116,7 +116,7 @@ def test_waf_create_web_acl_no_tags(
         service_instance.tags,
     )
 
-    waf.create_web_acl.call_local(operation_id)
+    waf.create_cdn_web_acl.call_local(operation_id)
 
     wafv2.assert_no_pending_responses()
 
@@ -145,7 +145,7 @@ def test_waf_create_web_acl_unmigrated_cdn_instance(
         service_instance.tags,
     )
 
-    waf.create_web_acl.call_local(unmigrated_cdn_service_instance_operation_id)
+    waf.create_cdn_web_acl.call_local(unmigrated_cdn_service_instance_operation_id)
 
     wafv2.assert_no_pending_responses()
 
