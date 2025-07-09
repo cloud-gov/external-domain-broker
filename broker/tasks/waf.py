@@ -22,17 +22,12 @@ def create_alb_web_acl(operation_id, *, operation, db, **kwargs):
     )
     result = db.session.execute(query).first()
 
-    if len(result) == 0:
+    if not result:
         raise RuntimeError(
             f"Could not find dedicated ALB listener for org {service_instance.org_id}"
         )
 
     dedicated_alb = result[0]
-
-    # If we already have a web ACL, return
-    if dedicated_alb.dedicated_waf_web_acl_arn:
-        return
-
     _create_web_acl(db, dedicated_alb, **kwargs)
 
 

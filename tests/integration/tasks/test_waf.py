@@ -140,7 +140,7 @@ def test_waf_create_web_acl_unmigrated_cdn_instance(
     assert service_instance.dedicated_waf_web_acl_name
 
 
-def test_waf_create_web_acl_for_alb(clean_db, operation_id, service_instance_id, wafv2):
+def test_waf_create_alb_web_acl(clean_db, operation_id, service_instance_id, wafv2):
     dedicated_alb = factories.DedicatedALBFactory.create(
         alb_arn="alb-1", dedicated_org="org-1"
     )
@@ -179,6 +179,62 @@ def test_waf_create_web_acl_for_alb(clean_db, operation_id, service_instance_id,
     assert service_instance.dedicated_waf_web_acl_arn
     assert service_instance.dedicated_waf_web_acl_id
     assert service_instance.dedicated_waf_web_acl_name
+
+
+def test_waf_create_alb_web_acl_errors_no_dedicated_alb(
+    clean_db, operation_id, service_instance_id, wafv2
+):
+    service_instance = factories.DedicatedALBServiceInstanceFactory.create(
+        id=service_instance_id,
+        org_id="org-1",
+        alb_arn="alb-1",
+        alb_listener_arn="listener-1",
+    )
+
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    factories.OperationFactory.create(
+        id=operation_id, service_instance=service_instance
+    )
+
+    with pytest.raises(RuntimeError):
+        waf.create_alb_web_acl.call_local(operation_id)
+
+    wafv2.assert_no_pending_responses()
+
+
+def test_waf_create_alb_web_acl_returns_early(
+    clean_db, operation_id, service_instance_id, wafv2
+):
+    dedicated_alb = factories.DedicatedALBFactory.create(
+        alb_arn="alb-1",
+        dedicated_org="org-1",
+        dedicated_waf_web_acl_arn="waf-arn",
+        dedicated_waf_web_acl_id="waf-id",
+        dedicated_waf_web_acl_name="waf-name",
+    )
+    # dedicated_alb_id = dedicated_alb.id
+    service_instance = factories.DedicatedALBServiceInstanceFactory.create(
+        id=service_instance_id,
+        org_id="org-1",
+        alb_arn="alb-1",
+        alb_listener_arn="listener-1",
+    )
+
+    clean_db.session.add(dedicated_alb)
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    clean_db.session.expunge_all()
+
+    factories.OperationFactory.create(
+        id=operation_id, service_instance=service_instance
+    )
+
+    waf.create_alb_web_acl.call_local(operation_id)
+
+    wafv2.assert_no_pending_responses()
 
 
 def test_waf_delete_web_acl_gives_up_after_max_retries(
