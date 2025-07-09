@@ -87,6 +87,26 @@ def test_waf_generate_web_acl_name_alb(clean_db):
     )
 
 
+def test_get_web_acl_rules_errors(clean_db, service_instance_id):
+    service_instance = factories.CDNServiceInstanceFactory.create(
+        id=service_instance_id
+    )
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    with pytest.raises(RuntimeError):
+        waf._get_web_acl_rules(service_instance, "acl-1")
+
+
+def test_get_web_acl_scope_errors(clean_db, service_instance_id):
+    service_instance = factories.CDNServiceInstanceFactory.create(
+        id=service_instance_id
+    )
+    clean_db.session.add(service_instance)
+    clean_db.session.commit()
+    with pytest.raises(RuntimeError):
+        waf._get_web_acl_scope(service_instance)
+
+
 def test_waf_create_web_acl_no_tags(
     clean_db, service_instance_id, service_instance, operation_id, wafv2
 ):
