@@ -1,6 +1,7 @@
 import pytest
 
 from broker.models import DedicatedALB
+from tests.lib import factories
 
 
 def test_load_albs_raises_error():
@@ -55,3 +56,22 @@ def test_load_albs_on_startup_doesnt_modify_assigned_org(clean_db):
         DedicatedALB.alb_arn == "alb-2"
     ).first()
     assert dedicated_listener.dedicated_org == "org1"
+
+
+def test_load_albs_doesnt_modify_assigned_waf(clean_db):
+    dedicated_alb = factories.DedicatedALBFactory.create(
+        alb_arn="alb-1", dedicated_org="org1", dedicated_waf_web_acl_arn="waf-arn-1"
+    )
+    clean_db.session.add(dedicated_alb)
+    clean_db.session.commit()
+
+    assert dedicated_alb.dedicated_waf_web_acl_arn == "waf-arn-1"
+
+    DedicatedALB.load_albs(
+        [
+            ("org1", "alb-1", "arn-1"),
+        ]
+    )
+
+    dedicated_alb = DedicatedALB.query.filter(DedicatedALB.alb_arn == "alb-1").first()
+    assert dedicated_alb.dedicated_waf_web_acl_arn == "waf-arn-1"
