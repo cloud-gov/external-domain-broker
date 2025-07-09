@@ -143,9 +143,10 @@ def test_waf_create_web_acl_for_alb(clean_db, service_instance, operation_id, wa
     dedicated_alb = factories.DedicatedALBFactory.create(
         alb_arn="alb-1", dedicated_org="org-1"
     )
+    dedicated_alb_id = dedicated_alb.id
 
     wafv2.expect_alb_create_web_acl(
-        dedicated_alb.id,
+        dedicated_alb_id,
     )
 
     waf._create_web_acl(clean_db, dedicated_alb)
@@ -156,7 +157,7 @@ def test_waf_create_web_acl_for_alb(clean_db, service_instance, operation_id, wa
 
     service_instance = clean_db.session.get(
         DedicatedALB,
-        dedicated_alb.id,
+        dedicated_alb_id,
     )
     assert service_instance.dedicated_waf_web_acl_arn
     assert service_instance.dedicated_waf_web_acl_id

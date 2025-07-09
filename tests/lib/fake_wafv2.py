@@ -59,40 +59,6 @@ class FakeWAFV2(FakeAWS):
             "DefaultAction": {"Allow": {}},
             "Rules": [
                 {
-                    "Name": "AWS-AWSManagedRulesAntiDDoSRuleSet",
-                    "Priority": 0,
-                    "Statement": {
-                        "ManagedRuleGroupStatement": {
-                            "VendorName": "AWS",
-                            "Name": "AWSManagedRulesAntiDDoSRuleSet",
-                            "ManagedRuleGroupConfigs": [
-                                {
-                                    "AWSManagedRulesAntiDDoSRuleSet": {
-                                        "ClientSideActionConfig": {
-                                            "Challenge": {
-                                                "UsageOfAction": "ENABLED",
-                                                "Sensitivity": "HIGH",
-                                                "ExemptUriRegularExpressions": [
-                                                    {
-                                                        "RegexString": "\\/api\\/|\\.(acc|avi|css|gif|ico|jpe?g|js|json|mp[34]|ogg|otf|pdf|png|tiff?|ttf|webm|webp|woff2?|xml)$"
-                                                    }
-                                                ],
-                                            }
-                                        },
-                                        "SensitivityToBlock": "LOW",
-                                    }
-                                }
-                            ],
-                        }
-                    },
-                    "OverrideAction": {"None": {}},
-                    "VisibilityConfig": {
-                        "SampledRequestsEnabled": True,
-                        "CloudWatchMetricsEnabled": True,
-                        "MetricName": f"{waf_name}-AWS-AWSManagedRulesAntiDDoSRuleSet",
-                    },
-                },
-                {
                     "Name": "AWSManagedRule-CoreRuleSet",
                     "Priority": 0,
                     "Statement": {

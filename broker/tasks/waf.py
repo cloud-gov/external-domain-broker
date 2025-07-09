@@ -98,40 +98,6 @@ def _get_web_acl_rules(instance, web_acl_name: str):
     elif instance.instance_type == ModelTypes.DEDICATED_ALB.value:
         return [
             {
-                "Name": "AWS-AWSManagedRulesAntiDDoSRuleSet",
-                "Priority": 0,
-                "Statement": {
-                    "ManagedRuleGroupStatement": {
-                        "VendorName": "AWS",
-                        "Name": "AWSManagedRulesAntiDDoSRuleSet",
-                        "ManagedRuleGroupConfigs": [
-                            {
-                                "AWSManagedRulesAntiDDoSRuleSet": {
-                                    "ClientSideActionConfig": {
-                                        "Challenge": {
-                                            "UsageOfAction": "ENABLED",
-                                            "Sensitivity": "HIGH",
-                                            "ExemptUriRegularExpressions": [
-                                                {
-                                                    "RegexString": "\\/api\\/|\\.(acc|avi|css|gif|ico|jpe?g|js|json|mp[34]|ogg|otf|pdf|png|tiff?|ttf|webm|webp|woff2?|xml)$"
-                                                }
-                                            ],
-                                        }
-                                    },
-                                    "SensitivityToBlock": "LOW",
-                                }
-                            }
-                        ],
-                    }
-                },
-                "OverrideAction": {"None": {}},
-                "VisibilityConfig": {
-                    "SampledRequestsEnabled": True,
-                    "CloudWatchMetricsEnabled": True,
-                    "MetricName": f"{web_acl_name}-AWS-AWSManagedRulesAntiDDoSRuleSet",
-                },
-            },
-            {
                 "Name": "AWSManagedRule-CoreRuleSet",
                 "Priority": 0,
                 "Statement": {
