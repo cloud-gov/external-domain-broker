@@ -24,7 +24,9 @@ def subtest_provision_create_web_acl(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
     assert service_instance.dedicated_waf_web_acl_id
-    web_acl_name = f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-dedicated-waf"
+    web_acl_name = (
+        f"{config.AWS_RESOURCE_PREFIX}-cdn-{service_instance.id}-dedicated-waf"
+    )
     assert service_instance.dedicated_waf_web_acl_id == f"{web_acl_name}-id"
     assert service_instance.dedicated_waf_web_acl_name
     assert service_instance.dedicated_waf_web_acl_name == web_acl_name
