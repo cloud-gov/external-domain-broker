@@ -1,8 +1,5 @@
 name: Security Considerations
 
-permissions:
-  pull-requests: read
-
 on:
   pull_request:
     types: [opened, edited, reopened]
