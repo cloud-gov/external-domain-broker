@@ -52,3 +52,8 @@ def cache_policy_id():
 @pytest.fixture(scope="session")
 def origin_request_policy_id():
     return str(uuid.uuid4())
+
+
+@pytest.fixture
+def dedicated_alb_id():
+    return str(random.randrange(0, 10000))

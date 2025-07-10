@@ -71,11 +71,6 @@ def service_instance(
 
 
 @pytest.fixture
-def dedicated_alb_id():
-    return str(random.randrange(0, 10000))
-
-
-@pytest.fixture
 def dedicated_alb(clean_db, dedicated_alb_id, service_instance_id, operation_id):
     dedicated_alb = factories.DedicatedALBFactory.create(
         id=dedicated_alb_id, alb_arn="alb-1", dedicated_org="org-1"

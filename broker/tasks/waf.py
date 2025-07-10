@@ -32,7 +32,7 @@ def _find_dedicated_alb_for_instance(db, service_instance) -> DedicatedALB:
 def create_alb_web_acl(operation_id, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     dedicated_alb = _find_dedicated_alb_for_instance(db, service_instance)
-    _create_web_acl(wafv2_govcloud, db, dedicated_alb, **kwargs)
+    create_web_acl(wafv2_govcloud, db, dedicated_alb, **kwargs)
 
 
 @pipeline_operation("Creating custom WAFv2 web ACL")
@@ -41,14 +41,14 @@ def create_cdn_web_acl(operation_id: str, *, operation, db, **kwargs):
     kwargs = {}
     if service_instance.tags is not None:
         kwargs["Tags"] = service_instance.tags
-    _create_web_acl(wafv2_commercial, db, service_instance, **kwargs)
+    create_web_acl(wafv2_commercial, db, service_instance, **kwargs)
 
 
 @pipeline_operation("Updating WAFv2 web ACL logging configuration")
 def put_alb_waf_logging_configuration(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     dedicated_alb = _find_dedicated_alb_for_instance(db, service_instance)
-    _put_waf_logging_configuration(
+    put_waf_logging_configuration(
         wafv2_govcloud, dedicated_alb, config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN
     )
 
@@ -56,12 +56,12 @@ def put_alb_waf_logging_configuration(operation_id: str, *, operation, db, **kwa
 @pipeline_operation("Updating WAFv2 web ACL logging configuration")
 def put_cdn_waf_logging_configuration(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-    _put_waf_logging_configuration(
+    put_waf_logging_configuration(
         wafv2_commercial, service_instance, config.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN
     )
 
 
-def _put_waf_logging_configuration(waf_client, instance, log_group_arn):
+def put_waf_logging_configuration(waf_client, instance, log_group_arn):
     if not instance.dedicated_waf_web_acl_arn:
         logger.info("Web ACL ARN is required")
         return
@@ -229,7 +229,7 @@ def _get_web_acl_scope(instance):
         raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
 
 
-def _create_web_acl(waf_client, db, instance, **kwargs):
+def create_web_acl(waf_client, db, instance, **kwargs):
     if (
         instance.dedicated_waf_web_acl_arn
         and instance.dedicated_waf_web_acl_id
