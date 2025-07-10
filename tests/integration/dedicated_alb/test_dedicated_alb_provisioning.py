@@ -54,7 +54,7 @@ def test_provision_happy_path(
     dedicated_alb_id,
 ):
     instance_model = DedicatedALBServiceInstance
-    create_dedicated_alb_listeners(organization_guid, dedicated_alb_id)
+    create_dedicated_alb_listeners(db, organization_guid, dedicated_alb_id)
     subtest_provision_dedicated_alb_instance(
         client,
         dns,
@@ -211,6 +211,7 @@ def subtest_provision_selects_dedicated_alb(tasks, alb, service_instance_id="432
     alb.expect_get_listeners("our-arn-0", "alb-our-arn-0")
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
+    db.session.expunge_all()
     service_instance = db.session.get(DedicatedALBServiceInstance, service_instance_id)
     assert service_instance.alb_arn.startswith("alb-our-arn-0")
 

@@ -1,11 +1,10 @@
-from broker.extensions import db
 from broker.models import (
     DedicatedALB,
     DedicatedALBListener,
 )
 
 
-def create_dedicated_alb_listeners(organization_guid, dedicated_alb_id):
+def create_dedicated_alb_listeners(db, organization_guid, dedicated_alb_id):
     alb_0 = DedicatedALB(
         alb_arn="alb-our-arn-0",
         dedicated_org=organization_guid,

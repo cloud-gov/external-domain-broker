@@ -133,7 +133,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
-    create_dedicated_alb_listeners(organization_guid, dedicated_alb_id)
+    create_dedicated_alb_listeners(db, organization_guid, dedicated_alb_id)
 
     instance_model = DedicatedALBServiceInstance
     subtest_queues_tasks()
