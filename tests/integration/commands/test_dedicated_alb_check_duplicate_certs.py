@@ -7,7 +7,7 @@ from tests.lib.factories import (
 
 from broker.models import DedicatedALBServiceInstance
 
-from broker.duplicate_certs import (
+from broker.commands.duplicate_certs import (
     find_duplicate_alb_certs,
     log_duplicate_alb_cert_metrics,
     get_service_duplicate_alb_cert_count,
