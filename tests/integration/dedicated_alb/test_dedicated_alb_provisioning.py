@@ -29,6 +29,8 @@ from tests.integration.dedicated_alb.test_dedicated_alb_update import (
     subtest_update_happy_path,
 )
 
+from tests.integration.dedicated_alb.provision import create_dedicated_alb_listeners
+
 # The subtests below are "interesting".  Before test_provision_happy_path, we
 # had separate tests for each stage in the task pipeline.  But each test would
 # have to duplicate much of the previous test.  This was arduous and slow. Now
@@ -201,45 +203,6 @@ def subtest_provision_dedicated_alb_instance(
     check_last_operation_description(
         client, service_instance_id, operation_id, "Complete!"
     )
-
-
-def create_dedicated_alb_listeners(organization_guid, dedicated_alb_id):
-    alb_0 = DedicatedALB(
-        alb_arn="alb-our-arn-0",
-        dedicated_org=organization_guid,
-        id=dedicated_alb_id,
-    )
-    alb_1 = DedicatedALB(
-        alb_arn="alb-our-arn-1",
-        dedicated_org=organization_guid,
-    )
-    db.session.add_all(
-        [
-            alb_0,
-            alb_1,
-        ]
-    )
-    db.session.commit()
-
-    our_listener_0 = DedicatedALBListener(
-        listener_arn="our-arn-0",
-        alb_arn="alb-our-arn-0",
-        dedicated_org=organization_guid,
-    )
-    our_listener_1 = DedicatedALBListener(
-        listener_arn="our-arn-1",
-        alb_arn="alb-our-arn-1",
-        dedicated_org=organization_guid,
-    )
-
-    db.session.add_all(
-        [
-            our_listener_0,
-            our_listener_1,
-        ]
-    )
-    db.session.commit()
-    db.session.expunge_all()
 
 
 def subtest_provision_selects_dedicated_alb(tasks, alb, service_instance_id="4321"):

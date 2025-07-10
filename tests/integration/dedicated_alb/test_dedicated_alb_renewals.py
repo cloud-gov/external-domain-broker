@@ -4,7 +4,12 @@ from acme.errors import ValidationError
 import pytest
 
 from broker.extensions import db
-from broker.models import Operation, DedicatedALBServiceInstance
+from broker.models import (
+    Operation,
+    DedicatedALB,
+    DedicatedALBListener,
+    DedicatedALBServiceInstance,
+)
 from broker.tasks.cron import scan_for_expiring_certs
 from broker.tasks.huey import huey
 from broker.tasks.letsencrypt import create_user, generate_private_key
@@ -38,6 +43,8 @@ from tests.lib.factories import (
     CertificateFactory,
 )
 
+from tests.integration.dedicated_alb.provision import create_dedicated_alb_listeners
+
 
 @pytest.fixture
 def dedicated_alb_instance_needing_renewal(clean_db, tasks, organization_guid):
@@ -50,7 +57,7 @@ def dedicated_alb_instance_needing_renewal(clean_db, tasks, organization_guid):
         domain_names=["example.com", "foo.com"],
         domain_internal="fake1234.cloud.test",
         route53_alias_hosted_zone="ALBHOSTEDZONEID",
-        alb_arn="alb-arn-0",
+        alb_arn="alb-our-arn-0",
         alb_listener_arn="our-arn-0",
         org_id=organization_guid,
     )
@@ -96,6 +103,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
     simple_regex,
     alb,
     organization_guid,
+    dedicated_alb_id,
 ):
 
     no_renew_service_instance = DedicatedALBServiceInstanceFactory.create(
@@ -103,7 +111,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
         domain_names=["example.org", "foo.org"],
         domain_internal="fake1234.cloud.test",
         route53_alias_hosted_zone="ALBHOSTEDZONEID",
-        alb_arn="alb-arn-0",
+        alb_arn="alb-our-arn-0",
         alb_listener_arn="our-arn-0",
         org_id="our-org",
     )
@@ -125,6 +133,8 @@ def test_scan_for_expiring_certs_alb_happy_path(
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
+    create_dedicated_alb_listeners(organization_guid, dedicated_alb_id)
+
     instance_model = DedicatedALBServiceInstance
     subtest_queues_tasks()
     subtest_update_creates_private_key_and_csr(tasks, instance_model)
@@ -136,7 +146,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
     subtest_provision_uploads_certificate_to_iam(
         tasks, iam_govcloud, simple_regex, instance_model
     )
-    subtest_provision_selects_dedicated_alb(tasks, alb, organization_guid)
+    subtest_provision_selects_dedicated_alb(tasks, alb)
     subtest_provision_adds_certificate_to_alb(tasks, alb)
     subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
