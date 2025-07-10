@@ -1,5 +1,4 @@
 import pytest  # noqa F401
-import random
 
 from broker.extensions import config
 

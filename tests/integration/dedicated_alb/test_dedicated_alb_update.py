@@ -2,9 +2,9 @@ from datetime import date
 
 import pytest  # noqa F401
 
-from broker.extensions import db
+from broker.extensions import config, db
 from broker.models import (
-    Challenge,
+    DedicatedALB,
     Operation,
     DedicatedALBServiceInstance,
 )
@@ -30,7 +30,15 @@ from tests.lib.alb.update import (
 
 
 def subtest_update_happy_path(
-    client, dns, tasks, route53, iam_govcloud, simple_regex, alb
+    client,
+    dns,
+    tasks,
+    route53,
+    iam_govcloud,
+    simple_regex,
+    alb,
+    wafv2_govcloud,
+    dedicated_alb_id,
 ):
     instance_model = DedicatedALBServiceInstance
     operation_id = subtest_update_creates_update_operation(client, dns)
@@ -48,6 +56,10 @@ def subtest_update_happy_path(
     subtest_update_uploads_new_cert(tasks, iam_govcloud, simple_regex, instance_model)
     subtest_update_selects_alb(tasks, alb)
     subtest_update_adds_certificate_to_alb(tasks, alb)
+    subtest_update_does_not_create_alb_web_acl(tasks, wafv2_govcloud)
+    subtest_update_puts_alb_web_acl_logging_configuration(
+        tasks, wafv2_govcloud, dedicated_alb_id
+    )
     subtest_update_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_removes_previous_certificate_from_alb(
@@ -113,3 +125,29 @@ def subtest_update_adds_certificate_to_alb(tasks, alb):
     assert service_instance.new_certificate is None
     assert service_instance.current_certificate is not None
     assert service_instance.current_certificate.id == id_
+
+
+def subtest_update_does_not_create_alb_web_acl(tasks, wafv2_govcloud):
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    wafv2_govcloud.assert_no_pending_responses()
+
+
+def subtest_update_puts_alb_web_acl_logging_configuration(
+    tasks, wafv2_govcloud, dedicated_alb_id
+):
+    dedicated_alb = db.session.get(
+        DedicatedALB,
+        dedicated_alb_id,
+    )
+
+    db.session.add(dedicated_alb)
+    db.session.commit()
+
+    wafv2_govcloud.expect_put_logging_configuration(
+        dedicated_alb.dedicated_waf_web_acl_arn,
+        config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN,
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    wafv2_govcloud.assert_no_pending_responses()
