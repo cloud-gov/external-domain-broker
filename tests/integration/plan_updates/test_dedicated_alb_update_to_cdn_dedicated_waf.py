@@ -64,6 +64,8 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     sns_commercial,
     cloudwatch_commercial,
     shield,
+    wafv2_govcloud,
+    dedicated_alb_id,
 ):
     subtest_provision_dedicated_alb_instance(
         client,
@@ -75,6 +77,8 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
         alb,
         organization_guid,
         space_guid,
+        wafv2_govcloud,
+        dedicated_alb_id,
         service_instance_id=service_instance_id,
     )
 

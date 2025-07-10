@@ -54,7 +54,6 @@ def test_provision_happy_path(
     dedicated_alb_id,
 ):
     instance_model = DedicatedALBServiceInstance
-    create_dedicated_alb_listeners(db, organization_guid, dedicated_alb_id)
     subtest_provision_dedicated_alb_instance(
         client,
         dns,
@@ -96,6 +95,7 @@ def subtest_provision_dedicated_alb_instance(
     dedicated_alb_id,
     service_instance_id="4321",
 ):
+    create_dedicated_alb_listeners(db, organization_guid, dedicated_alb_id)
     instance_model = DedicatedALBServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
         client,

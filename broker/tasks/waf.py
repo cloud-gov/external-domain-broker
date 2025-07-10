@@ -102,9 +102,9 @@ def generate_web_acl_name(instance, resource_prefix):
     name_parts = [resource_prefix]
     type = ""
 
-    if instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
+    if is_cdn_instance(instance):
         type = "cdn"
-    elif instance.instance_type == ModelTypes.DEDICATED_ALB.value:
+    elif is_dedicated_alb(instance):
         type = "alb"
 
     if type:
@@ -115,7 +115,7 @@ def generate_web_acl_name(instance, resource_prefix):
 
 
 def _get_web_acl_rules(instance, web_acl_name: str):
-    if instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
+    if is_cdn_instance(instance):
         return [
             {
                 "Name": "RateLimit",
@@ -133,7 +133,7 @@ def _get_web_acl_rules(instance, web_acl_name: str):
                 },
             }
         ]
-    elif instance.instance_type == ModelTypes.DEDICATED_ALB.value:
+    elif is_dedicated_alb(instance):
         return [
             {
                 "Name": "AWSManagedRule-CoreRuleSet",
@@ -221,9 +221,9 @@ def _get_web_acl_rules(instance, web_acl_name: str):
 
 
 def _get_web_acl_scope(instance):
-    if instance.instance_type == ServiceInstanceTypes.CDN_DEDICATED_WAF.value:
+    if is_cdn_instance(instance):
         return "CLOUDFRONT"
-    elif instance.instance_type == ModelTypes.DEDICATED_ALB.value:
+    elif is_dedicated_alb(instance):
         return "REGIONAL"
     else:
         raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
@@ -299,3 +299,14 @@ def _delete_web_acl_with_retries(operation_id, service_instance):
         except wafv2_commercial.exceptions.WAFNonexistentItemException:
             notDeleted = False
             return
+
+
+def is_cdn_instance(instance):
+    return instance.instance_type in [
+        ServiceInstanceTypes.CDN_DEDICATED_WAF.value,
+        ServiceInstanceTypes.DEDICATED_ALB_CDN_DEDICATED_WAF_MIGRATION.value,
+    ]
+
+
+def is_dedicated_alb(instance):
+    return instance.instance_type == ModelTypes.DEDICATED_ALB.value
