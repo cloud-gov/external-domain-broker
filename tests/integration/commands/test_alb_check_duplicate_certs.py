@@ -2,12 +2,12 @@ import pytest  # noqa F401
 
 from tests.lib.factories import (
     CertificateFactory,
-    DedicatedALBServiceInstanceFactory,
+    ALBServiceInstanceFactory,
 )
 
-from broker.models import DedicatedALBServiceInstance
+from broker.models import ALBServiceInstance
 
-from broker.duplicate_certs import (
+from broker.commands.duplicate_certs import (
     find_duplicate_alb_certs,
     log_duplicate_alb_cert_metrics,
     get_service_duplicate_alb_cert_count,
@@ -17,21 +17,21 @@ from broker.duplicate_certs import (
 
 def test_no_duplicate_alb_certs(no_context_clean_db, no_context_app):
     with no_context_app.app_context():
-        service_instance = DedicatedALBServiceInstanceFactory.create(id="1234")
+        service_instance = ALBServiceInstanceFactory.create(id="1234")
         CertificateFactory.create(
             service_instance=service_instance,
         )
 
         no_context_clean_db.session.commit()
 
-        results = find_duplicate_alb_certs(DedicatedALBServiceInstance)
+        results = find_duplicate_alb_certs(ALBServiceInstance)
 
         assert len(results) == 0
 
 
 def test_non_current_duplicate_alb_cert(no_context_clean_db, no_context_app):
     with no_context_app.app_context():
-        service_instance = DedicatedALBServiceInstanceFactory.create(id="1234")
+        service_instance = ALBServiceInstanceFactory.create(id="1234")
         certificate = CertificateFactory.create(
             service_instance=service_instance,
         )
@@ -42,7 +42,7 @@ def test_non_current_duplicate_alb_cert(no_context_clean_db, no_context_app):
 
         no_context_clean_db.session.commit()
 
-        results = find_duplicate_alb_certs(DedicatedALBServiceInstance)
+        results = find_duplicate_alb_certs(ALBServiceInstance)
 
         assert len(results) == 1
         assert results == [("1234", 1)]
@@ -50,7 +50,7 @@ def test_non_current_duplicate_alb_cert(no_context_clean_db, no_context_app):
 
 def test_multiple_non_current_duplicate_alb_certs(no_context_clean_db, no_context_app):
     with no_context_app.app_context():
-        service_instance = DedicatedALBServiceInstanceFactory.create(id="1234")
+        service_instance = ALBServiceInstanceFactory.create(id="1234")
         certificate = CertificateFactory.create(
             service_instance=service_instance,
         )
@@ -64,7 +64,7 @@ def test_multiple_non_current_duplicate_alb_certs(no_context_clean_db, no_contex
 
         no_context_clean_db.session.commit()
 
-        results = find_duplicate_alb_certs(DedicatedALBServiceInstance)
+        results = find_duplicate_alb_certs(ALBServiceInstance)
 
         assert len(results) == 1
         assert results == [("1234", 2)]
@@ -72,7 +72,7 @@ def test_multiple_non_current_duplicate_alb_certs(no_context_clean_db, no_contex
 
 def test_no_service_duplicate_alb_certs(no_context_clean_db, no_context_app):
     with no_context_app.app_context():
-        service_instance = DedicatedALBServiceInstanceFactory.create(id="1234")
+        service_instance = ALBServiceInstanceFactory.create(id="1234")
         CertificateFactory.create(
             service_instance=service_instance,
         )
@@ -81,7 +81,7 @@ def test_no_service_duplicate_alb_certs(no_context_clean_db, no_context_app):
 
         assert (
             get_service_duplicate_alb_cert_count(
-                service_instance.id, DedicatedALBServiceInstance
+                service_instance.id, ALBServiceInstance
             )
             == 0
         )
@@ -89,7 +89,7 @@ def test_no_service_duplicate_alb_certs(no_context_clean_db, no_context_app):
 
 def test_service_duplicate_alb_certs(no_context_clean_db, no_context_app):
     with no_context_app.app_context():
-        service_instance = DedicatedALBServiceInstanceFactory.create(id="1234")
+        service_instance = ALBServiceInstanceFactory.create(id="1234")
         certificate = CertificateFactory.create(
             service_instance=service_instance,
         )
@@ -102,7 +102,7 @@ def test_service_duplicate_alb_certs(no_context_clean_db, no_context_app):
 
         assert (
             get_service_duplicate_alb_cert_count(
-                service_instance.id, DedicatedALBServiceInstance
+                service_instance.id, ALBServiceInstance
             )
             == 1
         )
@@ -110,7 +110,7 @@ def test_service_duplicate_alb_certs(no_context_clean_db, no_context_app):
 
 def test_service_duplicate_alb_certs_output(no_context_clean_db, no_context_app):
     with no_context_app.app_context():
-        service_instance = DedicatedALBServiceInstanceFactory.create(id="1234")
+        service_instance = ALBServiceInstanceFactory.create(id="1234")
         certificate = CertificateFactory.create(
             service_instance=service_instance,
         )
@@ -131,7 +131,7 @@ def test_service_duplicate_alb_certs_output(no_context_clean_db, no_context_app)
         fakeLogger = FakeLogger()
 
         get_and_log_service_duplicate_alb_cert_metric(
-            service_instance.id, DedicatedALBServiceInstance, logger=fakeLogger
+            service_instance.id, ALBServiceInstance, logger=fakeLogger
         )
 
         assert (
@@ -142,7 +142,7 @@ def test_service_duplicate_alb_certs_output(no_context_clean_db, no_context_app)
 
 def test_duplicate_alb_certs_output(no_context_clean_db, no_context_app):
     with no_context_app.app_context():
-        service_instance = DedicatedALBServiceInstanceFactory.create(id="1234")
+        service_instance = ALBServiceInstanceFactory.create(id="1234")
         certificate = CertificateFactory.create(
             service_instance=service_instance,
         )

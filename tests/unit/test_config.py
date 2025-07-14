@@ -121,7 +121,10 @@ def mocked_env(
     monkeypatch.setenv("UAA_CLIENT_ID", uaa_client_id)
     monkeypatch.setenv("UAA_CLIENT_SECRET", uaa_client_secret)
     monkeypatch.setenv(
-        "WAF_CLOUDWATCH_LOG_GROUP_ARN", "fake-waf-cloudwatch-log-group-arn"
+        "CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN", "fake-waf-cloudwatch-log-group-arn"
+    )
+    monkeypatch.setenv(
+        "ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN", "fake-alb-waf-cloudwatch-log-group-arn"
     )
 
 
@@ -299,3 +302,18 @@ def test_config_sets_cf_vars(
     assert config.UAA_TOKEN_URL == "mock://uaa/oauth/token"
     assert config.UAA_CLIENT_ID == uaa_client_id
     assert config.UAA_CLIENT_SECRET == uaa_client_secret
+
+
+@pytest.mark.parametrize("env", ["production", "staging", "development"])
+def test_config_sets_waf_group_arns(env, monkeypatch, mocked_env):
+    monkeypatch.setenv("FLASK_ENV", env)
+
+    config = config_from_env()
+
+    assert (
+        config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN
+        == "fake-alb-waf-cloudwatch-log-group-arn"
+    )
+    assert (
+        config.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN == "fake-waf-cloudwatch-log-group-arn"
+    )

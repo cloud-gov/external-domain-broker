@@ -1,6 +1,5 @@
 from broker.extensions import db
 from broker.models import ALBServiceInstance
-from broker.tasks.alb import get_lowest_used_alb
 from tests.lib.client import check_last_operation_description
 
 
@@ -115,7 +114,7 @@ def subtest_provision_selects_alb(tasks, alb):
     db.session.expunge_all()
     alb.expect_get_certificates_for_listener("listener-arn-0", 1)
     alb.expect_get_certificates_for_listener("listener-arn-1", 5)
-    alb.expect_get_listeners("listener-arn-0")
+    alb.expect_get_listeners("listener-arn-0", "alb-listener-arn-0")
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
     service_instance = db.session.get(ALBServiceInstance, "4321")

@@ -13,7 +13,7 @@ def subtest_provision_create_web_acl(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
 
-    wafv2.expect_create_web_acl(
+    wafv2.expect_cdn_create_web_acl(
         service_instance.id,
         config.WAF_RATE_LIMIT_RULE_GROUP_ARN,
         service_instance.tags,
@@ -24,7 +24,9 @@ def subtest_provision_create_web_acl(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, service_instance_id)
     assert service_instance.dedicated_waf_web_acl_id
-    web_acl_name = f"{config.AWS_RESOURCE_PREFIX}-{service_instance.id}-dedicated-waf"
+    web_acl_name = (
+        f"{config.AWS_RESOURCE_PREFIX}-cdn-{service_instance.id}-dedicated-waf"
+    )
     assert service_instance.dedicated_waf_web_acl_id == f"{web_acl_name}-id"
     assert service_instance.dedicated_waf_web_acl_name
     assert service_instance.dedicated_waf_web_acl_name == web_acl_name
@@ -45,7 +47,7 @@ def subtest_provision_put_web_acl_logging_configuration(
 
     wafv2.expect_put_logging_configuration(
         service_instance.dedicated_waf_web_acl_arn,
-        config.WAF_CLOUDWATCH_LOG_GROUP_ARN,
+        config.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()

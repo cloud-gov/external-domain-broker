@@ -3,9 +3,12 @@ import pytest
 from broker.models import DedicatedALBServiceInstance
 
 from tests.lib import factories
+from tests.integration.dedicated_alb.provision import create_dedicated_alb_listeners
 from tests.integration.dedicated_alb.test_dedicated_alb_provisioning import (
     subtest_provision_selects_dedicated_alb,
     subtest_provision_adds_certificate_to_alb,
+    subtest_provision_creates_alb_web_acl,
+    subtest_provision_puts_alb_web_acl_logging_configuration,
 )
 from tests.lib.provision import (
     subtest_provision_marks_operation_as_succeeded,
@@ -55,8 +58,17 @@ def service_instance(clean_db):
 
 
 def test_update_alb_to_dedicated_alb_happy_path(
-    clean_db, client, service_instance, tasks, route53, alb, organization_guid
+    clean_db,
+    client,
+    service_instance,
+    tasks,
+    route53,
+    alb,
+    organization_guid,
+    wafv2_govcloud,
+    dedicated_alb_id,
 ):
+    create_dedicated_alb_listeners(clean_db, organization_guid, dedicated_alb_id)
     client.update_instance_to_dedicated_alb("4321", organization_guid=organization_guid)
     assert client.response.status_code == 202, client.response.json
     clean_db.session.expunge_all()
@@ -71,8 +83,12 @@ def test_update_alb_to_dedicated_alb_happy_path(
     # - add certificate
     # - update DNS
     # - remove certificate from old ALB
-    subtest_provision_selects_dedicated_alb(tasks, alb, organization_guid)
+    subtest_provision_selects_dedicated_alb(tasks, alb)
     subtest_provision_adds_certificate_to_alb(tasks, alb)
+    subtest_provision_creates_alb_web_acl(tasks, wafv2_govcloud, dedicated_alb_id)
+    subtest_provision_puts_alb_web_acl_logging_configuration(
+        tasks, wafv2_govcloud, dedicated_alb_id
+    )
     instance_model = DedicatedALBServiceInstance
     subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)

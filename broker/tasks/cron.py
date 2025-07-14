@@ -1,13 +1,16 @@
 import datetime
+import functools
 import logging
 
 from huey import crontab
 
+from broker.aws import alb
 from broker.extensions import db, config
 from broker.lib.cdn import is_cdn_instance
 from broker.models import (
     Certificate,
     Operation,
+    DedicatedALB,
     DedicatedALBListener,
     ServiceInstance,
     ServiceInstanceTypes,
@@ -108,7 +111,33 @@ def restart_stalled_pipelines():
 @huey.huey.periodic_task(crontab(month="*", hour="*", day="*", minute="*"))
 def load_albs():
     with huey.huey.flask_app.app_context():
-        DedicatedALBListener.load_albs(config.DEDICATED_ALB_LISTENER_ARN_MAP)
+        _load_albs(alb, config.DEDICATED_ALB_LISTENER_ARN_MAP)
+
+
+@functools.cache
+def get_alb_listener_info(alb_client, listener_arn):
+    return alb_client.describe_listeners(ListenerArns=[listener_arn])
+
+
+def _load_albs(alb_client, dedicated_listener_arn_map: dict[str]):
+    dedicated_listeners = []
+
+    for dedicated_listener_arn in dedicated_listener_arn_map:
+        listener_data = get_alb_listener_info(alb_client, dedicated_listener_arn)
+        if not listener_data["Listeners"]:
+            raise RuntimeError("Could not find listener")
+        listener_data = listener_data["Listeners"][0]
+        organization_id = dedicated_listener_arn_map[dedicated_listener_arn]
+        dedicated_listeners.append(
+            (
+                organization_id,
+                listener_data["LoadBalancerArn"],
+                listener_data["ListenerArn"],
+            )
+        )
+
+    DedicatedALB.load_albs(dedicated_listeners)
+    DedicatedALBListener.load_alb_listeners(dedicated_listeners)
 
 
 def scan_for_stalled_pipelines():

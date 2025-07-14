@@ -25,6 +25,8 @@ def queue_all_alb_to_dedicated_alb_update_tasks_for_operation(
     task_pipeline = (
         alb.select_dedicated_alb.s(operation_id, **correlation)
         .then(alb.add_certificate_to_alb, operation_id, **correlation)
+        .then(waf.create_alb_web_acl, operation_id, **correlation)
+        .then(waf.put_alb_waf_logging_configuration, operation_id, **correlation)
         .then(route53.create_ALIAS_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
         .then(
@@ -55,8 +57,8 @@ def queue_all_dedicated_alb_to_cdn_dedicated_waf_update_tasks_for_operation(
         .then(letsencrypt.answer_challenges, operation_id, **correlation)
         .then(letsencrypt.retrieve_certificate, operation_id, **correlation)
         .then(iam.upload_cloudfront_server_certificate, operation_id, **correlation)
-        .then(waf.create_web_acl, operation_id, **correlation)
-        .then(waf.put_logging_configuration, operation_id, **correlation)
+        .then(waf.create_cdn_web_acl, operation_id, **correlation)
+        .then(waf.put_cdn_waf_logging_configuration, operation_id, **correlation)
         .then(cloudfront.create_distribution, operation_id, **correlation)
         .then(cloudfront.wait_for_distribution, operation_id, **correlation)
         .then(route53.create_ALIAS_records, operation_id, **correlation)
@@ -99,7 +101,7 @@ def queue_all_cdn_to_cdn_dedicated_waf_update_tasks_for_operation(
         .then(letsencrypt.answer_challenges, operation_id, **correlation)
         .then(letsencrypt.retrieve_certificate, operation_id, **correlation)
         .then(iam.upload_server_certificate, operation_id, **correlation)
-        .then(waf.create_web_acl, operation_id, **correlation)
+        .then(waf.create_cdn_web_acl, operation_id, **correlation)
         .then(cloudfront.update_distribution, operation_id, **correlation)
         .then(cloudfront.wait_for_distribution, operation_id, **correlation)
         .then(route53.create_ALIAS_records, operation_id, **correlation)

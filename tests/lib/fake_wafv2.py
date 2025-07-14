@@ -1,15 +1,15 @@
 import pytest
 
-from broker.aws import wafv2 as real_wafv2
+from broker.aws import wafv2_commercial as real_wafv2_c, wafv2_govcloud as real_wafv2_g
 from broker.lib.tags import Tag
 from broker.extensions import config
 from tests.lib.fake_aws import FakeAWS
 
 
 class FakeWAFV2(FakeAWS):
-    def expect_create_web_acl(self, id: str, rule_group_arn: str, tags: list[Tag]):
+    def expect_cdn_create_web_acl(self, id: str, rule_group_arn: str, tags: list[Tag]):
         method = "create_web_acl"
-        waf_name = f"{config.AWS_RESOURCE_PREFIX}-{id}-dedicated-waf"
+        waf_name = f"{config.AWS_RESOURCE_PREFIX}-cdn-{id}-dedicated-waf"
 
         request = {
             "Name": waf_name,
@@ -39,6 +39,112 @@ class FakeWAFV2(FakeAWS):
 
         if tags:
             request["Tags"] = tags
+
+        response = {
+            "Summary": {
+                "Id": f"{waf_name}-id",
+                "Name": waf_name,
+                "ARN": f"arn:aws:wafv2::000000000000:global/webacl/{waf_name}",
+            }
+        }
+        self.stubber.add_response(method, response, request)
+
+    def expect_alb_create_web_acl(self, id: str):
+        method = "create_web_acl"
+        waf_name = f"{config.AWS_RESOURCE_PREFIX}-alb-{id}-dedicated-waf"
+
+        request = {
+            "Name": waf_name,
+            "Scope": "REGIONAL",
+            "DefaultAction": {"Allow": {}},
+            "Rules": [
+                {
+                    "Name": "AWSManagedRule-CoreRuleSet",
+                    "Priority": 0,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesCommonRuleSet",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-AWSManagedRulesCommonRuleSet",
+                    },
+                },
+                {
+                    "Name": "AWS-AWSManagedRulesAnonymousIpList",
+                    "Priority": 10,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesAnonymousIpList",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-AWSManagedRulesAnonymousIpList",
+                    },
+                },
+                {
+                    "Name": "AWS-AWSManagedRulesAmazonIpReputationList",
+                    "Priority": 20,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesAmazonIpReputationList",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-ManagedRulesAmazonIpReputationList",
+                    },
+                },
+                {
+                    "Name": "AWS-KnownBadInputsRuleSet",
+                    "Priority": 30,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesKnownBadInputsRuleSet",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-KnownBadInputsRuleSet",
+                    },
+                },
+                {
+                    "Name": "AWSManagedRule-CoreRuleSet",
+                    "Priority": 40,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesCommonRuleSet",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-AWSManagedRulesCommonRuleSet",
+                    },
+                },
+            ],
+            "VisibilityConfig": {
+                "SampledRequestsEnabled": True,
+                "CloudWatchMetricsEnabled": True,
+                "MetricName": waf_name,
+            },
+        }
 
         response = {
             "Summary": {
@@ -115,6 +221,12 @@ class FakeWAFV2(FakeAWS):
 
 
 @pytest.fixture(autouse=True)
-def wafv2():
-    with FakeWAFV2.stubbing(real_wafv2) as wafv2_stubber:
+def wafv2_commercial():
+    with FakeWAFV2.stubbing(real_wafv2_c) as wafv2_stubber:
+        yield wafv2_stubber
+
+
+@pytest.fixture(autouse=True)
+def wafv2_govcloud():
+    with FakeWAFV2.stubbing(real_wafv2_g) as wafv2_stubber:
         yield wafv2_stubber

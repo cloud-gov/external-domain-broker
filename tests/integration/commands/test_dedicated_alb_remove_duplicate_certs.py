@@ -10,7 +10,7 @@ from tests.lib.factories import (
     OperationFactory,
 )
 
-from broker.duplicate_certs import (
+from broker.commands.duplicate_certs import (
     get_duplicate_certs_for_service,
     remove_duplicate_alb_certs,
     get_matching_alb_listener_arns_for_cert_arns,

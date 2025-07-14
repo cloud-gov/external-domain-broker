@@ -31,6 +31,10 @@ class ServiceInstanceTypes(Enum):
     )
 
 
+class ModelTypes(Enum):
+    DEDICATED_ALB = "dedicated_alb"
+
+
 def db_encryption_key():
     return config.DATABASE_ENCRYPTION_KEY
 
@@ -363,23 +367,70 @@ class Challenge(Base):
         return f"<Challenge {self.id} {self.domain}>"
 
 
+class DedicatedALB(Base):
+    __tablename__ = "dedicated_alb"
+    id = mapped_column(db.Integer, primary_key=True)
+    alb_arn = mapped_column(db.String, nullable=False, unique=True)
+    dedicated_org = mapped_column(db.String, nullable=False)
+    dedicated_waf_web_acl_arn = mapped_column(db.String)
+    dedicated_waf_web_acl_id = mapped_column(db.String)
+    dedicated_waf_web_acl_name = mapped_column(db.String)
+    instance_type = mapped_column(db.Text)
+
+    __mapper_args__ = {
+        "polymorphic_identity": ModelTypes.DEDICATED_ALB.value,
+        "polymorphic_on": instance_type,
+    }
+
+    @classmethod
+    def load_albs(cls, dedicated_listeners: list[tuple]):
+        if not dedicated_listeners:
+            raise RuntimeError("load_albs: List of dedicated listeners is empty")
+
+        logger.info(f"Starting load_albs with {dedicated_listeners}")
+        for dedicated_listener_info in dedicated_listeners:
+            (organization_id, dedicated_alb_arn, _) = dedicated_listener_info
+            stmt = insert(DedicatedALB).values(
+                [
+                    dict(
+                        dedicated_org=organization_id,
+                        alb_arn=dedicated_alb_arn,
+                        instance_type=ModelTypes.DEDICATED_ALB.value,
+                    )
+                ]
+            )
+            stmt = stmt.on_conflict_do_nothing(index_elements=["alb_arn"])
+            db.session.execute(stmt)
+            db.session.commit()
+
+
 class DedicatedALBListener(Base):
     __tablename__ = "dedicated_alb_listener"
     id = mapped_column(db.Integer, primary_key=True)
     listener_arn = mapped_column(db.String, nullable=False, unique=True)
-    alb_arn = mapped_column(db.String, nullable=True)
-    dedicated_org = mapped_column(db.String, nullable=True)
+    alb_arn = mapped_column(
+        db.String, db.ForeignKey("dedicated_alb.alb_arn"), nullable=False
+    )
+    dedicated_org = mapped_column(db.String, nullable=False)
 
     @classmethod
-    def load_albs(cls, dedicated_listener_arn_map: dict[str]):
-        logger.info(f"Starting load_albs with {dedicated_listener_arn_map}")
-        for dedicated_listener_arn in dedicated_listener_arn_map:
-            organization_id = dedicated_listener_arn_map[dedicated_listener_arn]
+    def load_alb_listeners(cls, dedicated_listeners: list[tuple]):
+        if not dedicated_listeners:
+            raise RuntimeError(
+                "load_alb_listeners: List of dedicated listeners is empty"
+            )
+
+        logger.info(f"Starting load_alb_listeners with {dedicated_listeners}")
+        for dedicated_listener_info in dedicated_listeners:
+            (organization_id, dedicated_alb_arn, dedicated_listener_arn) = (
+                dedicated_listener_info
+            )
             stmt = insert(DedicatedALBListener).values(
                 [
                     dict(
                         listener_arn=dedicated_listener_arn,
                         dedicated_org=organization_id,
+                        alb_arn=dedicated_alb_arn,
                     )
                 ]
             )

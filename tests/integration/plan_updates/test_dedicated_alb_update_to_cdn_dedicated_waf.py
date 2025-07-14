@@ -59,11 +59,13 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
     clean_db,
     service_instance_id,
     iam_commercial,
-    wafv2,
+    wafv2_commercial,
     cloudfront,
     sns_commercial,
     cloudwatch_commercial,
     shield,
+    wafv2_govcloud,
+    dedicated_alb_id,
 ):
     subtest_provision_dedicated_alb_instance(
         client,
@@ -75,6 +77,8 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
         alb,
         organization_guid,
         space_guid,
+        wafv2_govcloud,
+        dedicated_alb_id,
         service_instance_id=service_instance_id,
     )
 
@@ -154,7 +158,7 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
         "Uploading SSL certificate to AWS",
     )
     subtest_provision_create_web_acl(
-        tasks, wafv2, instance_model, service_instance_id=service_instance_id
+        tasks, wafv2_commercial, instance_model, service_instance_id=service_instance_id
     )
     check_last_operation_description(
         client,
@@ -163,7 +167,7 @@ def test_update_dedicated_alb_to_cdn_dedicated_waf_happy_path(
         "Creating custom WAFv2 web ACL",
     )
     subtest_provision_put_web_acl_logging_configuration(
-        tasks, wafv2, instance_model, service_instance_id=service_instance_id
+        tasks, wafv2_commercial, instance_model, service_instance_id=service_instance_id
     )
     check_last_operation_description(
         client,

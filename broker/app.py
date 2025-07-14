@@ -14,11 +14,12 @@ from sap.cf_logging import flask_logging
 # `flask db migrate`
 from broker import models  # noqa: F401
 from broker.api import API, ClientError
-from broker.extensions import config, db, migrate
-from broker.duplicate_certs import (
+from broker.commands.duplicate_certs import (
     log_duplicate_alb_cert_metrics,
     remove_duplicate_alb_certs,
 )
+from broker.commands.waf import add_dedicated_alb_waf_web_acls
+from broker.extensions import config, db, migrate
 from broker.errors import handle_exception
 
 
@@ -81,5 +82,9 @@ def create_app():
     @app.cli.command("remove-duplicate-certs")
     def remove_duplicate_alb_certs_command():
         remove_duplicate_alb_certs()
+
+    @app.cli.command("add-dedicated-alb-waf-web-acls")
+    def add_dedicated_alb_waf_web_acls_command():
+        add_dedicated_alb_waf_web_acls()
 
     return app
