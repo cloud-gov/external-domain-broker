@@ -679,7 +679,7 @@ resources:
   source:
     commit_verification_keys: ((cloud-gov-pgp-keys))
     uri: https://github.com/cloud-gov/((name))
-    branch: refactor-migrations
+    branch: ((git-branch))
 
 - name: external-domain-broker-testing
   type: registry-image
