@@ -1,7 +1,7 @@
 """make dedicated_org non-nullable
 
 Revision ID: def670fc0f33
-Revises: 362f5002f35e
+Revises: a4sfwv8s5meh
 Create Date: 2025-07-08 16:01:47.593488
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "def670fc0f33"
-down_revision = "362f5002f35e"
+down_revision = "a4sfwv8s5meh"
 branch_labels = None
 depends_on = None
 
