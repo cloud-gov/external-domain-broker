@@ -136,22 +136,6 @@ def _get_web_acl_rules(instance, web_acl_name: str):
     elif is_dedicated_alb(instance):
         return [
             {
-                "Name": "AWSManagedRule-CoreRuleSet",
-                "Priority": 0,
-                "Statement": {
-                    "ManagedRuleGroupStatement": {
-                        "VendorName": "AWS",
-                        "Name": "AWSManagedRulesCommonRuleSet",
-                    }
-                },
-                "OverrideAction": {"None": {}},
-                "VisibilityConfig": {
-                    "SampledRequestsEnabled": True,
-                    "CloudWatchMetricsEnabled": True,
-                    "MetricName": f"{web_acl_name}-AWS-AWSManagedRulesCommonRuleSet",
-                },
-            },
-            {
                 "Name": "AWS-AWSManagedRulesAnonymousIpList",
                 "Priority": 10,
                 "Statement": {

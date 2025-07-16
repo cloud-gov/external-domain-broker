@@ -59,22 +59,6 @@ class FakeWAFV2(FakeAWS):
             "DefaultAction": {"Allow": {}},
             "Rules": [
                 {
-                    "Name": "AWSManagedRule-CoreRuleSet",
-                    "Priority": 0,
-                    "Statement": {
-                        "ManagedRuleGroupStatement": {
-                            "VendorName": "AWS",
-                            "Name": "AWSManagedRulesCommonRuleSet",
-                        }
-                    },
-                    "OverrideAction": {"None": {}},
-                    "VisibilityConfig": {
-                        "SampledRequestsEnabled": True,
-                        "CloudWatchMetricsEnabled": True,
-                        "MetricName": f"{waf_name}-AWS-AWSManagedRulesCommonRuleSet",
-                    },
-                },
-                {
                     "Name": "AWS-AWSManagedRulesAnonymousIpList",
                     "Priority": 10,
                     "Statement": {
