@@ -4,6 +4,7 @@ from sqlalchemy import select, and_
 
 from broker.aws import wafv2_commercial, wafv2_govcloud
 from broker.extensions import config
+from broker.lib.tags import tag_key_exists
 from broker.models import DedicatedALB, ModelTypes, ServiceInstanceTypes
 from broker.tasks.huey import pipeline_operation
 
@@ -32,16 +33,52 @@ def _find_dedicated_alb_for_instance(db, service_instance) -> DedicatedALB:
 def create_alb_web_acl(operation_id, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     dedicated_alb = _find_dedicated_alb_for_instance(db, service_instance)
-    create_web_acl(wafv2_govcloud, db, dedicated_alb, **kwargs)
+    create_web_acl(wafv2_govcloud, db, dedicated_alb)
 
 
 @pipeline_operation("Creating custom WAFv2 web ACL")
 def create_cdn_web_acl(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-    kwargs = {}
-    if service_instance.tags is not None:
-        kwargs["Tags"] = service_instance.tags
-    create_web_acl(wafv2_commercial, db, service_instance, **kwargs)
+    create_web_acl(wafv2_commercial, db, service_instance)
+
+
+@pipeline_operation("Associating custom WAFv2 web ACL to ALB")
+def associate_alb_web_acl(operation_id: str, *, operation, db, **kwargs):
+    service_instance = operation.service_instance
+
+    dedicated_alb = _find_dedicated_alb_for_instance(db, service_instance)
+
+    if dedicated_alb.dedicated_waf_associated:
+        logger.info("WAF web ACL already associated")
+        return
+
+    associate_web_acl(
+        wafv2_govcloud,
+        db,
+        dedicated_alb,
+        dedicated_alb.dedicated_waf_web_acl_arn,
+        dedicated_alb.alb_arn,
+    )
+
+
+def associate_web_acl(waf_client, db, instance, waf_web_acl_arn, resource_arn):
+    if not waf_web_acl_arn:
+        logger.info("WAF Web ACL ARN is required")
+        return
+
+    if not resource_arn:
+        logger.info("Target resource ARN is required")
+        return
+
+    waf_client.associate_web_acl(
+        WebACLArn=waf_web_acl_arn,
+        ResourceArn=resource_arn,
+    )
+
+    instance.dedicated_waf_associated = True
+
+    db.session.add(instance)
+    db.session.commit()
 
 
 @pipeline_operation("Updating WAFv2 web ACL logging configuration")
@@ -213,7 +250,7 @@ def _get_web_acl_scope(instance):
         raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
 
 
-def create_web_acl(waf_client, db, instance, **kwargs):
+def create_web_acl(waf_client, db, instance):
     if (
         instance.dedicated_waf_web_acl_arn
         and instance.dedicated_waf_web_acl_id
@@ -226,6 +263,10 @@ def create_web_acl(waf_client, db, instance, **kwargs):
             },
         )
         return
+
+    kwargs = {}
+    if instance.tags is not None:
+        kwargs["Tags"] = instance.tags
 
     web_acl_name = generate_web_acl_name(instance, config.AWS_RESOURCE_PREFIX)
 

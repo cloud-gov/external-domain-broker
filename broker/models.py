@@ -13,7 +13,7 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import (
 )
 from openbrokerapi.service_broker import OperationState
 
-from broker.lib.tags import tag_key_exists, add_tag
+from broker.lib.tags import tag_key_exists, add_tag, generate_tags, create_resource_tags
 from broker.extensions import config, db
 
 
@@ -375,7 +375,9 @@ class DedicatedALB(Base):
     dedicated_waf_web_acl_arn = mapped_column(db.String)
     dedicated_waf_web_acl_id = mapped_column(db.String)
     dedicated_waf_web_acl_name = mapped_column(db.String)
+    dedicated_waf_associated = mapped_column(db.Boolean, default=False)
     instance_type = mapped_column(db.Text)
+    tags = mapped_column(postgresql.JSONB)
 
     __mapper_args__ = {
         "polymorphic_identity": ModelTypes.DEDICATED_ALB.value,
@@ -390,12 +392,19 @@ class DedicatedALB(Base):
         logger.info(f"Starting load_albs with {dedicated_listeners}")
         for dedicated_listener_info in dedicated_listeners:
             (organization_id, dedicated_alb_arn, _) = dedicated_listener_info
+            tags = create_resource_tags(
+                generate_tags(
+                    config.FLASK_ENV,
+                    organization_guid=organization_id,
+                )
+            )
             stmt = insert(DedicatedALB).values(
                 [
                     dict(
                         dedicated_org=organization_id,
                         alb_arn=dedicated_alb_arn,
                         instance_type=ModelTypes.DEDICATED_ALB.value,
+                        tags=tags,
                     )
                 ]
             )

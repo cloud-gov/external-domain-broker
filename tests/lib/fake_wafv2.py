@@ -49,7 +49,7 @@ class FakeWAFV2(FakeAWS):
         }
         self.stubber.add_response(method, response, request)
 
-    def expect_alb_create_web_acl(self, id: str):
+    def expect_alb_create_web_acl(self, id: str, tags: list[Tag]):
         method = "create_web_acl"
         waf_name = f"{config.AWS_RESOURCE_PREFIX}-alb-{id}-dedicated-waf"
 
@@ -130,6 +130,9 @@ class FakeWAFV2(FakeAWS):
             },
         }
 
+        if tags:
+            request["Tags"] = tags
+
         response = {
             "Summary": {
                 "Id": f"{waf_name}-id",
@@ -138,6 +141,16 @@ class FakeWAFV2(FakeAWS):
             }
         }
         self.stubber.add_response(method, response, request)
+
+    def expect_alb_associate_web_acl(self, waf_arn: str, alb_arn: str):
+        method = "associate_web_acl"
+
+        request = {
+            "WebACLArn": waf_arn,
+            "ResourceArn": alb_arn,
+        }
+
+        self.stubber.add_response(method, {}, request)
 
     def expect_get_web_acl(self, id: str, name: str):
         self.stubber.add_response(

@@ -57,3 +57,13 @@ def origin_request_policy_id():
 @pytest.fixture
 def dedicated_alb_id():
     return str(random.randrange(0, 10000))
+
+
+@pytest.fixture
+def dedicated_alb_arn():
+    return str(uuid.uuid4())
+
+
+@pytest.fixture
+def waf_web_acl_arn():
+    return str(uuid.uuid4())

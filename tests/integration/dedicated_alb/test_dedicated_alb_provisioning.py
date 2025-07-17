@@ -52,6 +52,7 @@ def test_provision_happy_path(
     space_guid,
     wafv2_govcloud,
     dedicated_alb_id,
+    dedicated_alb_arn,
 ):
     instance_model = DedicatedALBServiceInstance
     subtest_provision_dedicated_alb_instance(
@@ -66,6 +67,7 @@ def test_provision_happy_path(
         space_guid,
         wafv2_govcloud,
         dedicated_alb_id,
+        dedicated_alb_arn,
     )
     subtest_update_happy_path(
         client,
@@ -77,6 +79,7 @@ def test_provision_happy_path(
         alb,
         wafv2_govcloud,
         dedicated_alb_id,
+        dedicated_alb_arn,
     )
     subtest_update_noop(client, instance_model)
 
@@ -93,9 +96,12 @@ def subtest_provision_dedicated_alb_instance(
     space_guid,
     wafv2_govcloud,
     dedicated_alb_id,
+    dedicated_alb_arn,
     service_instance_id="4321",
 ):
-    create_dedicated_alb_listeners(db, organization_guid, dedicated_alb_id)
+    create_dedicated_alb_listeners(
+        db, organization_guid, dedicated_alb_id, dedicated_alb_arn
+    )
     instance_model = DedicatedALBServiceInstance
     operation_id = subtest_provision_creates_provision_operation(
         client,
@@ -167,13 +173,13 @@ def subtest_provision_dedicated_alb_instance(
         client, service_instance_id, operation_id, "Uploading SSL certificate to AWS"
     )
     subtest_provision_selects_dedicated_alb(
-        tasks, alb, service_instance_id=service_instance_id
+        tasks, alb, dedicated_alb_arn, service_instance_id=service_instance_id
     )
     check_last_operation_description(
         client, service_instance_id, operation_id, "Selecting load balancer"
     )
     subtest_provision_adds_certificate_to_alb(
-        tasks, alb, service_instance_id=service_instance_id
+        tasks, alb, dedicated_alb_arn, service_instance_id=service_instance_id
     )
     check_last_operation_description(
         client,
@@ -185,6 +191,7 @@ def subtest_provision_dedicated_alb_instance(
     subtest_provision_puts_alb_web_acl_logging_configuration(
         tasks, wafv2_govcloud, dedicated_alb_id
     )
+    subtest_provision_associates_alb_web_acl(tasks, wafv2_govcloud, dedicated_alb_id)
     subtest_provision_provisions_ALIAS_records(
         tasks, route53, instance_model, service_instance_id=service_instance_id
     )
@@ -205,18 +212,22 @@ def subtest_provision_dedicated_alb_instance(
     )
 
 
-def subtest_provision_selects_dedicated_alb(tasks, alb, service_instance_id="4321"):
+def subtest_provision_selects_dedicated_alb(
+    tasks, alb, dedicated_alb_arn, service_instance_id="4321"
+):
     alb.expect_get_certificates_for_listener("our-arn-0", 1)
     alb.expect_get_certificates_for_listener("our-arn-1", 5)
-    alb.expect_get_listeners("our-arn-0", "alb-our-arn-0")
+    alb.expect_get_listeners("our-arn-0", dedicated_alb_arn)
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
     db.session.expunge_all()
     service_instance = db.session.get(DedicatedALBServiceInstance, service_instance_id)
-    assert service_instance.alb_arn.startswith("alb-our-arn-0")
+    assert service_instance.alb_arn.startswith(dedicated_alb_arn)
 
 
-def subtest_provision_adds_certificate_to_alb(tasks, alb, service_instance_id="4321"):
+def subtest_provision_adds_certificate_to_alb(
+    tasks, alb, dedicated_alb_arn, service_instance_id="4321"
+):
     db.session.expunge_all()
     service_instance = db.session.get(DedicatedALBServiceInstance, service_instance_id)
     certificate = service_instance.new_certificate
@@ -224,7 +235,7 @@ def subtest_provision_adds_certificate_to_alb(tasks, alb, service_instance_id="4
     alb.expect_add_certificate_to_listener(
         "our-arn-0", certificate.iam_server_certificate_arn
     )
-    alb.expect_describe_alb("alb-our-arn-0", "alb.cloud.test")
+    alb.expect_describe_alb(dedicated_alb_arn, "alb.cloud.test")
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
     db.session.expunge_all()
@@ -235,8 +246,13 @@ def subtest_provision_adds_certificate_to_alb(tasks, alb, service_instance_id="4
 
 
 def subtest_provision_creates_alb_web_acl(tasks, wafv2_govcloud, dedicated_alb_id):
+    dedicated_alb = db.session.get(
+        DedicatedALB,
+        dedicated_alb_id,
+    )
     wafv2_govcloud.expect_alb_create_web_acl(
         dedicated_alb_id,
+        dedicated_alb.tags,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -273,3 +289,27 @@ def subtest_provision_puts_alb_web_acl_logging_configuration(
     tasks.run_queued_tasks_and_enqueue_dependents()
 
     wafv2_govcloud.assert_no_pending_responses()
+
+
+def subtest_provision_associates_alb_web_acl(tasks, wafv2_govcloud, dedicated_alb_id):
+    dedicated_alb = db.session.get(
+        DedicatedALB,
+        dedicated_alb_id,
+    )
+
+    wafv2_govcloud.expect_alb_associate_web_acl(
+        dedicated_alb.dedicated_waf_web_acl_arn,
+        dedicated_alb.alb_arn,
+    )
+
+    tasks.run_queued_tasks_and_enqueue_dependents()
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    db.session.expunge_all()
+    dedicated_alb = db.session.get(
+        DedicatedALB,
+        dedicated_alb_id,
+    )
+
+    assert dedicated_alb.dedicated_waf_associated == True

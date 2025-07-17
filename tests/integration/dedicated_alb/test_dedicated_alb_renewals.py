@@ -104,6 +104,7 @@ def test_scan_for_expiring_certs_alb_happy_path(
     alb,
     organization_guid,
     dedicated_alb_id,
+    dedicated_alb_arn,
 ):
 
     no_renew_service_instance = DedicatedALBServiceInstanceFactory.create(
@@ -133,7 +134,9 @@ def test_scan_for_expiring_certs_alb_happy_path(
     dns.add_cname("_acme-challenge.example.com")
     dns.add_cname("_acme-challenge.foo.com")
 
-    create_dedicated_alb_listeners(db, organization_guid, dedicated_alb_id)
+    create_dedicated_alb_listeners(
+        db, organization_guid, dedicated_alb_id, dedicated_alb_arn
+    )
 
     instance_model = DedicatedALBServiceInstance
     subtest_queues_tasks()
@@ -146,8 +149,8 @@ def test_scan_for_expiring_certs_alb_happy_path(
     subtest_provision_uploads_certificate_to_iam(
         tasks, iam_govcloud, simple_regex, instance_model
     )
-    subtest_provision_selects_dedicated_alb(tasks, alb)
-    subtest_provision_adds_certificate_to_alb(tasks, alb)
+    subtest_provision_selects_dedicated_alb(tasks, alb, dedicated_alb_arn)
+    subtest_provision_adds_certificate_to_alb(tasks, alb, dedicated_alb_arn)
     subtest_provision_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_provision_waits_for_route53_changes(tasks, route53, instance_model)
     subtest_removes_previous_certificate_from_alb(
