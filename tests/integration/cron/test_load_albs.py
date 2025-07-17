@@ -1,3 +1,4 @@
+import json
 from broker.models import DedicatedALB, DedicatedALBListener
 from broker.tasks.cron import _load_albs
 
@@ -21,14 +22,32 @@ class FakeALBClient:
         return {"Listeners": listeners}
 
 
-def test_get_alb_listener_info(clean_db):
+def test_get_alb_listener_info(clean_db, mock_with_uaa_auth, access_token):
+    response = json.dumps({"guid": "org-1", "name": "org1-name"})
+    mock_with_uaa_auth.get(
+        f"http://mock.cf/v3/organizations/org-1",
+        text=response,
+        request_headers={
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
+
     fake_alb = FakeALBClient({"listener-1": "alb-1"})
     _load_albs(fake_alb, {"listener-1": "org-1"})
     _load_albs(fake_alb, {"listener-1": "org-1"})
     assert fake_alb.describe_listeners_called == 1
 
 
-def test_load_albs(clean_db):
+def test_load_albs(clean_db, mock_with_uaa_auth, access_token):
+    response = json.dumps({"guid": "org-1", "name": "org1-name"})
+    mock_with_uaa_auth.get(
+        f"http://mock.cf/v3/organizations/org-1",
+        text=response,
+        request_headers={
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
+
     fake_alb = FakeALBClient({"listener-1": "alb-1"})
     _load_albs(fake_alb, {"listener-1": "org-1"})
 
