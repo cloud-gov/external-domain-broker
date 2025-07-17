@@ -377,6 +377,7 @@ class DedicatedALB(Base):
     dedicated_waf_web_acl_name = mapped_column(db.String)
     dedicated_waf_associated = mapped_column(db.Boolean, default=False)
     instance_type = mapped_column(db.Text)
+    tags = mapped_column(postgresql.JSONB)
 
     __mapper_args__ = {
         "polymorphic_identity": ModelTypes.DEDICATED_ALB.value,
