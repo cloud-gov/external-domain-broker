@@ -303,6 +303,38 @@ def test_waf_associate_alb_web_acl(
     assert updated_dedicated_alb.dedicated_waf_associated == True
 
 
+def test_waf_associate_alb_web_acl_returns_if_already_done(
+    clean_db,
+    operation_id,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    dedicated_alb.dedicated_waf_associated = True
+    clean_db.session.add(dedicated_alb)
+    clean_db.session.commit()
+
+    waf.associate_alb_web_acl.call_local(operation_id)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+
+def test_waf_associate_alb_web_acl_returns_if_no_waf_web_acl(
+    clean_db,
+    operation_id,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    assert not dedicated_alb.dedicated_waf_web_acl_arn
+
+    waf.associate_alb_web_acl.call_local(operation_id)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+
 def test_waf_delete_web_acl_gives_up_after_max_retries(
     clean_db, service_instance_id, service_instance, operation_id, wafv2_commercial
 ):
