@@ -417,7 +417,7 @@ class DedicatedALBListener(Base):
     __tablename__ = "dedicated_alb_listener"
     id = mapped_column(db.Integer, primary_key=True)
     listener_arn = mapped_column(db.String, nullable=False, unique=True)
-    alb_arn = mapped_column(db.String, nullable=False, unique=True)
+    alb_arn = mapped_column(db.String, nullable=False, unique=False)
     dedicated_org = mapped_column(db.String, nullable=False)
 
     @classmethod
