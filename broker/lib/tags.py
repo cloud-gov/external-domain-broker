@@ -5,7 +5,6 @@ from broker.lib.cf import CFAPIClient
 from enum import Enum
 from openbrokerapi.service_broker import (
     ProvisionDetails,
-    ServicePlan,
     Service,
 )
 

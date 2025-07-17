@@ -1,8 +1,6 @@
 import pytest
 import random
 import uuid
-from random import choice
-from string import ascii_uppercase
 from datetime import date
 
 
@@ -63,9 +61,9 @@ def dedicated_alb_id():
 
 @pytest.fixture
 def dedicated_alb_arn():
-    return "".join(choice(ascii_uppercase) for i in range(20))
+    return str(uuid.uuid4())
 
 
 @pytest.fixture
 def waf_web_acl_arn():
-    return "".join(choice(ascii_uppercase) for i in range(20))
+    return str(uuid.uuid4())
