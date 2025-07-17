@@ -61,6 +61,7 @@ def subtest_update_happy_path(
     subtest_update_puts_alb_web_acl_logging_configuration(
         tasks, wafv2_govcloud, dedicated_alb_id
     )
+    subtest_update_does_not_update_associated_web_acl(tasks, wafv2_govcloud)
     subtest_update_provisions_ALIAS_records(tasks, route53, instance_model)
     subtest_waits_for_dns_changes(tasks, route53, instance_model)
     subtest_removes_previous_certificate_from_alb(
@@ -129,6 +130,11 @@ def subtest_update_adds_certificate_to_alb(tasks, alb, dedicated_alb_arn):
 
 
 def subtest_update_does_not_create_alb_web_acl(tasks, wafv2_govcloud):
+    tasks.run_queued_tasks_and_enqueue_dependents()
+    wafv2_govcloud.assert_no_pending_responses()
+
+
+def subtest_update_does_not_update_associated_web_acl(tasks, wafv2_govcloud):
     tasks.run_queued_tasks_and_enqueue_dependents()
     wafv2_govcloud.assert_no_pending_responses()
 
