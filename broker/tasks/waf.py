@@ -52,18 +52,32 @@ def associate_alb_web_acl(operation_id: str, *, operation, db, **kwargs):
         logger.info("WAF web ACL already associated")
         return
 
-    if not dedicated_alb.dedicated_waf_web_acl_arn:
-        logger.info("Web ACL ARN is required to associate web ACL to ALB")
-        return
-
-    wafv2_govcloud.associate_web_acl(
-        WebACLArn=dedicated_alb.dedicated_waf_web_acl_arn,
-        ResourceArn=dedicated_alb.alb_arn,
+    associate_web_acl(
+        wafv2_govcloud,
+        db,
+        dedicated_alb,
+        dedicated_alb.dedicated_waf_web_acl_arn,
+        dedicated_alb.alb_arn,
     )
 
-    dedicated_alb.dedicated_waf_associated = True
 
-    db.session.add(dedicated_alb)
+def associate_web_acl(waf_client, db, instance, waf_web_acl_arn, resource_arn):
+    if not waf_web_acl_arn:
+        logger.info("WAF Web ACL ARN is required")
+        return
+
+    if not resource_arn:
+        logger.info("Target resource ARN is required")
+        return
+
+    waf_client.associate_web_acl(
+        WebACLArn=waf_web_acl_arn,
+        ResourceArn=resource_arn,
+    )
+
+    instance.dedicated_waf_associated = True
+
+    db.session.add(instance)
     db.session.commit()
 
 

@@ -246,8 +246,13 @@ def subtest_provision_adds_certificate_to_alb(
 
 
 def subtest_provision_creates_alb_web_acl(tasks, wafv2_govcloud, dedicated_alb_id):
+    dedicated_alb = db.session.get(
+        DedicatedALB,
+        dedicated_alb_id,
+    )
     wafv2_govcloud.expect_alb_create_web_acl(
         dedicated_alb_id,
+        dedicated_alb.tags,
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
