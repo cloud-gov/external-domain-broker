@@ -39,6 +39,7 @@ def subtest_update_happy_path(
     alb,
     wafv2_govcloud,
     dedicated_alb_id,
+    dedicated_alb_arn,
 ):
     instance_model = DedicatedALBServiceInstance
     operation_id = subtest_update_creates_update_operation(client, dns)
@@ -54,8 +55,8 @@ def subtest_update_happy_path(
     subtest_update_answers_challenges(tasks, dns, instance_model)
     subtest_update_retrieves_new_cert(tasks, instance_model)
     subtest_update_uploads_new_cert(tasks, iam_govcloud, simple_regex, instance_model)
-    subtest_update_selects_alb(tasks, alb)
-    subtest_update_adds_certificate_to_alb(tasks, alb)
+    subtest_update_selects_alb(tasks, alb, dedicated_alb_arn)
+    subtest_update_adds_certificate_to_alb(tasks, alb, dedicated_alb_arn)
     subtest_update_does_not_create_alb_web_acl(tasks, wafv2_govcloud)
     subtest_update_puts_alb_web_acl_logging_configuration(
         tasks, wafv2_govcloud, dedicated_alb_id
@@ -97,18 +98,18 @@ def subtest_update_creates_update_operation(client, dns):
     return operation_id
 
 
-def subtest_update_selects_alb(tasks, alb):
+def subtest_update_selects_alb(tasks, alb, dedicated_alb_arn):
     db.session.expunge_all()
     alb.expect_get_certificates_for_listener("our-arn-0", 1)
     alb.expect_get_certificates_for_listener("our-arn-1", 5)
-    alb.expect_get_listeners("our-arn-0", "alb-our-arn-0")
+    alb.expect_get_listeners("our-arn-0", dedicated_alb_arn)
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
     service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
-    assert service_instance.alb_arn.startswith("alb-our-arn-0")
+    assert service_instance.alb_arn.startswith(dedicated_alb_arn)
 
 
-def subtest_update_adds_certificate_to_alb(tasks, alb):
+def subtest_update_adds_certificate_to_alb(tasks, alb, dedicated_alb_arn):
     db.session.expunge_all()
     service_instance = db.session.get(DedicatedALBServiceInstance, "4321")
     certificate = service_instance.new_certificate
@@ -116,7 +117,7 @@ def subtest_update_adds_certificate_to_alb(tasks, alb):
     alb.expect_add_certificate_to_listener(
         "our-arn-0", certificate.iam_server_certificate_arn
     )
-    alb.expect_describe_alb("alb-our-arn-0", "alb.cloud.test")
+    alb.expect_describe_alb(dedicated_alb_arn, "alb.cloud.test")
     tasks.run_queued_tasks_and_enqueue_dependents()
     alb.assert_no_pending_responses()
     db.session.expunge_all()

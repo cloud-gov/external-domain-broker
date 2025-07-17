@@ -4,9 +4,11 @@ from broker.models import (
 )
 
 
-def create_dedicated_alb_listeners(db, organization_guid, dedicated_alb_id):
+def create_dedicated_alb_listeners(
+    db, organization_guid, dedicated_alb_id, dedicated_alb_arn
+):
     alb_0 = DedicatedALB(
-        alb_arn="alb-our-arn-0",
+        alb_arn=dedicated_alb_arn,
         dedicated_org=organization_guid,
         id=dedicated_alb_id,
     )
@@ -24,7 +26,7 @@ def create_dedicated_alb_listeners(db, organization_guid, dedicated_alb_id):
 
     our_listener_0 = DedicatedALBListener(
         listener_arn="our-arn-0",
-        alb_arn="alb-our-arn-0",
+        alb_arn=dedicated_alb_arn,
         dedicated_org=organization_guid,
     )
     our_listener_1 = DedicatedALBListener(
