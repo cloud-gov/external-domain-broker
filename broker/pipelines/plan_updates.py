@@ -27,6 +27,7 @@ def queue_all_alb_to_dedicated_alb_update_tasks_for_operation(
         .then(alb.add_certificate_to_alb, operation_id, **correlation)
         .then(waf.create_alb_web_acl, operation_id, **correlation)
         .then(waf.put_alb_waf_logging_configuration, operation_id, **correlation)
+        .then(waf.associate_alb_web_acl, operation_id, **correlation)
         .then(route53.create_ALIAS_records, operation_id, **correlation)
         .then(route53.wait_for_changes, operation_id, **correlation)
         .then(
