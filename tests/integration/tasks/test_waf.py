@@ -279,6 +279,8 @@ def test_waf_associate_alb_web_acl(
     waf_web_acl_arn,
     wafv2_govcloud,
 ):
+    assert dedicated_alb.dedicated_waf_associated == False
+
     dedicated_alb.dedicated_waf_web_acl_arn = waf_web_acl_arn
     clean_db.session.add(dedicated_alb)
     clean_db.session.commit()
