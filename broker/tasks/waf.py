@@ -4,6 +4,7 @@ from sqlalchemy import select, and_
 
 from broker.aws import wafv2_commercial, wafv2_govcloud
 from broker.extensions import config
+from broker.lib.tags import tag_key_exists
 from broker.models import DedicatedALB, ModelTypes, ServiceInstanceTypes
 from broker.tasks.huey import pipeline_operation
 
@@ -38,9 +39,6 @@ def create_alb_web_acl(operation_id, *, operation, db, **kwargs):
 @pipeline_operation("Creating custom WAFv2 web ACL")
 def create_cdn_web_acl(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-    kwargs = {}
-    if service_instance.tags is not None:
-        kwargs["Tags"] = service_instance.tags
     create_web_acl(wafv2_commercial, db, service_instance, **kwargs)
 
 
@@ -251,6 +249,10 @@ def create_web_acl(waf_client, db, instance, **kwargs):
             },
         )
         return
+
+    kwargs = {}
+    if instance.tags is not None:
+        kwargs["Tags"] = instance.tags
 
     web_acl_name = generate_web_acl_name(instance, config.AWS_RESOURCE_PREFIX)
 
