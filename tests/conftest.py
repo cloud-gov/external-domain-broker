@@ -39,6 +39,8 @@ from tests.lib.identifiers import (
     cache_policy_id,
     origin_request_policy_id,
     dedicated_alb_id,
+    dedicated_alb_arn,
+    waf_web_acl_arn,
 )  # noqa 41
 
 

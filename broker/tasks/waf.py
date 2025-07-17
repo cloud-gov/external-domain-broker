@@ -44,6 +44,31 @@ def create_cdn_web_acl(operation_id: str, *, operation, db, **kwargs):
     create_web_acl(wafv2_commercial, db, service_instance, **kwargs)
 
 
+@pipeline_operation("Associating custom WAFv2 web ACL to ALB")
+def associate_alb_web_acl(operation_id: str, *, operation, db, **kwargs):
+    service_instance = operation.service_instance
+
+    dedicated_alb = _find_dedicated_alb_for_instance(db, service_instance)
+
+    if dedicated_alb.dedicated_waf_associated:
+        logger.info("WAF web ACL already associated")
+        return
+
+    if not dedicated_alb.dedicated_waf_web_acl_arn:
+        logger.info("Web ACL ARN is required to associate web ACL to ALB")
+        return
+
+    wafv2_govcloud.associate_web_acl(
+        WebACLArn=dedicated_alb.dedicated_waf_web_acl_arn,
+        ResourceArn=dedicated_alb.alb_arn,
+    )
+
+    dedicated_alb.dedicated_waf_associated = True
+
+    db.session.add(dedicated_alb)
+    db.session.commit()
+
+
 @pipeline_operation("Updating WAFv2 web ACL logging configuration")
 def put_alb_waf_logging_configuration(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance

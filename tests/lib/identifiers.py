@@ -1,6 +1,8 @@
 import pytest
 import random
 import uuid
+from random import choice
+from string import ascii_uppercase
 from datetime import date
 
 
@@ -57,3 +59,13 @@ def origin_request_policy_id():
 @pytest.fixture
 def dedicated_alb_id():
     return str(random.randrange(0, 10000))
+
+
+@pytest.fixture
+def dedicated_alb_arn():
+    return "".join(choice(ascii_uppercase) for i in range(20))
+
+
+@pytest.fixture
+def waf_web_acl_arn():
+    return "".join(choice(ascii_uppercase) for i in range(20))
