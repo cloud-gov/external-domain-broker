@@ -19,7 +19,7 @@ from tests.lib.tags import sort_instance_tags
 
 
 @pytest.fixture
-def instance_id():
+def instance_guid():
     return str(uuid.uuid4())
 
 
@@ -67,7 +67,7 @@ def test_add_tag_errors_on_existing_tag():
 
 
 def test_generate_instance_tags(
-    instance_id,
+    instance_guid,
     organization_guid,
     space_guid,
     plan,
@@ -93,7 +93,7 @@ def test_generate_instance_tags(
         },
     )
 
-    tags = generate_instance_tags(instance_id, details, catalog, "foo")
+    tags = generate_instance_tags(instance_guid, details, catalog, "foo")
     assert sort_instance_tags(tags) == sort_instance_tags(
         [
             {"Key": "client", "Value": "Cloud Foundry"},
@@ -101,7 +101,7 @@ def test_generate_instance_tags(
             {"Key": "environment", "Value": "foo"},
             {"Key": "Service offering name", "Value": "external-domain"},
             {"Key": "Service plan name", "Value": plan.name},
-            {"Key": "Instance GUID", "Value": instance_id},
+            {"Key": "Instance GUID", "Value": instance_guid},
             {"Key": "Organization GUID", "Value": organization_guid},
             {"Key": "Organization name", "Value": "org-1234"},
             {"Key": "Space GUID", "Value": space_guid},
@@ -110,17 +110,19 @@ def test_generate_instance_tags(
     )
 
 
-def test_generate_instance_tags_multiple_plans(instance_id, plan, details, catalog):
+def test_generate_instance_tags_multiple_plans(instance_guid, plan, details, catalog):
     catalog.plans = [plan, plan]
     with pytest.raises(RuntimeError):
-        generate_instance_tags(instance_id, details, catalog, "foo")
+        generate_instance_tags(instance_guid, details, catalog, "foo")
 
 
-def test_generate_instance_tags_no_matching_plans(instance_id, plan, details, catalog):
+def test_generate_instance_tags_no_matching_plans(
+    instance_guid, plan, details, catalog
+):
     plan.id = str(uuid.uuid4())
     catalog.plans = [plan]
     with pytest.raises(RuntimeError):
-        generate_instance_tags(instance_id, details, catalog, "foo")
+        generate_instance_tags(instance_guid, details, catalog, "foo")
 
 
 def test_create_resource_tags():
@@ -132,7 +134,7 @@ def test_create_resource_tags():
 
 
 def test_generate_tags(
-    instance_id,
+    instance_guid,
     organization_guid,
     space_guid,
     plan,
@@ -157,13 +159,20 @@ def test_generate_tags(
         },
     )
 
-    assert generate_tags(instance_id, "offering-1", plan, details, "foo") == {
+    assert generate_tags(
+        "foo",
+        instance_guid=instance_guid,
+        offering_name="offering-1",
+        plan_name=plan.name,
+        space_guid=details.space_guid,
+        organization_guid=details.organization_guid,
+    ) == {
         "client": "Cloud Foundry",
         "broker": "External domain broker",
         "environment": "foo",
         "Service offering name": "offering-1",
         "Service plan name": plan.name,
-        "Instance GUID": instance_id,
+        "Instance GUID": instance_guid,
         "Organization GUID": organization_guid,
         "Organization name": "org-1234",
         "Space GUID": space_guid,
