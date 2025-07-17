@@ -375,6 +375,7 @@ class DedicatedALB(Base):
     dedicated_waf_web_acl_arn = mapped_column(db.String)
     dedicated_waf_web_acl_id = mapped_column(db.String)
     dedicated_waf_web_acl_name = mapped_column(db.String)
+    dedicated_waf_associated = mapped_column(db.Boolean, default=False)
     instance_type = mapped_column(db.Text)
 
     __mapper_args__ = {
