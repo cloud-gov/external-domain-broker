@@ -178,3 +178,30 @@ def test_generate_tags(
         "Space GUID": space_guid,
         "Space name": "space-5678",
     }
+
+
+def test_generate_tags_subset(
+    organization_guid,
+    details,
+    access_token,
+    mock_with_uaa_auth,
+):
+    response = json.dumps({"guid": organization_guid, "name": "org-1234"})
+    mock_with_uaa_auth.get(
+        f"http://mock.cf/v3/organizations/{organization_guid}",
+        text=response,
+        request_headers={
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
+
+    assert generate_tags(
+        "foo",
+        organization_guid=details.organization_guid,
+    ) == {
+        "client": "Cloud Foundry",
+        "broker": "External domain broker",
+        "environment": "foo",
+        "Organization GUID": organization_guid,
+        "Organization name": "org-1234",
+    }
