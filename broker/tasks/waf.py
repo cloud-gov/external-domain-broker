@@ -33,13 +33,13 @@ def _find_dedicated_alb_for_instance(db, service_instance) -> DedicatedALB:
 def create_alb_web_acl(operation_id, *, operation, db, **kwargs):
     service_instance = operation.service_instance
     dedicated_alb = _find_dedicated_alb_for_instance(db, service_instance)
-    create_web_acl(wafv2_govcloud, db, dedicated_alb, **kwargs)
+    create_web_acl(wafv2_govcloud, db, dedicated_alb)
 
 
 @pipeline_operation("Creating custom WAFv2 web ACL")
 def create_cdn_web_acl(operation_id: str, *, operation, db, **kwargs):
     service_instance = operation.service_instance
-    create_web_acl(wafv2_commercial, db, service_instance, **kwargs)
+    create_web_acl(wafv2_commercial, db, service_instance)
 
 
 @pipeline_operation("Associating custom WAFv2 web ACL to ALB")
@@ -236,7 +236,7 @@ def _get_web_acl_scope(instance):
         raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
 
 
-def create_web_acl(waf_client, db, instance, **kwargs):
+def create_web_acl(waf_client, db, instance):
     if (
         instance.dedicated_waf_web_acl_arn
         and instance.dedicated_waf_web_acl_id
