@@ -49,7 +49,7 @@ class FakeWAFV2(FakeAWS):
         }
         self.stubber.add_response(method, response, request)
 
-    def expect_alb_create_web_acl(self, id: str):
+    def expect_alb_create_web_acl(self, id: str, tags: list[Tag]):
         method = "create_web_acl"
         waf_name = f"{config.AWS_RESOURCE_PREFIX}-alb-{id}-dedicated-waf"
 
@@ -129,6 +129,9 @@ class FakeWAFV2(FakeAWS):
                 "MetricName": waf_name,
             },
         }
+
+        if tags:
+            request["Tags"] = tags
 
         response = {
             "Summary": {
