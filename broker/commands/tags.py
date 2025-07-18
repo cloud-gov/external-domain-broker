@@ -1,5 +1,6 @@
 import logging
 
+from broker.aws import wafv2_govcloud
 from broker.extensions import config, db
 from broker.lib.tags import create_resource_tags, generate_tags
 from broker.models import DedicatedALB
@@ -30,3 +31,12 @@ def add_dedicated_alb_tags():
         dedicated_alb.tags = tags
         db.session.add(dedicated_alb)
         db.session.commit()
+
+        if not dedicated_alb.dedicated_waf_web_acl_arn:
+            logger.info("Web ACL ARN is required")
+            continue
+
+        wafv2_govcloud.tag_resource(
+            ResourceARN=dedicated_alb.dedicated_waf_web_acl_arn,
+            Tags=tags,
+        )

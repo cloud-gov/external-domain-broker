@@ -238,6 +238,17 @@ class FakeWAFV2(FakeAWS):
         response = {}
         self.stubber.add_response(method, response, request)
 
+    def expect_tag_resource(self, resource_arn: str, tags: list[Tag]):
+        method = "tag_resource"
+
+        request = {
+            "ResourceARN": resource_arn,
+            "Tags": tags,
+        }
+
+        response = {}
+        self.stubber.add_response(method, response, request)
+
 
 @pytest.fixture(autouse=True)
 def wafv2_commercial():
