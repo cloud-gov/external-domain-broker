@@ -11,28 +11,12 @@ from tests.lib import factories
 
 
 @pytest.fixture
-def dedicated_alb(
-    clean_db, dedicated_alb_id, service_instance_id, operation_id, dedicated_alb_arn
-):
+def dedicated_alb(clean_db, dedicated_alb_id, dedicated_alb_arn):
     dedicated_alb = factories.DedicatedALBFactory.create(
         id=dedicated_alb_id, alb_arn=dedicated_alb_arn, dedicated_org="org-1"
     )
-
-    service_instance = factories.DedicatedALBServiceInstanceFactory.create(
-        id=service_instance_id,
-        org_id="org-1",
-        alb_arn=dedicated_alb_arn,
-        alb_listener_arn="listener-1",
-    )
-
     clean_db.session.add(dedicated_alb)
-    clean_db.session.add(service_instance)
     clean_db.session.commit()
-
-    factories.OperationFactory.create(
-        id=operation_id, service_instance=service_instance
-    )
-
     return dedicated_alb
 
 
