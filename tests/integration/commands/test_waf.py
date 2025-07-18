@@ -1,6 +1,10 @@
 import pytest
 
-from broker.commands.waf import add_dedicated_alb_waf_web_acls
+from broker.commands.waf import (
+    add_dedicated_alb_waf_web_acls,
+    wait_for_web_acl_to_exist,
+)
+from broker.aws import wafv2_govcloud as real_wafv2_govcloud
 from broker.extensions import config
 from broker.models import DedicatedALB
 from tests.lib import factories
@@ -32,6 +36,39 @@ def dedicated_alb(
     return dedicated_alb
 
 
+def test_wait_for_web_acl_to_exist(
+    clean_db,
+    wafv2_govcloud,
+):
+    wafv2_govcloud.expect_get_web_acl_not_found(arn="1234-dedicated-waf-arn")
+    wafv2_govcloud.expect_get_web_acl_not_found(arn="1234-dedicated-waf-arn")
+    wafv2_govcloud.expect_get_web_acl(arn="1234-dedicated-waf-arn")
+
+    wait_for_web_acl_to_exist(real_wafv2_govcloud, "1234-dedicated-waf-arn", 3, 0)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+
+def test_wait_for_web_acl_to_exist_gives_up(
+    clean_db,
+    wafv2_govcloud,
+):
+    wafv2_govcloud.expect_get_web_acl_not_found(arn="1234-dedicated-waf-arn")
+    wafv2_govcloud.expect_get_web_acl_not_found(arn="1234-dedicated-waf-arn")
+    wafv2_govcloud.expect_get_web_acl_not_found(arn="1234-dedicated-waf-arn")
+    wafv2_govcloud.expect_get_web_acl_not_found(arn="1234-dedicated-waf-arn")
+    wafv2_govcloud.expect_get_web_acl_not_found(arn="1234-dedicated-waf-arn")
+
+    with pytest.raises(RuntimeError):
+        wait_for_web_acl_to_exist(real_wafv2_govcloud, "1234-dedicated-waf-arn", 5, 0)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+
 def test_add_dedicated_alb_waf_web_acls(
     clean_db,
     dedicated_alb_id,
@@ -42,12 +79,14 @@ def test_add_dedicated_alb_waf_web_acls(
         dedicated_alb_id,
         dedicated_alb.tags,
     )
+    waf_web_acl_arn = f"arn:aws:wafv2::000000000000:global/webacl/{config.AWS_RESOURCE_PREFIX}-alb-{dedicated_alb_id}-dedicated-waf"
+    wafv2_govcloud.expect_get_web_acl(arn=waf_web_acl_arn)
     wafv2_govcloud.expect_put_logging_configuration(
-        f"arn:aws:wafv2::000000000000:global/webacl/{config.AWS_RESOURCE_PREFIX}-alb-{dedicated_alb_id}-dedicated-waf",
+        waf_web_acl_arn,
         config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN,
     )
     wafv2_govcloud.expect_alb_associate_web_acl(
-        f"arn:aws:wafv2::000000000000:global/webacl/{config.AWS_RESOURCE_PREFIX}-alb-{dedicated_alb_id}-dedicated-waf",
+        waf_web_acl_arn,
         dedicated_alb.alb_arn,
     )
 
