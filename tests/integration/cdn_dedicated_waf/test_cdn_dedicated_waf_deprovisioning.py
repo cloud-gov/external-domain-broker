@@ -312,8 +312,9 @@ def subtest_deprovision_delete_web_acl_success_when_missing(
     db.session.expunge_all()
     service_instance = db.session.get(instance_model, "1234")
     wafv2.expect_get_web_acl_not_found(
-        service_instance.dedicated_waf_web_acl_id,
-        service_instance.dedicated_waf_web_acl_name,
+        id=service_instance.dedicated_waf_web_acl_id,
+        name=service_instance.dedicated_waf_web_acl_name,
+        scope="CLOUDFRONT",
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
@@ -393,8 +394,9 @@ def subtest_deprovision_deletes_web_acl(instance_model, tasks, service_instance,
     assert service_instance.dedicated_waf_web_acl_name == "1234-dedicated-waf"
 
     wafv2.expect_get_web_acl(
-        service_instance.dedicated_waf_web_acl_id,
-        service_instance.dedicated_waf_web_acl_name,
+        id=service_instance.dedicated_waf_web_acl_id,
+        name=service_instance.dedicated_waf_web_acl_name,
+        scope="CLOUDFRONT",
     )
     wafv2.expect_delete_web_acl(
         service_instance.dedicated_waf_web_acl_id,

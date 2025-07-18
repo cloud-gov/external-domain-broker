@@ -152,30 +152,52 @@ class FakeWAFV2(FakeAWS):
 
         self.stubber.add_response(method, {}, request)
 
-    def expect_get_web_acl(self, id: str, name: str):
+    def expect_get_web_acl(
+        self, id: str = "", name: str = "", arn: str = "", scope: str = ""
+    ):
+        params = {}
+        if id:
+            params["Id"] = id
+
+        if name:
+            params["Name"] = name
+
+        if arn:
+            params["ARN"] = arn
+
+        if scope:
+            params["Scope"] = scope
+
         self.stubber.add_response(
             "get_web_acl",
             {
                 "LockToken": "fake-token",
             },
-            {
-                "Name": name,
-                "Id": id,
-                "Scope": "CLOUDFRONT",
-            },
+            params,
         )
 
-    def expect_get_web_acl_not_found(self, id: str, name: str):
+    def expect_get_web_acl_not_found(
+        self, id: str = "", name: str = "", arn: str = "", scope: str = ""
+    ):
+        params = {}
+        if id:
+            params["Id"] = id
+
+        if name:
+            params["Name"] = name
+
+        if arn:
+            params["ARN"] = arn
+
+        if scope:
+            params["Scope"] = scope
+
         self.stubber.add_client_error(
             "get_web_acl",
             service_error_code="WAFNonexistentItemException",
             service_message="Not found",
             http_status_code=404,
-            expected_params={
-                "Name": name,
-                "Id": id,
-                "Scope": "CLOUDFRONT",
-            },
+            expected_params=params,
         )
 
     def expect_delete_web_acl_lock_exception(self, id: str, name: str):
@@ -211,6 +233,17 @@ class FakeWAFV2(FakeAWS):
                 "LogScope": "CUSTOMER",
                 "LogType": "WAF_LOGS",
             }
+        }
+
+        response = {}
+        self.stubber.add_response(method, response, request)
+
+    def expect_tag_resource(self, resource_arn: str, tags: list[Tag]):
+        method = "tag_resource"
+
+        request = {
+            "ResourceARN": resource_arn,
+            "Tags": tags,
         }
 
         response = {}
