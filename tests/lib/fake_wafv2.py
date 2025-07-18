@@ -176,7 +176,9 @@ class FakeWAFV2(FakeAWS):
             params,
         )
 
-    def expect_get_web_acl_not_found(self, id: str = "", name: str = "", arn: str = ""):
+    def expect_get_web_acl_not_found(
+        self, id: str = "", name: str = "", arn: str = "", scope: str = ""
+    ):
         params = {}
         if id:
             params["Id"] = id
@@ -186,6 +188,9 @@ class FakeWAFV2(FakeAWS):
 
         if arn:
             params["ARN"] = arn
+
+        if scope:
+            params["Scope"] = scope
 
         self.stubber.add_client_error(
             "get_web_acl",
