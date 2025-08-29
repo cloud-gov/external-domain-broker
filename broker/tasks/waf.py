@@ -249,9 +249,10 @@ def _get_web_acl_scope(instance):
         raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
 
 
-def create_web_acl(waf_client, db, instance):
+def create_web_acl(waf_client, db, instance, force_create_new=False):
     if (
-        instance.dedicated_waf_web_acl_arn
+        not force_create_new
+        and instance.dedicated_waf_web_acl_arn
         and instance.dedicated_waf_web_acl_id
         and instance.dedicated_waf_web_acl_name
     ):

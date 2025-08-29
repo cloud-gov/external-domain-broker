@@ -1,6 +1,7 @@
 from http import HTTPStatus
 import logging
 import sys
+import click
 
 from flask import Flask
 from openbrokerapi import api as openbrokerapi
@@ -88,8 +89,11 @@ def create_app():
         remove_duplicate_alb_certs()
 
     @app.cli.command("create-dedicated-alb-waf-web-acls")
-    def create_dedicated_alb_waf_web_acls_command():
-        create_dedicated_alb_waf_web_acls()
+    @click.option(
+        "--force-create-new", is_flag=True, help="Force creation of new WAF web ACLs."
+    )
+    def create_dedicated_alb_waf_web_acls_command(force_create_new):
+        create_dedicated_alb_waf_web_acls(force_create_new)
 
     @app.cli.command("associate-dedicated-alb-waf-web-acls")
     def associate_dedicated_alb_waf_web_acls_command():
