@@ -9,7 +9,9 @@ from broker.tasks.waf import generate_web_acl_name
 from broker.aws import wafv2_govcloud as real_wafv2_govcloud
 from broker.extensions import config
 from broker.models import DedicatedALB
+from broker.tasks.waf import generate_web_acl_name
 from tests.lib import factories
+from tests.lib.fake_wafv2 import generate_fake_waf_web_acl_arn
 
 
 @pytest.fixture
@@ -65,7 +67,8 @@ def test_create_dedicated_alb_waf_web_acls(
         dedicated_alb.dedicated_org,
         dedicated_alb.tags,
     )
-    waf_web_acl_arn = f"arn:aws:wafv2::000000000000:global/webacl/{config.AWS_RESOURCE_PREFIX}-dedicated-org-alb-{dedicated_alb.dedicated_org}-waf"
+    waf_name = generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
+    waf_web_acl_arn = generate_fake_waf_web_acl_arn(waf_name)
     wafv2_govcloud.expect_get_web_acl(arn=waf_web_acl_arn)
     wafv2_govcloud.expect_put_logging_configuration(
         waf_web_acl_arn,
@@ -123,7 +126,8 @@ def test_create_dedicated_alb_waf_web_acls_force_create(
         dedicated_alb.dedicated_org,
         dedicated_alb.tags,
     )
-    waf_web_acl_arn = f"arn:aws:wafv2::000000000000:global/webacl/{config.AWS_RESOURCE_PREFIX}-dedicated-org-alb-{dedicated_alb.dedicated_org}-waf"
+    waf_name = generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
+    waf_web_acl_arn = generate_fake_waf_web_acl_arn(waf_name)
     wafv2_govcloud.expect_get_web_acl(arn=waf_web_acl_arn)
     wafv2_govcloud.expect_put_logging_configuration(
         waf_web_acl_arn,
@@ -142,8 +146,8 @@ def test_create_dedicated_alb_waf_web_acls_force_create(
     )
 
     assert service_instance.dedicated_waf_web_acl_arn == waf_web_acl_arn
-    assert service_instance.dedicated_waf_web_acl_id
-    assert service_instance.dedicated_waf_web_acl_name
+    assert service_instance.dedicated_waf_web_acl_id == f"{waf_name}-id"
+    assert service_instance.dedicated_waf_web_acl_name == waf_name
 
 
 def test_associate_dedicated_alb_waf_web_acls(
