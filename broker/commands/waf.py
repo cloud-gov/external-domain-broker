@@ -35,7 +35,7 @@ def wait_for_web_acl_to_exist(
             continue
 
 
-def add_dedicated_alb_waf_web_acls():
+def create_dedicated_alb_waf_web_acls():
     dedicated_albs = DedicatedALB.query.all()
 
     for dedicated_alb in dedicated_albs:
@@ -57,6 +57,19 @@ def add_dedicated_alb_waf_web_acls():
         put_waf_logging_configuration(
             wafv2_govcloud, dedicated_alb, config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN
         )
+
+
+def associate_dedicated_alb_waf_web_acls():
+    dedicated_albs = DedicatedALB.query.all()
+
+    for dedicated_alb in dedicated_albs:
+        if (
+            not dedicated_alb.dedicated_waf_web_acl_arn
+            or not dedicated_alb.dedicated_waf_web_acl_id
+            or not dedicated_alb.dedicated_waf_web_acl_name
+        ):
+            continue
+
         associate_web_acl(
             wafv2_govcloud,
             db,
