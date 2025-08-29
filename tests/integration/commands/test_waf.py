@@ -60,10 +60,10 @@ def test_add_dedicated_alb_waf_web_acls(
     wafv2_govcloud,
 ):
     wafv2_govcloud.expect_alb_create_web_acl(
-        dedicated_alb_id,
+        dedicated_alb.dedicated_org,
         dedicated_alb.tags,
     )
-    waf_web_acl_arn = f"arn:aws:wafv2::000000000000:global/webacl/{config.AWS_RESOURCE_PREFIX}-alb-{dedicated_alb_id}-dedicated-waf"
+    waf_web_acl_arn = f"arn:aws:wafv2::000000000000:global/webacl/{config.AWS_RESOURCE_PREFIX}-dedicated-org-alb-{dedicated_alb.dedicated_org}-waf"
     wafv2_govcloud.expect_get_web_acl(arn=waf_web_acl_arn)
     wafv2_govcloud.expect_put_logging_configuration(
         waf_web_acl_arn,

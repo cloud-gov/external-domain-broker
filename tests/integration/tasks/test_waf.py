@@ -103,14 +103,18 @@ def test_waf_generate_web_acl_name_cdn(service_instance):
     )
 
 
-def test_waf_generate_web_acl_name_alb(clean_db, dedicated_alb_arn):
+def test_waf_generate_web_acl_name_alb(clean_db, dedicated_alb_arn, organization_guid):
     dedicated_alb = factories.DedicatedALBFactory.create(
-        alb_arn=dedicated_alb_arn, dedicated_org="org-1"
+        alb_arn=dedicated_alb_arn, dedicated_org=organization_guid
+    )
+    waf_name = waf.generate_web_acl_name(
+        dedicated_alb, "cg-external-domains-production"
     )
     assert (
-        waf.generate_web_acl_name(dedicated_alb, "cg-external-domains")
-        == f"cg-external-domains-alb-{dedicated_alb.id}-dedicated-waf"
+        waf_name
+        == f"cg-external-domains-production-dedicated-org-alb-{organization_guid}-waf"
     )
+    assert len(waf_name) < 128
 
 
 def test_get_web_acl_rules_errors(clean_db, service_instance_id):
@@ -197,7 +201,7 @@ def test_waf_create_alb_web_acl(
     wafv2_govcloud,
 ):
     wafv2_govcloud.expect_alb_create_web_acl(
-        dedicated_alb_id,
+        dedicated_alb.dedicated_org,
         dedicated_alb.tags,
     )
 
@@ -227,7 +231,9 @@ def test_waf_create_alb_web_acl_with_tags(
     clean_db.session.add(dedicated_alb)
     clean_db.session.commit()
 
-    wafv2_govcloud.expect_alb_create_web_acl(dedicated_alb_id, dedicated_alb.tags)
+    wafv2_govcloud.expect_alb_create_web_acl(
+        dedicated_alb.dedicated_org, dedicated_alb.tags
+    )
 
     waf.create_alb_web_acl.call_local(operation_id)
 

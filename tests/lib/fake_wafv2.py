@@ -49,9 +49,9 @@ class FakeWAFV2(FakeAWS):
         }
         self.stubber.add_response(method, response, request)
 
-    def expect_alb_create_web_acl(self, id: str, tags: list[Tag]):
+    def expect_alb_create_web_acl(self, org_id: str, tags: list[Tag]):
         method = "create_web_acl"
-        waf_name = f"{config.AWS_RESOURCE_PREFIX}-alb-{id}-dedicated-waf"
+        waf_name = f"{config.AWS_RESOURCE_PREFIX}-dedicated-org-alb-{org_id}-waf"
 
         request = {
             "Name": waf_name,
