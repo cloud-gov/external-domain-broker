@@ -137,7 +137,7 @@ class FakeWAFV2(FakeAWS):
             "Summary": {
                 "Id": f"{waf_name}-id",
                 "Name": waf_name,
-                "ARN": f"arn:aws:wafv2::000000000000:global/webacl/{waf_name}",
+                "ARN": fake_waf_web_acl_arn(waf_name),
             }
         }
         self.stubber.add_response(method, response, request)
@@ -248,6 +248,10 @@ class FakeWAFV2(FakeAWS):
 
         response = {}
         self.stubber.add_response(method, response, request)
+
+
+def fake_waf_web_acl_arn(waf_name):
+    return f"arn:aws:wafv2::000000000000:global/webacl/{waf_name}"
 
 
 @pytest.fixture(autouse=True)

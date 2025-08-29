@@ -2,10 +2,11 @@ import pytest  # noqa F401
 
 
 from broker.extensions import config
-
+from broker.aws import wafv2_govcloud as real_wafv2_govcloud
 from broker.models import CDNDedicatedWAFServiceInstance, DedicatedALB, Operation
 from broker.tasks import waf
 from tests.lib import factories
+from tests.lib.fake_wafv2 import fake_waf_web_acl_arn
 
 
 @pytest.fixture
@@ -303,6 +304,69 @@ def test_waf_create_alb_web_acl_returns_early(
     waf.create_alb_web_acl.call_local(operation_id)
 
     wafv2_govcloud.assert_no_pending_responses()
+
+
+def test_waf_create_web_acl_does_nothing(
+    clean_db,
+    operation_id,
+    dedicated_alb_id,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    dedicated_alb.dedicated_waf_web_acl_id = "1234"
+    dedicated_alb.dedicated_waf_web_acl_name = "1234-dedicated-waf"
+    dedicated_alb.dedicated_waf_web_acl_arn = "1234-dedicated-waf-arn"
+    clean_db.session.add(dedicated_alb)
+    clean_db.session.commit()
+
+    waf.create_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        DedicatedALB,
+        dedicated_alb_id,
+    )
+    assert service_instance.dedicated_waf_web_acl_arn == "1234-dedicated-waf-arn"
+    assert service_instance.dedicated_waf_web_acl_id == "1234"
+    assert service_instance.dedicated_waf_web_acl_name == "1234-dedicated-waf"
+
+
+def test_waf_create_web_acl_force_new_create(
+    clean_db,
+    operation_id,
+    dedicated_alb_id,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    dedicated_alb.dedicated_waf_web_acl_id = "1234"
+    dedicated_alb.dedicated_waf_web_acl_name = "1234-dedicated-waf"
+    dedicated_alb.dedicated_waf_web_acl_arn = "1234-dedicated-waf-arn"
+    clean_db.session.add(dedicated_alb)
+    clean_db.session.commit()
+
+    wafv2_govcloud.expect_alb_create_web_acl(
+        dedicated_alb.dedicated_org,
+        dedicated_alb.tags,
+    )
+
+    waf.create_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb, True)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        DedicatedALB,
+        dedicated_alb_id,
+    )
+
+    waf_name = waf.generate_web_acl_name(service_instance, config.AWS_RESOURCE_PREFIX)
+    assert service_instance.dedicated_waf_web_acl_arn == fake_waf_web_acl_arn(waf_name)
+    assert service_instance.dedicated_waf_web_acl_id == f"{waf_name}-id"
+    assert service_instance.dedicated_waf_web_acl_name == waf_name
 
 
 def test_waf_associate_alb_web_acl(
