@@ -107,6 +107,45 @@ def test_create_dedicated_alb_waf_web_acls_does_nothing(
     wafv2_govcloud.assert_no_pending_responses()
 
 
+def test_create_dedicated_alb_waf_web_acls_force_create(
+    clean_db,
+    dedicated_alb_id,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    dedicated_alb.dedicated_waf_web_acl_id = "1234"
+    dedicated_alb.dedicated_waf_web_acl_name = "1234-dedicated-waf"
+    dedicated_alb.dedicated_waf_web_acl_arn = "1234-dedicated-waf-arn"
+    clean_db.session.add(dedicated_alb)
+    clean_db.session.commit()
+
+    wafv2_govcloud.expect_alb_create_web_acl(
+        dedicated_alb.dedicated_org,
+        dedicated_alb.tags,
+    )
+    waf_web_acl_arn = f"arn:aws:wafv2::000000000000:global/webacl/{config.AWS_RESOURCE_PREFIX}-dedicated-org-alb-{dedicated_alb.dedicated_org}-waf"
+    wafv2_govcloud.expect_get_web_acl(arn=waf_web_acl_arn)
+    wafv2_govcloud.expect_put_logging_configuration(
+        waf_web_acl_arn,
+        config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN,
+    )
+
+    create_dedicated_alb_waf_web_acls(True)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        DedicatedALB,
+        dedicated_alb_id,
+    )
+
+    assert service_instance.dedicated_waf_web_acl_arn == waf_web_acl_arn
+    assert service_instance.dedicated_waf_web_acl_id
+    assert service_instance.dedicated_waf_web_acl_name
+
+
 def test_associate_dedicated_alb_waf_web_acls(
     clean_db, dedicated_alb_id, dedicated_alb, wafv2_govcloud
 ):
