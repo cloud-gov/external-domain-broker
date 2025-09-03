@@ -306,6 +306,42 @@ def test_waf_create_alb_web_acl_returns_early(
     wafv2_govcloud.assert_no_pending_responses()
 
 
+def test_waf_create_alb_web_acl_only_creates_once(
+    clean_db,
+    operation_id,
+    wafv2_govcloud,
+    dedicated_alb_id,
+    dedicated_alb,
+):
+    wafv2_govcloud.expect_alb_create_web_acl(
+        dedicated_alb.dedicated_org,
+        dedicated_alb.tags,
+    )
+
+    waf.create_alb_web_acl.call_local(operation_id)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    service_instance = clean_db.session.get(
+        DedicatedALB,
+        dedicated_alb_id,
+    )
+
+    waf_name = waf.generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
+
+    assert service_instance.dedicated_waf_web_acl_arn == generate_fake_waf_web_acl_arn(
+        waf_name
+    )
+    assert service_instance.dedicated_waf_web_acl_id == f"{waf_name}-id"
+    assert service_instance.dedicated_waf_web_acl_name == waf_name
+
+    waf.create_alb_web_acl.call_local(operation_id)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+
 def test_waf_create_web_acl_does_nothing(
     clean_db,
     operation_id,
