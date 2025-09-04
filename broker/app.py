@@ -1,6 +1,7 @@
 from http import HTTPStatus
 import logging
 import sys
+import click
 
 from flask import Flask
 from openbrokerapi import api as openbrokerapi
@@ -19,7 +20,10 @@ from broker.commands.duplicate_certs import (
     remove_duplicate_alb_certs,
 )
 from broker.commands.tags import add_dedicated_alb_tags
-from broker.commands.waf import add_dedicated_alb_waf_web_acls
+from broker.commands.waf import (
+    create_dedicated_alb_waf_web_acls,
+    associate_dedicated_alb_waf_web_acls,
+)
 from broker.extensions import config, db, migrate
 from broker.errors import handle_exception
 
@@ -84,9 +88,16 @@ def create_app():
     def remove_duplicate_alb_certs_command():
         remove_duplicate_alb_certs()
 
-    @app.cli.command("add-dedicated-alb-waf-web-acls")
-    def add_dedicated_alb_waf_web_acls_command():
-        add_dedicated_alb_waf_web_acls()
+    @app.cli.command("create-dedicated-alb-waf-web-acls")
+    @click.option(
+        "--force-create-new", is_flag=True, help="Force creation of new WAF web ACLs."
+    )
+    def create_dedicated_alb_waf_web_acls_command(force_create_new):
+        create_dedicated_alb_waf_web_acls(force_create_new)
+
+    @app.cli.command("associate-dedicated-alb-waf-web-acls")
+    def associate_dedicated_alb_waf_web_acls_command():
+        associate_dedicated_alb_waf_web_acls()
 
     @app.cli.command("add-dedicated-alb-tags")
     def add_dedicated_alb_tags_command():

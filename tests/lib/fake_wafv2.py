@@ -42,16 +42,16 @@ class FakeWAFV2(FakeAWS):
 
         response = {
             "Summary": {
-                "Id": f"{waf_name}-id",
+                "Id": generate_fake_waf_web_acl_id(waf_name),
                 "Name": waf_name,
-                "ARN": f"arn:aws:wafv2::000000000000:global/webacl/{waf_name}",
+                "ARN": generate_fake_waf_web_acl_arn(waf_name),
             }
         }
         self.stubber.add_response(method, response, request)
 
-    def expect_alb_create_web_acl(self, id: str, tags: list[Tag]):
+    def expect_alb_create_web_acl(self, org_id: str, tags: list[Tag]):
         method = "create_web_acl"
-        waf_name = f"{config.AWS_RESOURCE_PREFIX}-alb-{id}-dedicated-waf"
+        waf_name = f"{config.AWS_RESOURCE_PREFIX}-dedicated-org-alb-{org_id}-waf"
 
         request = {
             "Name": waf_name,
@@ -135,9 +135,9 @@ class FakeWAFV2(FakeAWS):
 
         response = {
             "Summary": {
-                "Id": f"{waf_name}-id",
+                "Id": generate_fake_waf_web_acl_id(waf_name),
                 "Name": waf_name,
-                "ARN": f"arn:aws:wafv2::000000000000:global/webacl/{waf_name}",
+                "ARN": generate_fake_waf_web_acl_arn(waf_name),
             }
         }
         self.stubber.add_response(method, response, request)
@@ -248,6 +248,14 @@ class FakeWAFV2(FakeAWS):
 
         response = {}
         self.stubber.add_response(method, response, request)
+
+
+def generate_fake_waf_web_acl_arn(waf_name):
+    return f"arn:aws:wafv2::000000000000:global/webacl/{waf_name}"
+
+
+def generate_fake_waf_web_acl_id(waf_name):
+    return f"{waf_name}-id"
 
 
 @pytest.fixture(autouse=True)

@@ -137,17 +137,16 @@ def delete_web_acl(operation_id: str, *, operation, db, **kwargs):
 
 def generate_web_acl_name(instance, resource_prefix):
     name_parts = [resource_prefix]
-    type = ""
 
     if is_cdn_instance(instance):
-        type = "cdn"
+        name_parts.append("cdn")
+        name_parts.append(str(instance.id))
+        name_parts.append("dedicated-waf")
     elif is_dedicated_alb(instance):
-        type = "alb"
+        name_parts.append("dedicated-org-alb")
+        name_parts.append(instance.dedicated_org)
+        name_parts.append("waf")
 
-    if type:
-        name_parts.append(type)
-
-    name_parts = name_parts + [str(instance.id), "dedicated-waf"]
     return "-".join(name_parts)
 
 
@@ -250,9 +249,10 @@ def _get_web_acl_scope(instance):
         raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
 
 
-def create_web_acl(waf_client, db, instance):
+def create_web_acl(waf_client, db, instance, force_create_new=False):
     if (
-        instance.dedicated_waf_web_acl_arn
+        not force_create_new
+        and instance.dedicated_waf_web_acl_arn
         and instance.dedicated_waf_web_acl_id
         and instance.dedicated_waf_web_acl_name
     ):

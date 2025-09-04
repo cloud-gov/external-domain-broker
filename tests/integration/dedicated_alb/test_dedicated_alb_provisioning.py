@@ -251,7 +251,7 @@ def subtest_provision_creates_alb_web_acl(tasks, wafv2_govcloud, dedicated_alb_i
         dedicated_alb_id,
     )
     wafv2_govcloud.expect_alb_create_web_acl(
-        dedicated_alb_id,
+        dedicated_alb.dedicated_org,
         dedicated_alb.tags,
     )
 

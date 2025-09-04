@@ -5,6 +5,7 @@ from broker.models import (
     CDNDedicatedWAFServiceInstance,
 )
 from broker.tasks.cloudwatch import _get_alarm_name, generate_ddos_alarm_name
+from tests.lib.fake_wafv2 import generate_fake_waf_web_acl_arn
 
 
 def subtest_provision_create_web_acl(
@@ -31,9 +32,8 @@ def subtest_provision_create_web_acl(
     assert service_instance.dedicated_waf_web_acl_name
     assert service_instance.dedicated_waf_web_acl_name == web_acl_name
     assert service_instance.dedicated_waf_web_acl_arn
-    assert (
-        service_instance.dedicated_waf_web_acl_arn
-        == f"arn:aws:wafv2::000000000000:global/webacl/{web_acl_name}"
+    assert service_instance.dedicated_waf_web_acl_arn == generate_fake_waf_web_acl_arn(
+        web_acl_name
     )
 
 
