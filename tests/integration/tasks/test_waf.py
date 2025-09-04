@@ -157,7 +157,11 @@ def test_get_web_acl_scope_errors(clean_db, service_instance_id):
 
 
 def test_waf_create_web_acl_no_tags(
-    clean_db, service_instance_id, service_instance, operation_id, wafv2_commercial
+    clean_db,
+    service_instance_id,
+    service_instance,
+    operation_id,
+    wafv2_commercial,
 ):
     wafv2_commercial.expect_cdn_create_web_acl(
         service_instance.id,
@@ -175,9 +179,16 @@ def test_waf_create_web_acl_no_tags(
         CDNDedicatedWAFServiceInstance,
         service_instance_id,
     )
-    assert service_instance.dedicated_waf_web_acl_arn
-    assert service_instance.dedicated_waf_web_acl_id
-    assert service_instance.dedicated_waf_web_acl_name
+    dedicated_cdn_waf_name = waf.generate_web_acl_name(
+        service_instance, config.AWS_RESOURCE_PREFIX
+    )
+    assert service_instance.dedicated_waf_web_acl_arn == generate_fake_waf_web_acl_arn(
+        dedicated_cdn_waf_name
+    )
+    assert service_instance.dedicated_waf_web_acl_id == generate_fake_waf_web_acl_id(
+        dedicated_cdn_waf_name
+    )
+    assert service_instance.dedicated_waf_web_acl_name == dedicated_cdn_waf_name
 
 
 def test_waf_create_web_acl_unmigrated_cdn_instance(
@@ -207,9 +218,17 @@ def test_waf_create_web_acl_unmigrated_cdn_instance(
         CDNDedicatedWAFServiceInstance,
         service_instance_id,
     )
-    assert service_instance.dedicated_waf_web_acl_arn
-    assert service_instance.dedicated_waf_web_acl_id
-    assert service_instance.dedicated_waf_web_acl_name
+
+    dedicated_cdn_waf_name = waf.generate_web_acl_name(
+        service_instance, config.AWS_RESOURCE_PREFIX
+    )
+    assert service_instance.dedicated_waf_web_acl_arn == generate_fake_waf_web_acl_arn(
+        dedicated_cdn_waf_name
+    )
+    assert service_instance.dedicated_waf_web_acl_id == generate_fake_waf_web_acl_id(
+        dedicated_cdn_waf_name
+    )
+    assert service_instance.dedicated_waf_web_acl_name == dedicated_cdn_waf_name
 
 
 def test_waf_create_alb_web_acl(
