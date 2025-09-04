@@ -27,6 +27,21 @@ def dedicated_alb(clean_db, dedicated_alb_id, dedicated_alb_arn):
     return dedicated_alb
 
 
+@pytest.fixture
+def dedicated_alb_waf_name(dedicated_alb):
+    return generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
+
+
+@pytest.fixture
+def dedicated_alb_waf_id(dedicated_alb_waf_name):
+    return generate_fake_waf_web_acl_id(dedicated_alb_waf_name)
+
+
+@pytest.fixture
+def dedicated_alb_waf_arn(dedicated_alb_waf_name):
+    return generate_fake_waf_web_acl_arn(dedicated_alb_waf_name)
+
+
 def test_wait_for_web_acl_to_exist(
     clean_db,
     wafv2_govcloud,
@@ -65,16 +80,18 @@ def test_create_dedicated_alb_waf_web_acls(
     dedicated_alb_id,
     dedicated_alb,
     wafv2_govcloud,
+    dedicated_alb_waf_name,
+    dedicated_alb_waf_id,
+    dedicated_alb_waf_arn,
 ):
     wafv2_govcloud.expect_alb_create_web_acl(
         dedicated_alb.dedicated_org,
         dedicated_alb.tags,
     )
-    waf_name = generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
-    waf_web_acl_arn = generate_fake_waf_web_acl_arn(waf_name)
-    wafv2_govcloud.expect_get_web_acl(arn=waf_web_acl_arn)
+
+    wafv2_govcloud.expect_get_web_acl(arn=dedicated_alb_waf_arn)
     wafv2_govcloud.expect_put_logging_configuration(
-        waf_web_acl_arn,
+        dedicated_alb_waf_arn,
         config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN,
     )
 
@@ -89,9 +106,9 @@ def test_create_dedicated_alb_waf_web_acls(
         dedicated_alb_id,
     )
 
-    assert service_instance.dedicated_waf_web_acl_arn
-    assert service_instance.dedicated_waf_web_acl_id
-    assert service_instance.dedicated_waf_web_acl_name
+    assert service_instance.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
+    assert service_instance.dedicated_waf_web_acl_id == dedicated_alb_waf_id
+    assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
 def test_create_dedicated_alb_waf_web_acls_does_nothing(
@@ -118,6 +135,9 @@ def test_create_dedicated_alb_waf_web_acls_force_create(
     dedicated_alb_id,
     dedicated_alb,
     wafv2_govcloud,
+    dedicated_alb_waf_name,
+    dedicated_alb_waf_id,
+    dedicated_alb_waf_arn,
 ):
     dedicated_alb.dedicated_waf_web_acl_id = "1234"
     dedicated_alb.dedicated_waf_web_acl_name = "1234-dedicated-waf"
@@ -150,15 +170,16 @@ def test_create_dedicated_alb_waf_web_acls_force_create(
         dedicated_alb_id,
     )
 
-    assert service_instance.dedicated_waf_web_acl_arn == waf_web_acl_arn
-    assert service_instance.dedicated_waf_web_acl_id == generate_fake_waf_web_acl_id(
-        waf_name
-    )
-    assert service_instance.dedicated_waf_web_acl_name == waf_name
+    assert service_instance.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
+    assert service_instance.dedicated_waf_web_acl_id == dedicated_alb_waf_id
+    assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
 def test_associate_dedicated_alb_waf_web_acls(
-    clean_db, dedicated_alb_id, dedicated_alb, wafv2_govcloud
+    clean_db,
+    dedicated_alb_id,
+    dedicated_alb,
+    wafv2_govcloud,
 ):
     dedicated_alb.dedicated_waf_web_acl_id = "1234"
     dedicated_alb.dedicated_waf_web_acl_name = "1234-dedicated-waf"
@@ -182,9 +203,9 @@ def test_associate_dedicated_alb_waf_web_acls(
         dedicated_alb_id,
     )
 
-    assert service_instance.dedicated_waf_web_acl_arn
-    assert service_instance.dedicated_waf_web_acl_id
-    assert service_instance.dedicated_waf_web_acl_name
+    assert service_instance.dedicated_waf_web_acl_arn == "1234-dedicated-waf-arn"
+    assert service_instance.dedicated_waf_web_acl_id == "1234"
+    assert service_instance.dedicated_waf_web_acl_name == "1234-dedicated-waf"
     assert service_instance.dedicated_waf_associated == True
 
 
