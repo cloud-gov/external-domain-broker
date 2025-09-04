@@ -342,7 +342,7 @@ def test_waf_create_alb_web_acl_only_creates_once(
     wafv2_govcloud.assert_no_pending_responses()
 
 
-def test_waf_create_web_acl_does_nothing(
+def test_waf_create_web_acl_only_creates_once(
     clean_db,
     operation_id,
     dedicated_alb_id,
