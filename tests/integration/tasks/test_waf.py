@@ -6,7 +6,10 @@ from broker.aws import wafv2_govcloud as real_wafv2_govcloud
 from broker.models import CDNDedicatedWAFServiceInstance, DedicatedALB, Operation
 from broker.tasks import waf
 from tests.lib import factories
-from tests.lib.fake_wafv2 import generate_fake_waf_web_acl_arn
+from tests.lib.fake_wafv2 import (
+    generate_fake_waf_web_acl_arn,
+    generate_fake_waf_web_acl_id,
+)
 
 
 @pytest.fixture
@@ -334,7 +337,9 @@ def test_waf_create_alb_web_acl_only_creates_once(
     assert service_instance.dedicated_waf_web_acl_arn == generate_fake_waf_web_acl_arn(
         waf_name
     )
-    assert service_instance.dedicated_waf_web_acl_id == f"{waf_name}-id"
+    assert service_instance.dedicated_waf_web_acl_id == generate_fake_waf_web_acl_id(
+        waf_name
+    )
     assert service_instance.dedicated_waf_web_acl_name == waf_name
 
     waf.create_alb_web_acl.call_local(operation_id)
@@ -403,7 +408,9 @@ def test_waf_create_web_acl_force_new_create(
     assert service_instance.dedicated_waf_web_acl_arn == generate_fake_waf_web_acl_arn(
         waf_name
     )
-    assert service_instance.dedicated_waf_web_acl_id == f"{waf_name}-id"
+    assert service_instance.dedicated_waf_web_acl_id == generate_fake_waf_web_acl_id(
+        waf_name
+    )
     assert service_instance.dedicated_waf_web_acl_name == waf_name
 
 
