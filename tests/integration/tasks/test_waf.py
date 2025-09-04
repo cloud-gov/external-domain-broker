@@ -100,6 +100,21 @@ def dedicated_alb(
     return dedicated_alb
 
 
+@pytest.fixture
+def dedicated_alb_waf_name(dedicated_alb):
+    return waf.generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
+
+
+@pytest.fixture
+def dedicated_alb_waf_id(dedicated_alb_waf_name):
+    return generate_fake_waf_web_acl_id(dedicated_alb_waf_name)
+
+
+@pytest.fixture
+def dedicated_alb_waf_arn(dedicated_alb_waf_name):
+    return generate_fake_waf_web_acl_arn(dedicated_alb_waf_name)
+
+
 def test_waf_generate_web_acl_name_cdn(service_instance):
     assert (
         waf.generate_web_acl_name(service_instance, "cg-external-domains")
@@ -203,6 +218,9 @@ def test_waf_create_alb_web_acl(
     dedicated_alb_id,
     dedicated_alb,
     wafv2_govcloud,
+    dedicated_alb_waf_name,
+    dedicated_alb_waf_id,
+    dedicated_alb_waf_arn,
 ):
     wafv2_govcloud.expect_alb_create_web_acl(
         dedicated_alb.dedicated_org,
@@ -219,9 +237,9 @@ def test_waf_create_alb_web_acl(
         DedicatedALB,
         dedicated_alb_id,
     )
-    assert service_instance.dedicated_waf_web_acl_arn
-    assert service_instance.dedicated_waf_web_acl_id
-    assert service_instance.dedicated_waf_web_acl_name
+    assert service_instance.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
+    assert service_instance.dedicated_waf_web_acl_id == dedicated_alb_waf_id
+    assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
 def test_waf_create_alb_web_acl_with_tags(
@@ -230,6 +248,9 @@ def test_waf_create_alb_web_acl_with_tags(
     dedicated_alb_id,
     dedicated_alb,
     wafv2_govcloud,
+    dedicated_alb_waf_name,
+    dedicated_alb_waf_id,
+    dedicated_alb_waf_arn,
 ):
     dedicated_alb.tags = [{"Key": "foo", "Value": "bar"}]
     clean_db.session.add(dedicated_alb)
@@ -249,9 +270,9 @@ def test_waf_create_alb_web_acl_with_tags(
         DedicatedALB,
         dedicated_alb_id,
     )
-    assert service_instance.dedicated_waf_web_acl_arn
-    assert service_instance.dedicated_waf_web_acl_id
-    assert service_instance.dedicated_waf_web_acl_name
+    assert service_instance.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
+    assert service_instance.dedicated_waf_web_acl_id == dedicated_alb_waf_id
+    assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
 def test_waf_create_alb_web_acl_errors_no_dedicated_alb(
@@ -315,6 +336,9 @@ def test_waf_create_alb_web_acl_only_creates_once(
     wafv2_govcloud,
     dedicated_alb_id,
     dedicated_alb,
+    dedicated_alb_waf_name,
+    dedicated_alb_waf_id,
+    dedicated_alb_waf_arn,
 ):
     wafv2_govcloud.expect_alb_create_web_acl(
         dedicated_alb.dedicated_org,
@@ -332,15 +356,9 @@ def test_waf_create_alb_web_acl_only_creates_once(
         dedicated_alb_id,
     )
 
-    waf_name = waf.generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
-
-    assert service_instance.dedicated_waf_web_acl_arn == generate_fake_waf_web_acl_arn(
-        waf_name
-    )
-    assert service_instance.dedicated_waf_web_acl_id == generate_fake_waf_web_acl_id(
-        waf_name
-    )
-    assert service_instance.dedicated_waf_web_acl_name == waf_name
+    assert service_instance.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
+    assert service_instance.dedicated_waf_web_acl_id == dedicated_alb_waf_id
+    assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
     waf.create_alb_web_acl.call_local(operation_id)
 
@@ -381,6 +399,9 @@ def test_waf_create_web_acl_force_new_create(
     dedicated_alb_id,
     dedicated_alb,
     wafv2_govcloud,
+    dedicated_alb_waf_id,
+    dedicated_alb_waf_name,
+    dedicated_alb_waf_arn,
 ):
     dedicated_alb.dedicated_waf_web_acl_id = "1234"
     dedicated_alb.dedicated_waf_web_acl_name = "1234-dedicated-waf"
@@ -404,14 +425,9 @@ def test_waf_create_web_acl_force_new_create(
         dedicated_alb_id,
     )
 
-    waf_name = waf.generate_web_acl_name(service_instance, config.AWS_RESOURCE_PREFIX)
-    assert service_instance.dedicated_waf_web_acl_arn == generate_fake_waf_web_acl_arn(
-        waf_name
-    )
-    assert service_instance.dedicated_waf_web_acl_id == generate_fake_waf_web_acl_id(
-        waf_name
-    )
-    assert service_instance.dedicated_waf_web_acl_name == waf_name
+    assert service_instance.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
+    assert service_instance.dedicated_waf_web_acl_id == dedicated_alb_waf_id
+    assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
 def test_waf_associate_alb_web_acl(
