@@ -71,6 +71,26 @@ def associate_dedicated_alb_waf_web_acls():
         ):
             continue
 
+        response = wafv2_govcloud.get_web_acl_for_resource(
+            ResourceArn=dedicated_alb.alb_arn
+        )
+        associated_web_acl_arn = response["WebACL"]["ARN"]
+
+        # If the WAF web ACL actually associated with the ALB already matches the
+        # one we expect in the database, then return because there is no need to
+        # update the associated WAF web ACL
+        if (
+            associated_web_acl_arn
+            and associated_web_acl_arn == dedicated_alb.dedicated_waf_web_acl_arn
+        ):
+            logger.info("Current WAF web ACL already matches expected resource")
+            return
+
+        # Otherwise, continue and update the associated WAF web ACL. We likely
+        # reach this condition because the create_dedicated_alb_waf_web_acls
+        # command was run with force_new_create=True, which creates new WAF
+        # web ACLs and updates the values on dedicated_alb, but does not actually
+        # associate the new web ACLs with the ALB
         associate_web_acl(
             wafv2_govcloud,
             db,
