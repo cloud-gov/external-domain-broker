@@ -181,9 +181,13 @@ def test_associate_dedicated_alb_updates_waf_web_acls(
     dedicated_alb,
     wafv2_govcloud,
 ):
-    dedicated_alb.dedicated_waf_web_acl_id = "1234"
     dedicated_alb.dedicated_waf_web_acl_name = "1234-dedicated-waf"
-    dedicated_alb.dedicated_waf_web_acl_arn = "1234-dedicated-waf-arn"
+    dedicated_alb.dedicated_waf_web_acl_arn = generate_fake_waf_web_acl_arn(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
+    dedicated_alb.dedicated_waf_web_acl_id = generate_fake_waf_web_acl_id(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
     clean_db.session.add(dedicated_alb)
     clean_db.session.commit()
 
@@ -193,6 +197,9 @@ def test_associate_dedicated_alb_updates_waf_web_acls(
     wafv2_govcloud.expect_alb_associate_web_acl(
         dedicated_alb.dedicated_waf_web_acl_arn,
         dedicated_alb.alb_arn,
+    )
+    wafv2_govcloud.expect_get_web_acl_for_resource(
+        dedicated_alb.alb_arn, "1234-dedicated-waf"
     )
 
     update_dedicated_alb_waf_web_acls()
@@ -206,8 +213,12 @@ def test_associate_dedicated_alb_updates_waf_web_acls(
         dedicated_alb_id,
     )
 
-    assert service_instance.dedicated_waf_web_acl_arn == "1234-dedicated-waf-arn"
-    assert service_instance.dedicated_waf_web_acl_id == "1234"
+    assert service_instance.dedicated_waf_web_acl_arn == generate_fake_waf_web_acl_arn(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
+    assert service_instance.dedicated_waf_web_acl_id == generate_fake_waf_web_acl_id(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
     assert service_instance.dedicated_waf_web_acl_name == "1234-dedicated-waf"
     assert service_instance.dedicated_waf_associated == True
 
