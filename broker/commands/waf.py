@@ -60,7 +60,7 @@ def create_dedicated_alb_waf_web_acls(force_create_new=False):
         )
 
 
-def associate_dedicated_alb_waf_web_acls():
+def update_dedicated_alb_waf_web_acls():
     dedicated_albs = DedicatedALB.query.all()
 
     for dedicated_alb in dedicated_albs:

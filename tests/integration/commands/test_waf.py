@@ -3,7 +3,7 @@ import pytest
 from broker.commands.waf import (
     create_dedicated_alb_waf_web_acls,
     wait_for_web_acl_to_exist,
-    associate_dedicated_alb_waf_web_acls,
+    update_dedicated_alb_waf_web_acls,
 )
 from broker.tasks.waf import generate_web_acl_name
 from broker.aws import wafv2_govcloud as real_wafv2_govcloud
@@ -195,7 +195,7 @@ def test_associate_dedicated_alb_updates_waf_web_acls(
         dedicated_alb.alb_arn,
     )
 
-    associate_dedicated_alb_waf_web_acls()
+    update_dedicated_alb_waf_web_acls()
 
     wafv2_govcloud.assert_no_pending_responses()
 
@@ -215,7 +215,7 @@ def test_associate_dedicated_alb_updates_waf_web_acls(
 def test_associate_dedicated_alb_has_no_waf_web_acl(
     clean_db, dedicated_alb_id, dedicated_alb, wafv2_govcloud
 ):
-    associate_dedicated_alb_waf_web_acls()
+    update_dedicated_alb_waf_web_acls()
 
     wafv2_govcloud.assert_no_pending_responses()
 
@@ -252,7 +252,7 @@ def test_associate_dedicated_alb_does_not_update_waf_web_acls(
         dedicated_alb.alb_arn, dedicated_alb.dedicated_waf_web_acl_name
     )
 
-    associate_dedicated_alb_waf_web_acls()
+    update_dedicated_alb_waf_web_acls()
 
     wafv2_govcloud.assert_no_pending_responses()
 
