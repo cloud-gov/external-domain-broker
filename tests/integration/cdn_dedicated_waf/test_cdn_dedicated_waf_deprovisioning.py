@@ -401,6 +401,7 @@ def subtest_deprovision_deletes_web_acl(instance_model, tasks, service_instance,
     wafv2.expect_delete_web_acl(
         service_instance.dedicated_waf_web_acl_id,
         service_instance.dedicated_waf_web_acl_name,
+        "CLOUDFRONT",
     )
 
     tasks.run_queued_tasks_and_enqueue_dependents()
