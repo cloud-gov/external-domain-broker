@@ -4,6 +4,7 @@ from broker.commands.waf import (
     create_dedicated_alb_waf_web_acls,
     wait_for_web_acl_to_exist,
     update_dedicated_alb_waf_web_acls,
+    wait_for_associated_waf_web_acl_arn,
 )
 from broker.tasks.waf import generate_web_acl_name
 from broker.aws import wafv2_govcloud as real_wafv2_govcloud
@@ -268,3 +269,22 @@ def test_associate_dedicated_alb_does_not_update_waf_web_acls(
     wafv2_govcloud.assert_no_pending_responses()
 
     clean_db.session.expunge_all()
+
+
+def test_wait_for_associated_waf_web_acl_arn(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    wafv2_govcloud.expect_get_web_acl_for_resource(
+        dedicated_alb.alb_arn, "different-waf"
+    )
+    wafv2_govcloud.expect_get_web_acl_for_resource(
+        dedicated_alb.alb_arn, "1234-dedicated-waf"
+    )
+
+    wait_for_associated_waf_web_acl_arn(
+        dedicated_alb.alb_arn, generate_fake_waf_web_acl_arn("1234-dedicated-waf")
+    )
+
+    wafv2_govcloud.assert_no_pending_responses()
