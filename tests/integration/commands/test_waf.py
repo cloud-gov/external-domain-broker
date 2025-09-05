@@ -288,3 +288,21 @@ def test_wait_for_associated_waf_web_acl_arn(
     )
 
     wafv2_govcloud.assert_no_pending_responses()
+
+
+def test_wait_for_associated_waf_web_acl_arn_gives_up(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    for i in range(10):
+        wafv2_govcloud.expect_get_web_acl_for_resource(
+            dedicated_alb.alb_arn, "different-waf"
+        )
+
+    with pytest.raises(RuntimeError):
+        wait_for_associated_waf_web_acl_arn(
+            dedicated_alb.alb_arn, generate_fake_waf_web_acl_arn("1234-dedicated-waf")
+        )
+
+    wafv2_govcloud.assert_no_pending_responses()
