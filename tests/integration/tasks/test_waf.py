@@ -2,7 +2,10 @@ import pytest  # noqa F401
 
 
 from broker.extensions import config
-from broker.aws import wafv2_govcloud as real_wafv2_govcloud
+from broker.aws import (
+    wafv2_govcloud as real_wafv2_govcloud,
+    wafv2_commercial as real_wafv2_commercial,
+)
 from broker.models import CDNDedicatedWAFServiceInstance, DedicatedALB, Operation
 from broker.tasks import waf
 from tests.lib import factories
@@ -562,7 +565,13 @@ def test_waf_delete_web_acl_gives_up_after_max_retries(
         )
 
     with pytest.raises(RuntimeError):
-        waf._delete_web_acl_with_retries(operation_id, service_instance)
+        waf._delete_web_acl_with_retries(
+            real_wafv2_commercial,
+            service_instance.dedicated_waf_web_acl_name,
+            service_instance.dedicated_waf_web_acl_id,
+            "CLOUDFRONT",
+            {},
+        )
 
 
 def test_waf_delete_web_acl_handles_empty_values(
@@ -613,9 +622,16 @@ def test_waf_delete_web_acl_succeeds_on_retry(
     wafv2_commercial.expect_delete_web_acl(
         service_instance.dedicated_waf_web_acl_id,
         service_instance.dedicated_waf_web_acl_name,
+        "CLOUDFRONT",
     )
 
-    waf._delete_web_acl_with_retries(operation_id, service_instance)
+    waf._delete_web_acl_with_retries(
+        real_wafv2_commercial,
+        service_instance.dedicated_waf_web_acl_name,
+        service_instance.dedicated_waf_web_acl_id,
+        "CLOUDFRONT",
+        {},
+    )
     wafv2_commercial.assert_no_pending_responses()
 
 

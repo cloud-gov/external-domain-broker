@@ -192,15 +192,29 @@ def test_associate_dedicated_alb_updates_waf_web_acls(
     clean_db.session.add(dedicated_alb)
     clean_db.session.commit()
 
+    # Simulate case where actually associated WAF is different than what is
+    # tracked in the database
     wafv2_govcloud.expect_get_web_acl_for_resource(
-        dedicated_alb.alb_arn, "different-waf"
+        dedicated_alb.alb_arn, "obsolete-waf"
     )
+    # Associate the WAF tracked by the database with the ALB
     wafv2_govcloud.expect_alb_associate_web_acl(
         dedicated_alb.dedicated_waf_web_acl_arn,
         dedicated_alb.alb_arn,
     )
+    # Confirm the association of the update WAF to the ALB
     wafv2_govcloud.expect_get_web_acl_for_resource(
         dedicated_alb.alb_arn, "1234-dedicated-waf"
+    )
+    # Check for obsolete WAF before deletion
+    wafv2_govcloud.expect_get_web_acl(
+        id=generate_fake_waf_web_acl_id("obsolete-waf"),
+        name="obsolete-waf",
+        scope="REGIONAL",
+    )
+    # Delete obsolete WAF
+    wafv2_govcloud.expect_delete_web_acl(
+        generate_fake_waf_web_acl_id("obsolete-waf"), "obsolete-waf", "REGIONAL"
     )
 
     update_dedicated_alb_waf_web_acls()

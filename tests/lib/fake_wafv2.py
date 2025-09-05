@@ -235,11 +235,11 @@ class FakeWAFV2(FakeAWS):
             },
         )
 
-    def expect_delete_web_acl(self, id: str, name: str):
+    def expect_delete_web_acl(self, id: str, name: str, scope: str):
         self.stubber.add_response(
             "delete_web_acl",
             {},
-            {"Name": name, "Id": id, "Scope": "CLOUDFRONT", "LockToken": "fake-token"},
+            {"Name": name, "Id": id, "Scope": scope, "LockToken": "fake-token"},
         )
 
     def expect_put_logging_configuration(self, resource_arn: str, log_group_arn: str):

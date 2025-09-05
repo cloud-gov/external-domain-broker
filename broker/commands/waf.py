@@ -8,6 +8,8 @@ from broker.tasks.waf import (
     create_web_acl,
     put_waf_logging_configuration,
     associate_web_acl,
+    _delete_web_acl_with_retries,
+    _get_web_acl_scope,
 )
 
 
@@ -71,7 +73,8 @@ def update_dedicated_alb_waf_web_acls():
         ):
             continue
 
-        associated_web_acl_arn = get_associated_waf_web_acl_arn(dedicated_alb.alb_arn)
+        associated_web_acl_info = get_associated_waf_web_acl_info(dedicated_alb.alb_arn)
+        associated_web_acl_arn = get_associated_waf_web_acl_arn(associated_web_acl_info)
 
         # If the WAF web ACL actually associated with the ALB already matches the
         # one we expect in the database, then return because there is no need to
@@ -100,6 +103,14 @@ def update_dedicated_alb_waf_web_acls():
             dedicated_alb.alb_arn, dedicated_alb.dedicated_waf_web_acl_arn
         )
 
+        _delete_web_acl_with_retries(
+            wafv2_govcloud,
+            get_associated_waf_web_acl_name(associated_web_acl_info),
+            get_associated_waf_web_acl_id(associated_web_acl_info),
+            _get_web_acl_scope(dedicated_alb),
+            {},
+        )
+
 
 def wait_for_associated_waf_web_acl_arn(resource_arn, expected_waf_web_acl_arn):
     isAssociated = False
@@ -118,10 +129,24 @@ def wait_for_associated_waf_web_acl_arn(resource_arn, expected_waf_web_acl_arn):
                 f"Failed to confirm association of web ACL for {resource_arn}"
             )
         time.sleep(config.AWS_POLL_WAIT_TIME_IN_SECONDS)
-        associated_waf_web_acl_arn = get_associated_waf_web_acl_arn(resource_arn)
+        associated_waf_web_acl_arn = get_associated_waf_web_acl_arn(
+            get_associated_waf_web_acl_info(resource_arn)
+        )
         isAssociated = associated_waf_web_acl_arn == expected_waf_web_acl_arn
 
 
-def get_associated_waf_web_acl_arn(resource_arn):
+def get_associated_waf_web_acl_arn(web_acl_info):
+    return web_acl_info["ARN"]
+
+
+def get_associated_waf_web_acl_id(web_acl_info):
+    return web_acl_info["Id"]
+
+
+def get_associated_waf_web_acl_name(web_acl_info):
+    return web_acl_info["Name"]
+
+
+def get_associated_waf_web_acl_info(resource_arn):
     response = wafv2_govcloud.get_web_acl_for_resource(ResourceArn=resource_arn)
-    return response["WebACL"]["ARN"]
+    return response["WebACL"]
