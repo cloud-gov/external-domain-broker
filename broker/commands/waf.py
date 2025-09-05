@@ -71,10 +71,7 @@ def update_dedicated_alb_waf_web_acls():
         ):
             continue
 
-        response = wafv2_govcloud.get_web_acl_for_resource(
-            ResourceArn=dedicated_alb.alb_arn
-        )
-        associated_web_acl_arn = response["WebACL"]["ARN"]
+        associated_web_acl_arn = get_associated_waf_web_acl_arn(dedicated_alb.alb_arn)
 
         # If the WAF web ACL actually associated with the ALB already matches the
         # one we expect in the database, then return because there is no need to
@@ -98,3 +95,33 @@ def update_dedicated_alb_waf_web_acls():
             dedicated_alb.dedicated_waf_web_acl_arn,
             dedicated_alb.alb_arn,
         )
+
+        wait_for_associated_waf_web_acl_arn(
+            dedicated_alb.alb_arn, dedicated_alb.dedicated_waf_web_acl_arn
+        )
+
+
+def wait_for_associated_waf_web_acl_arn(resource_arn, expected_waf_web_acl_arn):
+    isAssociated = False
+    num_times = 0
+
+    while not isAssociated:
+        num_times += 1
+        if num_times > config.AWS_POLL_MAX_ATTEMPTS:
+            logger.info(
+                "Failed to confirm web ACL association",
+                extra={
+                    "resource_arn": resource_arn,
+                },
+            )
+            raise RuntimeError(
+                f"Failed to confirm association of web ACL for {resource_arn}"
+            )
+        time.sleep(config.AWS_POLL_WAIT_TIME_IN_SECONDS)
+        associated_waf_web_acl_arn = get_associated_waf_web_acl_arn(resource_arn)
+        isAssociated = associated_waf_web_acl_arn == expected_waf_web_acl_arn
+
+
+def get_associated_waf_web_acl_arn(resource_arn):
+    response = wafv2_govcloud.get_web_acl_for_resource(ResourceArn=resource_arn)
+    return response["WebACL"]["ARN"]
