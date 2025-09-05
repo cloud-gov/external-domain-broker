@@ -175,7 +175,7 @@ def test_create_dedicated_alb_waf_web_acls_force_create(
     assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
-def test_associate_dedicated_alb_waf_web_acls(
+def test_associate_dedicated_alb_updates_waf_web_acls(
     clean_db,
     dedicated_alb_id,
     dedicated_alb,
@@ -187,6 +187,9 @@ def test_associate_dedicated_alb_waf_web_acls(
     clean_db.session.add(dedicated_alb)
     clean_db.session.commit()
 
+    wafv2_govcloud.expect_get_web_acl_for_resource(
+        dedicated_alb.alb_arn, "different-waf"
+    )
     wafv2_govcloud.expect_alb_associate_web_acl(
         dedicated_alb.dedicated_waf_web_acl_arn,
         dedicated_alb.alb_arn,
@@ -209,7 +212,7 @@ def test_associate_dedicated_alb_waf_web_acls(
     assert service_instance.dedicated_waf_associated == True
 
 
-def test_associate_dedicated_alb_does_nothing(
+def test_associate_dedicated_alb_has_no_waf_web_acl(
     clean_db, dedicated_alb_id, dedicated_alb, wafv2_govcloud
 ):
     associate_dedicated_alb_waf_web_acls()
@@ -227,3 +230,30 @@ def test_associate_dedicated_alb_does_nothing(
     assert not service_instance.dedicated_waf_web_acl_id
     assert not service_instance.dedicated_waf_web_acl_name
     assert service_instance.dedicated_waf_associated == False
+
+
+def test_associate_dedicated_alb_does_not_update_waf_web_acls(
+    clean_db,
+    dedicated_alb_id,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    dedicated_alb.dedicated_waf_web_acl_name = "1234-dedicated-waf"
+    dedicated_alb.dedicated_waf_web_acl_arn = generate_fake_waf_web_acl_arn(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
+    dedicated_alb.dedicated_waf_web_acl_id = generate_fake_waf_web_acl_id(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
+    clean_db.session.add(dedicated_alb)
+    clean_db.session.commit()
+
+    wafv2_govcloud.expect_get_web_acl_for_resource(
+        dedicated_alb.alb_arn, dedicated_alb.dedicated_waf_web_acl_name
+    )
+
+    associate_dedicated_alb_waf_web_acls()
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()

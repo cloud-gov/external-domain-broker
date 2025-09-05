@@ -200,6 +200,27 @@ class FakeWAFV2(FakeAWS):
             expected_params=params,
         )
 
+    def expect_get_web_acl_for_resource(self, resource_arn: str, waf_name: str):
+        self.stubber.add_response(
+            "get_web_acl_for_resource",
+            {
+                "WebACL": {
+                    "Name": waf_name,
+                    "ARN": generate_fake_waf_web_acl_arn(waf_name),
+                    "Id": generate_fake_waf_web_acl_id(waf_name),
+                    "DefaultAction": {
+                        "Allow": {},
+                    },
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-metric",
+                    },
+                }
+            },
+            {"ResourceArn": resource_arn},
+        )
+
     def expect_delete_web_acl_lock_exception(self, id: str, name: str):
         self.stubber.add_client_error(
             "delete_web_acl",
