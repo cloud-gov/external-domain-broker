@@ -449,6 +449,26 @@ def test_waf_create_web_acl_force_new_create(
     assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
+def test_associate_web_acl_no_web_acl_arn(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    waf.associate_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb, None, None)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+
+def test_associate_web_acl_no_resource_arn(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    waf.associate_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb, "arn-1", None)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+
 def test_waf_associate_alb_web_acl(
     clean_db,
     operation_id,
