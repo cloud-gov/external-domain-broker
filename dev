@@ -20,7 +20,7 @@ main() {
     -h)
       usage
       ;;
-    docker-compose-up | dkc-up)
+    docker-compose-up | dkc-up | docker-up)
       source_env_vars
       cd docker
       docker compose up
