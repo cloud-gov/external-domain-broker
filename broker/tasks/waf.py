@@ -276,18 +276,27 @@ def create_web_acl(waf_client, db, instance, force_create_new=False):
 
     web_acl_name = generate_web_acl_name(instance, config.AWS_RESOURCE_PREFIX)
 
-    response = waf_client.create_web_acl(
-        Name=web_acl_name,
-        Scope=_get_web_acl_scope(instance),
-        DefaultAction={"Allow": {}},
-        Rules=_get_web_acl_rules(instance, web_acl_name),
-        VisibilityConfig={
-            "SampledRequestsEnabled": True,
-            "CloudWatchMetricsEnabled": True,
-            "MetricName": web_acl_name,
-        },
-        **kwargs,
-    )
+    try:
+        response = waf_client.create_web_acl(
+            Name=web_acl_name,
+            Scope=_get_web_acl_scope(instance),
+            DefaultAction={"Allow": {}},
+            Rules=_get_web_acl_rules(instance, web_acl_name),
+            VisibilityConfig={
+                "SampledRequestsEnabled": True,
+                "CloudWatchMetricsEnabled": True,
+                "MetricName": web_acl_name,
+            },
+            **kwargs,
+        )
+    except waf_client.exceptions.WAFDuplicateItemException:
+        logger.info(
+            "Web ACL already exists",
+            extra={
+                "web_acl_name": web_acl_name,
+            },
+        )
+        return
 
     instance.dedicated_waf_web_acl_arn = response["Summary"]["ARN"]
     instance.dedicated_waf_web_acl_id = response["Summary"]["Id"]
