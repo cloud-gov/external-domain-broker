@@ -142,6 +142,97 @@ class FakeWAFV2(FakeAWS):
         }
         self.stubber.add_response(method, response, request)
 
+    def expect_alb_create_web_acl_already_exists(self, org_id: str, tags: list[Tag]):
+        waf_name = f"{config.AWS_RESOURCE_PREFIX}-dedicated-org-alb-{org_id}-waf"
+
+        request = {
+            "Name": waf_name,
+            "Scope": "REGIONAL",
+            "DefaultAction": {"Allow": {}},
+            "Rules": [
+                {
+                    "Name": "AWS-AWSManagedRulesAnonymousIpList",
+                    "Priority": 10,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesAnonymousIpList",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-AWSManagedRulesAnonymousIpList",
+                    },
+                },
+                {
+                    "Name": "AWS-AWSManagedRulesAmazonIpReputationList",
+                    "Priority": 20,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesAmazonIpReputationList",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-ManagedRulesAmazonIpReputationList",
+                    },
+                },
+                {
+                    "Name": "AWS-KnownBadInputsRuleSet",
+                    "Priority": 30,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesKnownBadInputsRuleSet",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-KnownBadInputsRuleSet",
+                    },
+                },
+                {
+                    "Name": "AWSManagedRule-CoreRuleSet",
+                    "Priority": 40,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesCommonRuleSet",
+                        }
+                    },
+                    "OverrideAction": {"None": {}},
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": True,
+                        "CloudWatchMetricsEnabled": True,
+                        "MetricName": f"{waf_name}-AWS-AWSManagedRulesCommonRuleSet",
+                    },
+                },
+            ],
+            "VisibilityConfig": {
+                "SampledRequestsEnabled": True,
+                "CloudWatchMetricsEnabled": True,
+                "MetricName": waf_name,
+            },
+        }
+
+        if tags:
+            request["Tags"] = tags
+
+        self.stubber.add_client_error(
+            "create_web_acl",
+            service_error_code="WAFDuplicateItemException",
+            service_message="Already exists",
+            http_status_code=400,
+            expected_params=request,
+        )
+
     def expect_alb_associate_web_acl(self, waf_arn: str, alb_arn: str):
         method = "associate_web_acl"
 

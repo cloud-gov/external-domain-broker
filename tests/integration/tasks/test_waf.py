@@ -234,6 +234,37 @@ def test_waf_create_web_acl_unmigrated_cdn_instance(
     assert service_instance.dedicated_waf_web_acl_name == dedicated_cdn_waf_name
 
 
+def test_waf_create_web_acl_already_exists(
+    clean_db,
+    dedicated_alb_id,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    dedicated_alb.dedicated_waf_web_acl_id = "1234"
+    dedicated_alb.dedicated_waf_web_acl_name = "1234-dedicated-waf"
+    dedicated_alb.dedicated_waf_web_acl_arn = "1234-dedicated-waf-arn"
+    clean_db.session.add(dedicated_alb)
+    clean_db.session.commit()
+
+    wafv2_govcloud.expect_alb_create_web_acl_already_exists(
+        dedicated_alb.dedicated_org, dedicated_alb.tags
+    )
+
+    waf.create_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb, True)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    dedicated_alb = clean_db.session.get(
+        DedicatedALB,
+        dedicated_alb_id,
+    )
+    assert dedicated_alb.dedicated_waf_web_acl_arn == "1234-dedicated-waf-arn"
+    assert dedicated_alb.dedicated_waf_web_acl_id == "1234"
+    assert dedicated_alb.dedicated_waf_web_acl_name == "1234-dedicated-waf"
+
+
 def test_waf_create_alb_web_acl(
     clean_db,
     operation_id,
