@@ -3,7 +3,8 @@ import pytest
 from broker.commands.waf import (
     create_dedicated_alb_waf_web_acls,
     wait_for_web_acl_to_exist,
-    associate_dedicated_alb_waf_web_acls,
+    update_dedicated_alb_waf_web_acls,
+    wait_for_associated_waf_web_acl_arn,
 )
 from broker.tasks.waf import generate_web_acl_name
 from broker.aws import wafv2_govcloud as real_wafv2_govcloud
@@ -175,24 +176,48 @@ def test_create_dedicated_alb_waf_web_acls_force_create(
     assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
-def test_associate_dedicated_alb_waf_web_acls(
+def test_associate_dedicated_alb_updates_waf_web_acls(
     clean_db,
     dedicated_alb_id,
     dedicated_alb,
     wafv2_govcloud,
 ):
-    dedicated_alb.dedicated_waf_web_acl_id = "1234"
     dedicated_alb.dedicated_waf_web_acl_name = "1234-dedicated-waf"
-    dedicated_alb.dedicated_waf_web_acl_arn = "1234-dedicated-waf-arn"
+    dedicated_alb.dedicated_waf_web_acl_arn = generate_fake_waf_web_acl_arn(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
+    dedicated_alb.dedicated_waf_web_acl_id = generate_fake_waf_web_acl_id(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
     clean_db.session.add(dedicated_alb)
     clean_db.session.commit()
 
+    # Simulate case where actually associated WAF is different than what is
+    # tracked in the database
+    wafv2_govcloud.expect_get_web_acl_for_resource(
+        dedicated_alb.alb_arn, "obsolete-waf"
+    )
+    # Associate the WAF tracked by the database with the ALB
     wafv2_govcloud.expect_alb_associate_web_acl(
         dedicated_alb.dedicated_waf_web_acl_arn,
         dedicated_alb.alb_arn,
     )
+    # Confirm the association of the update WAF to the ALB
+    wafv2_govcloud.expect_get_web_acl_for_resource(
+        dedicated_alb.alb_arn, "1234-dedicated-waf"
+    )
+    # Check for obsolete WAF before deletion
+    wafv2_govcloud.expect_get_web_acl(
+        id=generate_fake_waf_web_acl_id("obsolete-waf"),
+        name="obsolete-waf",
+        scope="REGIONAL",
+    )
+    # Delete obsolete WAF
+    wafv2_govcloud.expect_delete_web_acl(
+        generate_fake_waf_web_acl_id("obsolete-waf"), "obsolete-waf", "REGIONAL"
+    )
 
-    associate_dedicated_alb_waf_web_acls()
+    update_dedicated_alb_waf_web_acls()
 
     wafv2_govcloud.assert_no_pending_responses()
 
@@ -203,16 +228,20 @@ def test_associate_dedicated_alb_waf_web_acls(
         dedicated_alb_id,
     )
 
-    assert service_instance.dedicated_waf_web_acl_arn == "1234-dedicated-waf-arn"
-    assert service_instance.dedicated_waf_web_acl_id == "1234"
+    assert service_instance.dedicated_waf_web_acl_arn == generate_fake_waf_web_acl_arn(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
+    assert service_instance.dedicated_waf_web_acl_id == generate_fake_waf_web_acl_id(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
     assert service_instance.dedicated_waf_web_acl_name == "1234-dedicated-waf"
     assert service_instance.dedicated_waf_associated == True
 
 
-def test_associate_dedicated_alb_does_nothing(
+def test_associate_dedicated_alb_has_no_waf_web_acl(
     clean_db, dedicated_alb_id, dedicated_alb, wafv2_govcloud
 ):
-    associate_dedicated_alb_waf_web_acls()
+    update_dedicated_alb_waf_web_acls()
 
     wafv2_govcloud.assert_no_pending_responses()
 
@@ -227,3 +256,67 @@ def test_associate_dedicated_alb_does_nothing(
     assert not service_instance.dedicated_waf_web_acl_id
     assert not service_instance.dedicated_waf_web_acl_name
     assert service_instance.dedicated_waf_associated == False
+
+
+def test_associate_dedicated_alb_does_not_update_waf_web_acls(
+    clean_db,
+    dedicated_alb_id,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    dedicated_alb.dedicated_waf_web_acl_name = "1234-dedicated-waf"
+    dedicated_alb.dedicated_waf_web_acl_arn = generate_fake_waf_web_acl_arn(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
+    dedicated_alb.dedicated_waf_web_acl_id = generate_fake_waf_web_acl_id(
+        dedicated_alb.dedicated_waf_web_acl_name
+    )
+    clean_db.session.add(dedicated_alb)
+    clean_db.session.commit()
+
+    wafv2_govcloud.expect_get_web_acl_for_resource(
+        dedicated_alb.alb_arn, dedicated_alb.dedicated_waf_web_acl_name
+    )
+
+    update_dedicated_alb_waf_web_acls()
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+
+def test_wait_for_associated_waf_web_acl_arn(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    wafv2_govcloud.expect_get_web_acl_for_resource(
+        dedicated_alb.alb_arn, "different-waf"
+    )
+    wafv2_govcloud.expect_get_web_acl_for_resource(
+        dedicated_alb.alb_arn, "1234-dedicated-waf"
+    )
+
+    wait_for_associated_waf_web_acl_arn(
+        dedicated_alb.alb_arn, generate_fake_waf_web_acl_arn("1234-dedicated-waf")
+    )
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+
+def test_wait_for_associated_waf_web_acl_arn_gives_up(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    for i in range(10):
+        wafv2_govcloud.expect_get_web_acl_for_resource(
+            dedicated_alb.alb_arn, "different-waf"
+        )
+
+    with pytest.raises(RuntimeError):
+        wait_for_associated_waf_web_acl_arn(
+            dedicated_alb.alb_arn, generate_fake_waf_web_acl_arn("1234-dedicated-waf")
+        )
+
+    wafv2_govcloud.assert_no_pending_responses()

@@ -125,7 +125,13 @@ def delete_web_acl(operation_id: str, *, operation, db, **kwargs):
         logger.info("No WAF web ACL to delete")
         return
 
-    _delete_web_acl_with_retries(operation_id, service_instance)
+    _delete_web_acl_with_retries(
+        wafv2_commercial,
+        service_instance.dedicated_waf_web_acl_name,
+        service_instance.dedicated_waf_web_acl_id,
+        _get_web_acl_scope(service_instance),
+        {"operation_id": operation_id},
+    )
 
     service_instance.dedicated_waf_web_acl_arn = None
     service_instance.dedicated_waf_web_acl_id = None
@@ -290,7 +296,9 @@ def create_web_acl(waf_client, db, instance, force_create_new=False):
     db.session.commit()
 
 
-def _delete_web_acl_with_retries(operation_id, service_instance):
+def _delete_web_acl_with_retries(
+    waf_client, web_acl_name, web_acl_id, scope, identifiers
+):
     notDeleted = True
     num_times = 0
 
@@ -300,28 +308,27 @@ def _delete_web_acl_with_retries(operation_id, service_instance):
             logger.info(
                 "Failed to delete web ACL",
                 extra={
-                    "operation_id": operation_id,
-                    "web_acl_name": service_instance.dedicated_waf_web_acl_name,
-                },
+                    "web_acl_name": web_acl_name,
+                }.update(identifiers),
             )
             raise RuntimeError("Failed to delete WAFv2 web ACL")
         time.sleep(config.DELETE_WEB_ACL_WAIT_RETRY_TIME)
         try:
-            response = wafv2_commercial.get_web_acl(
-                Name=service_instance.dedicated_waf_web_acl_name,
-                Id=service_instance.dedicated_waf_web_acl_id,
-                Scope="CLOUDFRONT",
+            response = waf_client.get_web_acl(
+                Name=web_acl_name,
+                Id=web_acl_id,
+                Scope=scope,
             )
-            wafv2_commercial.delete_web_acl(
-                Name=service_instance.dedicated_waf_web_acl_name,
-                Id=service_instance.dedicated_waf_web_acl_id,
-                Scope="CLOUDFRONT",
+            waf_client.delete_web_acl(
+                Name=web_acl_name,
+                Id=web_acl_id,
+                Scope=scope,
                 LockToken=response["LockToken"],
             )
             notDeleted = False
-        except wafv2_commercial.exceptions.WAFOptimisticLockException:
+        except waf_client.exceptions.WAFOptimisticLockException:
             continue
-        except wafv2_commercial.exceptions.WAFNonexistentItemException:
+        except waf_client.exceptions.WAFNonexistentItemException:
             notDeleted = False
             return
 

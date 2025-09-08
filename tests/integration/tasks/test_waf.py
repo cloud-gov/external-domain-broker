@@ -2,7 +2,10 @@ import pytest  # noqa F401
 
 
 from broker.extensions import config
-from broker.aws import wafv2_govcloud as real_wafv2_govcloud
+from broker.aws import (
+    wafv2_govcloud as real_wafv2_govcloud,
+    wafv2_commercial as real_wafv2_commercial,
+)
 from broker.models import CDNDedicatedWAFServiceInstance, DedicatedALB, Operation
 from broker.tasks import waf
 from tests.lib import factories
@@ -449,6 +452,26 @@ def test_waf_create_web_acl_force_new_create(
     assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
+def test_associate_web_acl_no_web_acl_arn(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    waf.associate_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb, None, None)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+
+def test_associate_web_acl_no_resource_arn(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+):
+    waf.associate_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb, "arn-1", None)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+
 def test_waf_associate_alb_web_acl(
     clean_db,
     operation_id,
@@ -542,7 +565,13 @@ def test_waf_delete_web_acl_gives_up_after_max_retries(
         )
 
     with pytest.raises(RuntimeError):
-        waf._delete_web_acl_with_retries(operation_id, service_instance)
+        waf._delete_web_acl_with_retries(
+            real_wafv2_commercial,
+            service_instance.dedicated_waf_web_acl_name,
+            service_instance.dedicated_waf_web_acl_id,
+            "CLOUDFRONT",
+            {},
+        )
 
 
 def test_waf_delete_web_acl_handles_empty_values(
@@ -593,9 +622,16 @@ def test_waf_delete_web_acl_succeeds_on_retry(
     wafv2_commercial.expect_delete_web_acl(
         service_instance.dedicated_waf_web_acl_id,
         service_instance.dedicated_waf_web_acl_name,
+        "CLOUDFRONT",
     )
 
-    waf._delete_web_acl_with_retries(operation_id, service_instance)
+    waf._delete_web_acl_with_retries(
+        real_wafv2_commercial,
+        service_instance.dedicated_waf_web_acl_name,
+        service_instance.dedicated_waf_web_acl_id,
+        "CLOUDFRONT",
+        {},
+    )
     wafv2_commercial.assert_no_pending_responses()
 
 

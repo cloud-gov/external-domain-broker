@@ -22,7 +22,7 @@ from broker.commands.duplicate_certs import (
 from broker.commands.tags import add_dedicated_alb_tags
 from broker.commands.waf import (
     create_dedicated_alb_waf_web_acls,
-    associate_dedicated_alb_waf_web_acls,
+    update_dedicated_alb_waf_web_acls,
 )
 from broker.extensions import config, db, migrate
 from broker.errors import handle_exception
@@ -95,9 +95,9 @@ def create_app():
     def create_dedicated_alb_waf_web_acls_command(force_create_new):
         create_dedicated_alb_waf_web_acls(force_create_new)
 
-    @app.cli.command("associate-dedicated-alb-waf-web-acls")
-    def associate_dedicated_alb_waf_web_acls_command():
-        associate_dedicated_alb_waf_web_acls()
+    @app.cli.command("update-dedicated-alb-waf-web-acls")
+    def update_dedicated_alb_waf_web_acls_command():
+        update_dedicated_alb_waf_web_acls()
 
     @app.cli.command("add-dedicated-alb-tags")
     def add_dedicated_alb_tags_command():
