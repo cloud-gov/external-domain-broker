@@ -255,7 +255,7 @@ def _get_web_acl_scope(instance):
         raise RuntimeError(f"unrecognized instance type: {instance.instance_type}")
 
 
-def create_web_acl(waf_client, db, instance, force_create_new=False):
+def create_web_acl(waf_client, db, instance, force_create_new=False) -> bool:
     if (
         not force_create_new
         and instance.dedicated_waf_web_acl_arn
@@ -268,7 +268,7 @@ def create_web_acl(waf_client, db, instance, force_create_new=False):
                 "web_acl_name": instance.dedicated_waf_web_acl_name,
             },
         )
-        return
+        return False
 
     kwargs = {}
     if instance.tags is not None:
@@ -296,13 +296,14 @@ def create_web_acl(waf_client, db, instance, force_create_new=False):
                 "web_acl_name": web_acl_name,
             },
         )
-        return
+        return False
 
     instance.dedicated_waf_web_acl_arn = response["Summary"]["ARN"]
     instance.dedicated_waf_web_acl_id = response["Summary"]["Id"]
     instance.dedicated_waf_web_acl_name = response["Summary"]["Name"]
     db.session.add(instance)
     db.session.commit()
+    return True
 
 
 def _delete_web_acl_with_retries(
