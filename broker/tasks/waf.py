@@ -268,7 +268,7 @@ def create_web_acl(waf_client, db, instance, force_create_new=False) -> bool:
                 "web_acl_name": instance.dedicated_waf_web_acl_name,
             },
         )
-        return False
+        return True
 
     kwargs = {}
     if instance.tags is not None:
@@ -296,14 +296,14 @@ def create_web_acl(waf_client, db, instance, force_create_new=False) -> bool:
                 "web_acl_name": web_acl_name,
             },
         )
-        return False
+        return True
 
     instance.dedicated_waf_web_acl_arn = response["Summary"]["ARN"]
     instance.dedicated_waf_web_acl_id = response["Summary"]["Id"]
     instance.dedicated_waf_web_acl_name = response["Summary"]["Name"]
     db.session.add(instance)
     db.session.commit()
-    return True
+    return False
 
 
 def _delete_web_acl_with_retries(
