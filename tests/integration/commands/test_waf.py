@@ -1,4 +1,5 @@
 import pytest
+import random
 
 from broker.commands.waf import (
     create_dedicated_alb_waf_web_acls,
@@ -19,9 +20,9 @@ from tests.lib.fake_wafv2 import (
 
 
 @pytest.fixture
-def dedicated_alb(clean_db, dedicated_alb_id, dedicated_alb_arn):
+def dedicated_alb(clean_db, dedicated_alb_id, dedicated_alb_arn, organization_guid):
     dedicated_alb = factories.DedicatedALBFactory.create(
-        id=dedicated_alb_id, alb_arn=dedicated_alb_arn, dedicated_org="org-1"
+        id=dedicated_alb_id, alb_arn=dedicated_alb_arn, dedicated_org=organization_guid
     )
     clean_db.session.add(dedicated_alb)
     clean_db.session.commit()
@@ -174,6 +175,55 @@ def test_create_dedicated_alb_waf_web_acls_force_create(
     assert service_instance.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
     assert service_instance.dedicated_waf_web_acl_id == dedicated_alb_waf_id
     assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
+
+
+def test_create_dedicated_alb_waf_web_acls_multiple_same_org(
+    clean_db,
+    dedicated_alb_id,
+    dedicated_alb,
+    wafv2_govcloud,
+    # dedicated_alb_waf_name,
+    # dedicated_alb_waf_id,
+    dedicated_alb_arn,
+    organization_guid,
+):
+    dedicated_alb2 = factories.DedicatedALBFactory.create(
+        id=str(random.randrange(0, 10000)),
+        alb_arn=dedicated_alb_arn,
+        dedicated_org=organization_guid,
+    )
+    clean_db.session.add(dedicated_alb2)
+    clean_db.session.commit()
+
+    wafv2_govcloud.expect_alb_create_web_acl(
+        dedicated_alb.dedicated_org,
+        dedicated_alb.tags,
+    )
+
+    waf_name = generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
+    waf_web_acl_arn = generate_fake_waf_web_acl_arn(waf_name)
+
+    wafv2_govcloud.expect_get_web_acl(arn=waf_web_acl_arn)
+    wafv2_govcloud.expect_put_logging_configuration(
+        waf_web_acl_arn,
+        config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN,
+    )
+
+    wafv2_govcloud.expect_alb_create_web_acl_already_exists(organization_guid)
+
+    create_dedicated_alb_waf_web_acls(True)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    # service_instance = clean_db.session.get(
+    #     DedicatedALB,
+    #     dedicated_alb_id,
+    # )
+    # assert service_instance.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
+    # assert service_instance.dedicated_waf_web_acl_id == dedicated_alb_waf_id
+    # assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
 def test_associate_dedicated_alb_updates_waf_web_acls(
