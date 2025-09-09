@@ -250,9 +250,10 @@ def test_waf_create_web_acl_already_exists(
         dedicated_alb.dedicated_org, dedicated_alb.tags
     )
 
-    was_created = waf.create_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb, True)
-
-    assert was_created == False
+    already_exists = waf.create_web_acl(
+        real_wafv2_govcloud, clean_db, dedicated_alb, True
+    )
+    assert already_exists == True
 
     wafv2_govcloud.assert_no_pending_responses()
 
@@ -433,8 +434,8 @@ def test_waf_create_web_acl_only_creates_once(
     clean_db.session.add(dedicated_alb)
     clean_db.session.commit()
 
-    was_created = waf.create_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb)
-    assert was_created == False
+    already_exists = waf.create_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb)
+    assert already_exists == True
 
     wafv2_govcloud.assert_no_pending_responses()
 
@@ -470,8 +471,10 @@ def test_waf_create_web_acl_force_new_create(
         dedicated_alb.tags,
     )
 
-    was_created = waf.create_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb, True)
-    assert was_created == True
+    already_exists = waf.create_web_acl(
+        real_wafv2_govcloud, clean_db, dedicated_alb, True
+    )
+    assert already_exists == False
 
     wafv2_govcloud.assert_no_pending_responses()
 
