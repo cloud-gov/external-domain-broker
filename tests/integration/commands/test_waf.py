@@ -1,5 +1,4 @@
 import pytest
-import random
 
 from broker.commands.waf import (
     create_dedicated_alb_waf_web_acls,
@@ -188,7 +187,6 @@ def test_create_dedicated_alb_waf_web_acls_force_create(
 
 def test_create_dedicated_alb_waf_web_acls_multiple_same_org(
     clean_db,
-    dedicated_alb_id,
     dedicated_alb,
     wafv2_govcloud,
     dedicated_alb_waf_name,
@@ -203,10 +201,6 @@ def test_create_dedicated_alb_waf_web_acls_multiple_same_org(
     )
     clean_db.session.add(dedicated_alb2)
     clean_db.session.commit()
-
-    # waf_name = generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
-    # waf_web_acl_arn = generate_fake_waf_web_acl_arn(waf_name)
-    # waf_web_acl_id = generate_fake_waf_web_acl_id(waf_name)
 
     # Processing first dedicated ALB will create the web ACL
     wafv2_govcloud.expect_alb_create_web_acl(
@@ -244,13 +238,12 @@ def test_create_dedicated_alb_waf_web_acls_multiple_same_org(
 
     clean_db.session.expunge_all()
 
-    # service_instance = clean_db.session.get(
-    #     DedicatedALB,
-    #     dedicated_alb_id,
-    # )
-    # assert service_instance.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
-    # assert service_instance.dedicated_waf_web_acl_id == dedicated_alb_waf_id
-    # assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
+    dedicated_albs = DedicatedALB.query.all()
+    assert len(dedicated_albs) == 2
+    for dedicated_alb in dedicated_albs:
+        assert dedicated_alb.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
+        assert dedicated_alb.dedicated_waf_web_acl_id == dedicated_alb_waf_id
+        assert dedicated_alb.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
 def test_associate_dedicated_alb_updates_waf_web_acls(
