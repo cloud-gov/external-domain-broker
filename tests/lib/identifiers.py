@@ -54,14 +54,22 @@ def origin_request_policy_id():
     return str(uuid.uuid4())
 
 
-@pytest.fixture
-def dedicated_alb_id():
+def generate_dedicated_alb_id():
     return str(random.randrange(0, 10000))
 
 
 @pytest.fixture
-def dedicated_alb_arn():
+def dedicated_alb_id():
+    return generate_dedicated_alb_id()
+
+
+def generate_dedicated_alb_arn():
     return str(uuid.uuid4())
+
+
+@pytest.fixture
+def dedicated_alb_arn():
+    return generate_dedicated_alb_arn()
 
 
 @pytest.fixture

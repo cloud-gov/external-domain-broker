@@ -40,7 +40,7 @@ def wait_for_web_acl_to_exist(
 
 def update_dedicated_alb_web_acl_info(dedicated_alb):
     response = wafv2_govcloud.get_web_acl(
-        Name=generate_web_acl_name(dedicated_alb, config.RESOURCE_PREFIX),
+        Name=generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX),
         Scope="REGIONAL",
     )
     dedicated_alb.dedicated_waf_web_acl_arn = response["WebACL"]["ARN"]

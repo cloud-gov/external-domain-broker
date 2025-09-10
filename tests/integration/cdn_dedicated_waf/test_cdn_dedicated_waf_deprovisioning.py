@@ -394,9 +394,12 @@ def subtest_deprovision_deletes_web_acl(instance_model, tasks, service_instance,
     assert service_instance.dedicated_waf_web_acl_name == "1234-dedicated-waf"
 
     wafv2.expect_get_web_acl(
-        id=service_instance.dedicated_waf_web_acl_id,
-        name=service_instance.dedicated_waf_web_acl_name,
-        scope="CLOUDFRONT",
+        service_instance.dedicated_waf_web_acl_name,
+        params={
+            "Id": service_instance.dedicated_waf_web_acl_id,
+            "Name": service_instance.dedicated_waf_web_acl_name,
+            "Scope": "CLOUDFRONT",
+        },
     )
     wafv2.expect_delete_web_acl(
         service_instance.dedicated_waf_web_acl_id,

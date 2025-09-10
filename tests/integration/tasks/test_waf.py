@@ -593,9 +593,12 @@ def test_waf_delete_web_acl_gives_up_after_max_retries(
 
     for i in range(10):
         wafv2_commercial.expect_get_web_acl(
-            id=service_instance.dedicated_waf_web_acl_id,
-            name=service_instance.dedicated_waf_web_acl_name,
-            scope="CLOUDFRONT",
+            service_instance.dedicated_waf_web_acl_name,
+            params={
+                "Id": service_instance.dedicated_waf_web_acl_id,
+                "Name": service_instance.dedicated_waf_web_acl_name,
+                "Scope": "CLOUDFRONT",
+            },
         )
         wafv2_commercial.expect_delete_web_acl_lock_exception(
             service_instance.dedicated_waf_web_acl_id,
@@ -644,18 +647,24 @@ def test_waf_delete_web_acl_succeeds_on_retry(
     )
 
     wafv2_commercial.expect_get_web_acl(
-        id=service_instance.dedicated_waf_web_acl_id,
-        name=service_instance.dedicated_waf_web_acl_name,
-        scope="CLOUDFRONT",
+        service_instance.dedicated_waf_web_acl_name,
+        params={
+            "Id": service_instance.dedicated_waf_web_acl_id,
+            "Name": service_instance.dedicated_waf_web_acl_name,
+            "Scope": "CLOUDFRONT",
+        },
     )
     wafv2_commercial.expect_delete_web_acl_lock_exception(
         service_instance.dedicated_waf_web_acl_id,
         service_instance.dedicated_waf_web_acl_name,
     )
     wafv2_commercial.expect_get_web_acl(
-        id=service_instance.dedicated_waf_web_acl_id,
-        name=service_instance.dedicated_waf_web_acl_name,
-        scope="CLOUDFRONT",
+        service_instance.dedicated_waf_web_acl_name,
+        params={
+            "Id": service_instance.dedicated_waf_web_acl_id,
+            "Name": service_instance.dedicated_waf_web_acl_name,
+            "Scope": "CLOUDFRONT",
+        },
     )
     wafv2_commercial.expect_delete_web_acl(
         service_instance.dedicated_waf_web_acl_id,
