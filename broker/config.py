@@ -28,6 +28,67 @@ def config_from_env() -> Type["Config"]:
 
 
 class Config:
+    ACME_DIRECTORY: str
+    ACME_POLL_TIMEOUT_IN_SECONDS: int
+    ALB_IAM_SERVER_CERTIFICATE_PREFIX: str
+    ALB_LISTENER_ARNS: list[str]
+    ALB_OVERLAP_SLEEP_TIME: int
+    ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN: str
+    ALLOWED_AWS_MANAGED_CACHE_POLICIES: list[str]
+    ALLOWED_AWS_MANAGED_ORIGIN_VIEWER_REQUEST_POLICIES: list[str]
+    AWS_COMMERCIAL_ACCESS_KEY_ID: str
+    AWS_COMMERCIAL_GLOBAL_REGION: str
+    AWS_COMMERCIAL_REGION: str
+    AWS_COMMERCIAL_SECRET_ACCESS_KEY: str
+    AWS_GOVCLOUD_ACCESS_KEY_ID: str
+    AWS_GOVCLOUD_REGION: str
+    AWS_GOVCLOUD_SECRET_ACCESS_KEY: str
+    AWS_RESOURCE_PREFIX: str
+    AWS_POLL_MAX_ATTEMPTS: int
+    AWS_POLL_WAIT_TIME_IN_SECONDS: int
+    BROKER_PASSWORD: str
+    BROKER_USERNAME: str
+    CDN_LOG_BUCKET: str
+    CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN: str
+    CF_API_URL: str
+    CLOUDFRONT_HOSTED_ZONE_ID: str
+    CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX: str
+    DEBUG: bool
+    DEFAULT_CLOUDFRONT_ORIGIN: str
+    DATABASE_ENCRYPTION_KEY: str
+    DEDICATED_ALB_LISTENER_ARN_MAP: dict | list
+    DELETE_WEB_ACL_WAIT_RETRY_TIME: int
+    DNS_ROOT_DOMAIN: str
+    DNS_VERIFICATION_SERVER: str
+    DNS_PROPAGATION_SLEEP_TIME: int
+    IGNORE_DUPLICATE_DOMAINS: bool
+    FLASK_ENV: str
+    MAX_CERTS_PER_ALB: int
+    REDIS_HOST: str
+    REDIS_PASSWORD: str
+    REDIS_PORT: int
+    REDIS_SSL: bool
+    REQUEST_TIMEOUT: int
+    ROUTE53_ZONE_ID: str
+    SECRET_KEY: str
+    SQLALCHEMY_TRACK_MODIFICATIONS: bool
+    SECRET_KEY: str
+    SMTP_HOST: str
+    SMTP_FROM: str
+    SMTP_CERT: str
+    SMTP_USER: str
+    SMTP_PASS: str
+    SMTP_PORT: int
+    SMTP_TO: str
+    SMTP_TLS: bool
+    SQLALCHEMY_DATABASE_URI: str
+    TESTING: bool
+    UAA_BASE_URL: str
+    UAA_CLIENT_ID: str
+    UAA_CLIENT_SECRET: str
+    UAA_TOKEN_URL: str
+    WAF_RATE_LIMIT_RULE_GROUP_ARN: str
+
     def __init__(self):
         self.env = Env()
         self.cfenv = AppEnv()
@@ -83,6 +144,50 @@ class Config:
             "Managed-AllViewer",
             "Managed-AllViewerAndCloudFrontHeaders-2022-06",
         ]
+
+        self.ACME_DIRECTORY = "NONE"
+        self.ALB_IAM_SERVER_CERTIFICATE_PREFIX = "NONE"
+        self.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN = "None"
+        self.ALB_LISTENER_ARNS = []
+        self.AWS_COMMERCIAL_ACCESS_KEY_ID = "NONE"
+        self.AWS_COMMERCIAL_GLOBAL_REGION = "NONE"
+        self.AWS_COMMERCIAL_REGION = "NONE"
+        self.AWS_COMMERCIAL_SECRET_ACCESS_KEY = "NONE"
+        self.AWS_GOVCLOUD_ACCESS_KEY_ID = "NONE"
+        self.AWS_GOVCLOUD_REGION = "NONE"
+        self.AWS_GOVCLOUD_SECRET_ACCESS_KEY = "NONE"
+        self.BROKER_PASSWORD = "NONE"
+        self.BROKER_USERNAME = "NONE"
+        self.CDN_LOG_BUCKET = "NONE"
+        self.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN = "NONE"
+        self.CF_API_URL = "NONE"
+        self.CLOUDFRONT_IAM_SERVER_CERTIFICATE_PREFIX = "NONE"
+        self.DATABASE_ENCRYPTION_KEY = "NONE"
+        self.DEDICATED_ALB_LISTENER_ARN_MAP = {}
+        self.DELETE_WEB_ACL_WAIT_RETRY_TIME = 0
+        self.DEFAULT_CLOUDFRONT_ORIGIN = "NONE"
+        self.DNS_ROOT_DOMAIN = "NONE"
+        self.DNS_VERIFICATION_SERVER = "8.8.8.8:53"
+        self.REDIS_HOST = "NONE"
+        self.REDIS_PASSWORD = "NONE"
+        self.REDIS_PORT = 1234
+        self.REDIS_SSL = False
+        self.ROUTE53_ZONE_ID = "NONE"
+        self.SECRET_KEY = "NONE"
+        self.SMTP_HOST = "NONE"
+        self.SMTP_FROM = "NONE"
+        self.SMTP_CERT = "NONE"
+        self.SMTP_USER = "NONE"
+        self.SMTP_PASS = "NONE"
+        self.SMTP_PORT = 1234
+        self.SMTP_TO = "NONE"
+        self.SMTP_TLS = True
+        self.SQLALCHEMY_DATABASE_URI = "NONE"
+        self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "NONE"
+        self.UAA_BASE_URL = "NONE"
+        self.UAA_CLIENT_ID = "NONE"
+        self.UAA_CLIENT_SECRET = "NONE"
+        self.UAA_TOKEN_URL = "NONE"
 
 
 class AppConfig(Config):
@@ -168,20 +273,20 @@ class AppConfig(Config):
 
 class ProductionConfig(AppConfig):
     def __init__(self):
-        self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"
         super().__init__()
+        self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"
 
 
 class StagingConfig(AppConfig):
     def __init__(self):
-        self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"
         super().__init__()
+        self.ACME_DIRECTORY = "https://acme-v02.api.letsencrypt.org/directory"
 
 
 class DevelopmentConfig(AppConfig):
     def __init__(self):
-        self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
         super().__init__()
+        self.ACME_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
 
 class UpgradeSchemaConfig(Config):
@@ -277,8 +382,8 @@ class DockerConfig(Config):
         self.SMTP_TO = "doesnt-matter@example.com"
         self.SMTP_FROM = "no-reply@example.com"
         self.SMTP_TLS = False
-        self.SMTP_USER = None
-        self.SMTP_PASS = None
+        self.SMTP_USER = "None"
+        self.SMTP_PASS = "None"
 
         self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "rate-limit-rule-group-fake-arn"
         self.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN = "fake-waf-cloudwatch-log-grou-arn"

@@ -4,7 +4,6 @@ from sqlalchemy import select, and_
 
 from broker.aws import wafv2_commercial, wafv2_govcloud
 from broker.extensions import config
-from broker.lib.tags import tag_key_exists
 from broker.models import DedicatedALB, ModelTypes, ServiceInstanceTypes
 from broker.tasks.huey import pipeline_operation
 
