@@ -50,17 +50,17 @@ def update_dedicated_alb_web_acl_info(waf_client: WAFV2Client, dedicated_alb):
     ]
 
     if len(filtered_web_acls) == 0:
-        return RuntimeError("Could not find web ACL")
+        raise RuntimeError("Could not find web ACL")
 
     web_acl = filtered_web_acls[0]
     if "ARN" not in web_acl:
-        return RuntimeError("Could not get ARN from web ACL")
+        raise RuntimeError("Could not get ARN from web ACL")
 
     if "Id" not in web_acl:
-        return RuntimeError("Could not get ID from web ACL")
+        raise RuntimeError("Could not get ID from web ACL")
 
     if "Name" not in web_acl:
-        return RuntimeError("Could not get name from web ACL")
+        raise RuntimeError("Could not get name from web ACL")
 
     dedicated_alb.dedicated_waf_web_acl_arn = web_acl["ARN"]
     dedicated_alb.dedicated_waf_web_acl_id = web_acl["Id"]
