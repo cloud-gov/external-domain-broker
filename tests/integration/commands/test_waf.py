@@ -222,7 +222,13 @@ def test_create_dedicated_alb_waf_web_acls_multiple_same_org(
     )
     # Get info about web ACL to set on second dedicated ALB
     wafv2_govcloud.expect_list_web_acls(
-        [dedicated_alb_waf_name],
+        [
+            {
+                "Name": dedicated_alb_waf_name,
+                "Id": dedicated_alb_waf_id,
+                "ARN": dedicated_alb_waf_arn,
+            }
+        ],
         params={
             "Scope": "REGIONAL",
         },
@@ -256,7 +262,13 @@ def test_update_dedicated_alb_web_acl_info(
     wafv2_govcloud,
 ):
     wafv2_govcloud.expect_list_web_acls(
-        [dedicated_alb_waf_name],
+        [
+            {
+                "Name": dedicated_alb_waf_name,
+                "Id": dedicated_alb_waf_id,
+                "ARN": dedicated_alb_waf_arn,
+            }
+        ],
         params={
             "Scope": "REGIONAL",
         },
@@ -282,6 +294,82 @@ def test_update_dedicated_alb_web_acl_info_finds_nothing(
 ):
     wafv2_govcloud.expect_list_web_acls(
         [],
+        params={
+            "Scope": "REGIONAL",
+        },
+    )
+
+    with pytest.raises(RuntimeError):
+        update_dedicated_alb_with_web_acl_info(real_wafv2_govcloud, dedicated_alb)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+
+def test_update_dedicated_alb_web_acl_info_detects_missing_name(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+    dedicated_alb_waf_id,
+    dedicated_alb_waf_arn,
+):
+    wafv2_govcloud.expect_list_web_acls(
+        [
+            {
+                "Id": dedicated_alb_waf_id,
+                "ARN": dedicated_alb_waf_arn,
+            }
+        ],
+        params={
+            "Scope": "REGIONAL",
+        },
+    )
+
+    with pytest.raises(RuntimeError):
+        update_dedicated_alb_with_web_acl_info(real_wafv2_govcloud, dedicated_alb)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+
+def test_update_dedicated_alb_web_acl_info_detects_missing_id(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+    dedicated_alb_waf_name,
+    dedicated_alb_waf_arn,
+):
+    wafv2_govcloud.expect_list_web_acls(
+        [
+            {
+                "Name": dedicated_alb_waf_name,
+                "ARN": dedicated_alb_waf_arn,
+            }
+        ],
+        params={
+            "Scope": "REGIONAL",
+        },
+    )
+
+    with pytest.raises(RuntimeError):
+        update_dedicated_alb_with_web_acl_info(real_wafv2_govcloud, dedicated_alb)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+
+def test_update_dedicated_alb_web_acl_info_detects_missing_arn(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+    dedicated_alb_waf_id,
+    dedicated_alb_waf_name,
+    dedicated_alb_waf_arn,
+):
+    wafv2_govcloud.expect_list_web_acls(
+        [
+            {
+                "Id": dedicated_alb_waf_id,
+                "Name": dedicated_alb_waf_name,
+            }
+        ],
         params={
             "Scope": "REGIONAL",
         },
