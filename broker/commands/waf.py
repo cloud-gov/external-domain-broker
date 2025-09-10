@@ -13,12 +13,14 @@ from broker.tasks.waf import (
     generate_web_acl_name,
 )
 
+from types_boto3_wafv2 import WAFV2Client
+
 
 logger = logging.getLogger(__name__)
 
 
 def wait_for_web_acl_to_exist(
-    waf_client, waf_web_acl_arn, retry_maximum_attempts, retry_delay_time
+    waf_client: WAFV2Client, waf_web_acl_arn, retry_maximum_attempts, retry_delay_time
 ):
     web_acl_exists = False
     num_times = 0
@@ -38,14 +40,31 @@ def wait_for_web_acl_to_exist(
             continue
 
 
-def update_dedicated_alb_web_acl_info(dedicated_alb):
-    response = wafv2_govcloud.get_web_acl(
-        Name=generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX),
-        Scope="REGIONAL",
-    )
-    dedicated_alb.dedicated_waf_web_acl_arn = response["WebACL"]["ARN"]
-    dedicated_alb.dedicated_waf_web_acl_id = response["WebACL"]["Id"]
-    dedicated_alb.dedicated_waf_web_acl_name = response["WebACL"]["Name"]
+def update_dedicated_alb_web_acl_info(waf_client: WAFV2Client, dedicated_alb):
+    response = waf_client.list_web_acls(Scope="REGIONAL")
+    waf_web_acl_name = generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
+    filtered_web_acls = [
+        web_acl
+        for web_acl in response["WebACLs"]
+        if web_acl.get("Name") == waf_web_acl_name
+    ]
+
+    if len(filtered_web_acls) == 0:
+        return RuntimeError("Could not find web ACL")
+
+    web_acl = filtered_web_acls[0]
+    if "ARN" not in web_acl:
+        return RuntimeError("Could not get ARN from web ACL")
+
+    if "Id" not in web_acl:
+        return RuntimeError("Could not get ID from web ACL")
+
+    if "Name" not in web_acl:
+        return RuntimeError("Could not get name from web ACL")
+
+    dedicated_alb.dedicated_waf_web_acl_arn = web_acl["ARN"]
+    dedicated_alb.dedicated_waf_web_acl_id = web_acl["Id"]
+    dedicated_alb.dedicated_waf_web_acl_name = web_acl["Name"]
     db.session.add(dedicated_alb)
     db.session.commit()
 
@@ -69,7 +88,7 @@ def create_dedicated_alb_waf_web_acls(force_create_new=False):
         # If the web ACL for this dedicated ALB had previously been created, it is not created
         # again, so we need to manually update the dedicated ALB record with the web ACL info
         if already_exists:
-            update_dedicated_alb_web_acl_info(dedicated_alb)
+            update_dedicated_alb_web_acl_info(wafv2_govcloud, dedicated_alb)
         else:
             wait_for_web_acl_to_exist(
                 wafv2_govcloud,
