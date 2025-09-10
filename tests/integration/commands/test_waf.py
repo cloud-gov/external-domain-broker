@@ -220,10 +220,9 @@ def test_create_dedicated_alb_waf_web_acls_multiple_same_org(
         organization_guid, dedicated_alb.tags
     )
     # Get info about web ACL to set on second dedicated ALB
-    wafv2_govcloud.expect_get_web_acl(
-        dedicated_alb_waf_name,
+    wafv2_govcloud.expect_list_web_acls(
+        [dedicated_alb_waf_name],
         params={
-            "Name": dedicated_alb_waf_name,
             "Scope": "REGIONAL",
         },
     )

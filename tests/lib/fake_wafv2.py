@@ -243,6 +243,24 @@ class FakeWAFV2(FakeAWS):
 
         self.stubber.add_response(method, {}, request)
 
+    def expect_list_web_acls(self, waf_names: list[str], params: dict):
+        web_acls = []
+        for waf_name in waf_names:
+            web_acls.append(
+                {
+                    "Name": waf_name,
+                    "ARN": generate_fake_waf_web_acl_arn(waf_name),
+                    "Id": generate_fake_waf_web_acl_id(waf_name),
+                }
+            )
+        self.stubber.add_response(
+            "list_web_acls",
+            {
+                "WebACLs": web_acls,
+            },
+            params,
+        )
+
     def expect_get_web_acl(self, waf_name: str, params: dict = {}):
         self.stubber.add_response(
             "get_web_acl",
