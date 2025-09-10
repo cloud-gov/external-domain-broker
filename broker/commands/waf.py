@@ -10,6 +10,7 @@ from broker.tasks.waf import (
     associate_web_acl,
     _delete_web_acl_with_retries,
     _get_web_acl_scope,
+    generate_web_acl_name,
 )
 
 
@@ -37,6 +38,18 @@ def wait_for_web_acl_to_exist(
             continue
 
 
+def update_dedicated_alb_web_acl_info(dedicated_alb):
+    response = wafv2_govcloud.get_web_acl(
+        Name=generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX),
+        Scope="REGIONAL",
+    )
+    dedicated_alb.dedicated_waf_web_acl_arn = response["WebACL"]["ARN"]
+    dedicated_alb.dedicated_waf_web_acl_id = response["WebACL"]["Id"]
+    dedicated_alb.dedicated_waf_web_acl_name = response["WebACL"]["Name"]
+    db.session.add(dedicated_alb)
+    db.session.commit()
+
+
 def create_dedicated_alb_waf_web_acls(force_create_new=False):
     dedicated_albs = DedicatedALB.query.all()
 
@@ -50,13 +63,20 @@ def create_dedicated_alb_waf_web_acls(force_create_new=False):
         ):
             continue
 
-        create_web_acl(wafv2_govcloud, db, dedicated_alb, force_create_new)
-        wait_for_web_acl_to_exist(
-            wafv2_govcloud,
-            dedicated_alb.dedicated_waf_web_acl_arn,
-            config.AWS_POLL_MAX_ATTEMPTS,
-            config.AWS_POLL_WAIT_TIME_IN_SECONDS,
+        already_exists = create_web_acl(
+            wafv2_govcloud, db, dedicated_alb, force_create_new
         )
+        # If the web ACL for this dedicated ALB had previously been created, it is not created
+        # again, so we need to manually update the dedicated ALB record with the web ACL info
+        if already_exists:
+            update_dedicated_alb_web_acl_info(dedicated_alb)
+        else:
+            wait_for_web_acl_to_exist(
+                wafv2_govcloud,
+                dedicated_alb.dedicated_waf_web_acl_arn,
+                config.AWS_POLL_MAX_ATTEMPTS,
+                config.AWS_POLL_WAIT_TIME_IN_SECONDS,
+            )
         put_waf_logging_configuration(
             wafv2_govcloud, dedicated_alb, config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN
         )

@@ -12,6 +12,10 @@ from broker.extensions import config
 from broker.models import DedicatedALB
 from broker.tasks.waf import generate_web_acl_name
 from tests.lib import factories
+from tests.lib.identifiers import (
+    generate_dedicated_alb_arn,
+    generate_dedicated_alb_id,
+)
 from tests.lib.fake_wafv2 import (
     generate_fake_waf_web_acl_arn,
     generate_fake_waf_web_acl_id,
@@ -19,9 +23,9 @@ from tests.lib.fake_wafv2 import (
 
 
 @pytest.fixture
-def dedicated_alb(clean_db, dedicated_alb_id, dedicated_alb_arn):
+def dedicated_alb(clean_db, dedicated_alb_id, dedicated_alb_arn, organization_guid):
     dedicated_alb = factories.DedicatedALBFactory.create(
-        id=dedicated_alb_id, alb_arn=dedicated_alb_arn, dedicated_org="org-1"
+        id=dedicated_alb_id, alb_arn=dedicated_alb_arn, dedicated_org=organization_guid
     )
     clean_db.session.add(dedicated_alb)
     clean_db.session.commit()
@@ -44,14 +48,15 @@ def dedicated_alb_waf_arn(dedicated_alb_waf_name):
 
 
 def test_wait_for_web_acl_to_exist(
-    clean_db,
-    wafv2_govcloud,
+    clean_db, wafv2_govcloud, dedicated_alb_waf_name, dedicated_alb_waf_arn
 ):
-    wafv2_govcloud.expect_get_web_acl_not_found(arn="1234-dedicated-waf-arn")
-    wafv2_govcloud.expect_get_web_acl_not_found(arn="1234-dedicated-waf-arn")
-    wafv2_govcloud.expect_get_web_acl(arn="1234-dedicated-waf-arn")
+    wafv2_govcloud.expect_get_web_acl_not_found(arn=dedicated_alb_waf_arn)
+    wafv2_govcloud.expect_get_web_acl_not_found(arn=dedicated_alb_waf_arn)
+    wafv2_govcloud.expect_get_web_acl(
+        dedicated_alb_waf_name, params={"ARN": dedicated_alb_waf_arn}
+    )
 
-    wait_for_web_acl_to_exist(real_wafv2_govcloud, "1234-dedicated-waf-arn", 3, 0)
+    wait_for_web_acl_to_exist(real_wafv2_govcloud, dedicated_alb_waf_arn, 3, 0)
 
     wafv2_govcloud.assert_no_pending_responses()
 
@@ -90,7 +95,9 @@ def test_create_dedicated_alb_waf_web_acls(
         dedicated_alb.tags,
     )
 
-    wafv2_govcloud.expect_get_web_acl(arn=dedicated_alb_waf_arn)
+    wafv2_govcloud.expect_get_web_acl(
+        dedicated_alb_waf_name, params={"ARN": dedicated_alb_waf_arn}
+    )
     wafv2_govcloud.expect_put_logging_configuration(
         dedicated_alb_waf_arn,
         config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN,
@@ -154,7 +161,9 @@ def test_create_dedicated_alb_waf_web_acls_force_create(
     waf_name = generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
     waf_web_acl_arn = generate_fake_waf_web_acl_arn(waf_name)
 
-    wafv2_govcloud.expect_get_web_acl(arn=waf_web_acl_arn)
+    wafv2_govcloud.expect_get_web_acl(
+        dedicated_alb_waf_name, params={"ARN": waf_web_acl_arn}
+    )
     wafv2_govcloud.expect_put_logging_configuration(
         waf_web_acl_arn,
         config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN,
@@ -174,6 +183,67 @@ def test_create_dedicated_alb_waf_web_acls_force_create(
     assert service_instance.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
     assert service_instance.dedicated_waf_web_acl_id == dedicated_alb_waf_id
     assert service_instance.dedicated_waf_web_acl_name == dedicated_alb_waf_name
+
+
+def test_create_dedicated_alb_waf_web_acls_multiple_same_org(
+    clean_db,
+    dedicated_alb,
+    wafv2_govcloud,
+    dedicated_alb_waf_name,
+    dedicated_alb_waf_id,
+    dedicated_alb_waf_arn,
+    organization_guid,
+):
+    dedicated_alb2 = factories.DedicatedALBFactory.create(
+        id=generate_dedicated_alb_id(),
+        alb_arn=generate_dedicated_alb_arn(),
+        dedicated_org=organization_guid,
+    )
+    clean_db.session.add(dedicated_alb2)
+    clean_db.session.commit()
+
+    # Processing first dedicated ALB will create the web ACL
+    wafv2_govcloud.expect_alb_create_web_acl(
+        dedicated_alb.dedicated_org,
+        dedicated_alb.tags,
+    )
+    wafv2_govcloud.expect_get_web_acl(
+        dedicated_alb_waf_name, params={"ARN": dedicated_alb_waf_arn}
+    )
+    wafv2_govcloud.expect_put_logging_configuration(
+        dedicated_alb_waf_arn,
+        config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN,
+    )
+
+    # For second dedicated ALB, should find that web ACL already exists
+    wafv2_govcloud.expect_alb_create_web_acl_already_exists(
+        organization_guid, dedicated_alb.tags
+    )
+    # Get info about web ACL to set on second dedicated ALB
+    wafv2_govcloud.expect_get_web_acl(
+        dedicated_alb_waf_name,
+        params={
+            "Name": dedicated_alb_waf_name,
+            "Scope": "REGIONAL",
+        },
+    )
+    wafv2_govcloud.expect_put_logging_configuration(
+        dedicated_alb_waf_arn,
+        config.ALB_WAF_CLOUDWATCH_LOG_GROUP_ARN,
+    )
+
+    create_dedicated_alb_waf_web_acls(True)
+
+    wafv2_govcloud.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    dedicated_albs = DedicatedALB.query.all()
+    assert len(dedicated_albs) == 2
+    for dedicated_alb in dedicated_albs:
+        assert dedicated_alb.dedicated_waf_web_acl_arn == dedicated_alb_waf_arn
+        assert dedicated_alb.dedicated_waf_web_acl_id == dedicated_alb_waf_id
+        assert dedicated_alb.dedicated_waf_web_acl_name == dedicated_alb_waf_name
 
 
 def test_associate_dedicated_alb_updates_waf_web_acls(
@@ -208,9 +278,12 @@ def test_associate_dedicated_alb_updates_waf_web_acls(
     )
     # Check for obsolete WAF before deletion
     wafv2_govcloud.expect_get_web_acl(
-        id=generate_fake_waf_web_acl_id("obsolete-waf"),
-        name="obsolete-waf",
-        scope="REGIONAL",
+        "obsolete-waf",
+        params={
+            "Id": generate_fake_waf_web_acl_id("obsolete-waf"),
+            "Name": "obsolete-waf",
+            "Scope": "REGIONAL",
+        },
     )
     # Delete obsolete WAF
     wafv2_govcloud.expect_delete_web_acl(

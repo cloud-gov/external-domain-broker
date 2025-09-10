@@ -1,8 +1,6 @@
 import boto3
 
 from broker.extensions import config
-from broker.lib.cache_policy_manager import CachePolicyManager
-from broker.lib.origin_request_policy_manager import OriginRequestPolicyManager
 
 commercial_session = boto3.Session(
     region_name=config.AWS_COMMERCIAL_REGION,

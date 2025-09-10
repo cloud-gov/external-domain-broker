@@ -243,26 +243,12 @@ class FakeWAFV2(FakeAWS):
 
         self.stubber.add_response(method, {}, request)
 
-    def expect_get_web_acl(
-        self, id: str = "", name: str = "", arn: str = "", scope: str = ""
-    ):
-        params = {}
-        if id:
-            params["Id"] = id
-
-        if name:
-            params["Name"] = name
-
-        if arn:
-            params["ARN"] = arn
-
-        if scope:
-            params["Scope"] = scope
-
+    def expect_get_web_acl(self, waf_name: str, params: dict = {}):
         self.stubber.add_response(
             "get_web_acl",
             {
                 "LockToken": "fake-token",
+                "WebACL": self._get_web_acl_info(waf_name),
             },
             params,
         )
@@ -295,22 +281,25 @@ class FakeWAFV2(FakeAWS):
         self.stubber.add_response(
             "get_web_acl_for_resource",
             {
-                "WebACL": {
-                    "Name": waf_name,
-                    "ARN": generate_fake_waf_web_acl_arn(waf_name),
-                    "Id": generate_fake_waf_web_acl_id(waf_name),
-                    "DefaultAction": {
-                        "Allow": {},
-                    },
-                    "VisibilityConfig": {
-                        "SampledRequestsEnabled": True,
-                        "CloudWatchMetricsEnabled": True,
-                        "MetricName": f"{waf_name}-metric",
-                    },
-                }
+                "WebACL": self._get_web_acl_info(waf_name),
             },
             {"ResourceArn": resource_arn},
         )
+
+    def _get_web_acl_info(self, waf_name: str):
+        return {
+            "Name": waf_name,
+            "ARN": generate_fake_waf_web_acl_arn(waf_name),
+            "Id": generate_fake_waf_web_acl_id(waf_name),
+            "DefaultAction": {
+                "Allow": {},
+            },
+            "VisibilityConfig": {
+                "SampledRequestsEnabled": True,
+                "CloudWatchMetricsEnabled": True,
+                "MetricName": f"{waf_name}-metric",
+            },
+        }
 
     def expect_delete_web_acl_lock_exception(self, id: str, name: str):
         self.stubber.add_client_error(

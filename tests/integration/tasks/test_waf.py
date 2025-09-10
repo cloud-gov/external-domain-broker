@@ -250,7 +250,10 @@ def test_waf_create_web_acl_already_exists(
         dedicated_alb.dedicated_org, dedicated_alb.tags
     )
 
-    waf.create_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb, True)
+    already_exists = waf.create_web_acl(
+        real_wafv2_govcloud, clean_db, dedicated_alb, True
+    )
+    assert already_exists == True
 
     wafv2_govcloud.assert_no_pending_responses()
 
@@ -431,7 +434,8 @@ def test_waf_create_web_acl_only_creates_once(
     clean_db.session.add(dedicated_alb)
     clean_db.session.commit()
 
-    waf.create_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb)
+    already_exists = waf.create_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb)
+    assert already_exists == True
 
     wafv2_govcloud.assert_no_pending_responses()
 
@@ -467,7 +471,10 @@ def test_waf_create_web_acl_force_new_create(
         dedicated_alb.tags,
     )
 
-    waf.create_web_acl(real_wafv2_govcloud, clean_db, dedicated_alb, True)
+    already_exists = waf.create_web_acl(
+        real_wafv2_govcloud, clean_db, dedicated_alb, True
+    )
+    assert already_exists == False
 
     wafv2_govcloud.assert_no_pending_responses()
 
@@ -586,9 +593,12 @@ def test_waf_delete_web_acl_gives_up_after_max_retries(
 
     for i in range(10):
         wafv2_commercial.expect_get_web_acl(
-            id=service_instance.dedicated_waf_web_acl_id,
-            name=service_instance.dedicated_waf_web_acl_name,
-            scope="CLOUDFRONT",
+            service_instance.dedicated_waf_web_acl_name,
+            params={
+                "Id": service_instance.dedicated_waf_web_acl_id,
+                "Name": service_instance.dedicated_waf_web_acl_name,
+                "Scope": "CLOUDFRONT",
+            },
         )
         wafv2_commercial.expect_delete_web_acl_lock_exception(
             service_instance.dedicated_waf_web_acl_id,
@@ -637,18 +647,24 @@ def test_waf_delete_web_acl_succeeds_on_retry(
     )
 
     wafv2_commercial.expect_get_web_acl(
-        id=service_instance.dedicated_waf_web_acl_id,
-        name=service_instance.dedicated_waf_web_acl_name,
-        scope="CLOUDFRONT",
+        service_instance.dedicated_waf_web_acl_name,
+        params={
+            "Id": service_instance.dedicated_waf_web_acl_id,
+            "Name": service_instance.dedicated_waf_web_acl_name,
+            "Scope": "CLOUDFRONT",
+        },
     )
     wafv2_commercial.expect_delete_web_acl_lock_exception(
         service_instance.dedicated_waf_web_acl_id,
         service_instance.dedicated_waf_web_acl_name,
     )
     wafv2_commercial.expect_get_web_acl(
-        id=service_instance.dedicated_waf_web_acl_id,
-        name=service_instance.dedicated_waf_web_acl_name,
-        scope="CLOUDFRONT",
+        service_instance.dedicated_waf_web_acl_name,
+        params={
+            "Id": service_instance.dedicated_waf_web_acl_id,
+            "Name": service_instance.dedicated_waf_web_acl_name,
+            "Scope": "CLOUDFRONT",
+        },
     )
     wafv2_commercial.expect_delete_web_acl(
         service_instance.dedicated_waf_web_acl_id,
