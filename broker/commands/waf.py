@@ -40,7 +40,7 @@ def wait_for_web_acl_to_exist(
             continue
 
 
-def update_dedicated_alb_web_acl_info(waf_client: WAFV2Client, dedicated_alb):
+def update_dedicated_alb_with_web_acl_info(waf_client: WAFV2Client, dedicated_alb):
     response = waf_client.list_web_acls(Scope="REGIONAL")
     waf_web_acl_name = generate_web_acl_name(dedicated_alb, config.AWS_RESOURCE_PREFIX)
     filtered_web_acls = [
@@ -88,7 +88,7 @@ def create_dedicated_alb_waf_web_acls(force_create_new=False):
         # If the web ACL for this dedicated ALB had previously been created, it is not created
         # again, so we need to manually update the dedicated ALB record with the web ACL info
         if already_exists:
-            update_dedicated_alb_web_acl_info(wafv2_govcloud, dedicated_alb)
+            update_dedicated_alb_with_web_acl_info(wafv2_govcloud, dedicated_alb)
         else:
             wait_for_web_acl_to_exist(
                 wafv2_govcloud,

@@ -5,7 +5,7 @@ from broker.commands.waf import (
     wait_for_web_acl_to_exist,
     update_dedicated_alb_waf_web_acls,
     wait_for_associated_waf_web_acl_arn,
-    update_dedicated_alb_web_acl_info,
+    update_dedicated_alb_with_web_acl_info,
 )
 from broker.tasks.waf import generate_web_acl_name
 from broker.aws import wafv2_govcloud as real_wafv2_govcloud
@@ -261,7 +261,7 @@ def test_update_dedicated_alb_web_acl_info(
             "Scope": "REGIONAL",
         },
     )
-    update_dedicated_alb_web_acl_info(real_wafv2_govcloud, dedicated_alb)
+    update_dedicated_alb_with_web_acl_info(real_wafv2_govcloud, dedicated_alb)
 
     wafv2_govcloud.assert_no_pending_responses()
 
@@ -288,7 +288,7 @@ def test_update_dedicated_alb_web_acl_info_finds_nothing(
     )
 
     with pytest.raises(RuntimeError):
-        update_dedicated_alb_web_acl_info(real_wafv2_govcloud, dedicated_alb)
+        update_dedicated_alb_with_web_acl_info(real_wafv2_govcloud, dedicated_alb)
 
     wafv2_govcloud.assert_no_pending_responses()
 
