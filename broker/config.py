@@ -181,7 +181,7 @@ class Config:
         self.SMTP_PASS = None
         self.SMTP_PORT = 1234
         self.SMTP_TO = "NONE"
-        self.SMTP_TLS = True
+        self.SMTP_TLS = False
         self.SQLALCHEMY_DATABASE_URI = "NONE"
         self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "NONE"
         self.UAA_BASE_URL = "NONE"
