@@ -23,6 +23,10 @@ botocore==1.39.3
     #   -r pip-tools/../requirements.txt
     #   boto3
     #   s3transfer
+botocore-stubs==1.40.27
+    # via
+    #   -r pip-tools/../requirements.txt
+    #   types-boto3
 build==1.2.2.post1
     # via pip-tools
 certifi==2025.7.9
@@ -257,6 +261,20 @@ sqlalchemy==2.0.41
     #   sqlalchemy-utils
 sqlalchemy-utils==0.41.2
     # via -r pip-tools/../requirements.txt
+types-awscrt==0.27.6
+    # via
+    #   -r pip-tools/../requirements.txt
+    #   botocore-stubs
+types-boto3[wafv2]==1.40.28
+    # via -r pip-tools/../requirements.txt
+types-boto3-wafv2==1.40.16
+    # via
+    #   -r pip-tools/../requirements.txt
+    #   types-boto3
+types-s3transfer==0.13.1
+    # via
+    #   -r pip-tools/../requirements.txt
+    #   types-boto3
 typing-extensions==4.14.1
     # via
     #   -r pip-tools/../requirements.txt
@@ -264,6 +282,8 @@ typing-extensions==4.14.1
     #   mypy
     #   pyopenssl
     #   sqlalchemy
+    #   types-boto3
+    #   types-boto3-wafv2
 tzdata==2025.2
     # via faker
 ujson==5.10.0
