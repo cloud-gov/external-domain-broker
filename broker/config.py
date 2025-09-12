@@ -1,7 +1,7 @@
 """Flask config class."""
 
 import re
-from typing import Type
+from typing import Type, Optional
 
 from cfenv import AppEnv
 from environs import Env
@@ -75,9 +75,9 @@ class Config:
     SECRET_KEY: str
     SMTP_HOST: str
     SMTP_FROM: str
-    SMTP_CERT: str
-    SMTP_USER: str
-    SMTP_PASS: str
+    SMTP_CERT: Optional[str]
+    SMTP_USER: Optional[str]
+    SMTP_PASS: Optional[str]
     SMTP_PORT: int
     SMTP_TO: str
     SMTP_TLS: bool
@@ -176,12 +176,12 @@ class Config:
         self.SECRET_KEY = "NONE"
         self.SMTP_HOST = "NONE"
         self.SMTP_FROM = "NONE"
-        self.SMTP_CERT = "NONE"
-        self.SMTP_USER = "NONE"
-        self.SMTP_PASS = "NONE"
+        self.SMTP_CERT = None
+        self.SMTP_USER = None
+        self.SMTP_PASS = None
         self.SMTP_PORT = 1234
         self.SMTP_TO = "NONE"
-        self.SMTP_TLS = True
+        self.SMTP_TLS = False
         self.SQLALCHEMY_DATABASE_URI = "NONE"
         self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "NONE"
         self.UAA_BASE_URL = "NONE"
@@ -382,8 +382,8 @@ class DockerConfig(Config):
         self.SMTP_TO = "doesnt-matter@example.com"
         self.SMTP_FROM = "no-reply@example.com"
         self.SMTP_TLS = False
-        self.SMTP_USER = "None"
-        self.SMTP_PASS = "None"
+        self.SMTP_USER = None
+        self.SMTP_PASS = None
 
         self.WAF_RATE_LIMIT_RULE_GROUP_ARN = "rate-limit-rule-group-fake-arn"
         self.CDN_WAF_CLOUDWATCH_LOG_GROUP_ARN = "fake-waf-cloudwatch-log-grou-arn"
