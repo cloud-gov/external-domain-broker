@@ -123,7 +123,7 @@ def update_dedicated_alb_waf_web_acls():
             and associated_web_acl_arn == dedicated_alb.dedicated_waf_web_acl_arn
         ):
             logger.info("Current WAF web ACL already matches expected resource")
-            return
+            continue
 
         # Otherwise, continue and update the associated WAF web ACL. We likely
         # reach this condition because the create_dedicated_alb_waf_web_acls
