@@ -51,9 +51,9 @@ RUN cp /test/certs/pebble.minica.pem /usr/local/share/ca-certificates/pebble.crt
   && update-ca-certificates
 
 # Install Redis
-# cloud.gov currently supports redis 5.0
-COPY --from=redis:5.0 /usr/local/bin/redis-server /usr/bin/redis-server
-COPY --from=redis:5.0 /usr/local/bin/redis-cli /usr/bin/redis-cli
+# cloud.gov currently supports redis 6.2
+COPY --from=redis:6.2 /usr/local/bin/redis-server /usr/bin/redis-server
+COPY --from=redis:6.2 /usr/local/bin/redis-cli /usr/bin/redis-cli
 
 # Install CF CLI
 RUN curl -sSL "https://cli.run.pivotal.io/stable?release=linux64-binary&version=6.45.0" \
