@@ -45,7 +45,7 @@ RUN ln -s /usr/bin/python3.11 /usr/bin/python
 # Install Fake Pebble LE server
 COPY --from=ghcr.io/letsencrypt/pebble:latest /app /usr/bin/pebble
 COPY --from=ghcr.io/letsencrypt/pebble:latest /test/ /test/
-COPY --from=lghcr.io/letsencrypt/pebble-challtestsrv:latest /app /usr/bin/pebble-challtestsrv
+COPY --from=ghcr.io/letsencrypt/pebble-challtestsrv:latest /app /usr/bin/pebble-challtestsrv
 
 RUN cp /test/certs/pebble.minica.pem /usr/local/share/ca-certificates/pebble.crt \
   && update-ca-certificates
