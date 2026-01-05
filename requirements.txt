@@ -75,7 +75,7 @@ markupsafe==3.0.2
     #   jinja2
     #   mako
     #   werkzeug
-marshmallow==4.0.0
+marshmallow==4.1.2
     # via environs
 openbrokerapi==4.7.1
     # via -r pip-tools/requirements.in
@@ -133,7 +133,7 @@ typing-extensions==4.14.1
     #   sqlalchemy
     #   types-boto3
     #   types-boto3-wafv2
-urllib3==2.6.0
+urllib3==2.6.2
     # via
     #   botocore
     #   requests
