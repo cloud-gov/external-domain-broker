@@ -88,8 +88,6 @@ furl==2.1.4
     #   cfenv
 gprof2dot==2025.4.14
     # via pytest-profiling
-greenlet==3.3.0
-    # via sqlalchemy
 gunicorn==23.0.0
     # via -r pip-tools/../requirements.txt
 huey==2.5.3
@@ -130,7 +128,7 @@ markupsafe==3.0.2
     #   jinja2
     #   mako
     #   werkzeug
-marshmallow==4.0.0
+marshmallow==4.1.2
     # via
     #   -r pip-tools/../requirements.txt
     #   environs
@@ -292,7 +290,7 @@ ujson==5.10.0
     # via
     #   python-jsonrpc-server
     #   python-language-server
-urllib3==2.6.0
+urllib3==2.6.2
     # via
     #   -r pip-tools/../requirements.txt
     #   botocore
