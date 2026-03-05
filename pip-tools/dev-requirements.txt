@@ -67,7 +67,7 @@ faker==40.4.0
     # via factory-boy
 flake8==7.3.0
     # via -r pip-tools/dev-requirements.in
-flask==3.1.2
+flask==3.1.3
     # via
     #   -r pip-tools/../requirements.txt
     #   flask-migrate
@@ -88,6 +88,10 @@ furl==2.1.4
     #   cfenv
 gprof2dot==2025.4.14
     # via pytest-profiling
+greenlet==3.3.2
+    # via
+    #   -r pip-tools/../requirements.txt
+    #   sqlalchemy
 gunicorn==25.0.3
     # via -r pip-tools/../requirements.txt
 huey==2.6.0
