@@ -37,7 +37,7 @@ dnspython==2.8.0
     # via -r pip-tools/requirements.in
 environs==14.5.0
     # via -r pip-tools/requirements.in
-flask==3.1.2
+flask==3.1.3
     # via
     #   -r pip-tools/requirements.in
     #   flask-migrate
@@ -51,6 +51,8 @@ flask-sqlalchemy==3.1.1
     #   flask-migrate
 furl==2.1.4
     # via cfenv
+greenlet==3.3.2
+    # via sqlalchemy
 gunicorn==25.0.3
     # via -r pip-tools/requirements.in
 huey==2.6.0
