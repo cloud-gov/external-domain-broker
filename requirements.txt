@@ -89,7 +89,7 @@ psycopg2==2.9.11
     # via -r pip-tools/requirements.in
 pycparser==3.0
     # via cffi
-pyopenssl==25.3.0
+pyopenssl==26.0.0
     # via acme
 pyrfc3339==2.1.0
     # via acme
