@@ -28,7 +28,7 @@ charset-normalizer==3.4.6
     # via requests
 click==8.3.1
     # via flask
-cryptography==46.0.6
+cryptography==46.0.7
     # via
     #   acme
     #   josepy
