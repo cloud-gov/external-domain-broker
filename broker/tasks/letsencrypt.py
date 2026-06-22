@@ -103,21 +103,22 @@ def generate_private_key(operation_id: int, *, operation, db, **kwargs):
     certificate.subject_alternative_names = service_instance.domain_names
 
     # Create private key.
-    private_key = OpenSSL.crypto.PKey()
-    private_key.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
     # Get the PEM
-    private_key_pem_in_binary = OpenSSL.crypto.dump_privatekey(
-        OpenSSL.crypto.FILETYPE_PEM, private_key
+    private_key_bytes = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
     )
 
     # Get the CSR for the domains
     csr_pem_in_binary = crypto_util.make_csr(
-        private_key_pem_in_binary, service_instance.domain_names
+        private_key_bytes, service_instance.domain_names
     )
 
     # Store them as text for later
-    certificate.private_key_pem = private_key_pem_in_binary.decode("utf-8")
+    certificate.private_key_pem = private_key_bytes.decode("utf-8")
     certificate.csr_pem = csr_pem_in_binary.decode("utf-8")
 
     db.session.add(service_instance)
