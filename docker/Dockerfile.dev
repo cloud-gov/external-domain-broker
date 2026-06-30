@@ -59,6 +59,13 @@ COPY --from=redis:6.2 /usr/local/bin/redis-cli /usr/bin/redis-cli
 RUN curl -sSL "https://github.com/cloudfoundry/cli/releases/download/v8.18.3/cf8-cli_8.18.3_linux_x86-64.tgz" \
   | tar -zx -C /usr/local/bin
 
+#update file ownership
+RUN mv /usr/local/bin/cf8 /usr/local/bin/cf
+RUN chown root:root /usr/local/bin/cf
+
+#cleanup cf files
+RUN rm -f /usr/local/bin/LICENSE /usr/local/bin/NOTICE
+
 # Install PostgreSQL
 ENV PG_MAJOR=15
 RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main"\
