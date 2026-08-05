@@ -4,13 +4,13 @@
 #
 #    pip-compile --output-file=pip-tools/dev-requirements.txt pip-tools/dev-requirements.in
 #
-acme==5.6.0
+acme==5.7.0
     # via -r pip-tools/../requirements.txt
-alembic==1.18.4
+alembic==1.19.0
     # via
     #   -r pip-tools/../requirements.txt
     #   flask-migrate
-ast-serialize==0.5.0
+ast-serialize==0.6.0
     # via mypy
 black==26.5.1
     # via -r pip-tools/dev-requirements.in
@@ -18,9 +18,9 @@ blinker==1.9.0
     # via
     #   -r pip-tools/../requirements.txt
     #   flask
-boto3==1.43.34
+boto3==1.43.64
     # via -r pip-tools/../requirements.txt
-botocore==1.43.34
+botocore==1.43.64
     # via
     #   -r pip-tools/../requirements.txt
     #   boto3
@@ -31,29 +31,29 @@ botocore-stubs==1.43.14
     #   types-boto3
 build==1.5.0
     # via pip-tools
-certifi==2026.6.17
+certifi==2026.7.22
     # via
     #   -r pip-tools/../requirements.txt
     #   requests
 cfenv==0.5.3
     # via -r pip-tools/../requirements.txt
-cffi==2.0.0
+cffi==2.1.1
     # via
     #   -r pip-tools/../requirements.txt
     #   cryptography
-charset-normalizer==3.4.7
+charset-normalizer==3.4.9
     # via
     #   -r pip-tools/../requirements.txt
     #   requests
-click==8.4.1
+click==8.4.2
     # via
     #   -r pip-tools/../requirements.txt
     #   black
     #   flask
     #   pip-tools
-coverage[toml]==7.14.2
+coverage[toml]==7.15.3
     # via pytest-cov
-cryptography==49.0.0
+cryptography==50.0.0
     # via
     #   -r pip-tools/../requirements.txt
     #   acme
@@ -61,11 +61,11 @@ cryptography==49.0.0
     #   pyopenssl
 dnspython==2.8.0
     # via -r pip-tools/../requirements.txt
-environs==15.0.1
+environs==15.1.0
     # via -r pip-tools/../requirements.txt
 factory-boy==3.3.3
     # via -r pip-tools/dev-requirements.in
-faker==40.23.0
+faker==40.36.0
     # via factory-boy
 flake8==7.3.0
     # via -r pip-tools/dev-requirements.in
@@ -92,7 +92,7 @@ gprof2dot==2025.4.14
     # via pytest-profiling
 gunicorn==26.0.0
     # via -r pip-tools/../requirements.txt
-huey==3.0.3
+huey==3.3.4
     # via -r pip-tools/../requirements.txt
 idna==3.18
     # via
@@ -119,9 +119,9 @@ josepy==2.2.0
     # via
     #   -r pip-tools/../requirements.txt
     #   acme
-librt==0.11.0
+librt==0.13.0
     # via mypy
-mako==1.3.12
+mako==1.4.1
     # via
     #   -r pip-tools/../requirements.txt
     #   alembic
@@ -138,7 +138,7 @@ marshmallow==4.3.0
     #   environs
 mccabe==0.7.0
     # via flake8
-mypy==2.1.0
+mypy==2.3.0
     # via -r pip-tools/dev-requirements.in
 mypy-extensions==1.1.0
     # via
@@ -150,7 +150,7 @@ orderedmultidict==1.0.2
     # via
     #   -r pip-tools/../requirements.txt
     #   furl
-packaging==26.2
+packaging==26.3
     # via
     #   -r pip-tools/../requirements.txt
     #   black
@@ -165,9 +165,9 @@ pathspec==1.1.1
     # via
     #   black
     #   mypy
-pip-tools==7.5.3
+pip-tools==7.6.0
     # via -r pip-tools/dev-requirements.in
-platformdirs==4.10.0
+platformdirs==4.11.0
     # via
     #   black
     #   pytoolconfig
@@ -192,7 +192,7 @@ pyflakes==3.4.0
     # via flake8
 pygments==2.20.0
     # via pytest
-pyopenssl==26.3.0
+pyopenssl==26.4.0
     # via
     #   -r pip-tools/../requirements.txt
     #   acme
@@ -231,7 +231,7 @@ pytokens==0.4.1
     # via black
 pytoolconfig[global]==1.3.1
     # via rope
-redis==8.0.0
+redis==8.1.0
     # via -r pip-tools/../requirements.txt
 requests==2.34.2
     # via
@@ -243,7 +243,7 @@ requests-mock==1.12.1
     # via -r pip-tools/dev-requirements.in
 rope==1.14.0
     # via -r pip-tools/dev-requirements.in
-s3transfer==0.19.0
+s3transfer==0.19.2
     # via
     #   -r pip-tools/../requirements.txt
     #   boto3
@@ -268,9 +268,9 @@ types-awscrt==0.34.1
     # via
     #   -r pip-tools/../requirements.txt
     #   botocore-stubs
-types-boto3[wafv2]==1.43.34
+types-boto3[wafv2]==1.43.64
     # via -r pip-tools/../requirements.txt
-types-boto3-wafv2==1.43.30
+types-boto3-wafv2==1.43.63
     # via
     #   -r pip-tools/../requirements.txt
     #   types-boto3
@@ -278,7 +278,7 @@ types-s3transfer==0.16.0
     # via
     #   -r pip-tools/../requirements.txt
     #   types-boto3
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   -r pip-tools/../requirements.txt
     #   alembic
