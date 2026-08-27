@@ -2,6 +2,8 @@ ARG base_image
 
 FROM ${base_image} AS base
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 # When building locally, these should be set to your UID/GID.  That way, any
 # files written to the $PWD mount will be owned by you.  This is not
 # necessary (or wanted) when building in Concourse.
@@ -23,6 +25,13 @@ RUN useradd \
   --no-user-group \
   --non-unique \
   "$USER"
+
+RUN apt update \
+  && apt install -y --no-install-recommends \
+  software-properties-common \
+  gpg-agent
+
+RUN add-apt-repository ppa:deadsnakes/ppa
 
 RUN apt update \
   && apt -y upgrade \
@@ -51,9 +60,9 @@ RUN cp /test/certs/pebble.minica.pem /usr/local/share/ca-certificates/pebble.crt
   && update-ca-certificates
 
 # Install Redis
-# cloud.gov currently supports redis 6.2
-COPY --from=redis:6.2 /usr/local/bin/redis-server /usr/bin/redis-server
-COPY --from=redis:6.2 /usr/local/bin/redis-cli /usr/bin/redis-cli
+# cloud.gov currently supports redis 7.0
+COPY --from=redis:7.0 /usr/local/bin/redis-server /usr/bin/redis-server
+COPY --from=redis:7.0 /usr/local/bin/redis-cli /usr/bin/redis-cli
 
 # Install CF CLI
 RUN curl -sSL "https://github.com/cloudfoundry/cli/releases/download/v8.18.4/cf8-cli_8.18.4_linux_x86-64.tgz" \
@@ -95,7 +104,7 @@ RUN python -m pip install awscli
 # Install local python packages
 RUN python -m pip install --upgrade pip
 COPY pip-tools/dev-requirements.txt ./pip-tools/
-RUN python -m pip install -r pip-tools/dev-requirements.txt
+RUN python -m pip install -r pip-tools/dev-requirements.txt --ignore-installed
 
 WORKDIR /app
 RUN chown "$UID:$GID" .
