@@ -416,3 +416,35 @@ def test_delete_previous_server_certificate_error_on_get_server_certificate(
         delete_previous_server_certificate.call_local(operation_id)
 
     iam.assert_no_pending_responses()
+
+
+@pytest.mark.parametrize(
+    "instance_factory",
+    [
+        factories.ALBServiceInstanceFactory,
+        factories.CDNServiceInstanceFactory,
+        factories.DedicatedALBServiceInstanceFactory,
+        factories.CDNDedicatedWAFServiceInstanceFactory,
+    ],
+)
+def test_delete_previous_server_certificate_missing_server_certificate_name(
+    clean_db,
+    iam,
+    service_instance_without_new_cert,
+    operation_id,
+    new_cert_id,
+):
+    certificate = clean_db.session.get(Certificate, new_cert_id)
+    certificate.iam_server_certificate_name = None
+    clean_db.session.add(certificate)
+    clean_db.session.commit()
+
+    delete_previous_server_certificate.call_local(operation_id)
+
+    # there should be no calls to IAM to get or to delete the certificate
+    iam.assert_no_pending_responses()
+
+    clean_db.session.expunge_all()
+
+    certificate = clean_db.session.get(Certificate, new_cert_id)
+    assert not certificate
