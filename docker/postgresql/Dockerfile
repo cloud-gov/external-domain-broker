@@ -1,4 +1,4 @@
-FROM postgres:11
+FROM postgres:15
 
 ARG UID=2000
 ARG GID=2000
@@ -6,27 +6,27 @@ ARG USER=pg-user
 ARG PGPASSWORD
 
 RUN grep -q ":$GID:" /etc/group \
- || groupadd --gid="$GID" "$USER"
+  || groupadd --gid="$GID" "$USER"
 
 RUN useradd \
-      --home-dir="/home/$USER" \
-      --no-log-init \
-      --create-home \
-      --shell=/bin/bash \
-      --gid=$GID \
-      --uid=$UID \
-      --no-user-group \
-      --non-unique \
-      "$USER"
-      
+  --home-dir="/home/$USER" \
+  --no-log-init \
+  --create-home \
+  --shell=/bin/bash \
+  --gid=$GID \
+  --uid=$UID \
+  --no-user-group \
+  --non-unique \
+  "$USER"
+
 ENV PGDATA /tmp/data
 ENV PGCONFIG /tmp/data/postgresql.conf
 ENV PATH="$PATH:/usr/lib/postgresql/$PG_MAJOR/bin"
 ENV POSTGRES_HOST_AUTH_METHOD=trust
 
 RUN mkdir -p "$PGDATA" \
- && chown -R "$USER:" "$PGDATA" \
- && chmod 700 "$PGDATA"
+  && chown -R "$USER:" "$PGDATA" \
+  && chmod 700 "$PGDATA"
 
 USER $UID:$GID
 

@@ -155,6 +155,9 @@ def _delete_previous_server_ceritficate(service_instance, iam, db):
 
 
 def _delete_server_certificate(iam, certificate):
+    if not certificate.iam_server_certificate_name:
+        return
+
     cert_is_deleted = False
     try:
         iam.get_server_certificate(
