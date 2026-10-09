@@ -131,7 +131,7 @@ typing-extensions==4.16.0
     #   sqlalchemy
     #   types-boto3
     #   types-boto3-wafv2
-urllib3==2.7.0
+urllib3==2.8.0
     # via
     #   botocore
     #   requests
