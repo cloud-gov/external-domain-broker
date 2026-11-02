@@ -31,7 +31,7 @@ botocore-stubs==1.43.14
     #   types-boto3
 build==1.5.0
     # via pip-tools
-certifi==2026.7.22
+certifi==2026.10.19
     # via
     #   -r requirements.txt
     #   requests
@@ -59,7 +59,7 @@ cryptography==50.0.0
     #   acme
     #   josepy
     #   pyopenssl
-dnspython==2.8.0
+dnspython==2.9.0
     # via -r requirements.txt
 environs==15.1.0
     # via -r requirements.txt
@@ -125,7 +125,7 @@ josepy==2.2.0
     #   acme
 librt==0.13.0
     # via mypy
-mako==1.4.2
+mako==1.4.3
     # via
     #   -r requirements.txt
     #   alembic

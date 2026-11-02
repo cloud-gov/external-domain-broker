@@ -33,7 +33,7 @@ cryptography==50.0.0
     #   acme
     #   josepy
     #   pyopenssl
-dnspython==2.8.0
+dnspython==2.9.0
     # via -r pip-tools/requirements.in
 environs==15.1.0
     # via -r pip-tools/requirements.in
